@@ -145,8 +145,8 @@ export default function MinhasCompras() {
               <Ticket className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900">Nenhuma compra encontrada</h3>
               <p className="text-gray-500 mt-2">Não encontramos pedidos vinculados a este CPF.</p>
-              <Button asChild variant="outline" className="mt-6">
-                <Link href="/">Ver Rifas Disponíveis</Link>
+              <Button render={<Link href="/" />} nativeButton={false} variant="outline" className="mt-6">
+                Ver Rifas Disponíveis
               </Button>
             </div>
           ) : (
@@ -202,10 +202,8 @@ export default function MinhasCompras() {
                         </div>
                         
                         {pedido.status === 'pendente' && (
-                          <Button asChild size="sm" className="bg-green-600 hover:bg-green-700">
-                            <Link href={`/${pedido.slug || pedido.rifa_id}`}>
-                              Pagar Agora
-                            </Link>
+                          <Button render={<Link href={`/${pedido.slug || pedido.rifa_id}`} />} nativeButton={false} size="sm" className="bg-green-600 hover:bg-green-700">
+                            Pagar Agora
                           </Button>
                         )}
                       </div>

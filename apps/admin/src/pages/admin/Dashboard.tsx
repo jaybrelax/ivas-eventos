@@ -354,7 +354,7 @@ export default function Dashboard() {
 
       {/* Cards de Métricas Rápidas */}
       <div className="lg:col-span-7 grid gap-4 md:grid-cols-2 lg:grid-cols-4 order-4 lg:order-3">
-        <Card>
+        <Card className={userRole === 'admin' ? "md:col-span-2 lg:col-span-2" : ""}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               {userRole === 'admin' ? 'Total Arrecadado' : 'Minhas Vendas (R$)'}
@@ -362,8 +362,27 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ {stats.totalArrecadado.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Baseado em pedidos pagos</p>
+            {userRole === 'admin' ? (
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-0.5">Bruto</p>
+                  <div className="text-2xl font-bold">R$ {stats.totalArrecadado.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                  <p className="text-[10px] text-muted-foreground">Pedidos pagos</p>
+                </div>
+                <div className="flex-1 border-l border-slate-200 pl-4">
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-0.5">Líquido (MP)</p>
+                  <div className="text-2xl font-bold">R$ {(stats.totalArrecadado * 0.9901).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Taxa (0.99%): <span className="text-red-500 font-medium">-R$ {(stats.totalArrecadado * 0.0099).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">R$ {stats.totalArrecadado.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
+                <p className="text-xs text-muted-foreground">Baseado em pedidos pagos</p>
+              </>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -389,16 +408,6 @@ export default function Dashboard() {
               <CardContent>
                 <div className="text-2xl font-bold">{stats.taxaConversao.toFixed(1)}%</div>
                 <p className="text-xs text-muted-foreground">Pedidos pagos / Total de pedidos</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Guardiões</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.vendedoresAtivos}</div>
-                <p className="text-xs text-muted-foreground">Vendedores ativos no sistema</p>
               </CardContent>
             </Card>
           </>

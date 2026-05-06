@@ -277,25 +277,24 @@ app.post("/api/pagamento/pix", async (req, res) => {
     const msgPix = `📌 *PEDIDO REALIZADO: #${displayId}*\n\nOlá *${cliente.nome}*!\n\nSua reserva para a rifa *${rifa?.titulo || 'Sorteio'}* foi gerada com sucesso.\n\n🔢 *NÚMEROS:* ${numeros.join(', ')}\n💰 *TOTAL:* R$ ${valorTotal.toFixed(2).replace('.', ',')}\n\n⚠️ _Sua reserva expira em ${timeout} minutos._\n\n*💸 CÓDIGO PIX COPIA E COLA:* 👇`;
     const telefoneCliente = cliente.telefone;
 
-    // ✅ Responde IMEDIATAMENTE com o QR Code
+    // 📲 Dispara WhatsApp ANTES de responder para evitar interrupção no Vercel
+    try {
+      await enviarMensagemWhatsApp(telefoneCliente, msgPix);
+      if (pixCode) {
+        // Reduzido o delay para 500ms para não atrasar muito o checkout do cliente
+        await new Promise(r => setTimeout(r, 500));
+        await enviarMensagemWhatsApp(telefoneCliente, pixCode.trim());
+      }
+    } catch (err) {
+      console.error("[WhatsApp] Erro ao enviar mensagem inicial:", err);
+    }
+
+    // ✅ Responde com o QR Code
     res.json({
       qr_code_base64: mpResponse.point_of_interaction?.transaction_data?.qr_code_base64,
       qr_code: pixCode,
       payment_id: mpResponse.id,
       pedido_id: pedido.id
-    });
-
-    // 📲 Dispara WhatsApp em background APÓS responder (fora do try/catch)
-    setImmediate(async () => {
-      try {
-        await enviarMensagemWhatsApp(telefoneCliente, msgPix);
-        if (pixCode) {
-          await new Promise(r => setTimeout(r, 2000));
-          await enviarMensagemWhatsApp(telefoneCliente, pixCode.trim());
-        }
-      } catch (err) {
-        console.error("[WhatsApp Background] Erro:", err);
-      }
     });
 
   } catch (error: any) {

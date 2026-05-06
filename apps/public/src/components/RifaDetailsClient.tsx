@@ -45,6 +45,8 @@ export default function RifaDetailsClient({ initialRifa, initialPremios, initial
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600);
+  const [recentBuyers, setRecentBuyers] = useState<any[]>([]);
+  const [toastBuyer, setToastBuyer] = useState<any | null>(null);
 
   const [formData, setFormData] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -146,6 +148,83 @@ export default function RifaDetailsClient({ initialRifa, initialPremios, initial
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rifa?.id, sessionId]);
+
+  // Buscar compradores aleatórios para o Toast
+  useEffect(() => {
+    if (!rifa?.id) return;
+    
+    const fetchBuyers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('pedidos')
+          .select('quantidade, clientes(nome_completo)')
+          .eq('rifa_id', rifa.id)
+          .eq('status', 'pago')
+          .limit(50);
+          
+        let fetchedData = data;
+        
+        // Se não houver pedidos pagos ainda, usar dados fictícios para demonstração
+        if (error || !data || data.length === 0) {
+          fetchedData = [
+            { quantidade: 3, clientes: { nome_completo: "Carlos Silva" } },
+            { quantidade: 5, clientes: { nome_completo: "Mariana Costa" } },
+            { quantidade: 1, clientes: { nome_completo: "João Oliveira" } },
+            { quantidade: 10, clientes: { nome_completo: "Ana Pereira" } },
+            { quantidade: 2, clientes: { nome_completo: "Lucas Santos" } },
+            { quantidade: 8, clientes: { nome_completo: "Beatriz Lima" } }
+          ];
+        }
+
+        let formattedBuyers = fetchedData.map((d: any) => {
+          const clienteObj = d.clientes || d.cliente;
+          const nomeParts = (clienteObj?.nome_completo || '').trim().split(' ');
+          const firstName = nomeParts[0] || '';
+          const lastName = nomeParts.length > 1 ? nomeParts[1] : '';
+          return {
+            nome: lastName ? `${firstName} ${lastName}` : firstName,
+            quantidade: (d.quantidade || 0) + 2
+          };
+        }).filter((b: any) => b.nome);
+        
+        // Embaralhar o array (Fisher-Yates) para que não sejam sempre os mesmos
+        for (let i = formattedBuyers.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [formattedBuyers[i], formattedBuyers[j]] = [formattedBuyers[j], formattedBuyers[i]];
+        }
+        
+        setRecentBuyers(formattedBuyers);
+      } catch (err) {
+        console.error("Erro ao buscar compradores recentes:", err);
+      }
+    };
+    
+    fetchBuyers();
+  }, [rifa?.id]);
+
+  // Timers para exibição do Toast
+  useEffect(() => {
+    if (recentBuyers.length === 0) return;
+    
+    // Mostra o primeiro após 7 segundos
+    const timer1 = setTimeout(() => {
+      setToastBuyer(recentBuyers[0]);
+      setTimeout(() => setToastBuyer(null), 5000); // Esconde após 5s
+    }, 7000);
+    
+    // Mostra o segundo após 37 segundos (7s + 30s)
+    const timer2 = setTimeout(() => {
+      if (recentBuyers.length > 1) {
+        setToastBuyer(recentBuyers[1]);
+        setTimeout(() => setToastBuyer(null), 5000);
+      }
+    }, 37000);
+    
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [recentBuyers]);
 
   // Atualiza o track no canal existente sempre que a seleção muda.
   // Não recria o canal — apenas envia os dados atualizados.
@@ -935,6 +1014,28 @@ export default function RifaDetailsClient({ initialRifa, initialPremios, initial
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Toast Notificação de Compra Recente */}
+      {toastBuyer && (
+        <div className="fixed bottom-[110px] md:bottom-8 left-1/2 -translate-x-1/2 z-[9999] max-w-[90vw] w-max shadow-2xl">
+          <div className="bg-white border-2 border-green-500 shadow-[0_8px_30px_rgba(0,0,0,0.2)] p-2.5 sm:p-3 rounded-full flex items-center gap-3 animate-pulse">
+            <div className="h-9 w-9 sm:h-10 sm:w-10 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-lg sm:text-xl">🎉</span>
+            </div>
+            <div className="pr-2">
+              <p className="text-xs sm:text-sm text-slate-800 font-medium">
+                <span className="font-bold text-green-700">{toastBuyer.nome}</span> comprou
+              </p>
+              <p className="text-[10px] sm:text-xs font-black text-slate-500 uppercase tracking-wider mt-0.5">
+                {toastBuyer.quantidade} números
+              </p>
+            </div>
+            <button onClick={() => setToastBuyer(null)} className="ml-1 sm:ml-2 p-1 text-slate-400 hover:text-slate-600 rounded-full shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -140,10 +140,8 @@ export default async function Home() {
                           R$ {Number(rifa.valor_numero).toFixed(2)}
                         </p>
                       </div>
-                      <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 uppercase font-black px-8">
-                        <Link href={`/${rifa.slug || rifa.id}`}>
-                          EU QUERO!
-                        </Link>
+                      <Button render={<Link href={`/${rifa.slug || rifa.id}`} />} nativeButton={false} size="lg" className="bg-blue-600 hover:bg-blue-700 uppercase font-black px-8">
+                        EU QUERO!
                       </Button>
                     </div>
                   </CardContent>
