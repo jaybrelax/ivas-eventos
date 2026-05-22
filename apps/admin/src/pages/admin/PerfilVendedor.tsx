@@ -223,34 +223,34 @@ export default function PerfilVendedor() {
     <div className="space-y-6 max-w-2xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Meu Perfil</h1>
-          <p className="text-gray-500">Gerencie suas informações de Guardião.</p>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Meu Perfil</h1>
+          <p className="text-slate-500 dark:text-slate-400">Gerencie suas informações de Guardião.</p>
         </div>
       </div>
 
       <div className="grid gap-6">
         {/* Banner de Referência */}
-        <Card className="bg-blue-600 text-white overflow-hidden border-none">
+        <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white overflow-hidden border-none shadow-lg shadow-indigo-500/10">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
-                <Key className="h-8 w-8 text-white" />
+              <div className="bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/10">
+                <Key className="h-8 w-8 text-white/95" />
               </div>
               <div>
-                <p className="text-blue-100 text-xs font-bold uppercase tracking-widest mb-1">Meu Código de Referência</p>
-                <p className="text-3xl font-black tracking-tighter">{vendedor?.codigo_ref || '---'}</p>
+                <p className="text-blue-100/80 text-xs font-bold uppercase tracking-widest mb-1">Meu Código de Referência</p>
+                <p className="text-3xl font-black tracking-tighter text-white">{vendedor?.codigo_ref || '---'}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <UserCircle className="h-5 w-5 text-gray-400" /> Dados Pessoais
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-md bg-card">
+          <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
+            <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <UserCircle className="h-5 w-5 text-slate-400 dark:text-slate-500" /> Dados Pessoais
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleSave} className="space-y-4">
               <div className="flex flex-col items-center mb-6">
                 <input 
@@ -265,7 +265,7 @@ export default function PerfilVendedor() {
                   className="relative group cursor-pointer"
                   onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
                 >
-                  <Avatar className="h-24 w-24 ring-4 ring-gray-100 dark:ring-slate-800">
+                  <Avatar className="h-24 w-24 ring-4 ring-slate-100 dark:ring-slate-800">
                     <AvatarImage src={vendedor?.avatar_url} />
                     <AvatarFallback className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 text-2xl font-bold uppercase">
                       {formData.nome.charAt(0)}
@@ -275,30 +275,42 @@ export default function PerfilVendedor() {
                     {uploadingAvatar ? <Loader2 className="h-6 w-6 text-white animate-spin" /> : <Camera className="h-6 w-6 text-white" />}
                   </div>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">Clique para mudar a foto</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Clique para mudar a foto</p>
               </div>
 
               <div className="space-y-1.5">
-                <Label>Nome e Sobrenome</Label>
-                <Input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} />
+                <Label className="text-slate-700 dark:text-slate-300 font-semibold">Nome e Sobrenome</Label>
+                <Input 
+                  value={formData.nome} 
+                  onChange={e => setFormData({...formData, nome: e.target.value})} 
+                  className="border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-400"
+                />
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>E-mail (Acesso)</Label>
-                  <Input disabled value={formData.email} className="bg-gray-50" />
-                  <p className="text-[10px] text-gray-400 italic">O e-mail não pode ser alterado.</p>
+                  <Label className="text-slate-700 dark:text-slate-300 font-semibold">E-mail (Acesso)</Label>
+                  <Input 
+                    disabled 
+                    value={formData.email} 
+                    className="bg-slate-50 dark:bg-slate-900/50 border-slate-250 dark:border-slate-800 text-slate-500 dark:text-slate-400" 
+                  />
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 italic">O e-mail não pode ser alterado.</p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>WhatsApp</Label>
-                  <Input value={formData.telefone} onChange={e => setFormData({...formData, telefone: e.target.value})} />
+                  <Label className="text-slate-700 dark:text-slate-300 font-semibold">WhatsApp</Label>
+                  <Input 
+                    value={formData.telefone} 
+                    onChange={e => setFormData({...formData, telefone: e.target.value})} 
+                    className="border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-400"
+                  />
                 </div>
               </div>
 
-              <hr className="my-6 border-gray-100" />
+              <hr className="my-6 border-slate-100 dark:border-slate-800" />
 
               <div className="flex justify-end">
-                <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700">
+                <Button type="submit" disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white">
                   {saving ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Save className="h-4 w-4 mr-2" />}
                   Salvar Alterações
                 </Button>
@@ -308,36 +320,43 @@ export default function PerfilVendedor() {
         </Card>
 
         {/* Segurança / Troca de Senha */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Key className="h-5 w-5 text-gray-400" /> Segurança
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-md bg-card">
+          <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-4">
+            <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <Key className="h-5 w-5 text-slate-400 dark:text-slate-500" /> Segurança
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <form onSubmit={handleChangePassword} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Nova Senha</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 font-semibold">Nova Senha</Label>
                   <Input 
                     type="password" 
                     placeholder="Mínimo 6 caracteres"
                     value={passwordData.password}
                     onChange={e => setPasswordData({...passwordData, password: e.target.value})}
+                    className="border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-400"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Confirmar Nova Senha</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 font-semibold">Confirmar Nova Senha</Label>
                   <Input 
                     type="password" 
                     placeholder="Repita a nova senha"
                     value={passwordData.confirmPassword}
                     onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})}
+                    className="border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-400"
                   />
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <Button type="submit" disabled={changingPassword || !passwordData.password} variant="outline" className="border-blue-200 text-blue-700 hover:bg-blue-50">
+                <Button 
+                  type="submit" 
+                  disabled={changingPassword || !passwordData.password} 
+                  variant="outline" 
+                  className="border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/20"
+                >
                   {changingPassword ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Key className="h-4 w-4 mr-2" />}
                   Atualizar Senha
                 </Button>

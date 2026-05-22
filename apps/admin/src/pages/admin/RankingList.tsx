@@ -88,9 +88,9 @@ export default function RankingList() {
   const getRankIcon = (index: number) => {
     switch (index) {
       case 0: return <Trophy className="h-6 w-6 text-yellow-500" />;
-      case 1: return <Medal className="h-6 w-6 text-gray-400" />;
+      case 1: return <Medal className="h-6 w-6 text-slate-400 dark:text-slate-550" />;
       case 2: return <Medal className="h-6 w-6 text-amber-600" />;
-      default: return <span className="text-sm font-bold text-gray-400">#{index + 1}</span>;
+      default: return <span className="text-sm font-bold text-slate-400 dark:text-slate-500">#{index + 1}</span>;
     }
   };
 
@@ -103,28 +103,28 @@ export default function RankingList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white p-6 rounded-2xl shadow-sm border border-blue-50">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
         <div className="text-center md:text-left">
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center justify-center md:justify-start gap-2">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center justify-center md:justify-start gap-2">
              <Trophy className="text-yellow-500" /> Ranking de Guardiões
           </h1>
-          <p className="text-gray-500 text-sm mt-1">Confira o engajamento dos maiores vendedores.</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Confira o engajamento dos maiores vendedores.</p>
         </div>
         
         <div className="w-full md:w-auto md:min-w-[400px]">
-          <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-xl border border-gray-100">
-            <div className="bg-white p-2 text-blue-600 rounded-lg shadow-sm border border-gray-100">
+          <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-150 dark:border-slate-850">
+            <div className="bg-white dark:bg-slate-900 p-2 text-blue-600 dark:text-blue-400 rounded-lg shadow-sm border border-slate-150 dark:border-slate-800">
               <Trophy className="h-5 w-5" />
             </div>
             <Select value={selectedRifa} onValueChange={setSelectedRifa}>
-              <SelectTrigger className="bg-transparent border-0 shadow-none focus:ring-0 font-bold text-gray-700 h-auto p-1 flex-1 text-left text-base line-clamp-1 truncate">
+              <SelectTrigger className="bg-transparent border-0 shadow-none focus:ring-0 font-bold text-slate-700 dark:text-slate-200 h-auto p-1 flex-1 text-left text-base line-clamp-1 truncate">
                 <SelectValue>
                   {selectedRifa === "all" 
                     ? "🏆 Mostrar Ranking Global" 
                     : rifas.find(r => r.id.toString() === selectedRifa)?.titulo || "Selecione a Rifa"}
                 </SelectValue>
               </SelectTrigger>
-              <SelectContent className="rounded-xl font-medium">
+              <SelectContent className="rounded-xl font-medium border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">
                 <SelectItem value="all">🏆 Mostrar Ranking Global</SelectItem>
                 {rifas.map(r => (
                   <SelectItem key={r.id} value={r.id.toString()}>{r.titulo}</SelectItem>
@@ -140,41 +140,41 @@ export default function RankingList() {
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         </div>
       ) : (
-        <Card className="border-blue-100 shadow-sm overflow-hidden">
-          <CardHeader className="bg-slate-50 border-b border-blue-50">
-            <CardTitle className="text-sm uppercase tracking-wider text-slate-500 font-bold">Top Vendedores</CardTitle>
+        <Card className="border border-slate-100 dark:border-slate-800 bg-card shadow-sm overflow-hidden">
+          <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+            <CardTitle className="text-sm uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold">Top Vendedores</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {ranking.length > 0 ? (
                 ranking.map((vendedor, index) => (
-                  <div key={vendedor.id} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
+                  <div key={vendedor.id} className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="w-8 flex justify-center shrink-0">
                         {getRankIcon(index)}
                       </div>
                       
-                      <Avatar className="h-10 w-10 border-2 border-white shadow-sm shrink-0">
+                      <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-800 shadow-sm shrink-0">
                         <AvatarImage src={vendedor.avatar_url} />
-                        <AvatarFallback className="bg-blue-100 text-blue-700 font-bold">
+                        <AvatarFallback className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-bold">
                           {vendedor.nome?.charAt(0).toUpperCase() || <User size={16} />}
                         </AvatarFallback>
                       </Avatar>
 
                       <div className="min-w-0">
-                        <p className="font-bold text-gray-900 truncate">{formatShortName(vendedor.nome)}</p>
-                        <p className="text-xs text-gray-500 truncate">@{vendedor.codigo_ref}</p>
+                        <p className="font-bold text-slate-900 dark:text-slate-100 truncate">{formatShortName(vendedor.nome)}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-450 truncate">@{vendedor.codigo_ref}</p>
                       </div>
                     </div>
 
                     <div className="text-right">
-                       <p className="text-lg font-black text-blue-600">{vendedor.vendas}</p>
-                       <p className="text-[10px] uppercase font-bold text-gray-400">Vendas</p>
+                       <p className="text-lg font-black text-blue-600 dark:text-blue-400">{vendedor.vendas}</p>
+                       <p className="text-[10px] uppercase font-bold text-slate-450 dark:text-slate-500">Vendas</p>
                     </div>
                   </div>
                 ))
               ) : (
-                 <div className="p-8 text-center text-gray-500">Nenhum vendedor encontrado no ranking.</div>
+                 <div className="p-8 text-center text-slate-500 dark:text-slate-450">Nenhum vendedor encontrado no ranking.</div>
               )}
             </div>
           </CardContent>

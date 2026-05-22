@@ -404,8 +404,8 @@ export default function RifaForm() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{isEditing ? "Editar Rifa" : "Nova Rifa"}</h1>
-          <p className="text-gray-500">{isEditing ? "Altere os dados da rifa existente." : "Preencha os dados para criar uma nova rifa."}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{isEditing ? "Editar Rifa" : "Nova Rifa"}</h1>
+          <p className="text-gray-500 dark:text-slate-400">{isEditing ? "Altere os dados da rifa existente." : "Preencha os dados para criar uma nova rifa."}</p>
         </div>
       </div>
 
@@ -430,7 +430,7 @@ export default function RifaForm() {
                 <div className="space-y-2">
                   <Label htmlFor="slug">Slug da Rifa (URL amigável)</Label>
                   <div className="flex items-center space-x-2">
-                    <span className="text-gray-400 text-sm">/rifa/</span>
+                    <span className="text-gray-400 dark:text-slate-550 text-sm">/rifa/</span>
                     <Input 
                       id="slug" 
                       placeholder="ex-vif-iphone-15" 
@@ -439,7 +439,7 @@ export default function RifaForm() {
                       onChange={e => setFormData({...formData, slug: generateSlug(e.target.value)})}
                     />
                   </div>
-                  <p className="text-xs text-gray-500">Este será o link da sua rifa: sua-url.com/rifa/<strong>{formData.slug || "titulo-da-rifa"}</strong></p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400">Este será o link da sua rifa: sua-url.com/rifa/<strong>{formData.slug || "titulo-da-rifa"}</strong></p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="descricao">Descrição</Label>
@@ -528,12 +528,12 @@ export default function RifaForm() {
                       value={formData.metaGuardiao}
                       onChange={e => setFormData({...formData, metaGuardiao: e.target.value})}
                     />
-                    <p className="text-[10px] text-gray-500 italic">Meta universal para todos os vendedores desta rifa.</p>
+                    <p className="text-[10px] text-gray-500 dark:text-slate-400 italic">Meta universal para todos os vendedores desta rifa.</p>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-gray-100">
-                  <h3 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
+                <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
+                  <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-400 mb-3 flex items-center">
                     <Trophy className="h-4 w-4 mr-2" /> Preço Promocional (Opcional)
                   </h3>
                   <div className="grid grid-cols-2 gap-4">
@@ -550,7 +550,7 @@ export default function RifaForm() {
                           setFormData({...formData, offPrice: val});
                         }}
                       />
-                      <p className="text-[10px] text-gray-500">Valor da cota se atingir a quantidade mínima.</p>
+                      <p className="text-[10px] text-gray-500 dark:text-slate-400">Valor da cota se atingir a quantidade mínima.</p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="qtdOff">Qtd Mínima para Promoção</Label>
@@ -562,11 +562,11 @@ export default function RifaForm() {
                         value={formData.qtdOff}
                         onChange={e => setFormData({...formData, qtdOff: e.target.value})}
                       />
-                      <p className="text-[10px] text-gray-500">A partir de quantos números o desconto se aplica.</p>
+                      <p className="text-[10px] text-gray-500 dark:text-slate-400">A partir de quantos números o desconto se aplica.</p>
                     </div>
                   </div>
                   {formData.offPrice && formData.valorNumero && parseFloat(formData.offPrice) >= parseFloat(formData.valorNumero) && (
-                    <p className="text-xs text-red-500 mt-2 font-medium">⚠️ Atenção: O preço promocional deve ser menor que o preço normal.</p>
+                    <p className="text-xs text-red-500 dark:text-red-400 mt-2 font-medium">⚠️ Atenção: O preço promocional deve ser menor que o preço normal.</p>
                   )}
                 </div>
               </CardContent>
@@ -598,17 +598,17 @@ export default function RifaForm() {
               <CardContent className="space-y-8">
                 {/* Seção de Prêmios Normais */}
                 <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-gray-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-2">
                     <Trophy className="h-4 w-4" /> Prêmios do Sorteio
                   </h3>
                   {premios.filter(p => !p.is_bonus).map((premio) => (
-                    <div key={premio.id} className="p-4 border rounded-lg bg-gray-50 relative group">
+                    <div key={premio.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded-lg bg-gray-50 dark:bg-slate-900/50 relative group">
                       {premios.filter(p => !p.is_bonus).length > 1 && (
                         <Button 
                           type="button" 
                           variant="ghost" 
                           size="icon" 
-                          className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => removePremio(premio.id)}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -616,13 +616,13 @@ export default function RifaForm() {
                       )}
                       
                       <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-bold text-blue-900">{premio.posicao}º Prêmio</h4>
+                        <h4 className="font-bold text-blue-900 dark:text-blue-300">{premio.posicao}º Prêmio</h4>
                       </div>
                       
                       <div className="flex flex-col md:flex-row gap-6">
                         {/* Lado da Imagem */}
                         <div className="md:w-32 flex-shrink-0">
-                          <div className="h-32 w-32 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-white relative overflow-hidden group/img">
+                          <div className="h-32 w-32 rounded-lg border-2 border-dashed border-gray-300 dark:border-slate-800 flex items-center justify-center bg-white dark:bg-slate-950 relative overflow-hidden group/img">
                             {premio.imagem_url ? (
                               <>
                                 <img src={premio.imagem_url} alt={`Prêmio ${premio.posicao}`} className="h-full w-full object-cover" />
@@ -631,7 +631,7 @@ export default function RifaForm() {
                                 </div>
                               </>
                             ) : (
-                              <button type="button" className="flex flex-col items-center justify-center text-gray-400 hover:text-blue-500" onClick={() => { setUploadingPremioId(premio.id); premioFileInputRef.current?.click(); }}>
+                              <button type="button" className="flex flex-col items-center justify-center text-gray-400 dark:text-slate-500 hover:text-blue-500 dark:hover:text-blue-450" onClick={() => { setUploadingPremioId(premio.id); premioFileInputRef.current?.click(); }}>
                                 <ImageIcon className="h-8 w-8 mb-1" />
                                 <span className="text-[10px]">Add Imagem</span>
                               </button>
@@ -664,26 +664,26 @@ export default function RifaForm() {
 
                 {/* Seção de Bônus */}
                 {premios.some(p => p.is_bonus) && (
-                  <div className="space-y-4 pt-6 border-t">
-                    <h3 className="text-sm font-bold text-purple-600 uppercase tracking-wider flex items-center gap-2">
+                  <div className="space-y-4 pt-6 border-t border-slate-200 dark:border-slate-800">
+                    <h3 className="text-sm font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider flex items-center gap-2">
                       <Plus className="h-4 w-4" /> Bônus Instantâneo do Pedido
                     </h3>
                     {premios.filter(p => p.is_bonus).map((premio) => (
-                      <div key={premio.id} className="p-4 border border-purple-200 rounded-lg bg-purple-50/50 relative group">
+                      <div key={premio.id} className="p-4 border border-purple-250 dark:border-purple-900/50 rounded-lg bg-purple-50/50 dark:bg-purple-950/10 relative group">
                         <Button 
                           type="button" 
                           variant="ghost" 
                           size="icon" 
-                          className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-2 right-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-opacity"
                           onClick={() => removePremio(premio.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-
+ 
                         <div className="flex flex-col md:flex-row gap-6">
                           {/* Lado da Imagem */}
                           <div className="md:w-32 flex-shrink-0">
-                            <div className="h-32 w-32 rounded-lg border-2 border-dashed border-purple-200 flex items-center justify-center bg-white relative overflow-hidden group/img">
+                            <div className="h-32 w-32 rounded-lg border-2 border-dashed border-purple-200 dark:border-purple-900/50 flex items-center justify-center bg-white dark:bg-slate-950 relative overflow-hidden group/img">
                               {premio.imagem_url ? (
                                 <>
                                   <img src={premio.imagem_url} alt="Bônus" className="h-full w-full object-cover" />
@@ -692,29 +692,29 @@ export default function RifaForm() {
                                   </div>
                                 </>
                               ) : (
-                                <button type="button" className="flex flex-col items-center justify-center text-purple-300 hover:text-purple-500" onClick={() => { setUploadingPremioId(premio.id); premioFileInputRef.current?.click(); }}>
+                                <button type="button" className="flex flex-col items-center justify-center text-purple-300 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300" onClick={() => { setUploadingPremioId(premio.id); premioFileInputRef.current?.click(); }}>
                                   <ImageIcon className="h-8 w-8 mb-1" />
                                   <span className="text-[10px]">Add Imagem</span>
                                 </button>
                               )}
                             </div>
                           </div>
-
+ 
                           {/* Campos */}
                           <div className="flex-1 space-y-4">
                             <div className="grid gap-4 md:grid-cols-2">
                               <div className="space-y-2">
-                                <Label className="text-purple-900">Título do Bônus</Label>
-                                <Input className="border-purple-200" placeholder="Ex: E-book Exclusivo" required value={premio.titulo} onChange={e => updatePremio(premio.id, 'titulo', e.target.value)} />
+                                <Label className="text-purple-900 dark:text-purple-300">Título do Bônus</Label>
+                                <Input className="border-purple-200 dark:border-purple-900/50" placeholder="Ex: E-book Exclusivo" required value={premio.titulo} onChange={e => updatePremio(premio.id, 'titulo', e.target.value)} />
                               </div>
                               <div className="space-y-2">
-                                <Label className="text-purple-900">Link de Acesso (WhatsApp)</Label>
-                                <Input className="border-purple-200" placeholder="https://..." required value={premio.link_bonus || ''} onChange={e => updatePremio(premio.id, 'link_bonus', e.target.value)} />
+                                <Label className="text-purple-900 dark:text-purple-300">Link de Acesso (WhatsApp)</Label>
+                                <Input className="border-purple-200 dark:border-purple-900/50" placeholder="https://..." required value={premio.link_bonus || ''} onChange={e => updatePremio(premio.id, 'link_bonus', e.target.value)} />
                               </div>
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-purple-900">O que é este bônus?</Label>
-                              <Textarea placeholder="Descreva o que o cliente ganha ao pagar..." className="min-h-[80px] border-purple-200" value={premio.descricao} onChange={e => updatePremio(premio.id, 'descricao', e.target.value)} />
+                              <Label className="text-purple-900 dark:text-purple-300">O que é este bônus?</Label>
+                              <Textarea placeholder="Descreva o que o cliente ganha ao pagar..." className="min-h-[80px] border-purple-200 dark:border-purple-900/50" value={premio.descricao} onChange={e => updatePremio(premio.id, 'descricao', e.target.value)} />
                             </div>
                           </div>
                         </div>
@@ -763,7 +763,7 @@ export default function RifaForm() {
                     </Select>
                   </div>
                   {formData.status === 'rascunho' && (
-                    <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                    <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 p-2 rounded">
                       Rifas em rascunho não são visíveis para os compradores na página inicial.
                     </p>
                   )}
@@ -778,18 +778,18 @@ export default function RifaForm() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="flex items-center justify-center w-full">
-                    <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 relative overflow-hidden">
+                    <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-gray-300 dark:border-slate-800 border-dashed rounded-lg cursor-pointer bg-gray-50 dark:bg-slate-900/50 hover:bg-gray-100 dark:hover:bg-slate-900 relative overflow-hidden">
                       {formData.imagemUrl ? (
                         <img src={formData.imagemUrl} alt="Preview" className="object-cover w-full h-full absolute inset-0" />
                       ) : (
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           {uploadingImage ? (
-                            <Loader2 className="w-8 h-8 mb-4 text-gray-500 animate-spin" />
+                            <Loader2 className="w-8 h-8 mb-4 text-gray-500 dark:text-slate-400 animate-spin" />
                           ) : (
-                            <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                            <Upload className="w-8 h-8 mb-4 text-gray-500 dark:text-slate-400" />
                           )}
-                          <p className="mb-2 text-sm text-gray-500"><span className="font-semibold">Clique para fazer upload</span></p>
-                          <p className="text-xs text-gray-500">PNG, JPG ou WEBP</p>
+                          <p className="mb-2 text-sm text-gray-500 dark:text-slate-400"><span className="font-semibold">Clique para fazer upload</span></p>
+                          <p className="text-xs text-gray-500 dark:text-slate-400">PNG, JPG ou WEBP</p>
                         </div>
                       )}
                       <input 
@@ -836,20 +836,20 @@ export default function RifaForm() {
             </Card>
 
             {isEditing && (
-              <Card className="border-red-100 bg-red-50/30">
+              <Card className="border-red-100 dark:border-red-950/50 bg-red-50/30 dark:bg-red-950/10">
                 <CardHeader>
-                  <CardTitle className="text-red-600 text-sm">Zona de Risco</CardTitle>
+                  <CardTitle className="text-red-600 dark:text-red-400 text-sm">Zona de Risco</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <button 
                     type="button" 
                     onClick={() => setRifaToDelete(id)}
-                    className="text-red-400 hover:text-red-700 text-sm font-medium transition-colors flex items-center"
+                    className="text-red-400 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm font-medium transition-colors flex items-center"
                   >
                     <Trash className="h-4 w-4 mr-2" />
                     Excluir esta Rifa
                   </button>
-                  <p className="text-[10px] text-red-400 mt-2">Esta ação é irreversível e excluirá todos os dados da rifa.</p>
+                  <p className="text-[10px] text-red-400 dark:text-red-400/80 mt-2">Esta ação é irreversível e excluirá todos os dados da rifa.</p>
                 </CardContent>
               </Card>
             )}

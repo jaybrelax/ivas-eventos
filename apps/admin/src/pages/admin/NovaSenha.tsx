@@ -71,31 +71,31 @@ export default function NovaSenha() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50/50 via-slate-50 to-slate-100/50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50/30 dark:from-blue-950/10 via-slate-50 dark:via-slate-950 to-slate-100/50 dark:to-slate-900/10 transition-colors duration-300">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
           <img src={logo} alt="IVAS Logo" className="h-20 w-auto object-contain" />
         </div>
-        <h2 className="text-center text-3xl font-bold text-slate-900 tracking-tight">
+        <h2 className="text-center text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
           Recuperação de Acesso
         </h2>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <Card className="border-none shadow-2xl shadow-blue-900/5 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-2xl shadow-blue-900/5 dark:shadow-slate-950/50 rounded-2xl overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm transition-all">
           <CardHeader className="space-y-1 pb-6 pt-8">
-            <CardTitle className="text-2xl font-bold tracking-tight">Nova Senha</CardTitle>
-            <CardDescription className="text-slate-500">Defina uma nova senha para sua conta.</CardDescription>
+            <CardTitle className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-200">Nova Senha</CardTitle>
+            <CardDescription className="text-slate-500 dark:text-slate-400">Defina uma nova senha para sua conta.</CardDescription>
           </CardHeader>
           <CardContent>
             {success ? (
               <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
                 <CheckCircle2 className="h-16 w-16 text-green-500" />
-                <h3 className="text-xl font-bold text-slate-900">Senha Redefinida!</h3>
-                <p className="text-slate-500">Sua senha foi alterada com sucesso. Você será redirecionado para o login em instantes.</p>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100">Senha Redefinida!</h3>
+                <p className="text-slate-550 dark:text-slate-400">Sua senha foi alterada com sucesso. Você será redirecionado para o login em instantes.</p>
                 <Button 
                   onClick={() => navigate('/login')} 
-                  className="mt-4 w-full bg-slate-900 hover:bg-slate-800"
+                  className="mt-4 w-full bg-slate-900 dark:bg-slate-800 text-white font-bold"
                 >
                   Ir para Login agora
                 </Button>
@@ -103,13 +103,13 @@ export default function NovaSenha() {
             ) : (
               <form onSubmit={handleUpdatePassword} className="space-y-5">
                 {error && (
-                  <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-md">
+                  <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-md">
                     {error}
                   </div>
                 )}
                 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-semibold text-slate-700 ml-1">Nova Senha</Label>
+                  <Label htmlFor="password" className="text-sm font-semibold text-slate-700 dark:text-slate-350 ml-1">Nova Senha</Label>
                   <Input
                     id="password"
                     type="password"
@@ -117,20 +117,20 @@ export default function NovaSenha() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 6 caracteres"
-                    className="h-12 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500/10 transition-all text-base"
+                    className="h-12 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500/10 transition-all text-base"
                     disabled={!!error && error.includes('Sessão inválida')}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm font-semibold text-slate-700 ml-1">Confirmar Nova Senha</Label>
+                  <Label htmlFor="confirmPassword" className="text-sm font-semibold text-slate-700 dark:text-slate-350 ml-1">Confirmar Nova Senha</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-12 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500/10 transition-all text-base"
+                    className="h-12 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500/10 transition-all text-base"
                     disabled={!!error && error.includes('Sessão inválida')}
                   />
                 </div>
@@ -148,7 +148,7 @@ export default function NovaSenha() {
                   <button 
                     type="button"
                     onClick={() => navigate('/login')}
-                    className="text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors"
+                    className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-750 dark:hover:text-slate-300 font-medium transition-colors"
                   >
                     Voltar para o Login
                   </button>

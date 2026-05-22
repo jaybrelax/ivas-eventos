@@ -132,8 +132,8 @@ export default function RifasList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Rifas</h1>
-          <p className="text-gray-500">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Rifas</h1>
+          <p className="text-gray-500 dark:text-slate-400">
             {userRole === 'admin' ? "Gerencie todas as rifas do sistema." : "Confira os sorteios disponíveis para venda."}
           </p>
         </div>
@@ -154,16 +154,16 @@ export default function RifasList() {
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
         </div>
       ) : rifas.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-lg border border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Nenhuma rifa encontrada</h3>
-          <p className="text-gray-500">Crie sua primeira rifa para começar.</p>
+        <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-lg border border-gray-200 dark:border-slate-800">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-slate-100">Nenhuma rifa encontrada</h3>
+          <p className="text-gray-500 dark:text-slate-400">Crie sua primeira rifa para começar.</p>
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {rifas.map((rifa) => {
             return (
-              <Card key={rifa.id} className="overflow-hidden flex flex-col hover:shadow-lg transition-shadow border-blue-100/50">
-                <div className="relative h-48 w-full bg-gray-200 group">
+              <Card key={rifa.id} className="overflow-hidden flex flex-col hover:shadow-lg transition-shadow border border-blue-100/50 dark:border-slate-800 bg-white dark:bg-slate-900">
+                <div className="relative h-48 w-full bg-gray-200 dark:bg-slate-800 group">
                   {userRole === 'admin' ? (
                     <Link to={`/rifas/${rifa.id}/editar`} className="block h-full w-full overflow-hidden">
                       {rifa.imagem_url ? (
@@ -174,7 +174,7 @@ export default function RifasList() {
                           referrerPolicy="no-referrer"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
+                        <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-500">
                           Sem imagem
                         </div>
                       )}
@@ -189,7 +189,7 @@ export default function RifasList() {
                           referrerPolicy="no-referrer"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
+                        <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-500">
                           Sem imagem
                         </div>
                       )}
@@ -209,28 +209,28 @@ export default function RifasList() {
                   <CardTitle className="text-lg line-clamp-1">{rifa.titulo}</CardTitle>
                 </CardHeader>
                 <CardContent className="flex-1 pb-4">
-                  <div className="space-y-2 text-sm text-gray-600 mb-4">
+                  <div className="space-y-2 text-sm text-gray-600 dark:text-slate-400 mb-4">
                     <div className="flex justify-between">
                       <span>Valor:</span>
-                      <span className="font-medium text-gray-900">R$ {Number(rifa.valor_numero).toFixed(2)}</span>
+                      <span className="font-medium text-gray-900 dark:text-slate-100">R$ {Number(rifa.valor_numero).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Progresso:</span>
-                      <span className="font-medium text-gray-900">
+                      <span className="font-medium text-gray-900 dark:text-slate-100">
                         {rifa.numerosVendidos} / {rifa.total_numeros} ({rifa.progresso.toFixed(1)}%)
                       </span>
                     </div>
 
                     {rifa.faturamentoLiquido > 0 && (
-                       <div className="flex justify-between items-center border-t border-gray-100 pt-3 mt-3">
-                        <span className="text-gray-500 font-semibold text-xs uppercase tracking-wider">Arrecadado:</span>
-                        <span className="font-black text-xl text-green-600">
+                       <div className="flex justify-between items-center border-t border-gray-100 dark:border-slate-800/60 pt-3 mt-3">
+                        <span className="text-gray-500 dark:text-slate-400 font-semibold text-xs uppercase tracking-wider">Arrecadado:</span>
+                        <span className="font-black text-xl text-green-600 dark:text-green-400">
                           {rifa.faturamentoLiquido.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                         </span>
                       </div>
                     )}
 
-                    <div className="w-full bg-gray-100 rounded-full h-5 mt-3 relative overflow-hidden border border-gray-200/50">
+                    <div className="w-full bg-gray-100 dark:bg-slate-950 rounded-full h-5 mt-3 relative overflow-hidden border border-gray-200/50 dark:border-slate-800/60">
                       <div
                         className="bg-blue-600 h-full transition-all duration-1000 flex items-center justify-end"
                         style={{ width: `${rifa.progresso}%` }}
@@ -243,7 +243,7 @@ export default function RifasList() {
                       </div>
                       {rifa.progresso <= 30 && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">
+                          <span className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-tighter">
                             {rifa.numerosVendidos} VENDIDOS
                           </span>
                         </div>
@@ -252,7 +252,7 @@ export default function RifasList() {
                   </div>
                 </CardContent>
                 
-                <div className="bg-gray-50/80 border-t border-gray-100 p-5 pt-4 rounded-b-xl flex flex-col gap-2.5 w-full">
+                <div className="bg-gray-50/80 dark:bg-slate-900/50 border-t border-gray-100 dark:border-slate-800 p-5 pt-4 rounded-b-xl flex flex-col gap-2.5 w-full">
                     {userRole === 'admin' && (
                       <div className="flex flex-col gap-2.5 w-full">
                         <Button 
@@ -260,7 +260,7 @@ export default function RifasList() {
                           size="sm"
                           render={<Link to={`/rifas/${rifa.id}/editar`} />}
                           nativeButton={false}
-                          className="w-full h-11 text-sm font-bold bg-green-600 hover:bg-green-700 text-white shadow-md shadow-green-600/20 rounded-xl"
+                          className="w-full h-11 text-sm font-bold bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 text-white shadow-md shadow-green-600/20 dark:shadow-green-900/30 rounded-xl"
                         >
                           <Edit className="h-4 w-4 mr-2" /> Editar Rifa
                         </Button>
@@ -270,7 +270,7 @@ export default function RifasList() {
                             variant="secondary" 
                             size="sm"
                             onClick={() => copyRifaLink(rifa)}
-                            className="h-10 text-xs font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl"
+                            className="h-10 text-xs font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 shadow-sm rounded-xl"
                           >
                             {copiedId === rifa.id ? (
                               <><CheckCircle2 className="h-4 w-4 mr-1.5 text-green-600" /> Copiado</>
@@ -286,7 +286,7 @@ export default function RifasList() {
                               const publicOrigin = "https://rifa.virtudes.net.br";
                               window.open(`${publicOrigin}/${rifa.slug || rifa.id}${vRef ? `?ref=${vRef}` : ''}`, '_blank');
                             }}
-                            className="h-10 text-xs font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl"
+                            className="h-10 text-xs font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 shadow-sm rounded-xl"
                           >
                             <Eye className="h-4 w-4 mr-1.5 text-indigo-600" /> Página
                           </Button>
@@ -303,7 +303,7 @@ export default function RifasList() {
                             const publicOrigin = "https://rifa.virtudes.net.br";
                             window.open(`${publicOrigin}/${rifa.slug || rifa.id}?ref=${vRef}`, '_blank');
                           }}
-                          className="w-full h-11 text-sm font-bold bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl"
+                          className="w-full h-11 text-sm font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 shadow-sm rounded-xl"
                         >
                           <Eye className="h-4 w-4 mr-2 text-indigo-600" /> Ver Página
                         </Button>
@@ -311,7 +311,7 @@ export default function RifasList() {
                         <Button
                           variant="default"
                           size="sm"
-                          className="w-full h-11 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 rounded-xl"
+                          className="w-full h-11 text-sm font-bold bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white shadow-md shadow-blue-600/20 dark:shadow-blue-900/30 rounded-xl"
                           onClick={() => {
                             const publicOrigin = "https://rifa.virtudes.net.br";
                             const myRefLink = `${publicOrigin}/${rifa.slug || rifa.id}${vRef ? `?ref=${vRef}` : ''}`;
@@ -332,7 +332,7 @@ export default function RifasList() {
       )}
 
       <Dialog open={!!rifaToDelete} onOpenChange={(open) => !open && setRifaToDelete(null)}>
-        <DialogContent>
+        <DialogContent className="dark:bg-slate-900 dark:border-slate-800">
           <DialogHeader>
             <DialogTitle>Excluir Rifa</DialogTitle>
             <DialogDescription>

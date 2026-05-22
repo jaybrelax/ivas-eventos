@@ -36,12 +36,7 @@ export function MobileNav({ userRole }: { userRole?: 'admin' | 'guardiao' }) {
 
   return (
     <div
-      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-2 py-3 safe-area-bottom"
-      style={{
-        background: '#020617', // Slate 950
-        borderTop: '1px solid rgba(255,255,255,0.05)',
-        boxShadow: '0 -10px 30px rgba(0,0,0,0.5)',
-      }}
+      className="lg:hidden fixed bottom-0 left-0 right-0 z-50 px-2 py-3 safe-area-bottom bg-slate-950/95 backdrop-blur-md border-t border-white/5 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]"
     >
       <nav className="flex items-center justify-around">
         {adminItems.map((item) => {

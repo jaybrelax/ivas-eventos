@@ -243,11 +243,11 @@ export default function VendasList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Vendas</h1>
-          <p className="text-gray-500">Gerencie as compras e aprovações manuais.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Vendas</h1>
+          <p className="text-gray-500 dark:text-slate-400">Gerencie as compras e aprovações manuais.</p>
         </div>
         <div className="relative w-full sm:w-72">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-slate-400" />
           <Input
             placeholder="Buscar por nome, CPF ou ID..."
             className="pl-9"
@@ -257,10 +257,10 @@ export default function VendasList() {
         </div>
       </div>
 
-      <Card>
+      <Card className="border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-sm dark:shadow-slate-950/20 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-gray-500">
-            <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b">
+          <table className="w-full text-sm text-left text-gray-500 dark:text-slate-400">
+            <thead className="text-xs text-gray-700 dark:text-slate-300 uppercase bg-gray-50 dark:bg-slate-900 border-b dark:border-slate-800">
               <tr>
                 <th className="px-6 py-3">Nome</th>
                 <th className="px-6 py-3 min-w-[120px]">Valor</th>
@@ -280,7 +280,7 @@ export default function VendasList() {
                 </tr>
               ) : filteredPedidos.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500 dark:text-slate-400">
                     Nenhuma venda encontrada.
                   </td>
                 </tr>
@@ -288,14 +288,14 @@ export default function VendasList() {
                 filteredPedidos.map((pedido) => (
                   <tr 
                     key={pedido.id} 
-                    className="bg-white border-b hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="bg-white dark:bg-slate-900/50 border-b dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/40 cursor-pointer transition-colors"
                     onClick={() => setSelectedPedido(pedido)}
                   >
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{pedido.cliente?.nome_completo || 'Cliente s/ nome'}</div>
-                      <div className="text-xs text-gray-500">{pedido.cliente?.cpf}</div>
+                      <div className="font-medium text-gray-900 dark:text-slate-200">{pedido.cliente?.nome_completo || 'Cliente s/ nome'}</div>
+                      <div className="text-xs text-gray-500 dark:text-slate-500">{pedido.cliente?.cpf}</div>
                     </td>
-                    <td className="px-6 py-4 font-bold text-gray-900 whitespace-nowrap">
+                    <td className="px-6 py-4 font-bold text-gray-900 dark:text-slate-200 whitespace-nowrap">
                       R$ {Number(pedido.valor_total).toFixed(2)}
                     </td>
                     <td className="px-6 py-4">
@@ -306,31 +306,31 @@ export default function VendasList() {
                         {pedido.venda_direta ? (
                           <div className="flex items-center gap-1.5">
                             {pedido.vendedor ? (
-                              <span className="text-blue-600 font-medium flex items-center gap-1" title="Atribuído aleatoriamente">
-                                <Search className="h-3 w-3 text-purple-500" /> {pedido.vendedor.nome}
+                              <span className="text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1" title="Atribuído aleatoriamente">
+                                <Search className="h-3 w-3 text-purple-500 dark:text-purple-400" /> {pedido.vendedor.nome}
                               </span>
                             ) : (
-                              <Badge variant="outline" className="text-gray-400 font-normal bg-gray-50 flex items-center gap-1">
+                              <Badge variant="outline" className="text-gray-400 font-normal bg-gray-50 dark:bg-slate-800 flex items-center gap-1 border-gray-200 dark:border-slate-700">
                                 <Search className="h-3 w-3" /> Direto
                               </Badge>
                             )}
                           </div>
                         ) : (
                           pedido.vendedor ? (
-                            <div className="text-blue-600 font-medium">{pedido.vendedor.nome}</div>
+                            <div className="text-blue-600 dark:text-blue-400 font-medium">{pedido.vendedor.nome}</div>
                           ) : (
-                            <Badge variant="outline" className="text-gray-400 font-normal">Nenhum</Badge>
+                            <Badge variant="outline" className="text-gray-400 font-normal border-gray-200 dark:border-slate-700">Nenhum</Badge>
                           )
                         )}
                       </td>
                     )}
                     <td className="px-6 py-4">
-                      <div className="text-gray-900 truncate max-w-[150px]">{pedido.rifa?.titulo}</div>
-                      <div className="text-xs text-gray-500">{pedido.quantidade} números</div>
+                      <div className="text-gray-900 dark:text-slate-200 truncate max-w-[150px]">{pedido.rifa?.titulo}</div>
+                      <div className="text-xs text-gray-500 dark:text-slate-500">{pedido.quantidade} números</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-mono text-xs text-gray-900 font-bold">{pedido.display_id || pedido.id.substring(0, 8).toUpperCase()}</div>
-                      <div className="text-xs text-gray-500">{new Date(pedido.created_at).toLocaleDateString('pt-BR')}</div>
+                      <div className="font-mono text-xs text-gray-900 dark:text-slate-200 font-bold">{pedido.display_id || pedido.id.substring(0, 8).toUpperCase()}</div>
+                      <div className="text-xs text-gray-500 dark:text-slate-500">{new Date(pedido.created_at).toLocaleDateString('pt-BR')}</div>
                     </td>
                     {userRole === 'admin' && (
                       <td className="px-6 py-4 text-right">
@@ -354,17 +354,17 @@ export default function VendasList() {
           setIsEditingGuardian(false);
         }
       }}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="sm:max-w-[500px] dark:bg-slate-900 dark:border-slate-800">
           <DialogHeader>
             <DialogTitle>Detalhes da Venda</DialogTitle>
             <DialogDescription className="flex flex-col gap-1">
-              <span className="text-gray-900 font-black">Código: #{selectedPedido?.display_id}</span>
-              <span className="text-[10px] text-gray-400">UUID: {selectedPedido?.id}</span>
+              <span className="text-gray-900 dark:text-slate-100 font-black">Código: #{selectedPedido?.display_id}</span>
+              <span className="text-[10px] text-gray-400 dark:text-slate-500">UUID: {selectedPedido?.id}</span>
               {selectedPedido?.mp_payment_id && (
-                <span className="text-blue-600 font-semibold">ID MP: {selectedPedido.mp_payment_id}</span>
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">ID MP: {selectedPedido.mp_payment_id}</span>
               )}
               {selectedPedido?.pix_transaction_id && (
-                <span className="text-green-600 font-semibold text-xs truncate" title={selectedPedido.pix_transaction_id}>
+                <span className="text-green-600 dark:text-green-400 font-semibold text-xs truncate" title={selectedPedido.pix_transaction_id}>
                   ID Pix: {selectedPedido.pix_transaction_id}
                 </span>
               )}
@@ -375,38 +375,38 @@ export default function VendasList() {
             <div className="space-y-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-500 flex items-center gap-1.5 mb-1">
+                  <p className="text-sm text-gray-500 dark:text-slate-450 flex items-center gap-1.5 mb-1">
                     <User className="h-3.5 w-3.5" /> Cliente
                   </p>
-                  <p className="font-medium text-gray-900">{selectedPedido.cliente?.nome_completo}</p>
-                  <p className="text-sm text-gray-600">{selectedPedido.cliente?.cpf}</p>
+                  <p className="font-medium text-gray-900 dark:text-slate-200">{selectedPedido.cliente?.nome_completo}</p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400">{selectedPedido.cliente?.cpf}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 flex items-center gap-1.5 mb-1">
+                  <p className="text-sm text-gray-500 dark:text-slate-450 flex items-center gap-1.5 mb-1">
                     <Phone className="h-3.5 w-3.5" /> Contato
                   </p>
                   <a 
                     href={`https://wa.me/55${selectedPedido.cliente?.telefone.replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-medium text-blue-600 hover:underline flex items-center gap-1"
+                    className="font-medium text-blue-600 dark:text-blue-450 hover:underline flex items-center gap-1"
                   >
                     {selectedPedido.cliente?.telefone}
                   </a>
-                  <p className="text-sm text-gray-600 truncate">{selectedPedido.cliente?.email}</p>
+                  <p className="text-sm text-gray-600 dark:text-slate-400 truncate">{selectedPedido.cliente?.email}</p>
                 </div>
               </div>
 
               {userRole === 'admin' && (
-                <div className="border-t pt-4">
+                <div className="border-t dark:border-slate-800 pt-4">
                   <div className="flex justify-between items-center mb-2">
-                    <p className="text-sm text-gray-500">Guardião / Origem da Venda</p>
+                    <p className="text-sm text-gray-500 dark:text-slate-450">Guardião / Origem da Venda</p>
                     {!isEditingGuardian && (
                       <div className="flex gap-1">
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className={`h-8 px-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 ${selectedPedido.status === 'pago' ? 'cursor-pointer' : ''}`}
+                          className={`h-8 px-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/30 ${selectedPedido.status === 'pago' ? 'cursor-pointer' : ''}`}
                           onClick={() => handleResendComprovante(selectedPedido.id, true)}
                           disabled={actionLoading || selectedPedido.status !== 'pago'}
                         >
@@ -415,7 +415,7 @@ export default function VendasList() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          className="h-8 px-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
                           onClick={() => {
                             setNewGuardianId(selectedPedido.vendedor_id || "");
                             setIsEditingGuardian(true);
@@ -430,7 +430,7 @@ export default function VendasList() {
                   {isEditingGuardian ? (
                     <div className="flex items-center gap-2">
                       <select
-                        className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="flex-1 h-9 rounded-md border border-input dark:border-slate-700 bg-background dark:bg-slate-800 dark:text-slate-200 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         value={newGuardianId}
                         onChange={(e) => setNewGuardianId(e.target.value)}
                       >
@@ -441,7 +441,7 @@ export default function VendasList() {
                       </select>
                       <Button 
                         size="sm" 
-                        className="h-9 w-9 p-0 bg-green-600 hover:bg-green-700"
+                        className="h-9 w-9 p-0 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
                         onClick={() => handleUpdateGuardian(selectedPedido.id)}
                         disabled={actionLoading}
                       >
@@ -450,7 +450,7 @@ export default function VendasList() {
                       <Button 
                         variant="ghost" 
                         size="sm" 
-                        className="h-9 w-9 p-0 text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+                        className="h-9 w-9 p-0 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
                         onClick={() => setIsEditingGuardian(false)}
                       >
                         <X className="h-4 w-4" />
@@ -459,32 +459,32 @@ export default function VendasList() {
                   ) : (
                     <div className="flex items-center gap-3">
                       {selectedPedido.venda_direta ? (
-                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                        <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/20 dark:text-purple-400 dark:border-purple-900/50">
                           <Search className="h-3 w-3 mr-1" /> Venda Direta
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/50">
                           Link de Indicação
                         </Badge>
                       )}
                       
                       {selectedPedido.vendedor && (
-                        <span className="font-medium text-gray-900">
+                        <span className="font-medium text-gray-900 dark:text-slate-200">
                           {selectedPedido.vendedor.nome} 
-                          {selectedPedido.venda_direta && <span className="text-xs text-gray-500 font-normal ml-2">(Atribuído Aleatoriamente)</span>}
+                          {selectedPedido.venda_direta && <span className="text-xs text-gray-500 dark:text-gray-500 font-normal ml-2">(Atribuído Aleatoriamente)</span>}
                         </span>
                       )}
                       {!selectedPedido.vendedor && selectedPedido.venda_direta && (
-                        <span className="text-gray-500 italic text-sm">Nenhum guardião atribuído</span>
+                        <span className="text-gray-500 dark:text-slate-450 italic text-sm">Nenhum guardião atribuído</span>
                       )}
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="border-t pt-4">
-                <p className="text-sm text-gray-500 mb-3">Números Escolhidos ({selectedPedido.quantidade})</p>
-                <div className="bg-gray-50 p-4 rounded-lg border flex flex-wrap gap-2 justify-center">
+              <div className="border-t dark:border-slate-800 pt-4">
+                <p className="text-sm text-gray-500 dark:text-slate-400 mb-3">Números Escolhidos ({selectedPedido.quantidade})</p>
+                <div className="bg-gray-50 dark:bg-slate-950 p-4 rounded-lg border border-slate-100 dark:border-slate-800/80 flex flex-wrap gap-2 justify-center">
                   {selectedPedido.numeros.map((num: any) => (
                     <div 
                       key={num} 
@@ -496,31 +496,31 @@ export default function VendasList() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center border-t pt-4">
+              <div className="flex justify-between items-center border-t dark:border-slate-800 pt-4">
                 <div>
-                  <p className="text-sm text-gray-500">Status</p>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Status</p>
                   {getStatusBadge(selectedPedido.status)}
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-gray-500">Valor Total</p>
-                  <p className="text-xl font-bold text-green-600">R$ {Number(selectedPedido.valor_total).toFixed(2)}</p>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Valor Total</p>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">R$ {Number(selectedPedido.valor_total).toFixed(2)}</p>
                 </div>
               </div>
 
               {userRole === 'admin' && (
-                <div className="flex flex-col gap-3 pt-4 border-t">
+                <div className="flex flex-col gap-3 pt-4 border-t dark:border-slate-800">
                   {selectedPedido.status === 'pendente' && (
                     <div className="flex gap-3">
                       <Button 
                         variant="outline" 
-                        className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                        className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 dark:border-red-900/50"
                         onClick={() => handleCancelar(selectedPedido.id)}
                         disabled={actionLoading}
                       >
                         <XCircle className="h-4 w-4 mr-2" /> Cancelar Pedido
                       </Button>
                       <Button 
-                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        className="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
                         onClick={() => handleAprovar(selectedPedido.id)}
                         disabled={actionLoading}
                       >
@@ -533,7 +533,7 @@ export default function VendasList() {
                     <Button 
                       variant="ghost" 
                       size="icon"
-                      className="text-red-400 hover:text-red-600 hover:bg-red-50"
+                      className="text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:text-red-300 dark:hover:bg-red-950/30"
                       onClick={() => {
                         setIsDeleteConfirmed(false);
                         setIsDeleteDialogOpen(true);
@@ -546,7 +546,7 @@ export default function VendasList() {
 
                     <Button 
                       variant="outline"
-                      className={`text-blue-600 border-blue-200 hover:bg-blue-50 ${selectedPedido.status === 'pago' ? 'cursor-pointer' : ''}`}
+                      className={`text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-900/50 dark:hover:bg-blue-950/30 ${selectedPedido.status === 'pago' ? 'cursor-pointer' : ''}`}
                       onClick={() => handleResendComprovante(selectedPedido.id)}
                       disabled={actionLoading || selectedPedido.status !== 'pago'}
                     >
@@ -562,9 +562,9 @@ export default function VendasList() {
 
       {/* Dialog de Confirmação de Exclusão (Dupla Confirmação) */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[400px] dark:bg-slate-900 dark:border-slate-800">
           <DialogHeader>
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-4">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/40 mb-4">
               <AlertTriangle className="h-6 w-6 text-red-600" />
             </div>
             <DialogTitle className="text-center">Confirmar Exclusão</DialogTitle>
@@ -572,21 +572,20 @@ export default function VendasList() {
               Esta ação excluirá permanentemente o pedido <strong>{selectedPedido?.id.substring(0, 8)}</strong> e todos os registros associados.
             </DialogDescription>
           </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-md border text-sm">
-              <input 
-                type="checkbox" 
-                id="confirm-delete" 
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-600"
-                checked={isDeleteConfirmed}
-                onChange={(e) => setIsDeleteConfirmed(e.target.checked)}
-              />
-              <label htmlFor="confirm-delete" className="font-medium text-gray-700 cursor-pointer">
-                Eu entendo que esta ação é irreversível.
-              </label>
+                    <div className="space-y-4 py-4">
+              <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-slate-900 rounded-md border border-gray-150 dark:border-slate-800 text-sm">
+                <input 
+                  type="checkbox" 
+                  id="confirm-delete" 
+                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                  checked={isDeleteConfirmed}
+                  onChange={(e) => setIsDeleteConfirmed(e.target.checked)}
+                />
+                <label htmlFor="confirm-delete" className="font-medium text-gray-700 dark:text-slate-300 cursor-pointer">
+                  Eu entendo que esta ação é irreversível.
+                </label>
+              </div>
             </div>
-          </div>
 
           <div className="flex gap-3">
             <Button variant="outline" className="flex-1" onClick={() => setIsDeleteDialogOpen(false)}>

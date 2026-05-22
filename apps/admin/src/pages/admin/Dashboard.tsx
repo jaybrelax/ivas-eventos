@@ -227,28 +227,28 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 lg:col-span-7 order-1">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">
             {userRole === 'admin' ? 'Dashboard Global' : `Bem-vindo, ${vendedorData?.nome?.split(' ')[0]}!`}
           </h1>
-          <p className="text-gray-500 mb-4">
+          <p className="text-gray-500 dark:text-slate-400 mb-4">
             {userRole === 'admin' ? 'Visão geral do sistema de rifas.' : 'Gerencie seus links e acompanhe seu desempenho.'}
           </p>
           
           {(userRole === 'guardiao' || (userRole === 'admin' && vendedorData)) && stats.minhasRifas.length > 1 && (
             <div className="w-full max-w-[300px] space-y-1.5">
-              <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400 ml-1">Campanha Ativa</Label>
+              <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400 dark:text-slate-500 ml-1">Campanha Ativa</Label>
               <Select value={selectedRifaId || ""} onValueChange={setSelectedRifaId}>
-                <SelectTrigger className="w-full bg-white text-slate-800 font-bold text-sm border-slate-200 h-11 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500/20">
+                <SelectTrigger className="w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold text-sm border-slate-200 dark:border-slate-800 h-11 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500/20">
                   <SelectValue placeholder="Escolha uma campanha">
                     {selectedRifa?.titulo}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent className="rounded-md border-slate-100 shadow-2xl bg-white">
+                <SelectContent className="rounded-md border-slate-100 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900">
                   {stats.minhasRifas.map(r => (
                     <SelectItem
                       key={r.id}
                       value={r.id}
-                      className="font-medium text-slate-700 focus:bg-blue-50 focus:text-[#1a6eff] rounded-lg my-0.5 cursor-pointer text-sm"
+                      className="font-medium text-slate-700 dark:text-slate-300 focus:bg-blue-50 dark:focus:bg-slate-800 focus:text-[#1a6eff] dark:focus:text-blue-400 rounded-lg my-0.5 cursor-pointer text-sm"
                     >
                       {r.titulo}
                     </SelectItem>
@@ -262,18 +262,18 @@ export default function Dashboard() {
 
       {/* Seção Principal do Guardião: Link de Venda */}
       {(userRole === 'guardiao' || (userRole === 'admin' && vendedorData)) && selectedRifa && (
-        <Card className="lg:col-span-4 order-2 lg:order-2 border border-slate-100 shadow-xl shadow-slate-200/50 bg-white">
-          <CardContent className="p-6 sm:p-8 space-y-8">
+        <Card className="lg:col-span-4 order-2 lg:order-2 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none bg-white dark:bg-slate-900">
+          <CardContent className="p-4 sm:p-5 space-y-5">
             {/* Link Sharing - Layout Empilhado */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-1 h-4 bg-[#1a6eff] rounded-sm"></div>
-                <Label className="text-xs uppercase font-black text-slate-700 tracking-wider">Seu Link Personalizado</Label>
+                <Label className="text-xs uppercase font-black text-slate-700 dark:text-slate-300 tracking-wider">Seu Link Personalizado</Label>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="relative group">
-                  <div className="bg-blue-50/40 border border-blue-400/30 hover:border-blue-500 transition-all rounded-md px-4 py-3 text-sm text-slate-500 break-all font-mono leading-relaxed shadow-sm">
-                    <span className="text-slate-400">https://rifa.virtudes.net.br/</span><span className="text-[#1a6eff] font-bold">{selectedRifa?.slug}</span><span className="text-slate-400">?ref=</span><span className="text-slate-800 font-bold">{vendedorData?.codigo_ref}</span>
+                  <div className="bg-blue-50/40 dark:bg-blue-950/20 border border-blue-400/30 hover:border-blue-500 transition-all rounded-md px-4 py-3 text-sm text-slate-500 dark:text-slate-400 break-all font-mono leading-relaxed shadow-sm">
+                    <span className="text-slate-400 dark:text-slate-500">https://rifa.virtudes.net.br/</span><span className="text-[#1a6eff] font-bold">{selectedRifa?.slug}</span><span className="text-slate-400 dark:text-slate-500">?ref=</span><span className="text-slate-800 dark:text-slate-200 font-bold">{vendedorData?.codigo_ref}</span>
                   </div>
                 </div>
                 <button
@@ -300,21 +300,21 @@ export default function Dashboard() {
             </div>
 
             {/* Progress Meta */}
-            <div className="space-y-4 pt-6 border-t border-slate-50">
+            <div className="space-y-3 pt-4 border-t border-slate-50 dark:border-slate-800/60">
               <div className="flex justify-between items-end">
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Desempenho nesta Rifa</span>
-                  <span className="text-lg font-black text-slate-800 flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Desempenho nesta Rifa</span>
+                  <span className="text-lg font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <Target className="h-5 w-5 text-[#1a6eff]" /> Meta do Guardião
                   </span>
                 </div>
                 <div className="text-right">
                   <span className="text-3xl font-black text-[#1a6eff]">{selectedRifa.vendidos}</span>
-                  <span className="text-sm font-bold text-slate-400"> / {selectedRifa.meta}</span>
+                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500"> / {selectedRifa.meta}</span>
                 </div>
               </div>
-              <Progress value={selectedRifa.progresso} className="h-4 bg-slate-100 rounded-full" />
-              <p className="text-xs text-slate-500 font-bold italic text-center bg-slate-50 py-2 rounded-lg border border-slate-100">
+              <Progress value={selectedRifa.progresso} className="h-4 bg-slate-100 dark:bg-slate-800 rounded-full" />
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold italic text-center bg-slate-50 dark:bg-slate-950 py-2 rounded-lg border border-slate-100 dark:border-slate-800/60">
                 Você já atingiu {selectedRifa.progresso.toFixed(1)}% do seu objetivo!
               </p>
             </div>
@@ -343,18 +343,18 @@ export default function Dashboard() {
 
       {/* Fallback se não houver rifa */}
       {userRole === 'guardiao' && !selectedRifa && (
-        <Card className="lg:col-span-7 order-2 border-dashed border-2 border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center p-16 text-center rounded-3xl">
-          <div className="w-20 h-20 bg-white shadow-sm rounded-3xl flex items-center justify-center mb-6">
-            <Ticket className="h-10 w-10 text-slate-300" />
+        <Card className="lg:col-span-7 order-2 border-dashed border-2 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center p-16 text-center rounded-3xl">
+          <div className="w-20 h-20 bg-white dark:bg-slate-800 shadow-sm rounded-3xl flex items-center justify-center mb-6">
+            <Ticket className="h-10 w-10 text-slate-300 dark:text-slate-600" />
           </div>
-          <h3 className="text-slate-900 font-extrabold text-xl">Nenhuma Rifa Ativa</h3>
-          <p className="text-slate-500 max-w-[300px] mt-2 text-sm">Você ainda não foi vinculado a nenhuma campanha. Entre em contato com o suporte.</p>
+          <h3 className="text-slate-900 dark:text-slate-100 font-extrabold text-xl">Nenhuma Rifa Ativa</h3>
+          <p className="text-slate-500 dark:text-slate-400 max-w-[300px] mt-2 text-sm">Você ainda não foi vinculado a nenhuma campanha. Entre em contato com o suporte.</p>
         </Card>
       )}
 
       {/* Cards de Métricas Rápidas */}
       <div className="lg:col-span-7 grid gap-4 md:grid-cols-2 lg:grid-cols-4 order-4 lg:order-3">
-        <Card className={userRole === 'admin' ? "md:col-span-2 lg:col-span-2" : ""}>
+        <Card className={`${userRole === 'admin' ? "md:col-span-2 lg:col-span-2" : ""} border border-slate-100 dark:border-slate-800 bg-card shadow-sm`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               {userRole === 'admin' ? 'Total Arrecadado' : 'Minhas Vendas (R$)'}
@@ -369,11 +369,11 @@ export default function Dashboard() {
                   <div className="text-2xl font-bold">R$ {stats.totalArrecadado.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}</div>
                   <p className="text-[10px] text-muted-foreground">Pedidos pagos</p>
                 </div>
-                <div className="flex-1 border-l border-slate-200 pl-4">
+                <div className="flex-1 border-l border-slate-200 dark:border-slate-800 pl-4">
                   <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-0.5">Líquido (MP)</p>
                   <div className="text-2xl font-bold">R$ {(stats.totalArrecadado * 0.9901).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Taxa (0.99%): <span className="text-red-500 font-medium">-R$ {(stats.totalArrecadado * 0.0099).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    Taxa (0.99%): <span className="text-red-500 dark:text-red-400 font-medium">-R$ {(stats.totalArrecadado * 0.0099).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </p>
                 </div>
               </div>
@@ -385,53 +385,60 @@ export default function Dashboard() {
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className={`${userRole === 'admin' ? "md:col-span-2 lg:col-span-2" : ""} border border-slate-100 dark:border-slate-800 bg-card shadow-sm`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {userRole === 'admin' ? 'Números Vendidos' : 'Cotas Vendidas (Qtd)'}
+              {userRole === 'admin' ? 'Números Vendidos & Conversão' : 'Cotas Vendidas (Qtd)'}
             </CardTitle>
-            <Ticket className="h-4 w-4 text-muted-foreground" />
+            <div className="flex items-center gap-2">
+              <Ticket className="h-4 w-4 text-muted-foreground" />
+              {userRole === 'admin' && <TrendingUp className="h-4 w-4 text-muted-foreground" />}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.numerosVendidos}</div>
-            <p className="text-xs text-muted-foreground">Pagamento confirmado</p>
+            {userRole === 'admin' ? (
+              <div className="flex items-start gap-4">
+                <div className="flex-1">
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-0.5">Vendidos</p>
+                  <div className="text-2xl font-bold">{stats.numerosVendidos}</div>
+                  <p className="text-[10px] text-muted-foreground">Pagamento confirmado</p>
+                </div>
+                <div className="flex-1 border-l border-slate-200 dark:border-slate-800 pl-4">
+                  <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-0.5">Conversão</p>
+                  <div className="text-2xl font-bold">{stats.taxaConversao.toFixed(1)}%</div>
+                  <p className="text-[10px] text-muted-foreground">Pagos / Total</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">{stats.numerosVendidos}</div>
+                <p className="text-xs text-muted-foreground">Pagamento confirmado</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        {userRole === 'admin' ? (
-          <>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{stats.taxaConversao.toFixed(1)}%</div>
-                <p className="text-xs text-muted-foreground">Pedidos pagos / Total de pedidos</p>
-              </CardContent>
-            </Card>
-          </>
-        ) : (
-          <Card className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+        {userRole !== 'admin' && (
+          <Card className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-100 dark:border-blue-900/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-800">Status do Guardião</CardTitle>
-              <Trophy className="h-4 w-4 text-blue-600" />
+              <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-300">Status do Guardião</CardTitle>
+              <Trophy className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-bold text-blue-900">Em Destaque</div>
-              <p className="text-xs text-blue-700 font-medium">Continue vendendo para subir no ranking global!</p>
+              <div className="text-xl font-bold text-blue-900 dark:text-blue-100">Em Destaque</div>
+              <p className="text-xs text-blue-700 dark:text-blue-400 font-medium">Continue vendendo para subir no ranking global!</p>
             </CardContent>
           </Card>
         )}
       </div>
 
       {/* Gráfico de Vendas */}
-      <Card className="lg:col-span-4 order-5 lg:order-4">
+      <Card className="lg:col-span-4 order-5 lg:order-4 border border-slate-100 dark:border-slate-800 bg-card shadow-sm">
         <CardHeader>
-          <CardTitle>{userRole === 'admin' ? 'Vendas Globais' : 'Meu Histórico'} (7 dias)</CardTitle>
+          <CardTitle className="text-slate-800 dark:text-slate-200">{userRole === 'admin' ? 'Vendas Globais' : 'Meu Histórico'} (7 dias)</CardTitle>
         </CardHeader>
         <CardContent className="pl-2">
-          <ResponsiveContainer width="100%" height={350}>
+          <ResponsiveContainer width="100%" height={240}>
             <BarChart data={stats.chartData}>
               <XAxis
                 dataKey="name"
@@ -447,7 +454,16 @@ export default function Dashboard() {
                 axisLine={false}
                 tickFormatter={(value) => `R$${value}`}
               />
-              <Tooltip />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'var(--card)',
+                  borderColor: 'var(--border)',
+                  borderRadius: 'var(--radius)',
+                  color: 'var(--foreground)'
+                }}
+                itemStyle={{ color: 'var(--foreground)' }}
+                labelStyle={{ color: 'var(--muted-foreground)' }}
+              />
               <Bar dataKey="vendas" fill="#2563eb" radius={[4, 4, 0, 0]}>
                 {stats.chartData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={index === 6 ? '#2563eb' : '#93c5fd'} />
@@ -460,9 +476,9 @@ export default function Dashboard() {
 
       {/* Ranking - Apenas Admin */}
       {userRole === 'admin' && (
-        <Card className="lg:col-span-3 order-7 lg:order-5 border-none shadow-xl shadow-slate-200/50 overflow-hidden">
-          <CardHeader className="border-b border-slate-50 bg-slate-50/50">
-            <CardTitle className="text-sm font-black text-slate-800 uppercase tracking-widest flex items-center gap-2">
+        <Card className="lg:col-span-3 order-7 lg:order-5 border border-slate-100 dark:border-slate-800 bg-card shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
+          <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <CardTitle className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
               <Trophy className="h-4 w-4 text-yellow-500" /> Ranking Guardiões
             </CardTitle>
           </CardHeader>
@@ -472,15 +488,15 @@ export default function Dashboard() {
                 stats.rankingVendedores.map((v, i) => (
                   <div key={`ranking-${i}`} className="flex items-center gap-4 group">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-all group-hover:scale-110 ${
-                      i === 0 ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-400' :
-                      i === 1 ? 'bg-slate-100 text-slate-700 ring-2 ring-slate-200' :
-                      i === 2 ? 'bg-orange-100 text-orange-700 ring-2 ring-orange-200' : 'bg-slate-50 text-slate-500'
+                      i === 0 ? 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400 ring-2 ring-yellow-400 dark:ring-yellow-500/50' :
+                      i === 1 ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 ring-2 ring-slate-200 dark:ring-slate-700' :
+                      i === 2 ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400 ring-2 ring-orange-200 dark:ring-orange-500/50' : 'bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400'
                     }`}>
                       {i + 1}º
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-slate-800 truncate uppercase tracking-tighter">{v.nome}</p>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Guardião</p>
+                      <p className="text-sm font-black text-slate-800 dark:text-slate-200 truncate uppercase tracking-tighter">{v.nome}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Guardião</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-black text-[#1a6eff]">R$ {v.total.toFixed(2)}</p>
@@ -488,7 +504,7 @@ export default function Dashboard() {
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-slate-500 text-center py-4 italic font-medium">Nenhum vendedor com vendas pagas.</p>
+                <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-4 italic font-medium">Nenhum vendedor com vendas pagas.</p>
               )}
             </div>
           </CardContent>

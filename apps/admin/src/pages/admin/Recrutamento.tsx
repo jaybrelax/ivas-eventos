@@ -42,7 +42,7 @@ export default function Recrutamento() {
       .replace(/(-\d{4})\d+?$/, "$1");
   };
 
-  const inputClass = "h-13 rounded-sm border-gray-200 focus:border-blue-500 focus:ring-blue-500 transition-all";
+  const inputClass = "h-13 rounded-sm border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-400 focus:ring-blue-450/20 transition-all";
 
   useEffect(() => {
     async function fetchConfig() {
@@ -118,30 +118,30 @@ export default function Recrutamento() {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="animate-spin h-8 w-8 text-blue-600" /></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950"><Loader2 className="animate-spin h-8 w-8 text-blue-600" /></div>;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-950 p-4 transition-colors duration-300">
       <div className="w-full max-w-md">
         
         <div className="text-center mb-6">
           <Shield className="h-12 w-12 text-blue-500 mx-auto mb-2" />
-          <h1 className="text-3xl font-bold text-white tracking-tight">{config?.nome_sistema || 'Guardiões'}</h1>
-          <p className="text-blue-200 mt-1 uppercase text-xs font-bold tracking-widest">Recrutamento de Guardiões</p>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">{config?.nome_sistema || 'Guardiões'}</h1>
+          <p className="text-blue-600 dark:text-blue-400 mt-1 uppercase text-xs font-bold tracking-widest">Recrutamento de Guardiões</p>
         </div>
 
-        <Card className="border-blue-900 bg-white shadow-2xl">
+        <Card className="border border-slate-150 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl rounded-2xl overflow-hidden transition-all">
           <CardContent className="p-6">
             
             {step === 1 ? (
               <form onSubmit={handleCadastrar} className="space-y-4">
-                <div className="text-center mb-5 pb-5 border-b border-gray-100">
-                  <p className="font-bold text-blue-700 text-lg mt-1">Cadastre-se como Guardião!</p>
+                <div className="text-center mb-5 pb-5 border-b border-slate-100 dark:border-slate-800">
+                  <p className="font-bold text-blue-700 dark:text-blue-400 text-lg mt-1">Cadastre-se como Guardião!</p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Nome e Sobrenome</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 ml-1">Nome e Sobrenome</Label>
                   <Input 
                     required 
                     placeholder="Ex: João Silva" 
@@ -153,7 +153,7 @@ export default function Recrutamento() {
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label>CPF</Label>
+                    <Label className="text-slate-700 dark:text-slate-300 ml-1">CPF</Label>
                     <Input 
                       required 
                       placeholder="000.000.000-00" 
@@ -164,7 +164,7 @@ export default function Recrutamento() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>WhatsApp</Label>
+                    <Label className="text-slate-700 dark:text-slate-300 ml-1">WhatsApp</Label>
                     <Input 
                       required 
                       placeholder="(00) 00000-0000" 
@@ -176,8 +176,8 @@ export default function Recrutamento() {
                   </div>
                 </div>
 
-                <div className="space-y-1.5 pt-3 border-t">
-                  <Label>E-mail de acesso</Label>
+                <div className="space-y-1.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <Label className="text-slate-700 dark:text-slate-300 ml-1">E-mail de acesso</Label>
                   <Input 
                     required 
                     type="email" 
@@ -188,7 +188,7 @@ export default function Recrutamento() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Criar Senha</Label>
+                  <Label className="text-slate-700 dark:text-slate-300 ml-1">Criar Senha</Label>
                   <Input 
                     required 
                     type="password" 
@@ -206,12 +206,12 @@ export default function Recrutamento() {
               </form>
             ) : (
               <div className="text-center py-6">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <PartyPopper className="h-8 w-8 text-green-600" />
+                <div className="w-16 h-16 bg-green-100 dark:bg-green-950/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <PartyPopper className="h-8 w-8 text-green-600 dark:text-green-400" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Conta Criada!</h3>
-                <p className="text-gray-500 mb-6">Você já é um guardião. Acesse seu painel administrativo para pegar seu link exclusivo!</p>
-                <Button className="w-full h-12" onClick={() => navigate("/login")}>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-2">Conta Criada!</h3>
+                <p className="text-slate-550 dark:text-slate-400 mb-6">Você já é um guardião. Acesse seu painel administrativo para pegar seu link exclusivo!</p>
+                <Button className="w-full h-12 text-white font-bold" onClick={() => navigate("/login")}>
                   Acessar Painel
                 </Button>
               </div>

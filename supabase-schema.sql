@@ -177,6 +177,18 @@ CREATE TABLE IF NOT EXISTS public.configuracoes (
     mp_access_token TEXT,
     evolution_api_url TEXT,
     evolution_api_key TEXT,
+    evolution_instance TEXT,
+    evolution_enabled BOOLEAN DEFAULT false,
+    hero_enabled BOOLEAN DEFAULT true,
+    hero_titulo TEXT,
+    hero_descricao TEXT,
+    hero_imagem_url TEXT,
+    whatsapp TEXT,
+    admin_dark_mode BOOLEAN DEFAULT false,
+    webhook_pago TEXT,
+    distribuicao_aleatoria_guardiao BOOLEAN DEFAULT false,
+    surpresinha_enabled BOOLEAN DEFAULT false,
+    notificacoes_compradores_enabled BOOLEAN DEFAULT true,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -197,7 +209,17 @@ INSERT INTO public.configuracoes (id, nome_sistema) VALUES (1, 'Sorteios Online'
 -- 8. View: vw_configuracoes_publicas (Para acesso sem autenticação)
 -- ==============================================================================
 CREATE OR REPLACE VIEW public.vw_configuracoes_publicas AS
-SELECT id, nome_sistema, logo_url
+SELECT 
+    id, 
+    nome_sistema, 
+    logo_url, 
+    hero_enabled, 
+    hero_titulo, 
+    hero_descricao, 
+    hero_imagem_url, 
+    whatsapp, 
+    surpresinha_enabled,
+    notificacoes_compradores_enabled
 FROM public.configuracoes;
 
 -- Garantir acesso público à view

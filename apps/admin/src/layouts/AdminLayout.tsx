@@ -14,6 +14,8 @@ import {
   X,
   Shield,
   Bell,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -35,6 +37,18 @@ export default function AdminLayout() {
   const [userRole, setUserRole] = useState<'admin' | 'guardiao'>('admin');
   const [vendedorData, setVendedorData] = useState<any>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  
+  const [localTheme, setLocalTheme] = useState<'light' | 'dark' | null>(() => {
+    return localStorage.getItem('theme_preference') as 'light' | 'dark' | null;
+  });
+
+  const isDarkMode = localTheme === 'dark' || (localTheme === null && config.admin_dark_mode);
+
+  const toggleTheme = () => {
+    const newTheme = isDarkMode ? 'light' : 'dark';
+    setLocalTheme(newTheme);
+    localStorage.setItem('theme_preference', newTheme);
+  };
 
   useEffect(() => {
     // Timeout de segurança: Se não carregar em 3 segundos, libera o loader
@@ -101,9 +115,9 @@ export default function AdminLayout() {
   }, [location.pathname]);
 
   useEffect(() => {
-    if (config.admin_dark_mode) document.documentElement.classList.add('dark');
+    if (isDarkMode) document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
-  }, [config.admin_dark_mode]);
+  }, [isDarkMode]);
 
     // PWA Isolation para Painel Administrativo
     useEffect(() => {
@@ -165,20 +179,20 @@ export default function AdminLayout() {
   };
 
   const allNavItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/', roles: ['admin', 'guardiao'], color: 'text-violet-500', bg: 'bg-violet-50', activeBg: 'bg-violet-600' },
-    { icon: Ticket, label: 'Rifas', path: '/rifas', roles: ['admin', 'guardiao'], color: 'text-blue-500', bg: 'bg-blue-50', activeBg: 'bg-blue-600' },
-    { icon: Trophy, label: 'Ranking', path: '/ranking', roles: ['admin', 'guardiao'], color: 'text-amber-500', bg: 'bg-amber-50', activeBg: 'bg-amber-500' },
-    { icon: ShoppingCart, label: 'Vendas', path: '/vendas', roles: ['admin', 'guardiao'], color: 'text-emerald-500', bg: 'bg-emerald-50', activeBg: 'bg-emerald-600' },
-    { icon: Shield, label: 'Guardiões', path: '/vendedores', roles: ['admin'], color: 'text-indigo-500', bg: 'bg-indigo-50', activeBg: 'bg-indigo-600' },
-    { icon: UserCircle, label: 'Meu Perfil', path: '/perfil', roles: ['admin', 'guardiao'], color: 'text-pink-500', bg: 'bg-pink-50', activeBg: 'bg-pink-600' },
-    { icon: Settings, label: 'Configurações', path: '/configuracoes', roles: ['admin'], color: 'text-slate-500', bg: 'bg-slate-50', activeBg: 'bg-slate-600' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/', roles: ['admin', 'guardiao'], color: 'text-violet-500 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/30', activeBg: 'bg-violet-600' },
+    { icon: Ticket, label: 'Rifas', path: '/rifas', roles: ['admin', 'guardiao'], color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30', activeBg: 'bg-blue-600' },
+    { icon: Trophy, label: 'Ranking', path: '/ranking', roles: ['admin', 'guardiao'], color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30', activeBg: 'bg-amber-500' },
+    { icon: ShoppingCart, label: 'Vendas', path: '/vendas', roles: ['admin', 'guardiao'], color: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30', activeBg: 'bg-emerald-600' },
+    { icon: Shield, label: 'Guardiões', path: '/vendedores', roles: ['admin'], color: 'text-indigo-500 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/30', activeBg: 'bg-indigo-600' },
+    { icon: UserCircle, label: 'Meu Perfil', path: '/perfil', roles: ['admin', 'guardiao'], color: 'text-pink-500 dark:text-pink-400', bg: 'bg-pink-50 dark:bg-pink-950/30', activeBg: 'bg-pink-600' },
+    { icon: Settings, label: 'Configurações', path: '/configuracoes', roles: ['admin'], color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-800/30', activeBg: 'bg-slate-600' },
   ];
 
   const navItems = allNavItems.filter(item => item.roles.includes(userRole));
 
   if (loadingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #fafbff 100%)' }}>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-slate-50 dark:from-slate-900 dark:to-slate-950">
         <div className="flex flex-col items-center gap-3">
           <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 animate-pulse">
             <Ticket className="h-6 w-6 text-white" />
@@ -199,7 +213,7 @@ export default function AdminLayout() {
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="h-screen w-full flex overflow-hidden" style={{ background: '#F0F4FF' }}>
+    <div className="h-screen w-full flex overflow-hidden bg-background text-foreground">
 
       {/* Overlay Mobile */}
       {isSidebarOpen && (
@@ -211,18 +225,12 @@ export default function AdminLayout() {
 
       {/* ─── SIDEBAR ─── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 w-[260px] bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950/50 border-r border-indigo-500/10 dark:border-slate-800 shadow-lg shadow-indigo-500/5 dark:shadow-none ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{
-          width: '260px',
-          background: 'linear-gradient(180deg, #ffffff 0%, #f8faff 100%)',
-          borderRight: '1px solid rgba(99,102,241,0.08)',
-          boxShadow: '4px 0 24px rgba(99,102,241,0.06)',
-        }}
       >
         {/* Logo */}
-        <div className="h-[70px] flex items-center justify-between px-6 shrink-0" style={{ borderBottom: '1px solid rgba(99,102,241,0.08)' }}>
+        <div className="h-[70px] flex items-center justify-between px-6 shrink-0 border-b border-indigo-500/5 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className={cn(
               "flex items-center justify-center shrink-0",
@@ -233,38 +241,38 @@ export default function AdminLayout() {
                 : <Ticket className="h-5 w-5 text-white" />
               }
             </div>
-            <span className="text-[15px] font-black text-slate-800 tracking-tight truncate max-w-[140px]">
+            <span className="text-[15px] font-black text-slate-800 dark:text-slate-200 tracking-tight truncate max-w-[140px]">
               {config.nome_sistema}
             </span>
           </div>
           <button
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            className="lg:hidden p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* User Card */}
-        <div className="mx-4 mt-5 mb-2 p-4 rounded-2xl flex items-center gap-3" style={{ background: 'linear-gradient(135deg, #eff3ff, #e8eeff)', border: '1px solid rgba(99,102,241,0.12)' }}>
+        <div className="mx-4 mt-5 mb-2 p-4 rounded-2xl flex items-center gap-3 bg-gradient-to-br from-indigo-50/50 to-blue-50/50 dark:from-slate-800/50 dark:to-slate-900/50 border border-indigo-500/10 dark:border-slate-800/80">
           <div className="relative shrink-0">
-            <Avatar className="h-11 w-11 ring-2 ring-white shadow-md">
+            <Avatar className="h-11 w-11 ring-2 ring-white dark:ring-slate-800 shadow-md">
               <AvatarImage src={vendedorData?.avatar_url} />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-violet-600 text-white font-bold text-sm">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white rounded-full" />
+            <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-white dark:border-slate-800 rounded-full" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-bold text-slate-800 truncate">{displayName}</p>
-            <p className="text-[11px] text-slate-400 truncate">{session.user.email}</p>
+            <p className="text-[13px] font-bold text-slate-800 dark:text-slate-200 truncate">{displayName}</p>
+            <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{session.user.email}</p>
           </div>
         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-2 overflow-y-auto">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-3 mb-3">Menu</p>
+          <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3 mb-3">Menu</p>
           <ul className="space-y-1">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path ||
@@ -274,15 +282,12 @@ export default function AdminLayout() {
                   <Link
                     to={item.path}
                     onClick={() => { if (window.innerWidth < 1024) setIsSidebarOpen(false); }}
-                    className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                    className={cn(
+                      "group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
                       isActive
-                        ? 'text-white shadow-lg'
-                        : 'text-slate-500 hover:text-slate-800 hover:bg-white hover:shadow-sm'
-                    }`}
-                    style={isActive ? {
-                      background: 'linear-gradient(135deg, #2563EB, #4F46E5)',
-                      boxShadow: '0 4px 14px rgba(79,70,229,0.35)',
-                    } : {}}
+                        ? "text-white bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-500 dark:to-indigo-500 shadow-md shadow-indigo-500/20 dark:shadow-none"
+                        : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800/40 hover:shadow-sm"
+                    )}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${
                       isActive ? 'bg-white/20' : `${item.bg} group-hover:scale-110`
@@ -299,24 +304,24 @@ export default function AdminLayout() {
         </nav>
 
         {/* View Site + Logout */}
-        <div className="p-4 space-y-2 shrink-0" style={{ borderTop: '1px solid rgba(99,102,241,0.08)' }}>
+        <div className="p-4 space-y-2 shrink-0 border-t border-indigo-500/5 dark:border-slate-800">
           <a
             href={`https://rifa.virtudes.net.br${vendedorData?.codigo_ref ? `?ref=${vendedorData.codigo_ref}` : ''}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:text-blue-600 hover:bg-blue-50 transition-all group"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all group"
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-              <Eye className="h-4 w-4 text-blue-500" />
+            <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/30 flex items-center justify-center group-hover:bg-blue-100 dark:group-hover:bg-blue-900/40 transition-colors">
+              <Eye className="h-4 w-4 text-blue-500 dark:text-blue-400" />
             </div>
             Ver Site Público
           </a>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all group"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all group"
           >
-            <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center group-hover:bg-red-50 transition-colors">
-              <LogOut className="h-4 w-4 group-hover:text-red-500" />
+            <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center group-hover:bg-red-50 dark:group-hover:bg-red-950/30 transition-colors">
+              <LogOut className="h-4 w-4 group-hover:text-red-500 dark:group-hover:text-red-400" />
             </div>
             Sair
           </button>
@@ -328,19 +333,13 @@ export default function AdminLayout() {
 
         {/* Header */}
         <header
-          className="h-[70px] flex items-center justify-between px-5 sm:px-7 shrink-0 z-30 relative"
-          style={{
-            background: 'rgba(255,255,255,0.85)',
-            backdropFilter: 'blur(12px)',
-            borderBottom: '1px solid rgba(99,102,241,0.08)',
-            boxShadow: '0 1px 12px rgba(99,102,241,0.06)',
-          }}
+          className="h-[70px] flex items-center justify-between px-5 sm:px-7 shrink-0 z-30 relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-indigo-500/5 dark:border-slate-800 shadow-sm transition-colors duration-200"
         >
           {/* Left: Hamburger + Title */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+              className="lg:hidden p-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <Menu className="h-5 w-5" />
             </button>
@@ -356,18 +355,18 @@ export default function AdminLayout() {
                   : <Ticket className="h-4 w-4 text-white" />
                 }
               </div>
-              <span className="text-sm font-black text-slate-800 truncate max-w-[130px]">
+              <span className="text-sm font-black text-slate-800 dark:text-slate-200 truncate max-w-[130px]">
                 {config.nome_sistema}
               </span>
             </div>
 
             {/* Breadcrumb Desktop */}
             <div className="hidden lg:flex items-center gap-2">
-              <span className="text-[13px] font-medium text-slate-400">
+              <span className="text-[13px] font-medium text-slate-400 dark:text-slate-500">
                 {userRole === 'admin' ? 'Painel Administrativo' : 'Portal do Guardião'}
               </span>
-              <span className="text-slate-200">·</span>
-              <span className="text-[13px] font-bold text-slate-700">
+              <span className="text-slate-200 dark:text-slate-800">·</span>
+              <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300">
                 {navItems.find(i => i.path === '/admin' ? location.pathname === '/admin' : location.pathname.startsWith(i.path))?.label || 'Dashboard'}
               </span>
             </div>
@@ -380,15 +379,15 @@ export default function AdminLayout() {
               <div
                 onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
                 className={cn(
-                  "flex items-center gap-2.5 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100 transition-all duration-200",
-                  isProfileMenuOpen ? "bg-slate-100" : ""
+                  "flex items-center gap-2.5 px-3 py-1.5 rounded-xl cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200",
+                  isProfileMenuOpen ? "bg-slate-100 dark:bg-slate-800" : ""
                 )}
               >
                 <div className="text-right">
-                  <p className="text-[12px] font-bold text-slate-800 leading-none">{displayName.split(' ')[0]}</p>
-                  <p className="text-[10px] text-slate-400 mt-0.5 capitalize">{userRole}</p>
+                  <p className="text-[12px] font-bold text-slate-800 dark:text-slate-200 leading-none">{displayName.split(' ')[0]}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 capitalize">{userRole}</p>
                 </div>
-                <Avatar className="h-8 w-8 ring-2 ring-white shadow">
+                <Avatar className="h-8 w-8 ring-2 ring-white dark:ring-slate-800 shadow">
                   <AvatarImage src={vendedorData?.avatar_url} />
                   <AvatarFallback className="bg-gradient-to-br from-blue-500 to-violet-600 text-white text-xs font-bold">
                     {initials}
@@ -400,15 +399,15 @@ export default function AdminLayout() {
               {isProfileMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setIsProfileMenuOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl shadow-blue-900/10 border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
-                    <div className="px-4 py-2 mb-1 sm:hidden">
-                      <p className="text-xs font-bold text-slate-800">{displayName}</p>
-                      <p className="text-[10px] text-slate-400 truncate">{session.user.email}</p>
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-blue-900/10 dark:shadow-black/30 border border-slate-100 dark:border-slate-850 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+                    <div className="px-4 py-2 mb-1 sm:hidden border-b border-slate-50 dark:border-slate-800">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200">{displayName}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{session.user.email}</p>
                     </div>
                     <Link
                       to="/perfil"
                       onClick={() => setIsProfileMenuOpen(false)}
-                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
                     >
                       <UserCircle className="h-4 w-4" />
                       Meu Perfil
@@ -417,16 +416,28 @@ export default function AdminLayout() {
                       <Link
                         to="/configuracoes"
                         onClick={() => setIsProfileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
                       >
                         <Settings className="h-4 w-4" />
                         Configurações
                       </Link>
                     )}
-                    <div className="h-px bg-slate-50 my-1 mx-2" />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleTheme();
+                      }}
+                      className="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                        Tema {isDarkMode ? 'Claro' : 'Escuro'}
+                      </div>
+                    </button>
+                    <div className="h-px bg-slate-50 dark:bg-slate-800 my-1 mx-2" />
                     <button
                       onClick={() => { setIsProfileMenuOpen(false); handleLogout(); }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
                     >
                       <LogOut className="h-4 w-4" />
                       Sair

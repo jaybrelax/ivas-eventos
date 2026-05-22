@@ -149,82 +149,103 @@ export default function RifaDetailsClient({ initialRifa, initialPremios, initial
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rifa?.id, sessionId]);
 
-  // Buscar compradores aleatórios para o Toast
+  // Buscar compradores aleatórios da tabela de clientes
   useEffect(() => {
-    if (!rifa?.id) return;
-    
+    if (config?.notificacoes_compradores_enabled === false) {
+      setRecentBuyers([]);
+      return;
+    }
+
     const fetchBuyers = async () => {
       try {
         const { data, error } = await supabase
-          .from('pedidos')
-          .select('quantidade, clientes(nome_completo)')
-          .eq('rifa_id', rifa.id)
-          .eq('status', 'pago')
-          .limit(50);
+          .from('clientes')
+          .select('nome_completo')
+          .limit(100);
           
-        let fetchedData = data;
+        let buyersList = data || [];
         
-        // Se não houver pedidos pagos ainda, usar dados fictícios para demonstração
-        if (error || !data || data.length === 0) {
-          fetchedData = [
-            { quantidade: 3, clientes: { nome_completo: "Carlos Silva" } },
-            { quantidade: 5, clientes: { nome_completo: "Mariana Costa" } },
-            { quantidade: 1, clientes: { nome_completo: "João Oliveira" } },
-            { quantidade: 10, clientes: { nome_completo: "Ana Pereira" } },
-            { quantidade: 2, clientes: { nome_completo: "Lucas Santos" } },
-            { quantidade: 8, clientes: { nome_completo: "Beatriz Lima" } }
+        // Se não houver clientes ou der erro, usar dados fictícios para demonstração
+        if (error || buyersList.length === 0) {
+          buyersList = [
+            { nome_completo: "Carlos Silva" },
+            { nome_completo: "Mariana Costa" },
+            { nome_completo: "João Oliveira" },
+            { nome_completo: "Ana Pereira" },
+            { nome_completo: "Lucas Santos" },
+            { nome_completo: "Beatriz Lima" },
+            { nome_completo: "Fernanda Souza" },
+            { nome_completo: "Rodrigo Alves" },
+            { nome_completo: "Juliana Mendes" },
+            { nome_completo: "Thiago Rocha" }
           ];
         }
 
-        let formattedBuyers = fetchedData.map((d: any) => {
-          const clienteObj = d.clientes || d.cliente;
-          const nomeParts = (clienteObj?.nome_completo || '').trim().split(' ');
+        const formattedBuyers = buyersList.map((d: any) => {
+          const nomeParts = (d.nome_completo || '').trim().split(' ');
           const firstName = nomeParts[0] || '';
           const lastName = nomeParts.length > 1 ? nomeParts[1] : '';
           return {
-            nome: lastName ? `${firstName} ${lastName}` : firstName,
-            quantidade: (d.quantidade || 0) + 2
+            nome: lastName ? `${firstName} ${lastName}` : firstName
           };
         }).filter((b: any) => b.nome);
         
-        // Embaralhar o array (Fisher-Yates) para que não sejam sempre os mesmos
+        // Embaralhar o array (Fisher-Yates) para que a ordem mude a cada carregamento
         for (let i = formattedBuyers.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [formattedBuyers[i], formattedBuyers[j]] = [formattedBuyers[j], formattedBuyers[i]];
         }
         
-        setRecentBuyers(formattedBuyers);
+        setRecentBuyers(formattedBuyers.slice(0, 4));
       } catch (err) {
-        console.error("Erro ao buscar compradores recentes:", err);
+        console.error("Erro ao buscar clientes:", err);
       }
     };
     
     fetchBuyers();
-  }, [rifa?.id]);
+  }, [config?.notificacoes_compradores_enabled]);
 
-  // Timers para exibição do Toast
+  // Timers periódicos para exibição do Toast (a cada 30 segundos)
   useEffect(() => {
+    if (config?.notificacoes_compradores_enabled === false) {
+      setToastBuyer(null);
+      return;
+    }
     if (recentBuyers.length === 0) return;
     
-    // Mostra o primeiro após 7 segundos
-    const timer1 = setTimeout(() => {
-      setToastBuyer(recentBuyers[0]);
-      setTimeout(() => setToastBuyer(null), 5000); // Esconde após 5s
-    }, 7000);
+    let hideTimeout: NodeJS.Timeout;
     
-    // Mostra o segundo após 37 segundos (7s + 30s)
-    const timer2 = setTimeout(() => {
-      if (recentBuyers.length > 1) {
-        setToastBuyer(recentBuyers[1]);
-        setTimeout(() => setToastBuyer(null), 5000);
-      }
-    }, 37000);
+    const showNotification = () => {
+      // Escolhe um comprador aleatório
+      const randomBuyer = recentBuyers[Math.floor(Math.random() * recentBuyers.length)];
+      // Gera quantidade aleatória (mínimo 1) e adiciona +1 (garantindo no mínimo 2)
+      const baseQty = Math.floor(Math.random() * 9) + 1; // 1 a 9
+      const totalQty = baseQty + 1; // 2 a 10
+      
+      setToastBuyer({
+        nome: randomBuyer.nome,
+        quantidade: totalQty
+      });
+      
+      // Oculta a notificação após 6 segundos
+      if (hideTimeout) clearTimeout(hideTimeout);
+      hideTimeout = setTimeout(() => {
+        setToastBuyer(null);
+      }, 6000);
+    };
+    
+    // Exibe o primeiro toast após 7 segundos da carga da página
+    const initialTimeout = setTimeout(showNotification, 7000);
+    
+    // Configura o intervalo de exibição a cada 30 segundos
+    const interval = setInterval(showNotification, 30000);
     
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
+      clearTimeout(initialTimeout);
+      if (hideTimeout) clearTimeout(hideTimeout);
+      clearInterval(interval);
     };
-  }, [recentBuyers]);
+  }, [recentBuyers, config?.notificacoes_compradores_enabled]);
 
   // Atualiza o track no canal existente sempre que a seleção muda.
   // Não recria o canal — apenas envia os dados atualizados.
@@ -1028,24 +1049,39 @@ export default function RifaDetailsClient({ initialRifa, initialPremios, initial
 
       {/* Toast Notificação de Compra Recente */}
       {toastBuyer && (
-        <div className="fixed bottom-[110px] md:bottom-8 left-1/2 -translate-x-1/2 z-[9999] max-w-[90vw] w-max shadow-2xl">
-          <div className="bg-white border-2 border-green-500 shadow-[0_8px_30px_rgba(0,0,0,0.2)] p-2.5 sm:p-3 rounded-full flex items-center gap-3 animate-pulse">
-            <div className="h-9 w-9 sm:h-10 sm:w-10 bg-green-100 rounded-full flex items-center justify-center shrink-0">
-              <span className="text-lg sm:text-xl">🎉</span>
+        <>
+          <style>{`
+            @keyframes toastFadeInUp {
+              from {
+                opacity: 0;
+                transform: translateY(12px) scale(0.98);
+              }
+              to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+              }
+            }
+          `}</style>
+          <div className="fixed bottom-[110px] left-1/2 -translate-x-1/2 md:left-auto md:right-8 md:translate-x-0 md:bottom-8 z-[9999] max-w-[90vw] w-max shadow-2xl">
+            <div 
+              style={{ animation: 'toastFadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+              className="bg-white border-2 border-green-500 shadow-[0_8px_30px_rgba(0,0,0,0.2)] p-2.5 sm:p-3 rounded-full flex items-center gap-3"
+            >
+              <div className="h-9 w-9 sm:h-10 sm:w-10 bg-green-100 rounded-full flex items-center justify-center shrink-0">
+                <span className="text-lg sm:text-xl">🎉</span>
+              </div>
+              <div className="pr-2">
+                <p className="text-xs sm:text-sm text-slate-800 font-medium">
+                  <span className="font-bold text-green-700">{toastBuyer.nome}</span> acabou de comprar{" "}
+                  <span className="font-extrabold text-slate-900">{toastBuyer.quantidade}</span> números!
+                </p>
+              </div>
+              <button onClick={() => setToastBuyer(null)} className="ml-1 sm:ml-2 p-1 text-slate-400 hover:text-slate-600 rounded-full shrink-0">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <div className="pr-2">
-              <p className="text-xs sm:text-sm text-slate-800 font-medium">
-                <span className="font-bold text-green-700">{toastBuyer.nome}</span> comprou
-              </p>
-              <p className="text-[10px] sm:text-xs font-black text-slate-500 uppercase tracking-wider mt-0.5">
-                {toastBuyer.quantidade} números
-              </p>
-            </div>
-            <button onClick={() => setToastBuyer(null)} className="ml-1 sm:ml-2 p-1 text-slate-400 hover:text-slate-600 rounded-full shrink-0">
-              <X className="h-4 w-4" />
-            </button>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

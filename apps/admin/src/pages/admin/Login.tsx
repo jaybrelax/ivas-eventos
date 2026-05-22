@@ -67,26 +67,26 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50/50 via-slate-50 to-slate-100/50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-50/30 dark:from-blue-950/10 via-slate-50 dark:via-slate-950 to-slate-100/50 dark:to-slate-900/10 transition-colors duration-300">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center mb-6">
           <img src={logo} alt="IVAS Logo" className="h-20 w-auto object-contain" />
         </div>
-        <h2 className="text-center text-3xl font-bold text-slate-900 tracking-tight">
+        <h2 className="text-center text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
           Acesso Restrito
         </h2>
-        <p className="mt-2 text-center text-sm text-slate-500 font-medium uppercase tracking-widest">
+        <p className="mt-2 text-center text-sm text-slate-500 dark:text-slate-450 font-medium uppercase tracking-widest">
           Administração do Sistema
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <Card className="border-none shadow-2xl shadow-blue-900/5 rounded-2xl overflow-hidden bg-white/80 backdrop-blur-sm">
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-2xl shadow-blue-900/5 dark:shadow-slate-950/50 rounded-2xl overflow-hidden bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm transition-all">
           <CardHeader className="space-y-1 pb-6 pt-8">
-            <CardTitle className="text-2xl font-bold tracking-tight">
+            <CardTitle className="text-2xl font-bold tracking-tight text-slate-800 dark:text-slate-200">
               {isForgotPassword ? 'Recuperar Senha' : 'Login'}
             </CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardDescription className="text-slate-500 dark:text-slate-400">
               {isForgotPassword 
                 ? 'Insira seu e-mail para receber um link de redefinição.' 
                 : 'Insira suas credenciais para acessar o painel.'}
@@ -95,18 +95,18 @@ export default function Login() {
           <CardContent>
             <form onSubmit={isForgotPassword ? handleResetPassword : handleLogin} className="space-y-5">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-600 text-sm p-3 rounded-md">
+                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm p-3 rounded-md">
                   {error}
                 </div>
               )}
               {successMessage && (
-                <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-3 rounded-md">
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900/30 text-green-700 dark:text-green-400 text-sm p-3 rounded-md">
                   {successMessage}
                 </div>
               )}
               
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-semibold text-slate-700 ml-1">E-mail</Label>
+                <Label htmlFor="email" className="text-sm font-semibold text-slate-700 dark:text-slate-350 ml-1">E-mail</Label>
                 <Input
                   id="email"
                   type="email"
@@ -114,18 +114,18 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="admin@exemplo.com"
-                  className="h-12 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500/10 transition-all text-base"
+                  className="h-12 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500/10 transition-all text-base"
                 />
               </div>
 
               {!isForgotPassword && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between ml-1">
-                    <Label htmlFor="password" name="Senha" className="text-sm font-semibold text-slate-700">Senha</Label>
+                    <Label htmlFor="password" name="Senha" className="text-sm font-semibold text-slate-700 dark:text-slate-350">Senha</Label>
                     <button 
                       type="button" 
                       onClick={() => { setIsForgotPassword(true); setError(null); setSuccessMessage(null); }}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-500 transition-colors"
+                      className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 transition-colors"
                     >
                       Esqueceu a senha?
                     </button>
@@ -136,7 +136,7 @@ export default function Login() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500/10 transition-all text-base"
+                    className="h-12 rounded-xl border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-500 focus:ring-blue-500/10 transition-all text-base"
                   />
                 </div>
               )}
@@ -151,7 +151,7 @@ export default function Login() {
                   <button 
                     type="button"
                     onClick={() => { setIsForgotPassword(false); setError(null); setSuccessMessage(null); }}
-                    className="text-sm text-slate-500 hover:text-slate-700 font-medium transition-colors"
+                    className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-750 dark:hover:text-slate-300 font-medium transition-colors"
                   >
                     Voltar para o Login
                   </button>

@@ -120,15 +120,15 @@ export default function VendedoresList() {
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
             <Shield className="h-6 w-6 text-blue-600" /> Guardiões
           </h1>
-          <p className="text-gray-500">Gerencie sua equipe de vendas e compare desempenhos.</p>
+          <p className="text-gray-500 dark:text-slate-400">Gerencie sua equipe de vendas e compare desempenhos.</p>
         </div>
         <div className="flex gap-3 w-full sm:w-auto">
           <Button
             variant="outline"
-            className="flex-1 sm:flex-none border-blue-200 text-blue-700 hover:bg-blue-50"
+            className="flex-1 sm:flex-none border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
             onClick={handleCopiarLink}
           >
             {linkCopiado
@@ -152,14 +152,14 @@ export default function VendedoresList() {
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-gray-400" />
+              <Users className="h-5 w-5 text-gray-400 dark:text-slate-500" />
               Lista de Guardiões
               {!loading && (
                 <Badge variant="secondary" className="ml-2 font-bold">{vendedores.length}</Badge>
               )}
             </CardTitle>
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-slate-400" />
               <Input
                 type="search"
                 placeholder="Buscar guardião..."
@@ -176,9 +176,9 @@ export default function VendedoresList() {
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>
           ) : vendedoresFiltrados.length === 0 ? (
-            <div className="text-center py-14 text-gray-400">
+            <div className="text-center py-14 text-gray-400 dark:text-slate-550">
               <Shield className="h-12 w-12 mx-auto mb-3 opacity-20" />
-              <p className="font-medium text-gray-500">
+              <p className="font-medium text-gray-500 dark:text-slate-400">
                 {search ? "Nenhum guardião encontrado para esta busca." : "Nenhum guardião cadastrado ainda."}
               </p>
               {!search && (
@@ -222,10 +222,10 @@ export default function VendedoresList() {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
-                            <span className="font-medium text-slate-900 flex items-center gap-1.5">
+                            <span className="font-medium text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
                               {vendedor.nome}
                               {vendedor.is_admin === true && (
-                                <Badge className="h-4 px-1 text-[10px] bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100">Admin</Badge>
+                                <Badge className="h-4 px-1 text-[10px] bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/50 hover:bg-blue-100 dark:hover:bg-blue-950/50">Admin</Badge>
                               )}
                             </span>
                           </div>
@@ -234,12 +234,12 @@ export default function VendedoresList() {
                       <TableCell>
                         <div className="space-y-1.5 min-w-[120px]">
                           <div className="flex justify-between text-xs">
-                            <span className="font-bold text-gray-700">{totalCotas} cotas</span>
-                            <span className={atingiuMeta ? "text-green-600 font-bold" : "text-gray-400"}>
+                            <span className="font-bold text-gray-700 dark:text-slate-350">{totalCotas} cotas</span>
+                            <span className={atingiuMeta ? "text-green-600 dark:text-green-400 font-bold" : "text-gray-400 dark:text-slate-500"}>
                               meta: {metaReal}
                             </span>
                           </div>
-                          <div className="w-full bg-gray-100 rounded-full h-2">
+                          <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2">
                             <div
                               className={`h-2 rounded-full transition-all ${atingiuMeta ? 'bg-green-500' : 'bg-blue-500'}`}
                               style={{ width: `${progresso}%` }}
@@ -248,12 +248,12 @@ export default function VendedoresList() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm font-medium text-slate-700">{vendedor.email}</div>
-                        <div className="text-xs text-gray-500">{vendedor.telefone}</div>
+                        <div className="text-sm font-medium text-slate-700 dark:text-slate-300">{vendedor.email}</div>
+                        <div className="text-xs text-gray-500 dark:text-slate-400">{vendedor.telefone}</div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-2">
-                          <Badge variant="outline" className="font-mono bg-gray-50 text-blue-700 border-blue-200">
+                          <Badge variant="outline" className="font-mono bg-gray-50 dark:bg-slate-900/50 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-900/50">
                             {vendedor.codigo_ref}
                           </Badge>
                           <Button
@@ -270,7 +270,7 @@ export default function VendedoresList() {
                       </TableCell>
                       <TableCell>
                         {vendedor.ativo !== false ? (
-                          <Badge className="bg-green-100 text-green-700 border-green-200">Ativo</Badge>
+                          <Badge className="bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/30">Ativo</Badge>
                         ) : (
                           <Badge variant="secondary">Inativo</Badge>
                         )}
