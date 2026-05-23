@@ -333,7 +333,7 @@ export default function AdminLayout() {
 
         {/* Header */}
         <header
-          className="h-[70px] flex items-center justify-between px-5 sm:px-7 shrink-0 z-30 relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-indigo-500/5 dark:border-slate-800 shadow-sm transition-colors duration-200"
+          className="h-[70px] flex items-center justify-between px-5 sm:px-7 shrink-0 z-30 relative bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border-b border-indigo-500/5 dark:border-slate-700/50 shadow-sm transition-colors duration-200"
         >
           {/* Left: Hamburger + Title */}
           <div className="flex items-center gap-4">

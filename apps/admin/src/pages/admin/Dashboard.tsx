@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
+import { LaserBorder } from "@/components/magic/LaserBorder";
 
 export default function Dashboard() {
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
@@ -271,11 +272,28 @@ export default function Dashboard() {
                 <Label className="text-xs uppercase font-black text-slate-700 dark:text-slate-300 tracking-wider">Seu Link Personalizado</Label>
               </div>
               <div className="space-y-2">
-                <div className="relative group">
-                  <div className="bg-blue-50/40 dark:bg-blue-950/20 border border-blue-400/30 hover:border-blue-500 transition-all rounded-md px-4 py-3 text-sm text-slate-500 dark:text-slate-400 break-all font-mono leading-relaxed shadow-sm">
-                    <span className="text-slate-400 dark:text-slate-500">https://rifa.virtudes.net.br/</span><span className="text-[#1a6eff] font-bold">{selectedRifa?.slug}</span><span className="text-slate-400 dark:text-slate-500">?ref=</span><span className="text-slate-800 dark:text-slate-200 font-bold">{vendedorData?.codigo_ref}</span>
+                <LaserBorder
+                  className="rounded-md overflow-hidden p-[2px] group"
+                  duration={3}
+                  width={3}
+                  color="#1a6eff"
+                  glowColor="rgba(168, 85, 247, 0.6)"
+                  rx={6}
+                >
+                  {/* Conteúdo interno do Input */}
+                  <div className="relative bg-white dark:bg-slate-900 rounded-[5px] px-4 py-3 text-sm font-mono shadow-sm w-full h-11 flex items-center overflow-hidden">
+                    {/* Fade na esquerda */}
+                    <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white dark:from-slate-900 to-transparent z-10 pointer-events-none" />
+                    
+                    {/* Texto posicionado à direita em 1 linha */}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap">
+                      <span className="text-slate-400 dark:text-slate-500">https://rifa.virtudes.net.br/</span>
+                      <span className="text-[#1a6eff] dark:text-[#3b82f6] font-bold">{selectedRifa?.slug}</span>
+                      <span className="text-slate-400 dark:text-slate-500">?ref=</span>
+                      <span className="text-slate-800 dark:text-slate-200 font-bold">{vendedorData?.codigo_ref}</span>
+                    </div>
                   </div>
-                </div>
+                </LaserBorder>
                 <button
                   onClick={() => selectedRifa && copyLink(selectedRifa.slug)}
                   className={`w-full flex items-center justify-center gap-2 h-11 rounded-md font-bold uppercase tracking-wider text-xs transition-all duration-300 ${
