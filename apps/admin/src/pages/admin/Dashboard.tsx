@@ -92,7 +92,7 @@ export default function Dashboard() {
         // --- LOGICA ADMIN GLOBAL ---
         const { data: pedidosPagos } = await supabase
           .from('pedidos')
-          .select('valor_total, created_at, vendedor_id, vendedores(nome), rifas!inner(status)')
+          .select('valor_total, quantidade, created_at, vendedor_id, vendedores(nome), rifas!inner(status)')
           .eq('status', 'pago');
 
         const totalArrecadado = pedidosPagos?.reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0;
@@ -540,16 +540,16 @@ export default function Dashboard() {
 
       {/* Ranking - Apenas Admin */}
       {userRole === 'admin' && (
-        <Card className="lg:col-span-3 order-7 lg:order-5 border border-slate-100 dark:border-slate-800 bg-card shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
-          <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+        <Card className="lg:col-span-3 order-7 lg:order-5 border border-slate-100 dark:border-slate-800 bg-card shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden flex flex-col">
+          <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 py-4">
             <CardTitle className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
               <Trophy className="h-4 w-4 text-yellow-500" /> Ranking Guardiões
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6 flex-1">
             <div className="space-y-6">
               {stats.rankingVendedores.length > 0 ? (
-                stats.rankingVendedores.map((v, i) => (
+                stats.rankingVendedores.map((v: any, i: number) => (
                   <div key={`ranking-${i}`} className="flex items-center gap-4 group">
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-all group-hover:scale-110 ${
                       i === 0 ? 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400 ring-2 ring-yellow-400 dark:ring-yellow-500/50' :

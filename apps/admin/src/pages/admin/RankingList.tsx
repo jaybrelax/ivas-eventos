@@ -10,6 +10,7 @@ export default function RankingList() {
   const [rifas, setRifas] = useState<any[]>([]);
   const [selectedRifa, setSelectedRifa] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const [rankingMode, setRankingMode] = useState<'valor' | 'quantidade' | 'pedidos'>('pedidos');
 
   useEffect(() => {
     fetchRifas();
@@ -58,7 +59,7 @@ export default function RankingList() {
       if (vError) throw vError;
 
       // 2. Buscar pedidos pagos com vendedor_id e quantidade de cotas
-      let query = supabase.from('pedidos').select('vendedor_id, quantidade').eq('status', 'pago').not('vendedor_id', 'is', null);
+      let query = supabase.from('pedidos').select('vendedor_id, quantidade, valor_total').eq('status', 'pago').not('vendedor_id', 'is', null);
       if (selectedRifa !== "all") {
         query = query.eq('rifa_id', selectedRifa);
       }
@@ -67,15 +68,19 @@ export default function RankingList() {
       
       if (pError) throw pError;
 
-      // 3. Processar ranking por cotas vendidas
+      // 3. Processar ranking por cotas vendidas, valor total e número de pedidos
       const rankingData = (vendedores || []).map(v => {
-        const cotas = (pedidos || []).filter(p => p.vendedor_id === v.id)
-          .reduce((acc, curr) => acc + (curr.quantidade || 0), 0);
+        const ped = (pedidos || []).filter(p => p.vendedor_id === v.id);
+        const cotas = ped.reduce((acc, curr) => acc + (curr.quantidade || 0), 0);
+        const valor = ped.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
+        const qtdPedidos = ped.length;
         return {
           ...v,
-          vendas: cotas
+          vendas: cotas,
+          valor: valor,
+          pedidos: qtdPedidos
         };
-      }).sort((a, b) => b.vendas - a.vendas);
+      });
 
       setRanking(rankingData);
     } catch (error) {
@@ -108,11 +113,31 @@ export default function RankingList() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center justify-center md:justify-start gap-2">
              <Trophy className="text-yellow-500" /> Ranking de Guardiões
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Confira o engajamento dos maiores vendedores.</p>
+          <p className="hidden md:block text-slate-500 dark:text-slate-400 text-sm mt-1">Confira o engajamento dos maiores vendedores.</p>
         </div>
         
-        <div className="w-full md:w-auto md:min-w-[400px]">
-          <div className="flex items-center gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-150 dark:border-slate-850">
+        <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4">
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-full md:w-auto justify-center">
+            <button
+              onClick={() => setRankingMode('pedidos')}
+              className={`flex-1 md:flex-none px-4 py-2 text-xs font-bold uppercase rounded-lg transition-all ${rankingMode === 'pedidos' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            >
+              Vendas
+            </button>
+            <button
+              onClick={() => setRankingMode('quantidade')}
+              className={`flex-1 md:flex-none px-4 py-2 text-xs font-bold uppercase rounded-lg transition-all ${rankingMode === 'quantidade' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            >
+              Cotas
+            </button>
+            <button
+              onClick={() => setRankingMode('valor')}
+              className={`flex-1 md:flex-none px-4 py-2 text-xs font-bold uppercase rounded-lg transition-all ${rankingMode === 'valor' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+            >
+              Valor
+            </button>
+          </div>
+          <div className="hidden md:flex items-center gap-3 bg-slate-50 dark:bg-slate-950 p-3 rounded-xl border border-slate-150 dark:border-slate-850 w-full md:w-64">
             <div className="bg-white dark:bg-slate-900 p-2 text-blue-600 dark:text-blue-400 rounded-lg shadow-sm border border-slate-150 dark:border-slate-800">
               <Trophy className="h-5 w-5" />
             </div>
@@ -120,12 +145,12 @@ export default function RankingList() {
               <SelectTrigger className="bg-transparent border-0 shadow-none focus:ring-0 font-bold text-slate-700 dark:text-slate-200 h-auto p-1 flex-1 text-left text-base line-clamp-1 truncate">
                 <SelectValue>
                   {selectedRifa === "all" 
-                    ? "🏆 Mostrar Ranking Global" 
-                    : rifas.find(r => r.id.toString() === selectedRifa)?.titulo || "Selecione a Rifa"}
+                    ? "Global" 
+                    : rifas.find(r => r.id.toString() === selectedRifa)?.titulo || "Rifa"}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="rounded-xl font-medium border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">
-                <SelectItem value="all">🏆 Mostrar Ranking Global</SelectItem>
+                <SelectItem value="all">🏆 Global</SelectItem>
                 {rifas.map(r => (
                   <SelectItem key={r.id} value={r.id.toString()}>{r.titulo}</SelectItem>
                 ))}
@@ -146,8 +171,19 @@ export default function RankingList() {
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {ranking.length > 0 ? (
-                ranking.map((vendedor, index) => (
+              {ranking.length > 0 && ranking.some(v => v.vendas > 0 || v.valor > 0 || v.pedidos > 0) ? (
+                [...ranking]
+                .sort((a, b) => {
+                  if (rankingMode === 'valor') return b.valor - a.valor;
+                  if (rankingMode === 'pedidos') return b.pedidos - a.pedidos;
+                  return b.vendas - a.vendas;
+                })
+                .filter(v => {
+                  if (rankingMode === 'valor') return v.valor > 0;
+                  if (rankingMode === 'pedidos') return v.pedidos > 0;
+                  return v.vendas > 0;
+                })
+                .map((vendedor, index) => (
                   <div key={vendedor.id} className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className="w-8 flex justify-center shrink-0">
@@ -168,8 +204,22 @@ export default function RankingList() {
                     </div>
 
                     <div className="text-right">
-                       <p className="text-lg font-black text-blue-600 dark:text-blue-400">{vendedor.vendas}</p>
-                       <p className="text-[10px] uppercase font-bold text-slate-450 dark:text-slate-500">Vendas</p>
+                       {rankingMode === 'valor' ? (
+                         <>
+                           <p className="text-lg font-black text-blue-600 dark:text-blue-400">R$ {vendedor.valor.toFixed(2)}</p>
+                           <p className="text-[10px] uppercase font-bold text-slate-450 dark:text-slate-500">Valor</p>
+                         </>
+                       ) : rankingMode === 'pedidos' ? (
+                         <>
+                           <p className="text-lg font-black text-blue-600 dark:text-blue-400">{vendedor.pedidos}</p>
+                           <p className="text-[10px] uppercase font-bold text-slate-450 dark:text-slate-500">Vendas</p>
+                         </>
+                       ) : (
+                         <>
+                           <p className="text-lg font-black text-blue-600 dark:text-blue-400">{vendedor.vendas}</p>
+                           <p className="text-[10px] uppercase font-bold text-slate-450 dark:text-slate-500">Cotas</p>
+                         </>
+                       )}
                     </div>
                   </div>
                 ))
