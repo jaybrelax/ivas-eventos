@@ -184,6 +184,7 @@ CREATE TABLE IF NOT EXISTS public.configuracoes (
     hero_descricao TEXT,
     hero_imagem_url TEXT,
     whatsapp TEXT,
+    grupo_whatsapp_url TEXT,
     admin_dark_mode BOOLEAN DEFAULT false,
     webhook_pago TEXT,
     distribuicao_aleatoria_guardiao BOOLEAN DEFAULT false,
@@ -219,6 +220,7 @@ SELECT
     hero_descricao, 
     hero_imagem_url, 
     whatsapp, 
+    grupo_whatsapp_url,
     surpresinha_enabled,
     notificacoes_compradores_enabled,
     ocultar_numeros_comprados

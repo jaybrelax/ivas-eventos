@@ -128,7 +128,12 @@ export default function AdminLayout() {
     async function fetchConfig() {
       try {
         const { data } = await supabase.from('configuracoes').select('*').eq('id', 1).single();
-        if (data) setConfig({ nome_sistema: data.nome_sistema || 'Rifa Online', logo_url: data.logo_url || '', admin_dark_mode: data.admin_dark_mode || false });
+        if (data) setConfig({ 
+          nome_sistema: data.nome_sistema || 'Rifa Online', 
+          logo_url: data.logo_url || '', 
+          admin_dark_mode: data.admin_dark_mode || false,
+          grupo_whatsapp_url: data.grupo_whatsapp_url || ''
+        });
       } catch (error) { console.error('Erro ao buscar config:', error); }
     }
     fetchConfig();
@@ -440,6 +445,18 @@ export default function AdminLayout() {
                         <Settings className="h-4 w-4" />
                         Configurações
                       </Link>
+                    )}
+                    {config.grupo_whatsapp_url && (
+                      <a
+                        href={config.grupo_whatsapp_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={() => setIsProfileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50/50 dark:hover:bg-green-950/20 transition-colors"
+                      >
+                        <Users className="h-4 w-4" />
+                        Entrar no grupo
+                      </a>
                     )}
                     <button
                       onClick={(e) => {

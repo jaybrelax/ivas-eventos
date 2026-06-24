@@ -33,6 +33,8 @@ export default function VendedoresList() {
   const [vendedores, setVendedores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filterGenero, setFilterGenero] = useState("todos");
+  const [sortBy, setSortBy] = useState("nome_asc");
   const [linkCopiado, setLinkCopiado] = useState(false);
 
   // ── Modal de detalhes ──
@@ -268,11 +270,32 @@ export default function VendedoresList() {
     }
   };
 
-  const vendedoresFiltrados = vendedores.filter(v =>
+  let vendedoresFiltrados = vendedores.filter(v =>
     v.nome?.toLowerCase().includes(search.toLowerCase()) ||
     v.email?.toLowerCase().includes(search.toLowerCase()) ||
     v.codigo_ref?.toLowerCase().includes(search.toLowerCase())
   );
+
+  if (filterGenero !== "todos") {
+    vendedoresFiltrados = vendedoresFiltrados.filter(v => {
+      if (filterGenero === "masculino") return v.genero === "masculino";
+      if (filterGenero === "feminino") return v.genero === "feminino";
+      if (filterGenero === "nao_definido") return !v.genero;
+      return true;
+    });
+  }
+
+  vendedoresFiltrados = vendedoresFiltrados.sort((a, b) => {
+    if (a.is_admin && !b.is_admin) return -1;
+    if (!a.is_admin && b.is_admin) return 1;
+
+    if (sortBy === "nome_asc") {
+      return (a.nome || "").localeCompare(b.nome || "");
+    } else if (sortBy === "vendas_desc") {
+      return (b.totalCotas || 0) - (a.totalCotas || 0);
+    }
+    return 0;
+  });
 
   return (
     <div className="space-y-6">
@@ -308,23 +331,47 @@ export default function VendedoresList() {
       {/* Tabela de Guardiões */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <CardTitle className="flex items-center gap-2">
+          <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+            <CardTitle className="flex items-center gap-2 shrink-0">
               <Users className="h-5 w-5 text-gray-400 dark:text-slate-500" />
               Lista de Guardiões
               {!loading && (
                 <Badge variant="secondary" className="ml-2 font-bold">{vendedores.length}</Badge>
               )}
             </CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-slate-400" />
-              <Input
-                type="search"
-                placeholder="Buscar guardião..."
-                className="pl-8 w-full"
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
+            <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+              <Select value={filterGenero} onValueChange={setFilterGenero}>
+                <SelectTrigger className="w-full sm:w-[150px] h-10 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
+                  <SelectValue placeholder="Gênero" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
+                  <SelectItem value="todos">Todos Gêneros</SelectItem>
+                  <SelectItem value="masculino">Masculino</SelectItem>
+                  <SelectItem value="feminino">Feminino</SelectItem>
+                  <SelectItem value="nao_definido">Não Definido</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-full sm:w-[160px] h-10 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200">
+                  <SelectValue placeholder="Ordenar por" />
+                </SelectTrigger>
+                <SelectContent className="bg-white dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200">
+                  <SelectItem value="nome_asc">A-Z (Nome)</SelectItem>
+                  <SelectItem value="vendas_desc">Mais Vendas</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <div className="relative w-full sm:w-64 shrink-0">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-slate-400" />
+                <Input
+                  type="search"
+                  placeholder="Buscar guardião..."
+                  className="pl-8 h-10 w-full border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </CardHeader>

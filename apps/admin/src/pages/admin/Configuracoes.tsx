@@ -37,6 +37,7 @@ export default function Configuracoes() {
     hero_descricao: "",
     hero_imagem_url: "",
     whatsapp: "",
+    grupo_whatsapp_url: "",
     admin_dark_mode: false,
     webhook_pago: "",
     distribuicao_aleatoria_guardiao: false,
@@ -83,6 +84,7 @@ export default function Configuracoes() {
             hero_descricao: data.hero_descricao || "",
             hero_imagem_url: data.hero_imagem_url || "",
             whatsapp: data.whatsapp || "",
+            grupo_whatsapp_url: data.grupo_whatsapp_url || "",
             admin_dark_mode: data.admin_dark_mode === true,
             webhook_pago: data.webhook_pago || "",
             distribuicao_aleatoria_guardiao: data.distribuicao_aleatoria_guardiao === true,
@@ -828,6 +830,17 @@ export default function Configuracoes() {
                           className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-400"
                         />
                         <p className="text-xs text-gray-500 dark:text-slate-400">Este número será usado para o link de suporte na navegação mobile.</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label htmlFor="grupo_whatsapp_url" className="text-slate-700 dark:text-slate-300">Link do Grupo do WhatsApp</Label>
+                        <Input
+                          id="grupo_whatsapp_url"
+                          placeholder="Ex: https://chat.whatsapp.com/..."
+                          value={formData.grupo_whatsapp_url}
+                          onChange={handleChange}
+                          className="border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 focus:border-blue-400"
+                        />
+                        <p className="text-xs text-gray-500 dark:text-slate-400">Link para os usuários entrarem no grupo oficial.</p>
                       </div>
                     </div>
                   </div>
