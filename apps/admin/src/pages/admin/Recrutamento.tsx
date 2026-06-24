@@ -226,17 +226,30 @@ export default function Recrutamento() {
                   />
                 </div>
 
-                {/* ── WhatsApp ── */}
-                <div className="space-y-1.5">
-                  <Label className="text-slate-700 dark:text-slate-300 ml-1">WhatsApp</Label>
-                  <Input
-                    required
-                    placeholder="(00) 00000-0000"
-                    className={inputClass}
-                    inputMode="numeric"
-                    value={formData.telefone}
-                    onChange={e => setFormData({...formData, telefone: maskPhone(e.target.value)})}
-                  />
+                {/* ── WhatsApp + E-mail ── */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-700 dark:text-slate-300 ml-1">WhatsApp</Label>
+                    <Input
+                      required
+                      placeholder="(00) 00000-0000"
+                      className={inputClass}
+                      inputMode="numeric"
+                      value={formData.telefone}
+                      onChange={e => setFormData({...formData, telefone: maskPhone(e.target.value)})}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-slate-700 dark:text-slate-300 ml-1">E-mail</Label>
+                    <Input
+                      required
+                      type="email"
+                      placeholder="seu@email.com"
+                      className={inputClass}
+                      value={formData.email}
+                      onChange={e => setFormData({...formData, email: e.target.value})}
+                    />
+                  </div>
                 </div>
 
                 {/* ── Gênero ── */}
@@ -268,31 +281,18 @@ export default function Recrutamento() {
                   </div>
                 </div>
 
-                {/* ── E-mail e Senha ── */}
-                <div className="space-y-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <div className="space-y-1.5">
-                    <Label className="text-slate-700 dark:text-slate-300 ml-1">E-mail de acesso</Label>
-                    <Input
-                      required
-                      type="email"
-                      placeholder="Para acessar a conta"
-                      className={inputClass}
-                      value={formData.email}
-                      onChange={e => setFormData({...formData, email: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-slate-700 dark:text-slate-300 ml-1">Criar Senha</Label>
-                    <Input
-                      required
-                      type="password"
-                      minLength={6}
-                      placeholder="No mínimo 6 caracteres"
-                      className={inputClass}
-                      value={formData.senha}
-                      onChange={e => setFormData({...formData, senha: e.target.value})}
-                    />
-                  </div>
+                {/* ── Senha ── */}
+                <div className="space-y-1.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <Label className="text-slate-700 dark:text-slate-300 ml-1">Criar Senha</Label>
+                  <Input
+                    required
+                    type="password"
+                    minLength={6}
+                    placeholder="No mínimo 6 caracteres"
+                    className={inputClass}
+                    value={formData.senha}
+                    onChange={e => setFormData({...formData, senha: e.target.value})}
+                  />
                 </div>
 
                 <Button
