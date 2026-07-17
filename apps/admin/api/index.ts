@@ -1,4 +1,4 @@
-﻿import express from "express";
+import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -978,10 +978,69 @@ app.post("/api/pedidos/aprovar-manual/:id", async (req, res) => {
     }
     res.json({ success: true });
   } catch (error: any) {
-    console.error("Erro na aprovaÃ§Ã£o manual:", error);
+    console.error("Erro na aprovação manual:", error);
     res.status(500).json({ error: error.message });
   }
 });
+
+// REENVIAR COMPROVANTE
+app.post("/api/pedidos/reenviar-comprovante/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+    const { data: config } = await supabaseAdmin.from("configuracoes").select("logo_url, nome_sistema").eq("id", 1).single();
+
+    const { data: pedidoFull } = await supabaseAdmin
+      .from("pedidos")
+      .select("*, cliente:clientes(nome_completo, telefone, cpf, email), evento:eventos(id, titulo, data_evento, local_evento, imagem_url)")
+      .eq("id", id)
+      .single();
+
+    if (!pedidoFull) return res.status(404).json({ error: "Pedido não encontrado" });
+    if (pedidoFull.status !== 'pago') return res.status(400).json({ error: "Pedido ainda não foi pago." });
+
+    const pedidoIdCurto = pedidoFull.display_id || pedidoFull.id.substring(0, 8).toUpperCase();
+
+    // Buscar convidados (sem reatribuir números — já confirmados)
+    const { data: convidadosList } = await supabaseAdmin
+      .from("convidados")
+      .select("id, nome_completo, numero, confirmado")
+      .eq("pedido_id", id);
+
+    if (!pedidoFull.cliente?.telefone) {
+      return res.status(400).json({ error: "Telefone do cliente não encontrado." });
+    }
+
+    for (const convidado of (convidadosList || [])) {
+      try {
+        await new Promise(r => setTimeout(r, 800));
+        const imgBase64 = await gerarImagemComprovante({
+          nomeEvento: pedidoFull.evento?.titulo || 'Evento',
+          nomeParticipante: convidado.nome_completo,
+          displayId: pedidoIdCurto,
+          dataEvento: pedidoFull.evento?.data_evento,
+          localEvento: pedidoFull.evento?.local_evento,
+          dataCompra: pedidoFull.created_at,
+          convidadoId: convidado.id,
+          logoUrl: config?.logo_url || '',
+          nomeSistema: config?.nome_sistema || 'Eventos',
+          imagemEventoUrl: pedidoFull.evento?.imagem_url || '',
+          numeroConvidado: convidado.numero
+        });
+        await enviarImagemWhatsApp(pedidoFull.cliente.telefone, imgBase64, `🎫 Ingresso de ${convidado.nome_completo}`);
+      } catch (imgErr) {
+        console.error('[Reenviar Comprovante] Erro ao gerar/enviar:', imgErr);
+      }
+    }
+
+    res.json({ success: true, message: `Comprovante(s) reenviado(s) para ${pedidoFull.cliente.telefone}` });
+  } catch (error: any) {
+    console.error("Erro ao reenviar comprovante:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // â”€â”€ CONFIGURAÃ‡ÃƒO DE AMBIENTE â”€â”€
 

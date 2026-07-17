@@ -171,26 +171,23 @@ export default function VendasList() {
     }
   };
 
-  const handleResendComprovante = async (pedidoId: string, isNotifyTroca = false) => {
+  const handleResendComprovante = async (pedidoId: string) => {
     setActionLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('webhook-pago', {
-        body: { 
-          type: 'UPDATE', 
-          table: 'pedidos', 
-          record: { 
-            id: pedidoId,
-            guardiao_alterado: isNotifyTroca,
-            ...(isNotifyTroca ? { venda_direta: false } : { only_buyer: true })
-          } 
-        }
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_URL}/api/pedidos/reenviar-comprovante/${pedidoId}`, {
+        method: 'POST'
       });
 
-      if (error) throw error;
-      toast.success(isNotifyTroca ? "Notificação de troca enviada!" : "Comprovante enviado com sucesso!");
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Erro ${response.status}`);
+      }
+
+      toast.success("Comprovante reenviado com sucesso!");
     } catch (error: any) {
-      console.error("Erro ao processar webhook:", error);
-      toast.error("Erro ao processar: " + (error.message || "Erro desconhecido"));
+      console.error("Erro ao reenviar comprovante:", error);
+      toast.error("Erro ao reenviar: " + (error.message || "Erro desconhecido"));
     } finally {
       setActionLoading(false);
     }
