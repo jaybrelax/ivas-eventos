@@ -20,7 +20,7 @@ try {
   GlobalFonts.registerFromPath(path.join(fontDir, "Inter-Bold.woff"), "Inter");
   console.log("[Fonts] Inter registrada com sucesso.");
 } catch (e) {
-  console.warn("[Fonts] NÃ£o foi possÃ­vel registrar a fonte Inter. Usando fallback.");
+  console.warn("[Fonts] Não foi possível registrar a fonte Inter. Usando fallback.");
 }
 
 const imageCache = new Map<string, Promise<any>>();
@@ -78,9 +78,9 @@ app.post("/api/webhook-test-proxy", async (req, res) => {
   }
 });
 
-// Helper para gerar ID secundÃ¡rio aleatÃ³rio
+// Helper para gerar ID secundário aleatório
 function gerarDisplayId(tamanho: number = 6): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removido I, O, 0, 1 para evitar confusÃ£o
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removido I, O, 0, 1 para evitar confusão
   let result = '';
   for (let i = 0; i < tamanho; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -104,7 +104,7 @@ async function enviarMensagemWhatsApp(telefone: string, texto: string) {
     const { data: config } = await supabaseAdmin.from("configuracoes").select("*").eq("id", 1).single();
 
     if (!config?.evolution_enabled || !config?.evolution_api_url || !config?.evolution_api_key || !config?.evolution_instance) {
-      console.log("[Evolution] Envio IGNORADO. Verifique se evolution_enabled estÃ¡ marcado e se URL, KEY e INSTANCE estÃ£o preenchidas no banco.");
+      console.log("[Evolution] Envio IGNORADO. Verifique se evolution_enabled está marcado e se URL, KEY e INSTANCE estão preenchidas no banco.");
       return;
     }
 
@@ -140,11 +140,11 @@ async function enviarMensagemWhatsApp(telefone: string, texto: string) {
       console.error(`[Evolution] Erro da API (${response.status}) para ${telefone}:`, JSON.stringify(resData));
     }
   } catch (error) {
-    console.error("[Evolution] Erro crÃ­tico no processo de envio para " + telefone + ":", error);
+    console.error("[Evolution] Erro crítico no processo de envio para " + telefone + ":", error);
   }
 }
 
-// â”€â”€ GERAÃ‡ÃƒO DE COMPROVANTE (imagem PNG com QR Code) â”€â”€
+// ── GERAÇÃO DE COMPROVANTE (imagem PNG com QR Code) ──
 async function gerarImagemComprovante(dados: {
   nomeEvento: string;
   nomeParticipante: string;
@@ -169,7 +169,7 @@ async function gerarImagemComprovante(dados: {
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, W, H);
 
-  // 2. CabeÃ§alho Azul Escuro
+  // 2. Cabeçalho Azul Escuro
   ctx.fillStyle = '#1c2741ff';
   ctx.fillRect(0, 0, W, 120);
 
@@ -185,8 +185,8 @@ async function gerarImagemComprovante(dados: {
       textStartX = 30 + logoW + 14;
       logoCarregada = true;
     } catch (err: any) {
-      console.error('âŒ [Comprovante] Logo falhou ao carregar. URL:', dados.logoUrl);
-      console.error('âŒ Detalhes:', err.message);
+      console.error('❌ [Comprovante] Logo falhou ao carregar. URL:', dados.logoUrl);
+      console.error('❌ Detalhes:', err.message);
     }
   }
 
@@ -224,7 +224,7 @@ async function gerarImagemComprovante(dados: {
     } catch (_) { }
   }
 
-  // 3. Faixa Verde de ConfirmaÃ§Ã£o
+  // 3. Faixa Verde de Confirmação
   const greenBarGrad = ctx.createLinearGradient(0, 120, W, 120);
   greenBarGrad.addColorStop(0, '#1fb577');
   greenBarGrad.addColorStop(1, '#4bd599');
@@ -238,7 +238,7 @@ async function gerarImagemComprovante(dados: {
   try {
     const iconPath = path.join(__dirname, '..', 'public', 'check-icon.png');
     const checkImg = await loadImage(fs.readFileSync(iconPath));
-    const textStr = 'COMPROVANTE DE INSCRIÃ‡ÃƒO';
+    const textStr = 'COMPROVANTE DE INSCRIÇÃO';
     const textWidth = ctx.measureText(textStr).width;
     const iconSize = 24;
     const gap = 12;
@@ -250,26 +250,26 @@ async function gerarImagemComprovante(dados: {
     ctx.fillText(textStr, startX + iconSize + gap, 148);
   } catch (err) {
     ctx.textAlign = 'center';
-    ctx.fillText('COMPROVANTE DE INSCRIÃ‡ÃƒO', W / 2, 148);
+    ctx.fillText('COMPROVANTE DE INSCRIÇÃO', W / 2, 148);
   }
 
-  // 4. Imagem do evento como background do card QR + CartÃ£o
+  // 4. Imagem do evento como background do card QR + Cartão
   const cardW = 280;
   const cardH = 300;
   const cardX = (W - cardW) / 2;
   const cardY = 205;
 
-  // Carregar imagem do evento (reusada tambÃ©m no Ã­cone da lista)
+  // Carregar imagem do evento (reusada também no ícone da lista)
   let eventoImgObj: any = null;
   if (dados.imagemEventoUrl) {
     try {
       eventoImgObj = await safeLoadImage(dados.imagemEventoUrl);
     } catch (err: any) {
-      console.error('âŒ [Comprovante] Erro ao carregar imagem do evento:', err.message);
+      console.error('❌ [Comprovante] Erro ao carregar imagem do evento:', err.message);
     }
   }
 
-  // Background: imagem do evento â€” da barra verde atÃ© a linha tracejada, sem cobrir as infos
+  // Background: imagem do evento — da barra verde até a linha tracejada, sem cobrir as infos
   if (eventoImgObj) {
     const bgY = 176;
     // dashY = cardY + cardH + 45 + 58 = 608; bgH = dashY - bgY
@@ -302,7 +302,7 @@ async function gerarImagemComprovante(dados: {
     ctx.fillRect(0, bgY + bgH - fadeHeight, W, fadeHeight);
   }
 
-  // CartÃ£o do QR Code (branco semi-transparente por cima)
+  // Cartão do QR Code (branco semi-transparente por cima)
   ctx.shadowColor = 'rgba(0, 0, 0, 0.12)';
   ctx.shadowBlur = 24;
   ctx.shadowOffsetY = 8;
@@ -329,7 +329,7 @@ async function gerarImagemComprovante(dados: {
   ctx.textAlign = 'center';
   ctx.fillText('ESCANEIE PARA VALIDAR', W / 2, cardY + cardH - 52);
 
-  // ID do convidado com traÃ§os laterais
+  // ID do convidado com traços laterais
   const numStr = dados.numeroConvidado ? String(dados.numeroConvidado).padStart(2, '0') : null;
   const displayId = numStr ? `#${numStr}-${dados.displayId}` : `#${dados.displayId}`;
   ctx.fillStyle = '#10b981';
@@ -386,14 +386,14 @@ async function gerarImagemComprovante(dados: {
   // 6. Lista de Detalhes
   const drawRow = (y: number, iconSource: string | any, label: string, value: string) => {
     const isImage = typeof iconSource !== 'string' && iconSource;
-    const r = isImage ? 34 : 22; // CÃ­rculo maior para a imagem do evento
+    const r = isImage ? 34 : 22; // Círculo maior para a imagem do evento
     
     ctx.beginPath();
     ctx.arc(65, y, r, 0, Math.PI * 2);
     ctx.fillStyle = '#f8fafc';
     ctx.fill();
     
-    // Desenha borda apenas se nÃ£o for imagem (para a imagem ficar mais "clean" ou com borda sutil)
+    // Desenha borda apenas se não for imagem (para a imagem ficar mais "clean" ou com borda sutil)
     if (!isImage) {
       ctx.strokeStyle = '#e2e8f0';
       ctx.stroke();
@@ -428,7 +428,7 @@ async function gerarImagemComprovante(dados: {
       ctx.restore();
     }
 
-    const textX = 115; // Afasta o texto para dar espaÃ§o ao cÃ­rculo maior
+    const textX = 115; // Afasta o texto para dar espaço ao círculo maior
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#64748b';
@@ -437,7 +437,7 @@ async function gerarImagemComprovante(dados: {
 
     ctx.fillStyle = '#0f172a';
     ctx.font = 'bold 17px Inter';
-    const displayVal = value.length > 40 ? value.substring(0, 40) + 'â€¦' : value;
+    const displayVal = value.length > 40 ? value.substring(0, 40) + '…' : value;
     ctx.fillText(displayVal, textX, y + 10);
   };
 
@@ -445,7 +445,7 @@ async function gerarImagemComprovante(dados: {
   const calIcon = 'M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z';
   const locIcon = 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z';
 
-  // eventoImgObj jÃ¡ foi carregado acima (antes do card)
+  // eventoImgObj já foi carregado acima (antes do card)
   const row1Y = dashY + 45;
   drawRow(row1Y, eventoImgObj || fireIcon, 'EVENTO', dados.nomeEvento);
 
@@ -460,18 +460,18 @@ async function gerarImagemComprovante(dados: {
       const d = new Date(dados.dataEvento);
       const dStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
       const hStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      dataEv = `${dStr} Ã s ${hStr}`;
+      dataEv = `${dStr} às ${hStr}`;
     } catch (_) { }
   }
-  drawRow(row2Y, calIcon, 'DATA DO EVENTO', dataEv || 'Data nÃ£o informada');
+  drawRow(row2Y, calIcon, 'DATA DO EVENTO', dataEv || 'Data não informada');
 
   const line2Y = row2Y + 35;
   ctx.beginPath(); ctx.moveTo(45, line2Y); ctx.lineTo(W - 45, line2Y); ctx.stroke();
 
   const row3Y = line2Y + 35;
-  drawRow(row3Y, locIcon, 'LOCAL', dados.localEvento || 'Local nÃ£o informado');
+  drawRow(row3Y, locIcon, 'LOCAL', dados.localEvento || 'Local não informado');
 
-  // 7. RodapÃ©
+  // 7. Rodapé
   const footerY = H - 56;
   ctx.fillStyle = '#f8fafc';
   ctx.fillRect(0, footerY, W, 56);
@@ -494,7 +494,7 @@ async function gerarImagemComprovante(dados: {
   return buffer.toString('base64');
 }
 
-// â”€â”€ ENVIO DE IMAGEM VIA WHATSAPP (Evolution API) â”€â”€
+// ── ENVIO DE IMAGEM VIA WHATSAPP (Evolution API) ──
 async function enviarImagemWhatsApp(telefone: string, base64Png: string, caption: string) {
   try {
     const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
@@ -518,13 +518,13 @@ async function enviarImagemWhatsApp(telefone: string, base64Png: string, caption
       console.error(`[Evolution Media] Erro (${response.status}):`, JSON.stringify(resData));
     }
   } catch (error) {
-    console.error("[Evolution Media] Erro crÃ­tico:", error);
+    console.error("[Evolution Media] Erro crítico:", error);
   }
 }
 
 // --- API ROUTES ---
 
-// PÃ¡gina HTML de depuraÃ§Ã£o para visualizar o comprovante
+// Página HTML de depuração para visualizar o comprovante
 app.get("/api/comprovante/debug", (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -542,7 +542,7 @@ app.get("/api/comprovante/debug", (req, res) => {
     </head>
     <body>
       <div class="container">
-        <button onclick="refreshImg()">ðŸ”„ Atualizar Comprovante</button>
+        <button onclick="refreshImg()">🔄 Atualizar Comprovante</button>
         <br/>
         <img id="ticketImg" src="/api/comprovante/preview" alt="Comprovante gerado" />
       </div>
@@ -567,8 +567,8 @@ app.get("/api/comprovante/preview", async (req, res) => {
     const { data: evento } = await supabaseAdmin.from("eventos").select("titulo, data_evento, local_evento, imagem_url").not("imagem_url", "is", null).limit(1).single();
 
     const imgBase64 = await gerarImagemComprovante({
-      nomeEvento: evento?.titulo || "Show de VerÃ£o 2025 - Exemplo de Evento",
-      nomeParticipante: "JoÃ£o da Silva Santos",
+      nomeEvento: evento?.titulo || "Show de Verão 2025 - Exemplo de Evento",
+      nomeParticipante: "João da Silva Santos",
       displayId: "AB3X7K",
       dataEvento: evento?.data_evento || new Date().toISOString(),
       localEvento: evento?.local_evento || "Arena dos Eventos, Rua das Flores, 123",
@@ -596,7 +596,7 @@ app.post("/api/pagamento/pix", async (req, res) => {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseServiceKey) {
-      return res.status(500).json({ error: "ConfiguraÃ§Ã£o do Supabase ausente." });
+      return res.status(500).json({ error: "Configuração do Supabase ausente." });
     }
 
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -648,7 +648,7 @@ app.post("/api/pagamento/pix", async (req, res) => {
       .single();
 
     if (!evento) {
-      return res.status(404).json({ error: "Evento nÃ£o encontrado." });
+      return res.status(404).json({ error: "Evento não encontrado." });
     }
 
     // Verificar capacidade restante
@@ -662,7 +662,7 @@ app.post("/api/pagamento/pix", async (req, res) => {
     const qtdIngressos = quantidade || 1;
 
     if (totalVendidos + qtdIngressos > evento.capacidade) {
-      return res.status(400).json({ error: `Ingressos insuficientes. Restam apenas ${evento.capacidade - totalVendidos} ingressos disponÃ­veis.` });
+      return res.status(400).json({ error: `Ingressos insuficientes. Restam apenas ${evento.capacidade - totalVendidos} ingressos disponíveis.` });
     }
 
     let precoUnitario = Number(evento.valor_ingresso || 0);
@@ -691,7 +691,7 @@ app.post("/api/pagamento/pix", async (req, res) => {
     const displayId = gerarDisplayId();
 
     const { data: config } = await supabaseAdmin.from("configuracoes").select("mp_access_token").eq("id", 1).single();
-    if (!config?.mp_access_token) throw new Error("Mercado Pago nÃ£o configurado.");
+    if (!config?.mp_access_token) throw new Error("Mercado Pago não configurado.");
 
     const mpClient = new MercadoPagoConfig({ accessToken: config.mp_access_token });
     const payment = new Payment(mpClient);
@@ -754,12 +754,12 @@ app.post("/api/pagamento/pix", async (req, res) => {
     // Captura dados para WhatsApp antes de responder
     const pixCode = mpResponse.point_of_interaction?.transaction_data?.qr_code;
     const listaConvidados = convidados && convidados.length > 0
-      ? `\nðŸ‘¥ *Participantes:* ${convidados.join(', ')}`
+      ? `\n👥 *Participantes:* ${convidados.join(', ')}`
       : '';
-    const msgPix = `ðŸ“Œ *PEDIDO REALIZADO: #${displayId}*\n\nOlÃ¡ *${cliente.nome}*!\n\nSua reserva para o evento *${evento?.titulo || 'Evento'}* foi gerada com sucesso.\n\nðŸŽ« *INGRESSOS:* ${qtdIngressos}${listaConvidados}\nðŸ’° *TOTAL:* R$ ${valorTotal.toFixed(2).replace('.', ',')}\n\nâš ï¸ _Sua reserva expira em ${timeout} minutos._\n\n*ðŸ’¸ CÃ“DIGO PIX COPIA E COLA:* ðŸ‘‡`;
+    const msgPix = `📌 *PEDIDO REALIZADO: #${displayId}*\n\nOlá *${cliente.nome}*!\n\nSua reserva para o evento *${evento?.titulo || 'Evento'}* foi gerada com sucesso.\n\n🎫 *INGRESSOS:* ${qtdIngressos}${listaConvidados}\n💰 *TOTAL:* R$ ${valorTotal.toFixed(2).replace('.', ',')}\n\n⚠️ _Sua reserva expira em ${timeout} minutos._\n\n*💸 CÓDIGO PIX COPIA E COLA:* 👇`;
     const telefoneCliente = cliente.telefone;
 
-    // ðŸ“² Dispara WhatsApp em segundo plano para liberar o checkout do cliente instantaneamente
+    // 📲 Dispara WhatsApp em segundo plano para liberar o checkout do cliente instantaneamente
     (async () => {
       try {
         await enviarMensagemWhatsApp(telefoneCliente, msgPix);
@@ -772,7 +772,7 @@ app.post("/api/pagamento/pix", async (req, res) => {
       }
     })();
 
-    // âœ… Responde com o QR Code
+    // ✅ Responde com o QR Code
     res.json({
       qr_code_base64: mpResponse.point_of_interaction?.transaction_data?.qr_code_base64,
       qr_code: pixCode,
@@ -788,7 +788,49 @@ app.post("/api/pagamento/pix", async (req, res) => {
 
 
 
-// Helper para confirmar convidados e gerar nÃºmeros sequenciais
+// Helper para confirmar convidados e gerar números sequenciais
+async function confirmarEGerarNumeros(supabaseAdmin: any, pedidoId: string, eventoId: string) {
+  const { data: convidadosList } = await supabaseAdmin
+    .from("convidados")
+    .select("id, nome_completo, numero, confirmado")
+    .eq("pedido_id", pedidoId)
+    .order("created_at", { ascending: true });
+
+  if (!convidadosList || convidadosList.length === 0) return [];
+
+  const { data: confirmados } = await supabaseAdmin
+    .from("convidados")
+    .select("numero, pedidos!inner(evento_id)")
+    .eq("pedidos.evento_id", eventoId)
+    .eq("confirmado", true);
+
+  let maxNum = 0;
+  if (confirmados) {
+    confirmados.forEach((c: any) => {
+      if (c.numero !== null && c.numero !== undefined) {
+        const n = Number(c.numero);
+        if (!isNaN(n) && n > maxNum) maxNum = n;
+      }
+    });
+  }
+
+  for (const convidado of convidadosList) {
+    if (!convidado.confirmado) {
+      maxNum++;
+      await supabaseAdmin
+        .from("convidados")
+        .update({ confirmado: true, numero: maxNum })
+        .eq("id", convidado.id);
+      convidado.numero = maxNum;
+      convidado.confirmado = true;
+    }
+  }
+
+  return convidadosList;
+}
+
+
+// Helper para confirmar convidados e gerar números sequenciais
 async function confirmarEGerarNumeros(supabaseAdmin: any, pedidoId: string, eventoId: string) {
   const { data: convidadosList } = await supabaseAdmin
     .from("convidados")
@@ -855,7 +897,7 @@ app.post("/api/webhooks/mercadopago", async (req, res) => {
 
       if (info.status === "approved") {
         const { data: p } = await supabaseAdmin.from("pedidos").select("id").eq("mp_payment_id", paymentId.toString()).single();
-        console.log(`[MP Webhook] Pedido no DB encontrado:`, p ? "SIM" : "NÃƒO");
+        console.log(`[MP Webhook] Pedido no DB encontrado:`, p ? "SIM" : "NÃO");
 
         if (p) {
           const pixTransactionId = (info as any).point_of_interaction?.transaction_data?.transaction_id;
@@ -874,17 +916,17 @@ app.post("/api/webhooks/mercadopago", async (req, res) => {
           if (pedidoFull) {
             const pedidoIdCurto = pedidoFull.display_id || pedidoFull.id.substring(0, 8).toUpperCase();
 
-            // Buscar convidados do pedido e confirmar/gerar nÃºmero
+            // Buscar convidados do pedido e confirmar/gerar número
             const convidadosList = await confirmarEGerarNumeros(supabaseAdmin, p.id, pedidoFull.evento.id);
 
             const nomesConvidados = convidadosList?.map((c: any) => c.nome_completo) || [];
             const convidadosTexto = nomesConvidados.length > 0
-              ? `\nðŸ‘¥ *Participantes:*\n ${nomesConvidados.join(', ')}`
+              ? `\n👥 *Participantes:*\n ${nomesConvidados.join(', ')}`
               : '';
 
             // Envio de WhatsApp: mensagem de texto + comprovante por convidado
             if (pedidoFull.cliente?.telefone) {
-              const msgConfirm = `âœ… *PAGAMENTO CONFIRMADO!*\n\nOlÃ¡ *${pedidoFull.cliente.nome_completo}*!\n\nConfirmamos o pagamento da sua inscriÃ§Ã£o *#${pedidoIdCurto}*.\n\nðŸŽ‰ *Evento:* ${pedidoFull.evento?.titulo}\nðŸŽ« *NÂ° de ingressos:* ${pedidoFull.quantidade}${convidadosTexto}\n\nNos vemos no evento! ðŸŽ¶`;
+              const msgConfirm = `✅ *PAGAMENTO CONFIRMADO!*\n\nOlá *${pedidoFull.cliente.nome_completo}*!\n\nConfirmamos o pagamento da sua inscrição *#${pedidoIdCurto}*.\n\n🎉 *Evento:* ${pedidoFull.evento?.titulo}\n🎫 *N° de ingressos:* ${pedidoFull.quantidade}${convidadosTexto}\n\nNos vemos no evento! 🎶`;
               await enviarMensagemWhatsApp(pedidoFull.cliente.telefone, msgConfirm);
 
               // Envia um comprovante com QR Code por convidado
@@ -904,7 +946,7 @@ app.post("/api/webhooks/mercadopago", async (req, res) => {
                     imagemEventoUrl: pedidoFull.evento?.imagem_url || '',
                     numeroConvidado: convidado.numero
                   });
-                  await enviarImagemWhatsApp(pedidoFull.cliente.telefone, imgBase64, `ðŸŽ« Ingresso de ${convidado.nome_completo}`);
+                  await enviarImagemWhatsApp(pedidoFull.cliente.telefone, imgBase64, `🎫 Ingresso de ${convidado.nome_completo}`);
                 } catch (imgErr) {
                   console.error('[Comprovante] Erro ao gerar/enviar imagem:', imgErr);
                 }
@@ -918,7 +960,7 @@ app.post("/api/webhooks/mercadopago", async (req, res) => {
   res.send("OK");
 });
 
-// APROVAÃ‡ÃƒO MANUAL
+// APROVAÇÃO MANUAL
 app.post("/api/pedidos/aprovar-manual/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -945,11 +987,11 @@ app.post("/api/pedidos/aprovar-manual/:id", async (req, res) => {
 
       const nomesConvidados = convidadosList?.map((c: any) => c.nome_completo) || [];
       const convidadosTexto = nomesConvidados.length > 0
-        ? `\nðŸ‘¥ *Participantes:* ${nomesConvidados.join(', ')}`
+        ? `\n👥 *Participantes:* ${nomesConvidados.join(', ')}`
         : '';
 
       if (pedidoFull.cliente?.telefone) {
-        const msgConfirm = `âœ… *PAGAMENTO CONFIRMADO!*\n\nOlÃ¡ *${pedidoFull.cliente.nome_completo}*!\n\nConfirmamos o pagamento da sua inscriÃ§Ã£o *#${pedidoIdCurto}*.\n\nðŸŽ‰Evento: *${pedidoFull.evento?.titulo}*\nðŸŽ« NÂ° de ingressos: *${pedidoFull.quantidade}*${convidadosTexto}\n\nNos vemos no evento! ðŸŽ¶`;
+        const msgConfirm = `✅ *PAGAMENTO CONFIRMADO!*\n\nOlá *${pedidoFull.cliente.nome_completo}*!\n\nConfirmamos o pagamento da sua inscrição *#${pedidoIdCurto}*.\n\n🎉Evento: *${pedidoFull.evento?.titulo}*\n🎫 N° de ingressos: *${pedidoFull.quantidade}*${convidadosTexto}\n\nNos vemos no evento! 🎶`;
         await enviarMensagemWhatsApp(pedidoFull.cliente.telefone, msgConfirm);
 
         // Envia um comprovante com QR Code por convidado
@@ -969,7 +1011,7 @@ app.post("/api/pedidos/aprovar-manual/:id", async (req, res) => {
               imagemEventoUrl: pedidoFull.evento?.imagem_url || '',
               numeroConvidado: convidado.numero
             });
-            await enviarImagemWhatsApp(pedidoFull.cliente.telefone, imgBase64, `ðŸŽ« Ingresso de ${convidado.nome_completo}`);
+            await enviarImagemWhatsApp(pedidoFull.cliente.telefone, imgBase64, `🎫 Ingresso de ${convidado.nome_completo}`);
           } catch (imgErr) {
             console.error('[Comprovante] Erro ao gerar/enviar imagem:', imgErr);
           }
@@ -982,6 +1024,7 @@ app.post("/api/pedidos/aprovar-manual/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // REENVIAR COMPROVANTE
 app.post("/api/pedidos/reenviar-comprovante/:id", async (req, res) => {
@@ -1002,7 +1045,6 @@ app.post("/api/pedidos/reenviar-comprovante/:id", async (req, res) => {
 
     const pedidoIdCurto = pedidoFull.display_id || pedidoFull.id.substring(0, 8).toUpperCase();
 
-    // Buscar convidados (sem reatribuir números — já confirmados)
     const { data: convidadosList } = await supabaseAdmin
       .from("convidados")
       .select("id, nome_completo, numero, confirmado")
@@ -1041,8 +1083,7 @@ app.post("/api/pedidos/reenviar-comprovante/:id", async (req, res) => {
   }
 });
 
-
-// â”€â”€ CONFIGURAÃ‡ÃƒO DE AMBIENTE â”€â”€
+// ── CONFIGURAÇÃO DE AMBIENTE ──
 
 if (process.env.VERCEL) {
   const distPath = path.join(process.cwd(), "dist");
@@ -1073,14 +1114,13 @@ app.get("*", async (req, res) => {
     if (fs.existsSync(rootIndex)) return res.sendFile(rootIndex);
   }
 
-  res.status(404).send("PÃ¡gina nÃ£o encontrada");
+  res.status(404).send("Página não encontrada");
 });
 
-// InicializaÃ§Ã£o
+// Inicialização
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, () => console.log(`[ADMIN API] Servidor em http://localhost:${PORT}`));
 }
 
 export default app;
-
