@@ -174,7 +174,7 @@ export default function VendasList() {
   const handleResendComprovante = async (pedidoId: string) => {
     setActionLoading(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const API_URL = import.meta.env.VITE_API_URL || '';
       const response = await fetch(`${API_URL}/api/pedidos/reenviar-comprovante/${pedidoId}`, {
         method: 'POST'
       });
