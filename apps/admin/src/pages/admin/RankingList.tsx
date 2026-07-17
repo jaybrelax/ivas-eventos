@@ -53,12 +53,12 @@ export default function RankingList() {
         .eq('user_id', session.user.id)
         .maybeSingle();
       
-      const isGuardiao = !!vData;
+      const isAfiliado = !!vData;
       setIsAdmin(!vData || vData.is_admin === true);
 
-      let query = supabase.from('rifas').select('id, titulo');
-      if (isGuardiao && (!vData || vData.is_admin === false)) {
-        query = query.neq('status', 'rascunho');
+      let query = supabase.from('eventos').select('id, titulo');
+      if (isAfiliado && (!vData || vData.is_admin === false)) {
+        query = query.neq('status', 'desativado');
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -125,7 +125,7 @@ export default function RankingList() {
 
       if (error) throw error;
 
-      toast.success("Dados do guardião atualizados com sucesso!");
+      toast.success("Dados do afiliado atualizados com sucesso!");
       
       setRanking(prev => prev.map(v => 
         v.id === selectedVendedor.id 
@@ -206,25 +206,25 @@ export default function RankingList() {
       
       if (vError) throw vError;
 
-      // 2. Buscar pedidos pagos com vendedor_id e quantidade de cotas
+      // 2. Buscar pedidos pagos com vendedor_id e quantidade de ingressos
       let query = supabase.from('pedidos').select('vendedor_id, quantidade, valor_total').eq('status', 'pago').not('vendedor_id', 'is', null);
       if (selectedRifa !== "all") {
-        query = query.eq('rifa_id', selectedRifa);
+        query = query.eq('evento_id', selectedRifa);
       }
       
       const { data: pedidos, error: pError } = await query;
       
       if (pError) throw pError;
 
-      // 3. Processar ranking por cotas vendidas, valor total e número de pedidos
+      // 3. Processar ranking por ingressos vendidos, valor total e número de pedidos
       const rankingData = (vendedores || []).map(v => {
         const ped = (pedidos || []).filter(p => p.vendedor_id === v.id);
-        const cotas = ped.reduce((acc, curr) => acc + (curr.quantidade || 0), 0);
+        const ingressos = ped.reduce((acc, curr) => acc + (curr.quantidade || 0), 0);
         const valor = ped.reduce((acc, curr) => acc + Number(curr.valor_total || 0), 0);
         const qtdPedidos = ped.length;
         return {
           ...v,
-          vendas: cotas,
+          vendas: ingressos,
           valor: valor,
           pedidos: qtdPedidos
         };
@@ -288,7 +288,7 @@ export default function RankingList() {
                       {mode === 'pedidos' ? vendedor.pedidos : vendedor.vendas}
                     </p>
                     <p className="text-[9px] uppercase font-bold text-slate-450 dark:text-slate-500">
-                      {mode === 'pedidos' ? 'Vendas' : 'Cotas'}
+                      {mode === 'pedidos' ? 'Vendas' : 'Ingressos'}
                     </p>
                   </div>
                 </div>
@@ -324,7 +324,7 @@ export default function RankingList() {
               onClick={() => setRankingMode('quantidade')}
               className={`flex-1 md:flex-none px-4 py-2 text-xs font-bold uppercase rounded-lg transition-all ${rankingMode === 'quantidade' ? 'bg-white dark:bg-slate-700 text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
             >
-              Cotas
+              Ingressos
             </button>
             <button
               onClick={() => setRankingMode('valor')}
@@ -355,7 +355,7 @@ export default function RankingList() {
                 <SelectValue>
                   {selectedRifa === "all" 
                     ? "Global" 
-                    : rifas.find(r => r.id.toString() === selectedRifa)?.titulo || "Rifa"}
+                    : rifas.find(r => r.id.toString() === selectedRifa)?.titulo || "Evento"}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="rounded-xl font-medium border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-250">
@@ -375,8 +375,8 @@ export default function RankingList() {
         </div>
       ) : rankingMode === 'top10' ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {renderTop10List("Feminino (Cotas)", [...ranking].filter(v => v.genero === 'feminino' && v.vendas > 0).sort((a, b) => b.vendas - a.vendas).slice(0, 10), 'vendas')}
-          {renderTop10List("Masculino (Cotas)", [...ranking].filter(v => v.genero === 'masculino' && v.vendas > 0).sort((a, b) => b.vendas - a.vendas).slice(0, 10), 'vendas')}
+          {renderTop10List("Feminino (Ingressos)", [...ranking].filter(v => v.genero === 'feminino' && v.vendas > 0).sort((a, b) => b.vendas - a.vendas).slice(0, 10), 'vendas')}
+          {renderTop10List("Masculino (Ingressos)", [...ranking].filter(v => v.genero === 'masculino' && v.vendas > 0).sort((a, b) => b.vendas - a.vendas).slice(0, 10), 'vendas')}
           {renderTop10List("Geral (Vendas)", [...ranking].filter(v => v.pedidos > 0).sort((a, b) => b.pedidos - a.pedidos).slice(0, 10), 'pedidos')}
         </div>
       ) : (
@@ -449,7 +449,7 @@ export default function RankingList() {
                        ) : (
                          <>
                            <p className="text-lg font-black text-blue-600 dark:text-blue-400">{vendedor.vendas}</p>
-                           <p className="text-[10px] uppercase font-bold text-slate-450 dark:text-slate-500">Cotas</p>
+                           <p className="text-[10px] uppercase font-bold text-slate-450 dark:text-slate-500">Ingressos</p>
                          </>
                        )}
                     </div>
@@ -508,7 +508,7 @@ export default function RankingList() {
               {/* Seção de Informações / Edição */}
               <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-4">
                 <div className="flex justify-between items-center mb-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Informações do Guardião</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Informações do Afiliado</h4>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -630,7 +630,7 @@ export default function RankingList() {
                               {venda.quantidade}
                             </p>
                             <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
-                              Cotas
+                              Ingressos
                             </p>
                           </div>
                           <div>

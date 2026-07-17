@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Search, Loader2, Ticket, Clock, CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
+import { Search, Loader2, Ticket, Clock, CheckCircle2, XCircle, ArrowLeft, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 
@@ -20,7 +20,7 @@ export default function MinhasCompras() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("@rifa:client_data");
+      const saved = localStorage.getItem("@evento:client_data");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.cpf) {
@@ -63,11 +63,14 @@ export default function MinhasCompras() {
         .from('pedidos')
         .select(`
           *,
-          rifa:rifas (
+          evento:eventos (
             id,
             titulo,
             imagem_url,
-            data_sorteio
+            data_evento
+          ),
+          convidados (
+            nome
           )
         `)
         .eq('cliente_id', cliente.id)
@@ -103,14 +106,14 @@ export default function MinhasCompras() {
       <div className="mb-6">
         <Link href="/" className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors">
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Voltar para as rifas
+          Voltar para os eventos
         </Link>
       </div>
 
       <Card className="mb-8 border-0 shadow-md">
         <CardHeader className="pb-4">
-          <CardTitle className="text-2xl font-bold">Consultar Meus Números</CardTitle>
-          <p className="text-sm text-gray-500">Informe seu CPF para visualizar seus pedidos e números reservados.</p>
+          <CardTitle className="text-2xl font-bold">Consultar Meus Ingressos</CardTitle>
+          <p className="text-sm text-gray-500">Informe seu CPF para visualizar seus pedidos e ingressos garantidos.</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 items-end">
@@ -144,9 +147,9 @@ export default function MinhasCompras() {
             <div className="text-center py-20 bg-white rounded-xl border border-gray-100 shadow-sm">
               <Ticket className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-gray-900">Nenhuma compra encontrada</h3>
-              <p className="text-gray-500 mt-2">Não encontramos pedidos vinculados a este CPF.</p>
+              <p className="text-gray-500 mt-2">Não encontramos ingressos vinculados a este CPF.</p>
               <Button render={<Link href="/" />} nativeButton={false} variant="outline" className="mt-6">
-                Ver Rifas Disponíveis
+                Ver Eventos Disponíveis
               </Button>
             </div>
           ) : (
@@ -155,10 +158,10 @@ export default function MinhasCompras() {
                 <Card key={pedido.id} className="overflow-hidden border-0 shadow-md">
                   <div className="flex flex-col sm:flex-row">
                     <div className="w-full sm:w-48 h-32 sm:h-auto bg-gray-100 relative shrink-0">
-                      {pedido.rifa?.imagem_url ? (
+                      {pedido.evento?.imagem_url ? (
                         <img 
-                          src={pedido.rifa.imagem_url} 
-                          alt={pedido.rifa.titulo} 
+                          src={pedido.evento.imagem_url} 
+                          alt={pedido.evento.titulo} 
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -172,7 +175,7 @@ export default function MinhasCompras() {
                       <div>
                         <div className="flex justify-between items-start mb-2 gap-4">
                           <h3 className="font-bold text-lg text-gray-900 line-clamp-1">
-                            {pedido.rifa?.titulo || "Sorteio Inválido"}
+                            {pedido.evento?.titulo || "Evento Inválido"}
                           </h3>
                           {getStatusBadge(pedido.status)}
                         </div>
@@ -184,13 +187,18 @@ export default function MinhasCompras() {
                         </div>
                         
                         <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/50">
-                          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2">Seus números ({pedido.quantidade})</p>
-                          <div className="flex flex-wrap gap-1.5">
-                            {pedido.numeros.map((num: number) => (
-                              <Badge key={num} variant="secondary" className="bg-white border-blue-100 text-blue-700 font-mono">
-                                {num.toString().padStart(2, '0')}
-                              </Badge>
-                            ))}
+                          <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><Users className="w-3 h-3"/> Convidados ({pedido.quantidade})</p>
+                          <div className="flex flex-col gap-1.5">
+                            {pedido.convidados && pedido.convidados.length > 0 ? (
+                              pedido.convidados.map((c: any, index: number) => (
+                                <div key={index} className="flex items-center text-xs font-semibold text-blue-900 bg-white border border-blue-100 p-1.5 rounded">
+                                  <div className="w-4 h-4 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 text-[9px] mr-2 shrink-0">{index+1}</div>
+                                  {c.nome}
+                                </div>
+                              ))
+                            ) : (
+                              <span className="text-xs text-gray-500 italic">Nenhum convidado registrado</span>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -202,7 +210,7 @@ export default function MinhasCompras() {
                         </div>
                         
                         {pedido.status === 'pendente' && (
-                          <Button render={<Link href={`/${pedido.slug || pedido.rifa_id}`} />} nativeButton={false} size="sm" className="bg-green-600 hover:bg-green-700">
+                          <Button render={<Link href={`/${pedido.slug || pedido.evento_id}`} />} nativeButton={false} size="sm" className="bg-green-600 hover:bg-green-700">
                             Pagar Agora
                           </Button>
                         )}

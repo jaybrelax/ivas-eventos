@@ -22,8 +22,8 @@ export default function VendasList() {
   const [actionLoading, setActionLoading] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleteConfirmed, setIsDeleteConfirmed] = useState(false);
-  const [isEditingGuardian, setIsEditingGuardian] = useState(false);
-  const [newGuardianId, setNewGuardianId] = useState("");
+  const [isEditingAfiliado, setIsEditingAfiliado] = useState(false);
+  const [newAfiliadoId, setNewAfiliadoId] = useState("");
   const [exactMatch, setExactMatch] = useState(false);
 
   const { data: pedidosData, isLoading: loading, refetch: fetchPedidos } = useQuery({
@@ -47,11 +47,12 @@ export default function VendasList() {
         .select(`
           *,
           cliente:clientes(nome_completo, cpf, telefone, email),
-          rifa:rifas(titulo),
-          vendedor:vendedores(nome)
+          evento:eventos(titulo),
+          vendedor:vendedores(nome),
+          convidados(nome_completo)
         `);
 
-      if (role === 'guardiao' && vData) {
+      if (role === 'afiliado' && vData) {
         query = query.eq('vendedor_id', vData.id);
       }
 
@@ -84,26 +85,15 @@ export default function VendasList() {
   const vendedorId = pedidosData?.vendedorId;
 
   const handleAprovar = async (pedidoId: string) => {
-    if (!confirm("Tem certeza que deseja aprovar esta venda manualmente?")) return;
+    if (!confirm("Tem certeza que deseja aprovar esta venda manualmente? Um WhatsApp será enviado ao cliente.")) return;
     setActionLoading(true);
     try {
-      // Atualiza status do pedido
-      const { error: pedidoError } = await supabase
-        .from('pedidos')
-        .update({ status: 'pago', pago_em: new Date().toISOString() })
-        .eq('id', pedidoId);
-      
-      if (pedidoError) throw pedidoError;
+      const response = await fetch(`/api/pedidos/aprovar-manual/${pedidoId}`, {
+        method: 'POST'
+      });
+      if (!response.ok) throw new Error("Erro na requisição");
 
-      // Atualiza status dos números
-      const { error: numerosError } = await supabase
-        .from('numeros_rifa')
-        .update({ status: 'vendido' })
-        .eq('pedido_id', pedidoId);
-
-      if (numerosError) throw numerosError;
-
-      toast.success("Venda aprovada com sucesso!");
+      toast.success("Venda aprovada e confirmação enviada com sucesso!");
       fetchPedidos();
       setSelectedPedido(null);
     } catch (error) {
@@ -114,8 +104,30 @@ export default function VendasList() {
     }
   };
 
+  const handlePendente = async (pedidoId: string) => {
+    if (!confirm("Tem certeza que deseja mudar o status para Pendente?")) return;
+    setActionLoading(true);
+    try {
+      const { error: pedidoError } = await supabase
+        .from('pedidos')
+        .update({ status: 'pendente', pago_em: null })
+        .eq('id', pedidoId);
+      
+      if (pedidoError) throw pedidoError;
+
+      toast.success("Venda alterada para pendente com sucesso!");
+      fetchPedidos();
+      setSelectedPedido(null);
+    } catch (error) {
+      console.error("Erro ao alterar venda:", error);
+      toast.error("Erro ao alterar para pendente.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleCancelar = async (pedidoId: string) => {
-    if (!confirm("Tem certeza que deseja cancelar esta venda? Os números serão liberados.")) return;
+    if (!confirm("Tem certeza que deseja cancelar esta venda?")) return;
     setActionLoading(true);
     try {
       // Atualiza status do pedido
@@ -125,14 +137,6 @@ export default function VendasList() {
         .eq('id', pedidoId);
       
       if (pedidoError) throw pedidoError;
-
-      // Deleta as reservas dos números
-      const { error: numerosError } = await supabase
-        .from('numeros_rifa')
-        .delete()
-        .eq('pedido_id', pedidoId);
-
-      if (numerosError) throw numerosError;
 
       toast.success("Venda cancelada com sucesso!");
       fetchPedidos();
@@ -148,9 +152,6 @@ export default function VendasList() {
   const handleExcluir = async (pedidoId: string) => {
     setActionLoading(true);
     try {
-      // Deleta os números primeiro por causa da FK (embora tenhamos cascade, é bom garantir)
-      await supabase.from('numeros_rifa').delete().eq('pedido_id', pedidoId);
-      
       const { error } = await supabase
         .from('pedidos')
         .delete()
@@ -195,30 +196,30 @@ export default function VendasList() {
     }
   };
 
-  const handleUpdateGuardian = async (pedidoId: string) => {
+  const handleUpdateAfiliado = async (pedidoId: string) => {
     setActionLoading(true);
     try {
       const { error } = await supabase
         .from('pedidos')
-        .update({ vendedor_id: newGuardianId || null })
+        .update({ vendedor_id: newAfiliadoId || null })
         .eq('id', pedidoId);
 
       if (error) throw error;
 
-      toast.success("Guardião atualizado com sucesso!");
-      setIsEditingGuardian(false);
+      toast.success("Afiliado atualizado com sucesso!");
+      setIsEditingAfiliado(false);
       fetchPedidos();
       
       // Update local state for the modal
-      const updatedVendedor = vendedores?.find(v => v.id === newGuardianId);
+      const updatedVendedor = vendedores?.find(v => v.id === newAfiliadoId);
       setSelectedPedido({
         ...selectedPedido,
-        vendedor_id: newGuardianId,
+        vendedor_id: newAfiliadoId,
         vendedor: updatedVendedor ? { nome: updatedVendedor.nome } : null
       });
     } catch (error) {
-      console.error("Erro ao atualizar guardião:", error);
-      toast.error("Erro ao atualizar guardião.");
+      console.error("Erro ao atualizar afiliado:", error);
+      toast.error("Erro ao atualizar afiliado.");
     } finally {
       setActionLoading(false);
     }
@@ -229,13 +230,14 @@ export default function VendasList() {
     if (!term) return true;
     
     if (exactMatch) {
-      return p.numeros?.some((n: number) => n.toString() === term);
+      return p.display_id?.toLowerCase() === term;
     }
     
     const matchName = p.cliente?.nome_completo?.toLowerCase().includes(term);
-    const matchNumber = p.numeros?.some((n: number) => n.toString() === term || n.toString().includes(term));
+    const matchGuest = p.convidados?.some((c: any) => c.nome_completo.toLowerCase().includes(term));
+    const matchDisplayId = p.display_id?.toLowerCase().includes(term);
     
-    return matchName || matchNumber;
+    return matchName || matchGuest || matchDisplayId;
   });
 
   const getStatusBadge = (status: string) => {
@@ -261,7 +263,7 @@ export default function VendasList() {
               <Search className="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
             </div>
             <Input
-              placeholder={exactMatch ? "Digite o número exato da cota..." : "Encontrar ganhador por Nome ou Nº da Cota..."}
+              placeholder={exactMatch ? "Digite o ID exato da venda..." : "Encontrar por Nome, Convidado ou ID..."}
               className="pl-10 pr-10 h-11 bg-white dark:bg-slate-950 border-gray-200 dark:border-slate-700 shadow-sm focus-visible:ring-2 focus-visible:ring-blue-500/20 focus-visible:border-blue-500 rounded-xl transition-all text-sm font-medium"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -282,7 +284,7 @@ export default function VendasList() {
               onCheckedChange={setExactMatch} 
             />
             <label htmlFor="exact-match" className="text-xs font-medium text-slate-600 dark:text-slate-400 cursor-pointer select-none">
-              Buscar comprador do número específico
+              Buscar ID específico
             </label>
           </div>
         </div>
@@ -297,7 +299,7 @@ export default function VendasList() {
                 <th className="px-6 py-3 min-w-[120px]">Valor</th>
                 <th className="px-6 py-3">Status</th>
                 {userRole === 'admin' && <th className="px-6 py-3">Vendedor</th>}
-                <th className="px-6 py-3">Rifa</th>
+                <th className="px-6 py-3">Evento</th>
                 <th className="px-6 py-3">ID / Data</th>
                 {userRole === 'admin' && <th className="px-6 py-3 text-right">Ações</th>}
               </tr>
@@ -356,8 +358,8 @@ export default function VendasList() {
                       </td>
                     )}
                     <td className="px-6 py-4">
-                      <div className="text-gray-900 dark:text-slate-200 truncate max-w-[150px]">{pedido.rifa?.titulo}</div>
-                      <div className="text-xs text-gray-500 dark:text-slate-500">{pedido.quantidade} números</div>
+                      <div className="text-gray-900 dark:text-slate-200 truncate max-w-[150px]">{pedido.evento?.titulo}</div>
+                      <div className="text-xs text-gray-500 dark:text-slate-500">{pedido.quantidade} ingresso(s)</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-mono text-xs text-gray-900 dark:text-slate-200 font-bold">{pedido.display_id || pedido.id.substring(0, 8).toUpperCase()}</div>
@@ -382,7 +384,7 @@ export default function VendasList() {
       <Dialog open={!!selectedPedido} onOpenChange={(open) => {
         if (!open) {
           setSelectedPedido(null);
-          setIsEditingGuardian(false);
+          setIsEditingAfiliado(false);
         }
       }}>
         <DialogContent className="sm:max-w-[500px] dark:bg-slate-900 dark:border-slate-800">
@@ -431,8 +433,8 @@ export default function VendasList() {
               {userRole === 'admin' && (
                 <div className="border-t dark:border-slate-800 pt-4">
                   <div className="flex justify-between items-center mb-2">
-                    <p className="text-sm text-gray-500 dark:text-slate-450">Guardião / Origem da Venda</p>
-                    {!isEditingGuardian && (
+                    <p className="text-sm text-gray-500 dark:text-slate-450">Afiliado / Origem da Venda</p>
+                    {!isEditingAfiliado && (
                       <div className="flex gap-1">
                         <Button 
                           variant="ghost" 
@@ -448,8 +450,8 @@ export default function VendasList() {
                           size="sm" 
                           className="h-8 px-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
                           onClick={() => {
-                            setNewGuardianId(selectedPedido.vendedor_id || "");
-                            setIsEditingGuardian(true);
+                            setNewAfiliadoId(selectedPedido.vendedor_id || "");
+                            setIsEditingAfiliado(true);
                           }}
                         >
                           <Edit2 className="h-3.5 w-3.5 mr-1" /> Editar
@@ -458,14 +460,14 @@ export default function VendasList() {
                     )}
                   </div>
 
-                  {isEditingGuardian ? (
+                  {isEditingAfiliado ? (
                     <div className="flex items-center gap-2">
                       <select
                         className="flex-1 h-9 rounded-md border border-input dark:border-slate-700 bg-background dark:bg-slate-800 dark:text-slate-200 px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        value={newGuardianId}
-                        onChange={(e) => setNewGuardianId(e.target.value)}
+                        value={newAfiliadoId}
+                        onChange={(e) => setNewAfiliadoId(e.target.value)}
                       >
-                        <option value="">Sem guardião (Venda Direta)</option>
+                        <option value="">Sem afiliado (Venda Direta)</option>
                         {vendedores?.map((v: any) => (
                           <option key={v.id} value={v.id}>{v.nome}</option>
                         ))}
@@ -473,7 +475,7 @@ export default function VendasList() {
                       <Button 
                         size="sm" 
                         className="h-9 w-9 p-0 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
-                        onClick={() => handleUpdateGuardian(selectedPedido.id)}
+                        onClick={() => handleUpdateAfiliado(selectedPedido.id)}
                         disabled={actionLoading}
                       >
                         <Check className="h-4 w-4" />
@@ -482,7 +484,7 @@ export default function VendasList() {
                         variant="ghost" 
                         size="sm" 
                         className="h-9 w-9 p-0 text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-800"
-                        onClick={() => setIsEditingGuardian(false)}
+                        onClick={() => setIsEditingAfiliado(false)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -506,7 +508,7 @@ export default function VendasList() {
                         </span>
                       )}
                       {!selectedPedido.vendedor && selectedPedido.venda_direta && (
-                        <span className="text-gray-500 dark:text-slate-450 italic text-sm">Nenhum guardião atribuído</span>
+                        <span className="text-gray-500 dark:text-slate-450 italic text-sm">Nenhum afiliado atribuído</span>
                       )}
                     </div>
                   )}
@@ -514,19 +516,22 @@ export default function VendasList() {
               )}
 
               <div className="border-t dark:border-slate-800 pt-4">
-                <p className="text-sm text-gray-500 dark:text-slate-400 mb-3">Números Escolhidos ({selectedPedido.quantidade})</p>
-                <div className="bg-gray-50 dark:bg-slate-950 p-4 rounded-lg border border-slate-100 dark:border-slate-800/80 flex flex-wrap gap-2 justify-center">
-                  {selectedPedido.numeros.map((num: any) => (
+                <p className="text-sm text-gray-500 dark:text-slate-400 mb-3">Ingressos / Convidados ({selectedPedido.quantidade})</p>
+                <div className="bg-gray-50 dark:bg-slate-950 p-4 rounded-lg border border-slate-100 dark:border-slate-800/80 flex flex-col gap-2">
+                  {selectedPedido.convidados?.map((c: any, index: number) => (
                     <div 
-                      key={num} 
-                      className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shadow-sm border border-blue-700"
+                      key={c.id} 
+                      className="w-full bg-white dark:bg-slate-900 px-3 py-2 rounded-md flex items-center justify-between shadow-sm border border-slate-200 dark:border-slate-800 text-sm"
                     >
-                      {num.toString().padStart(2, '0')}
+                      <span className="font-bold text-gray-800 dark:text-gray-200">Ingresso #{index + 1}</span>
+                      <span className="text-gray-600 dark:text-gray-400">{c.nome_completo}</span>
                     </div>
                   ))}
+                  {(!selectedPedido.convidados || selectedPedido.convidados.length === 0) && (
+                    <p className="text-sm text-gray-500 italic">Nenhum convidado registrado.</p>
+                  )}
                 </div>
               </div>
-
               <div className="flex justify-between items-center border-t dark:border-slate-800 pt-4">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-slate-400">Status</p>
@@ -540,16 +545,28 @@ export default function VendasList() {
 
               {userRole === 'admin' && (
                 <div className="flex flex-col gap-3 pt-4 border-t dark:border-slate-800">
-                  {selectedPedido.status === 'pendente' && (
-                    <div className="flex gap-3">
+                  <div className="flex gap-3">
+                    {selectedPedido.status !== 'cancelado' && (
                       <Button 
                         variant="outline" 
                         className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 dark:border-red-900/50"
                         onClick={() => handleCancelar(selectedPedido.id)}
                         disabled={actionLoading}
                       >
-                        <XCircle className="h-4 w-4 mr-2" /> Cancelar Pedido
+                        <XCircle className="h-4 w-4 mr-2" /> Cancelar
                       </Button>
+                    )}
+                    {selectedPedido.status !== 'pendente' && (
+                      <Button 
+                        variant="outline" 
+                        className="flex-1 text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50 border-yellow-200 dark:text-yellow-400 dark:hover:text-yellow-300 dark:hover:bg-yellow-950/30 dark:border-yellow-900/50"
+                        onClick={() => handlePendente(selectedPedido.id)}
+                        disabled={actionLoading}
+                      >
+                        <Clock className="h-4 w-4 mr-2" /> Tornar Pendente
+                      </Button>
+                    )}
+                    {selectedPedido.status !== 'pago' && (
                       <Button 
                         className="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
                         onClick={() => handleAprovar(selectedPedido.id)}
@@ -557,8 +574,8 @@ export default function VendasList() {
                       >
                         <CheckCircle2 className="h-4 w-4 mr-2" /> Aprovar
                       </Button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                   
                   <div className="flex justify-between items-center w-full">
                     <Button 

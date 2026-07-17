@@ -125,8 +125,6 @@ export default function Recrutamento() {
           nome: formData.nome,
           email: formData.email,
           telefone: formData.telefone,
-          comissao_padrao: 0,
-          meta_numeros: 100,
           user_id: userId,
           codigo_ref: nomeLimpo,
           genero: formData.genero,

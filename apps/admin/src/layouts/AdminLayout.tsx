@@ -34,10 +34,10 @@ export default function AdminLayout() {
   );
   const location = useLocation();
   const navigate = useNavigate();
-  const [config, setConfig] = useState<any>({ nome_sistema: 'Rifa Online', logo_url: '', admin_dark_mode: false });
+  const [config, setConfig] = useState<any>({ nome_sistema: 'Eventos Online', logo_url: '', admin_dark_mode: false });
   const [session, setSession] = useState<any>(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
-  const [userRole, setUserRole] = useState<'admin' | 'guardiao'>('admin');
+  const [userRole, setUserRole] = useState<'admin' | 'afiliado'>('admin');
   const [vendedorData, setVendedorData] = useState<any>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -114,7 +114,7 @@ export default function AdminLayout() {
     try {
       const { data } = await supabase.from('vendedores').select('*').eq('user_id', userId).maybeSingle();
       if (data) { 
-        setUserRole(data.is_admin === false ? 'guardiao' : 'admin'); 
+        setUserRole(data.is_admin === false ? 'afiliado' : 'admin'); 
         setVendedorData(data); 
       }
       else { 
@@ -129,7 +129,7 @@ export default function AdminLayout() {
       try {
         const { data } = await supabase.from('configuracoes').select('*').eq('id', 1).single();
         if (data) setConfig({ 
-          nome_sistema: data.nome_sistema || 'Rifa Online', 
+          nome_sistema: data.nome_sistema || 'Eventos Online', 
           logo_url: data.logo_url || '', 
           admin_dark_mode: data.admin_dark_mode || false,
           grupo_whatsapp_url: data.grupo_whatsapp_url || ''
@@ -155,7 +155,7 @@ export default function AdminLayout() {
       document.head.appendChild(manifestLink);
     }
     // Apenas insere e modifica se for a URL certa para prevenir sobrecarga global.
-    if (manifestLink.href !== location.origin + manifestUrl) {
+    if (manifestLink.href !== window.location.origin + manifestUrl) {
       manifestLink.href = manifestUrl;
     }
 
@@ -204,12 +204,12 @@ export default function AdminLayout() {
   };
 
   const allNavItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/', roles: ['admin', 'guardiao'], color: 'text-violet-500 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/30', activeBg: 'bg-violet-600' },
-    { icon: Ticket, label: 'Rifas', path: '/rifas', roles: ['admin', 'guardiao'], color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30', activeBg: 'bg-blue-600' },
-    { icon: Trophy, label: 'Ranking', path: '/ranking', roles: ['admin', 'guardiao'], color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30', activeBg: 'bg-amber-500' },
-    { icon: ShoppingCart, label: 'Vendas', path: '/vendas', roles: ['admin', 'guardiao'], color: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30', activeBg: 'bg-emerald-600' },
-    { icon: Shield, label: 'Guardiões', path: '/vendedores', roles: ['admin'], color: 'text-indigo-500 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/30', activeBg: 'bg-indigo-600' },
-    { icon: UserCircle, label: 'Meu Perfil', path: '/perfil', roles: ['admin', 'guardiao'], color: 'text-pink-500 dark:text-pink-400', bg: 'bg-pink-50 dark:bg-pink-950/30', activeBg: 'bg-pink-600' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/', roles: ['admin', 'afiliado'], color: 'text-violet-500 dark:text-violet-400', bg: 'bg-violet-50 dark:bg-violet-950/30', activeBg: 'bg-violet-600' },
+    { icon: Ticket, label: 'Eventos', path: '/eventos', roles: ['admin', 'afiliado'], color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30', activeBg: 'bg-blue-600' },
+    { icon: Trophy, label: 'Ranking', path: '/ranking', roles: ['admin', 'afiliado'], color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30', activeBg: 'bg-amber-500' },
+    { icon: ShoppingCart, label: 'Vendas', path: '/vendas', roles: ['admin', 'afiliado'], color: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30', activeBg: 'bg-emerald-600' },
+    { icon: Shield, label: 'Afiliados', path: '/vendedores', roles: ['admin'], color: 'text-indigo-500 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/30', activeBg: 'bg-indigo-600' },
+    { icon: UserCircle, label: 'Meu Perfil', path: '/perfil', roles: ['admin', 'afiliado'], color: 'text-pink-500 dark:text-pink-400', bg: 'bg-pink-50 dark:bg-pink-950/30', activeBg: 'bg-pink-600' },
     { icon: Settings, label: 'Configurações', path: '/configuracoes', roles: ['admin'], color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-800/30', activeBg: 'bg-slate-600' },
   ];
 
@@ -232,9 +232,9 @@ export default function AdminLayout() {
 
   const forbiddenPaths = ['/vendedores', '/configuracoes'];
   const isForbidden = forbiddenPaths.some(path => location.pathname.startsWith(path));
-  if (userRole === 'guardiao' && isForbidden) return <Navigate to="/" replace />;
+  if (userRole === 'afiliado' && isForbidden) return <Navigate to="/" replace />;
 
-  const displayName = vendedorData?.nome || (userRole === 'admin' ? 'Administrador' : 'Guardião');
+  const displayName = vendedorData?.nome || (userRole === 'admin' ? 'Administrador' : 'Afiliado');
   const initials = displayName.charAt(0).toUpperCase();
 
   return (
@@ -331,7 +331,7 @@ export default function AdminLayout() {
         {/* View Site + Logout */}
         <div className="p-4 space-y-2 shrink-0 border-t border-indigo-500/5 dark:border-slate-800">
           <a
-            href={`https://rifa.virtudes.net.br${vendedorData?.codigo_ref ? `?ref=${vendedorData.codigo_ref}` : ''}`}
+            href={`https://evento.virtudes.net.br${vendedorData?.codigo_ref ? `?ref=${vendedorData.codigo_ref}` : ''}`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all group"
@@ -388,7 +388,7 @@ export default function AdminLayout() {
             {/* Breadcrumb Desktop */}
             <div className="hidden lg:flex items-center gap-2">
               <span className="text-[13px] font-medium text-slate-400 dark:text-slate-500">
-                {userRole === 'admin' ? 'Painel Administrativo' : 'Portal do Guardião'}
+                {userRole === 'admin' ? 'Painel Administrativo' : 'Portal do Afiliado'}
               </span>
               <span className="text-slate-200 dark:text-slate-800">·</span>
               <span className="text-[13px] font-bold text-slate-700 dark:text-slate-300">

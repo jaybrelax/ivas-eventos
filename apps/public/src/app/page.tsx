@@ -9,17 +9,17 @@ export const revalidate = 3600; // Cache de 1 hora
 
 async function getData() {
   try {
-    const [configRes, rifasRes] = await Promise.all([
+    const [configRes, eventosRes] = await Promise.all([
       supabase.from('vw_configuracoes_publicas').select('*').eq('id', 1).single(),
-      supabase.from('rifas').select('*').in('status', ['ativa', 'sorteada']).order('created_at', { ascending: false })
+      supabase.from('eventos').select('*').eq('status', 'ativo').order('created_at', { ascending: false })
     ]);
 
     if (configRes.error) console.error("Error fetching config:", configRes.error);
-    if (rifasRes.error) console.error("Error fetching rifas:", rifasRes.error);
+    if (eventosRes.error) console.error("Error fetching eventos:", eventosRes.error);
 
     return {
       config: configRes.data || {},
-      rifas: rifasRes.data || []
+      eventos: eventosRes.data || []
     };
   } catch (err) {
     console.error("Critical error in getData:", err);
@@ -28,7 +28,7 @@ async function getData() {
 }
 
 export default async function Home() {
-  const { config, rifas } = await getData();
+  const { config, eventos } = await getData();
 
   const heroEnabled = config.hero_enabled !== false;
 
@@ -65,32 +65,30 @@ export default async function Home() {
         </section>
       )}
 
-      {/* Rifas List */}
+      {/* Eventos List */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-center mb-8">
           <Trophy className="h-6 w-6 text-yellow-500 mr-2" />
-          <h2 className="text-2xl font-bold text-gray-900">Rifas em Andamento</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Eventos Disponíveis</h2>
         </div>
 
-        {rifas.length === 0 ? (
+        {eventos.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
             <Ticket className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900">Nenhuma rifa ativa no momento</h3>
-            <p className="text-gray-500">Volte em breve para conferir novos sorteios!</p>
+            <h3 className="text-lg font-medium text-gray-900">Nenhum evento ativo no momento</h3>
+            <p className="text-gray-500">Volte em breve para conferir novos eventos!</p>
           </div>
         ) : (
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-2">
-            {rifas.map((rifa) => {
-              const progresso = 0; 
-
+            {eventos.map((evento) => {
               return (
-                <Card key={rifa.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md flex flex-col">
-                  <Link href={`/${rifa.slug || rifa.id}`} className="block overflow-hidden group relative">
+                <Card key={evento.id} className="overflow-hidden hover:shadow-xl transition-all duration-300 border-0 shadow-md flex flex-col">
+                  <Link href={`/${evento.slug || evento.id}`} className="block overflow-hidden group relative">
                     <div className="relative h-64 w-full bg-gray-200">
-                      {rifa.imagem_url ? (
+                      {evento.imagem_url ? (
                         <img
-                          src={rifa.imagem_url}
-                          alt={rifa.titulo}
+                          src={evento.imagem_url}
+                          alt={evento.titulo}
                           className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                         />
                       ) : (
@@ -99,49 +97,44 @@ export default async function Home() {
                         </div>
                       )}
                       <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-                        <Badge className="bg-green-500 text-xs px-3 py-1 shadow-lg border-0">Adquira já</Badge>
+                        <Badge className="bg-green-500 text-xs px-3 py-1 shadow-lg border-0">Garantir Ingresso</Badge>
                         <Badge variant="secondary" className="bg-blue-600 text-white text-base px-3 py-1 shadow-lg font-bold border-0">
-                          R$ {Number(rifa.valor_numero).toFixed(2)}
+                          R$ {Number(evento.valor_ingresso).toFixed(2)}
                         </Badge>
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4">
                         <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/20 backdrop-blur-md border border-white/30 text-white mb-2 shadow-sm">
-                          RIFA
+                          EVENTO
                         </div>
-                        <h3 className="text-2xl font-bold text-white group-hover:text-blue-200 transition-colors">{rifa.titulo}</h3>
+                        <h3 className="text-2xl font-bold text-white group-hover:text-blue-200 transition-colors">{evento.titulo}</h3>
                       </div>
                     </div>
                   </Link>
                   <CardContent className="p-6 flex flex-col flex-grow">
                     <div className="space-y-4 mb-6 mt-auto">
-                      <div>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="text-gray-500 font-medium text-xs uppercase tracking-wider">Progresso</span>
-                          <span className="font-bold text-blue-600">{progresso}%</span>
-                        </div>
-                        <div className="w-full bg-gray-100 rounded-full h-2">
-                          <div
-                            className="bg-blue-600 h-2 rounded-full"
-                            style={{ width: `${progresso}%` }}
-                          ></div>
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-2 text-blue-600" />
+                          <span className="font-medium text-gray-900">{new Date(evento.data_evento).toLocaleDateString('pt-BR')} {evento.horario_evento ? `às ${evento.horario_evento}` : ''}</span>
                         </div>
                       </div>
                       
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="h-4 w-4 mr-2" />
-                        Sorteio: {new Date(rifa.data_sorteio).toLocaleDateString('pt-BR')}
-                      </div>
+                      {evento.local_evento && (
+                        <div className="text-sm text-gray-500 line-clamp-1">
+                          <span className="font-medium">Local:</span> {evento.local_evento}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex items-center justify-between pt-6 border-t border-gray-100">
                       <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wider">Por apenas</p>
+                        <p className="text-xs text-gray-500 uppercase tracking-wider">Ingresso a partir de</p>
                         <p className="text-2xl font-bold text-green-600">
-                          R$ {Number(rifa.valor_numero).toFixed(2)}
+                          R$ {Number(evento.valor_ingresso).toFixed(2)}
                         </p>
                       </div>
-                      <Button render={<Link href={`/${rifa.slug || rifa.id}`} />} nativeButton={false} size="lg" className="bg-blue-600 hover:bg-blue-700 uppercase font-black px-8">
-                        EU QUERO!
+                      <Button render={<Link href={`/${evento.slug || evento.id}`} />} nativeButton={false} size="lg" className="bg-blue-600 hover:bg-blue-700 uppercase font-black px-8">
+                        COMPRAR
                       </Button>
                     </div>
                   </CardContent>

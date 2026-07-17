@@ -72,14 +72,14 @@ export default function VendedoresList() {
         .not('vendedor_id', 'is', null);
 
       const vendedoresComVendas = vData?.map(vend => {
-        const totalCotas = pData?.filter(p => p.vendedor_id === vend.id)
+        const totalIngressos = pData?.filter(p => p.vendedor_id === vend.id)
           .reduce((acc, curr) => acc + (curr.quantidade || 0), 0) || 0;
-        return { ...vend, totalCotas };
+        return { ...vend, totalIngressos };
       });
 
       setVendedores(vendedoresComVendas || []);
     } catch (error) {
-      console.error("Erro ao buscar guardiões:", error);
+      console.error("Erro ao buscar afiliados:", error);
     } finally {
       setLoading(false);
     }
@@ -142,7 +142,7 @@ export default function VendedoresList() {
 
       if (error) throw error;
 
-      toast.success("Dados do guardião atualizados com sucesso!");
+      toast.success("Dados do afiliado atualizados com sucesso!");
 
       setVendedores(prev => prev.map(v =>
         v.id === selectedVendedor.id
@@ -213,7 +213,7 @@ export default function VendedoresList() {
   };
 
   const handleDelete = async (id: string, nome: string) => {
-    if (!window.confirm(`Tem certeza que deseja excluir o guardião "${nome}"? Esta ação não pode ser desfeita.`)) return;
+    if (!window.confirm(`Tem certeza que deseja excluir o afiliado "${nome}"? Esta ação não pode ser desfeita.`)) return;
     try {
       const { error } = await supabase.from('vendedores').delete().eq('id', id);
       if (error) throw error;
@@ -292,7 +292,7 @@ export default function VendedoresList() {
     if (sortBy === "nome_asc") {
       return (a.nome || "").localeCompare(b.nome || "");
     } else if (sortBy === "vendas_desc") {
-      return (b.totalCotas || 0) - (a.totalCotas || 0);
+      return (b.totalIngressos || 0) - (a.totalIngressos || 0);
     }
     return 0;
   });
@@ -303,7 +303,7 @@ export default function VendedoresList() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
-            <Shield className="h-6 w-6 text-blue-600" /> Guardiões
+            <Shield className="h-6 w-6 text-blue-600" /> Afiliados
           </h1>
           <p className="text-gray-500 dark:text-slate-400">Gerencie sua equipe de vendas e compare desempenhos.</p>
         </div>
@@ -328,13 +328,13 @@ export default function VendedoresList() {
         </div>
       </div>
 
-      {/* Tabela de Guardiões */}
+      {/* Tabela de Afiliados */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
             <CardTitle className="flex items-center gap-2 shrink-0">
               <Users className="h-5 w-5 text-gray-400 dark:text-slate-500" />
-              Lista de Guardiões
+              Lista de Afiliados
               {!loading && (
                 <Badge variant="secondary" className="ml-2 font-bold">{vendedores.length}</Badge>
               )}
@@ -366,7 +366,7 @@ export default function VendedoresList() {
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-slate-400" />
                 <Input
                   type="search"
-                  placeholder="Buscar guardião..."
+                  placeholder="Buscar afiliado..."
                   className="pl-8 h-10 w-full border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200"
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -384,7 +384,7 @@ export default function VendedoresList() {
             <div className="text-center py-14 text-gray-400 dark:text-slate-550">
               <Shield className="h-12 w-12 mx-auto mb-3 opacity-20" />
               <p className="font-medium text-gray-500 dark:text-slate-400">
-                {search ? "Nenhum guardião encontrado para esta busca." : "Nenhum guardião cadastrado ainda."}
+                {search ? "Nenhum afiliado encontrado para esta busca." : "Nenhum afiliado cadastrado ainda."}
               </p>
               {!search && (
                 <Button
@@ -393,7 +393,7 @@ export default function VendedoresList() {
                   render={<Link to="/recrutamento" />}
                   nativeButton={false}
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" /> Recrutar primeiro guardião
+                  <ExternalLink className="h-4 w-4 mr-2" /> Recrutar primeiro afiliado
                 </Button>
               )}
             </div>
@@ -402,7 +402,7 @@ export default function VendedoresList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Cotas Vendidas</TableHead>
+                  <TableHead>Ingressos Vendidos</TableHead>
                   <TableHead>Contato</TableHead>
                   <TableHead>Código Ref</TableHead>
                   <TableHead>Gênero</TableHead>
@@ -412,10 +412,10 @@ export default function VendedoresList() {
               </TableHeader>
               <TableBody>
                 {vendedoresFiltrados.map((vendedor) => {
-                  const totalCotas = vendedor.totalCotas || 0;
+                  const totalIngressos = vendedor.totalIngressos || 0;
                   const metaReal = vendedor.meta_numeros || 50;
-                  const progresso = Math.min((totalCotas / metaReal) * 100, 100);
-                  const atingiuMeta = totalCotas >= metaReal;
+                  const progresso = Math.min((totalIngressos / metaReal) * 100, 100);
+                  const atingiuMeta = totalIngressos >= metaReal;
 
                   return (
                     <TableRow
@@ -444,7 +444,7 @@ export default function VendedoresList() {
                       <TableCell>
                         <div className="space-y-1.5 min-w-[120px]">
                           <div className="flex justify-between text-xs">
-                            <span className="font-bold text-gray-700 dark:text-slate-350">{totalCotas} cotas</span>
+                            <span className="font-bold text-gray-700 dark:text-slate-350">{totalIngressos} ingressos</span>
                             <span className={atingiuMeta ? "text-green-600 dark:text-green-400 font-bold" : "text-gray-400 dark:text-slate-500"}>
                               meta: {metaReal}
                             </span>
@@ -541,7 +541,7 @@ export default function VendedoresList() {
         </CardContent>
       </Card>
 
-      {/* ── Modal de Detalhes do Guardião ── */}
+      {/* ── Modal de Detalhes do Afiliado ── */}
       <Dialog open={!!selectedVendedor} onOpenChange={(open) => { if (!open) setSelectedVendedor(null); }}>
         <DialogContent className="sm:max-w-[550px] dark:bg-slate-900 dark:border-slate-800 max-h-[85vh] overflow-y-auto">
           <DialogHeader>
@@ -587,7 +587,7 @@ export default function VendedoresList() {
               {/* Informações / Edição */}
               <div className="bg-slate-50 dark:bg-slate-950 p-4 rounded-xl border border-slate-100 dark:border-slate-800/80 space-y-4">
                 <div className="flex justify-between items-center mb-1">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Informações do Guardião</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Informações do Afiliado</h4>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -677,7 +677,7 @@ export default function VendedoresList() {
                   </div>
                 ) : vendasVendedor.length === 0 ? (
                   <div className="text-center py-8 text-slate-450 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800 rounded-xl">
-                    Nenhuma venda paga realizada por este guardião.
+                    Nenhuma venda paga realizada por este afiliado.
                   </div>
                 ) : (
                   <div className="border border-slate-150 dark:border-slate-800/80 rounded-xl overflow-hidden divide-y divide-slate-150 dark:divide-slate-800 bg-white dark:bg-slate-950">
@@ -694,7 +694,7 @@ export default function VendedoresList() {
                         <div className="flex items-center gap-6 text-right">
                           <div>
                             <p className="font-bold text-slate-700 dark:text-slate-350 text-sm">{venda.quantidade}</p>
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Cotas</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Ingressos</p>
                           </div>
                           <div>
                             <p className="font-bold text-green-600 dark:text-green-400 text-sm">

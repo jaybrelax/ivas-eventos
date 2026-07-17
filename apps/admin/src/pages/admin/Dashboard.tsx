@@ -42,48 +42,48 @@ export default function Dashboard() {
         .eq('user_id', session.user.id)
         .maybeSingle();
 
-      const role = (vData && vData.is_admin === false) ? 'guardiao' : 'admin';
+      const role = (vData && vData.is_admin === false) ? 'afiliado' : 'admin';
       
       // --- LOGICA DE VENDAS PESSOAIS ---
-      let minhasRifas: any[] = [];
+      let meusEventos: any[] = [];
       let totalMeu = 0;
-      let totalCotasMinhas = 0;
+      let totalIngressosMeus = 0;
 
       if (vData) {
-        let rifasQuery = supabase
-          .from('rifas')
+        let eventosQuery = supabase
+          .from('eventos')
           .select('id, titulo, meta_guardiao, slug, status')
-          .neq('status', 'rascunho'); // Para guardião, sempre ocultar rascunhos
+          .neq('status', 'desativado'); // Para afiliado, sempre ocultar desativados
 
         if (vData.is_admin === true) {
           // Se for admin, buscar todas (inclusive rascunho) na lista de campanhas
-          rifasQuery = supabase
-            .from('rifas')
+          eventosQuery = supabase
+            .from('eventos')
             .select('id, titulo, meta_guardiao, slug, status')
             .order('created_at', { ascending: false });
         }
 
-        const { data: rifasAtivas } = await rifasQuery;
+        const { data: eventosAtivos } = await eventosQuery;
 
         const { data: minhasVendas } = await supabase
           .from('pedidos')
-          .select('valor_total, created_at, quantidade, rifa_id, rifas!inner(status)')
+          .select('valor_total, created_at, quantidade, evento_id, eventos!inner(status)')
           .eq('vendedor_id', vData.id)
           .eq('status', 'pago');
 
         totalMeu = minhasVendas?.reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0;
-        totalCotasMinhas = minhasVendas?.reduce((acc, curr) => acc + curr.quantidade, 0) || 0;
+        totalIngressosMeus = minhasVendas?.reduce((acc, curr) => acc + curr.quantidade, 0) || 0;
 
-        minhasRifas = (rifasAtivas || []).map(r => {
-          const vendasDessaRifa = minhasVendas?.filter(v => v.rifa_id === r.id)
+        meusEventos = (eventosAtivos || []).map(r => {
+          const vendasDesta = minhasVendas?.filter(v => v.evento_id === r.id)
             .reduce((acc, curr) => acc + curr.quantidade, 0) || 0;
           return {
             id: r.id,
             titulo: r.titulo,
             slug: r.slug,
             meta: r.meta_guardiao || 50,
-            vendidos: vendasDessaRifa,
-            progresso: Math.min((vendasDessaRifa / (r.meta_guardiao || 50)) * 100, 100)
+            vendidos: vendasDesta,
+            progresso: Math.min((vendasDesta / (r.meta_guardiao || 50)) * 100, 100)
           };
         });
       }
@@ -92,15 +92,11 @@ export default function Dashboard() {
         // --- LOGICA ADMIN GLOBAL ---
         const { data: pedidosPagos } = await supabase
           .from('pedidos')
-          .select('valor_total, quantidade, created_at, vendedor_id, vendedores(nome), rifas!inner(status)')
+          .select('valor_total, quantidade, created_at, vendedor_id, vendedores(nome), eventos!inner(status)')
           .eq('status', 'pago');
 
         const totalArrecadado = pedidosPagos?.reduce((acc, curr) => acc + Number(curr.valor_total), 0) || 0;
-
-        const { count: numerosVendidos } = await supabase
-          .from('numeros_rifa')
-          .select('*, rifas!inner(status)', { count: 'exact', head: true })
-          .eq('status', 'vendido');
+        const numerosVendidos = pedidosPagos?.reduce((acc, curr) => acc + curr.quantidade, 0) || 0;
 
         const { count: totalVendedores } = await supabase
           .from('vendedores')
@@ -108,7 +104,7 @@ export default function Dashboard() {
 
         const { count: totalPedidos } = await supabase
           .from('pedidos')
-          .select('*, rifas!inner(status)', { count: 'exact', head: true });
+          .select('*, eventos!inner(status)', { count: 'exact', head: true });
 
         const pedidosPagosCount = pedidosPagos?.length || 0;
         const taxaConversao = totalPedidos && totalPedidos > 0
@@ -150,11 +146,11 @@ export default function Dashboard() {
             taxaConversao,
             chartData,
             rankingVendedores: ranking,
-            minhasRifas: minhasRifas
+            meusEventos: meusEventos
           }
         };
       } else {
-        // --- LOGICA GUARDIAO ---
+        // --- LOGICA AFILIADO ---
         const last7Days = Array.from({ length: 7 }, (_, i) => {
           const d = new Date();
           d.setDate(d.getDate() - (6 - i));
@@ -163,10 +159,10 @@ export default function Dashboard() {
         
         const { data: minhasVendas } = await supabase
           .from('pedidos')
-          .select('valor_total, created_at, quantidade, rifa_id, rifas!inner(status)')
+          .select('valor_total, created_at, quantidade, evento_id, eventos!inner(status)')
           .eq('vendedor_id', vData.id)
           .eq('status', 'pago')
-          .neq('rifas.status', 'rascunho');
+          .neq('eventos.status', 'desativado');
 
         const chartData = last7Days.map(date => {
           const dayName = new Date(date).toLocaleDateString('pt-BR', { weekday: 'short' });
@@ -180,12 +176,12 @@ export default function Dashboard() {
           vendedorData: vData,
           stats: {
             totalArrecadado: totalMeu,
-            numerosVendidos: totalCotasMinhas,
+            numerosVendidos: totalIngressosMeus,
             vendedoresAtivos: 0,
             taxaConversao: 0,
             chartData,
             rankingVendedores: [],
-            minhasRifas: minhasRifas
+            meusEventos: meusEventos
           }
         };
       }
@@ -199,16 +195,16 @@ export default function Dashboard() {
     taxaConversao: 0,
     chartData: [],
     rankingVendedores: [],
-    minhasRifas: []
+    meusEventos: []
   };
   const userRole = dashboardData?.role || 'admin';
   const vendedorData = dashboardData?.vendedorData;
 
   useEffect(() => {
-    if (!selectedRifaId && stats.minhasRifas.length > 0) {
-      setSelectedRifaId(stats.minhasRifas[0].id);
+    if (!selectedRifaId && stats.meusEventos.length > 0) {
+      setSelectedRifaId(stats.meusEventos[0].id);
     }
-  }, [stats.minhasRifas]);
+  }, [stats.meusEventos]);
 
   const buildLink = (rifaSlug: string) => {
     if (!vendedorData) return '';
@@ -232,7 +228,7 @@ export default function Dashboard() {
     );
   }
 
-  const selectedRifa = stats.minhasRifas.find(r => r.id === selectedRifaId) || stats.minhasRifas[0];
+  const selectedEvento = stats.meusEventos.find(r => r.id === selectedRifaId) || stats.meusEventos[0];
 
   return (
     <div className="flex flex-col lg:grid lg:grid-cols-7 gap-6">
@@ -243,20 +239,20 @@ export default function Dashboard() {
             {userRole === 'admin' ? 'Dashboard Global' : `Bem-vindo, ${vendedorData?.nome?.split(' ')[0]}!`}
           </h1>
           <p className="text-gray-500 dark:text-slate-400 mb-4">
-            {userRole === 'admin' ? 'Visão geral do sistema de rifas.' : 'Gerencie seus links e acompanhe seu desempenho.'}
+            {userRole === 'admin' ? 'Visão geral do sistema de eventos.' : 'Gerencie seus links e acompanhe seu desempenho.'}
           </p>
           
-          {(userRole === 'guardiao' || (userRole === 'admin' && vendedorData)) && stats.minhasRifas.length > 1 && (
+          {(userRole === 'afiliado' || (userRole === 'admin' && vendedorData)) && stats.meusEventos.length > 1 && (
             <div className="w-full max-w-[300px] space-y-1.5">
-              <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400 dark:text-slate-500 ml-1">Campanha Ativa</Label>
+              <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400 dark:text-slate-500 ml-1">Evento Ativo</Label>
               <Select value={selectedRifaId || ""} onValueChange={setSelectedRifaId}>
                 <SelectTrigger className="w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-bold text-sm border-slate-200 dark:border-slate-800 h-11 rounded-md shadow-sm focus:ring-2 focus:ring-blue-500/20">
-                  <SelectValue placeholder="Escolha uma campanha">
-                    {selectedRifa?.titulo}
+                  <SelectValue placeholder="Escolha um evento">
+                    {selectedEvento?.titulo}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="rounded-md border-slate-100 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-900">
-                  {stats.minhasRifas.map(r => (
+                  {stats.meusEventos.map(r => (
                     <SelectItem
                       key={r.id}
                       value={r.id}
@@ -272,8 +268,8 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Seção Principal do Guardião: Link de Venda */}
-      {(userRole === 'guardiao' || (userRole === 'admin' && vendedorData)) && selectedRifa && (
+      {/* Seção Principal do Afiliado: Link de Venda */}
+      {(userRole === 'afiliado' || (userRole === 'admin' && vendedorData)) && selectedEvento && (
         <Card className="lg:col-span-4 order-2 lg:order-2 border border-slate-100 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none bg-white dark:bg-slate-900">
           <CardContent className="p-4 sm:p-5 space-y-5">
             {/* Link Sharing - Layout Empilhado */}
@@ -299,7 +295,7 @@ export default function Dashboard() {
                     {/* Texto posicionado à direita em 1 linha */}
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap">
                       <span className="text-slate-400 dark:text-slate-500">https://rifa.virtudes.net.br/</span>
-                      <span className="text-[#1a6eff] dark:text-[#3b82f6] font-bold">{selectedRifa?.slug}</span>
+                      <span className="text-[#1a6eff] dark:text-[#3b82f6] font-bold">{selectedEvento?.slug}</span>
                       <span className="text-slate-400 dark:text-slate-500">?ref=</span>
                       <span className="text-slate-800 dark:text-slate-200 font-bold">{vendedorData?.codigo_ref}</span>
                       {endAtivado && <span className="text-orange-500 font-bold">&end=5</span>}
@@ -331,14 +327,14 @@ export default function Dashboard() {
                   {/* Botão Copiar Link */}
                   <div className="flex-1 flex gap-2">
                     <button
-                      onClick={() => selectedRifa && copyLink(selectedRifa.slug)}
+                      onClick={() => selectedEvento && copyLink(selectedEvento.slug)}
                       className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-md font-bold uppercase tracking-wider text-xs transition-all duration-300 ${
-                        copiedLink === selectedRifa?.slug
+                        copiedLink === selectedEvento?.slug
                         ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
                         : "bg-[#1a6eff] text-white shadow-md shadow-blue-500/20 hover:bg-blue-600 active:scale-[0.98]"
                       }`}
                     >
-                      {copiedLink === selectedRifa?.slug ? (
+                      {copiedLink === selectedEvento?.slug ? (
                         <>
                           <CheckCircle2 className="h-4 w-4" />
                           <span>Copiado!</span>
@@ -367,19 +363,19 @@ export default function Dashboard() {
             <div className="space-y-2 pt-3 border-t border-slate-50 dark:border-slate-800/60">
               <div className="flex justify-between items-end">
                 <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Desempenho nesta Rifa</span>
+                  <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Desempenho neste Evento</span>
                   <span className="text-lg font-black text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                    <Target className="h-5 w-5 text-[#1a6eff]" /> Meta do Guardião
+                    <Target className="h-5 w-5 text-[#1a6eff]" /> Meta do Afiliado
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-3xl font-black text-[#1a6eff]">{selectedRifa.vendidos}</span>
-                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500"> / {selectedRifa.meta}</span>
+                  <span className="text-3xl font-black text-[#1a6eff]">{selectedEvento.vendidos}</span>
+                  <span className="text-sm font-bold text-slate-400 dark:text-slate-500"> / {selectedEvento.meta}</span>
                 </div>
               </div>
-              <Progress value={selectedRifa.progresso} className="h-4 bg-slate-100 dark:bg-slate-800 rounded-full" />
+              <Progress value={selectedEvento.progresso} className="h-4 bg-slate-100 dark:bg-slate-800 rounded-full" />
               <p className="text-xs text-slate-500 dark:text-slate-400 font-bold italic text-center -mb-2 mt-1">
-                Você já atingiu {selectedRifa.progresso.toFixed(1)}% do seu objetivo!
+                Você já atingiu {selectedEvento.progresso.toFixed(1)}% do seu objetivo!
               </p>
             </div>
           </CardContent>
@@ -387,7 +383,7 @@ export default function Dashboard() {
       )}
 
       {/* Card de Destaque Lateral: Rumo ao Topo */}
-      {(userRole === 'guardiao' || (userRole === 'admin' && vendedorData)) && selectedRifa && (
+      {(userRole === 'afiliado' || (userRole === 'admin' && vendedorData)) && selectedEvento && (
         <Card className="lg:col-span-3 order-6 lg:order-2 bg-gradient-to-br from-[#1a6eff] to-blue-700 border-none shadow-xl rounded-3xl p-6 flex flex-col justify-center text-white relative overflow-hidden">
           <div className="absolute -bottom-10 -right-10 opacity-20 rotate-12">
             <Trophy size={200} />
@@ -398,21 +394,21 @@ export default function Dashboard() {
             </div>
             <h4 className="text-2xl font-black uppercase leading-tight">Rumo ao Topo!</h4>
             <p className="text-blue-100 text-sm font-medium leading-relaxed">
-              Cada venda coloca você mais perto das primeiras posições do ranking global de guardiões.
+              Cada venda coloca você mais perto das primeiras posições do ranking global de afiliados.
             </p>
             <Link to="/ranking" className="w-full inline-flex items-center justify-center h-8 px-2.5 rounded-lg font-black uppercase text-xs tracking-widest bg-white text-[#1a6eff] hover:bg-blue-50 transition-colors">Ver Ranking Global</Link>
           </div>
         </Card>
       )}
 
-      {/* Fallback se não houver rifa */}
-      {userRole === 'guardiao' && !selectedRifa && (
+      {/* Fallback se não houver evento */}
+      {userRole === 'afiliado' && !selectedEvento && (
         <Card className="lg:col-span-7 order-2 border-dashed border-2 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col items-center justify-center p-16 text-center rounded-3xl">
           <div className="w-20 h-20 bg-white dark:bg-slate-800 shadow-sm rounded-3xl flex items-center justify-center mb-6">
             <Ticket className="h-10 w-10 text-slate-300 dark:text-slate-600" />
           </div>
-          <h3 className="text-slate-900 dark:text-slate-100 font-extrabold text-xl">Nenhuma Rifa Ativa</h3>
-          <p className="text-slate-500 dark:text-slate-400 max-w-[300px] mt-2 text-sm">Você ainda não foi vinculado a nenhuma campanha. Entre em contato com o suporte.</p>
+          <h3 className="text-slate-900 dark:text-slate-100 font-extrabold text-xl">Nenhum Evento Ativo</h3>
+          <p className="text-slate-500 dark:text-slate-400 max-w-[300px] mt-2 text-sm">Você ainda não foi vinculado a nenhum evento. Entre em contato com o suporte.</p>
         </Card>
       )}
 
@@ -452,7 +448,7 @@ export default function Dashboard() {
         <Card className={`${userRole === 'admin' ? "md:col-span-2 lg:col-span-2" : ""} border border-slate-100 dark:border-slate-800 bg-card shadow-sm`}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              {userRole === 'admin' ? 'Números Vendidos & Conversão' : 'Cotas Vendidas (Qtd)'}
+              {userRole === 'admin' ? 'Ingressos Vendidos & Conversão' : 'Ingressos Vendidos (Qtd)'}
             </CardTitle>
             <div className="flex items-center gap-2">
               <Ticket className="h-4 w-4 text-muted-foreground" />
@@ -485,7 +481,7 @@ export default function Dashboard() {
         {userRole !== 'admin' && (
           <Card className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20 border-blue-100 dark:border-blue-900/50">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-300">Status do Guardião</CardTitle>
+              <CardTitle className="text-sm font-medium text-blue-800 dark:text-blue-300">Status do Afiliado</CardTitle>
               <Trophy className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             </CardHeader>
             <CardContent>
@@ -543,7 +539,7 @@ export default function Dashboard() {
         <Card className="lg:col-span-3 order-7 lg:order-5 border border-slate-100 dark:border-slate-800 bg-card shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden flex flex-col">
           <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 py-4">
             <CardTitle className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-2">
-              <Trophy className="h-4 w-4 text-yellow-500" /> Ranking Guardiões
+              <Trophy className="h-4 w-4 text-yellow-500" /> Ranking Afiliados
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6 flex-1">
@@ -560,7 +556,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-black text-slate-800 dark:text-slate-200 truncate uppercase tracking-tighter">{v.nome}</p>
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Guardião</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest">Afiliado</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-black text-[#1a6eff]">R$ {v.total.toFixed(2)}</p>
@@ -585,9 +581,9 @@ export default function Dashboard() {
           </DialogHeader>
           <div className="flex flex-col items-center justify-center p-6 space-y-6">
             <div className="p-4 bg-white rounded-2xl shadow-sm border border-slate-100 inline-block">
-              {selectedRifa && (
+              {selectedEvento && (
                 <QRCode
-                  value={buildLink(selectedRifa.slug)}
+                  value={buildLink(selectedEvento.slug)}
                   size={200}
                   level="H"
                   className="rounded-lg"
@@ -603,8 +599,8 @@ export default function Dashboard() {
               type="button"
               className="flex-1 bg-[#1a6eff] hover:bg-blue-600 text-white font-bold tracking-wide shadow-md shadow-blue-500/20"
               onClick={() => {
-                if (selectedRifa) {
-                  window.open(buildLink(selectedRifa.slug), '_blank');
+                if (selectedEvento) {
+                  window.open(buildLink(selectedEvento.slug), '_blank');
                   setIsQrModalOpen(false);
                 }
               }}

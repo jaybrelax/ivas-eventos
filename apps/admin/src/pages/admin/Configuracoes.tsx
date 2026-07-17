@@ -24,7 +24,7 @@ export default function Configuracoes() {
   const [heroAccordionOpen, setHeroAccordionOpen] = useState(false);
   const [integrationsAccordionOpen, setIntegrationsAccordionOpen] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Configuracoes>({
     nome_sistema: "",
     logo_url: "",
     mp_access_token: "",
@@ -40,10 +40,7 @@ export default function Configuracoes() {
     grupo_whatsapp_url: "",
     admin_dark_mode: false,
     webhook_pago: "",
-    distribuicao_aleatoria_guardiao: false,
-    surpresinha_enabled: false,
-    notificacoes_compradores_enabled: true,
-    ocultar_numeros_comprados: false
+    notificacoes_compradores_enabled: true
   });
 
   useEffect(() => {
@@ -87,10 +84,7 @@ export default function Configuracoes() {
             grupo_whatsapp_url: data.grupo_whatsapp_url || "",
             admin_dark_mode: data.admin_dark_mode === true,
             webhook_pago: data.webhook_pago || "",
-            distribuicao_aleatoria_guardiao: data.distribuicao_aleatoria_guardiao === true,
-            surpresinha_enabled: data.surpresinha_enabled === true,
-            notificacoes_compradores_enabled: data.notificacoes_compradores_enabled !== false,
-            ocultar_numeros_comprados: data.ocultar_numeros_comprados === true
+            notificacoes_compradores_enabled: data.notificacoes_compradores_enabled !== false
           });
         }
       } catch (error) {
@@ -216,7 +210,7 @@ export default function Configuracoes() {
         },
         body: JSON.stringify({
           number: numLimpo.startsWith('55') ? numLimpo : `55${numLimpo}`,
-          text: "🚀 *Teste de Integração Evolution API*\n\nSeu sistema de rifas está conectado com sucesso!"
+          text: "🚀 *Teste de Integração Evolution API*\n\nSeu sistema de eventos está conectado com sucesso!"
         })
       });
 
@@ -249,7 +243,8 @@ export default function Configuracoes() {
           codigo_transacao: "9876543210",
           valor_total: 50.00,
           status: "pago",
-          numeros_escolhidos: ["01", "02", "03", "55", "155", "160", "185"]
+          quantidade: 5,
+          convidados: ["Maria", "José"]
         },
         cliente: {
           nome: "João da Silva (Teste)",
@@ -349,7 +344,7 @@ export default function Configuracoes() {
         <Card className="overflow-hidden border border-slate-100 dark:border-slate-800 shadow-md bg-card">
           <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 border-b border-slate-100 dark:border-slate-800 pb-4">
             <CardTitle className="text-lg font-semibold text-slate-800 dark:text-slate-200">Aparência da Plataforma</CardTitle>
-            <CardDescription className="text-slate-500 dark:text-slate-400">Personalize a marca do seu sistema de rifas.</CardDescription>
+            <CardDescription className="text-slate-500 dark:text-slate-400">Personalize a marca do seu sistema de eventos.</CardDescription>
           </CardHeader>
           <CardContent className="p-0">
             <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-border">
@@ -448,80 +443,7 @@ export default function Configuracoes() {
                     <span className={`pointer-events-none block h-5 w-5 rounded-full bg-white dark:bg-slate-100 shadow-md ring-0 transition-transform duration-200 ${formData.admin_dark_mode ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>
-
-                {/* Switch: Distribuir Vendas */}
-                <div className="group flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-900 hover:border-green-100 dark:hover:border-green-900/30 hover:shadow-sm transition-all cursor-pointer" onClick={() => !authError && setFormData({ ...formData, distribuicao_aleatoria_guardiao: !formData.distribuicao_aleatoria_guardiao })}>
-                  <div className="space-y-0.5 flex-1 min-w-0 mr-3">
-                    <p className="text-sm font-medium text-green-700 dark:text-green-400 leading-none">Distribuir Vendas Diretas</p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold mt-1">Para Guardião Aleatório</p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={formData.distribuicao_aleatoria_guardiao}
-                    disabled={authError}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-200 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${formData.distribuicao_aleatoria_guardiao ? 'bg-green-500 dark:bg-green-600 shadow-green-200 dark:shadow-green-950 shadow-inner' : 'bg-slate-200 dark:bg-slate-800'}`}
-                    onClick={(e) => { e.stopPropagation(); if (!authError) setFormData({ ...formData, distribuicao_aleatoria_guardiao: !formData.distribuicao_aleatoria_guardiao }); }}
-                  >
-                    <span className={`pointer-events-none block h-5 w-5 rounded-full bg-white dark:bg-slate-100 shadow-md ring-0 transition-transform duration-200 ${formData.distribuicao_aleatoria_guardiao ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-
-                {/* Switch: Surpresinha */}
-                <div className="group flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-900 hover:border-blue-100 dark:hover:border-blue-900/30 hover:shadow-sm transition-all cursor-pointer" onClick={() => !authError && setFormData({ ...formData, surpresinha_enabled: !formData.surpresinha_enabled })}>
-                  <div className="space-y-0.5 flex-1 min-w-0 mr-3">
-                    <p className="text-sm font-medium text-blue-700 dark:text-blue-400 leading-none">Ativar Surpresinha</p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold mt-1">Seleção Aleatória de Números</p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={formData.surpresinha_enabled}
-                    disabled={authError}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-200 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${formData.surpresinha_enabled ? 'bg-blue-500 dark:bg-blue-600 shadow-blue-200 dark:shadow-blue-950 shadow-inner' : 'bg-slate-200 dark:bg-slate-800'}`}
-                    onClick={(e) => { e.stopPropagation(); if (!authError) setFormData({ ...formData, surpresinha_enabled: !formData.surpresinha_enabled }); }}
-                  >
-                    <span className={`pointer-events-none block h-5 w-5 rounded-full bg-white dark:bg-slate-100 shadow-md ring-0 transition-transform duration-200 ${formData.surpresinha_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-
-                {/* Switch: Notificações de Compradores */}
-                <div className="group flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-900 hover:border-emerald-100 dark:hover:border-emerald-900/30 hover:shadow-sm transition-all cursor-pointer" onClick={() => !authError && setFormData({ ...formData, notificacoes_compradores_enabled: !formData.notificacoes_compradores_enabled })}>
-                  <div className="space-y-0.5 flex-1 min-w-0 mr-3">
-                    <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400 leading-none">Notificações de Compradores</p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold mt-1">Balões de compras recentes no site</p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={formData.notificacoes_compradores_enabled}
-                    disabled={authError}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-200 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${formData.notificacoes_compradores_enabled ? 'bg-emerald-500 dark:bg-emerald-600 shadow-emerald-200 dark:shadow-emerald-950 shadow-inner' : 'bg-slate-200 dark:bg-slate-800'}`}
-                    onClick={(e) => { e.stopPropagation(); if (!authError) setFormData({ ...formData, notificacoes_compradores_enabled: !formData.notificacoes_compradores_enabled }); }}
-                  >
-                    <span className={`pointer-events-none block h-5 w-5 rounded-full bg-white dark:bg-slate-100 shadow-md ring-0 transition-transform duration-200 ${formData.notificacoes_compradores_enabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
-
-                {/* Switch: Ocultar Números Comprados */}
-                <div className="group flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-900 hover:border-purple-100 dark:hover:border-purple-900/30 hover:shadow-sm transition-all cursor-pointer" onClick={() => !authError && setFormData({ ...formData, ocultar_numeros_comprados: !formData.ocultar_numeros_comprados })}>
-                  <div className="space-y-0.5 flex-1 min-w-0 mr-3">
-                    <p className="text-sm font-medium text-purple-700 dark:text-purple-400 leading-none">Ocultar Números Comprados</p>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold mt-1">Exibir apenas disponíveis e reservados</p>
-                  </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={formData.ocultar_numeros_comprados}
-                    disabled={authError}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-200 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${formData.ocultar_numeros_comprados ? 'bg-purple-500 dark:bg-purple-600 shadow-purple-200 dark:shadow-purple-950 shadow-inner' : 'bg-slate-200 dark:bg-slate-800'}`}
-                    onClick={(e) => { e.stopPropagation(); if (!authError) setFormData({ ...formData, ocultar_numeros_comprados: !formData.ocultar_numeros_comprados }); }}
-                  >
-                    <span className={`pointer-events-none block h-5 w-5 rounded-full bg-white dark:bg-slate-100 shadow-md ring-0 transition-transform duration-200 ${formData.ocultar_numeros_comprados ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
-                </div>
               </div>
-
             </div>
           </CardContent>
         </Card>

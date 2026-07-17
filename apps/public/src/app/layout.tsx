@@ -20,10 +20,10 @@ async function getConfig() {
       .single();
     
     if (error) throw error;
-    return data || { nome_sistema: process.env.NEXT_PUBLIC_SITE_NAME || "Sorteios Online" };
+    return data || { nome_sistema: process.env.NEXT_PUBLIC_SITE_NAME || "Sistema de Eventos" };
   } catch (err) {
     console.error("Erro ao buscar configurações:", err);
-    return { nome_sistema: process.env.NEXT_PUBLIC_SITE_NAME || "Sorteios Online" };
+    return { nome_sistema: process.env.NEXT_PUBLIC_SITE_NAME || "Sistema de Eventos" };
   }
 }
 
@@ -34,7 +34,7 @@ export async function generateMetadata(): Promise<Metadata> {
       default: config.nome_sistema,
       template: `%s | ${config.nome_sistema}`
     },
-    description: "Concorra a prêmios incríveis participando de nossas rifas!",
+    description: "Garanta seus ingressos para eventos incríveis!",
     icons: {
       icon: config.logo_url || "/favicon.ico",
     }
@@ -106,7 +106,7 @@ export default async function RootLayout({
               <Link href="/termos" className="hover:text-white transition-colors">Termos de Uso</Link>
               <Link href="/privacidade" className="hover:text-white transition-colors">Política de Privacidade</Link>
               <Link href="/minhas-compras" className="hover:text-white transition-colors">Minhas Compras</Link>
-              <a href="https://admin.rifa.virtudes.net.br" className="hover:text-white transition-colors border-l border-gray-700 pl-4 ml-4">Área Restrita</a>
+              <a href="https://admin.evento.virtudes.net.br" className="hover:text-white transition-colors border-l border-gray-700 pl-4 ml-4">Área Restrita</a>
             </div>
           </div>
         </footer>

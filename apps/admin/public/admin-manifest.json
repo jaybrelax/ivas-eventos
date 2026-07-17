@@ -1,12 +1,12 @@
 {
-  "name": "Rifas IVAS",
-  "short_name": "Rifas IVAS",
+  "name": "Eventos IVAS",
+  "short_name": "Eventos IVAS",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#2563eb",
-  "description": "Painel de Administração e Gestão de Rifas",
+  "description": "Painel de Administração de Eventos",
   "icons": [
     {
       "src": "/ivas_icon_192.png",

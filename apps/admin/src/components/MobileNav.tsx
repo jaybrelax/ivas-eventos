@@ -22,7 +22,7 @@ export function MobileNav({ userRole }: { userRole?: 'admin' | 'guardiao' }) {
 
   const adminItems: NavItem[] = [
     { label: "Dashboard", icon: LayoutDashboard, path: "/", color: "text-violet-500" },
-    { label: "Rifas", icon: Ticket, path: "/rifas", color: "text-blue-500" },
+    { label: "Eventos", icon: Ticket, path: "/eventos", color: "text-blue-500" },
     { label: "Ranking", icon: Trophy, path: "/ranking", color: "text-amber-500" },
     { label: "Vendas", icon: ShoppingCart, path: "/vendas", color: "text-emerald-500" },
   ];

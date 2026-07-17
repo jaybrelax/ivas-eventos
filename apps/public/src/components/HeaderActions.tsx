@@ -8,15 +8,15 @@ import { useEffect, useState, Suspense } from "react";
 function CountdownBanner() {
   const searchParams = useSearchParams();
   const endParam = searchParams.get("end");
-  
+
   const [timeLeft, setTimeLeft] = useState<{ d: number, m: number, s: number } | null>(null);
 
   useEffect(() => {
     if (!endParam) return;
-    
+
     let days = parseInt(endParam) || 0;
     let initialSeconds = (days * 86400) + (0 * 3600) + (29 * 60) + 59;
-    
+
     setTimeLeft({ d: days, h: 0, m: 29, s: 59 });
 
     const interval = setInterval(() => {
@@ -25,12 +25,12 @@ function CountdownBanner() {
         clearInterval(interval);
         return;
       }
-      
+
       const d = Math.floor(initialSeconds / 86400);
       const h = Math.floor((initialSeconds % 86400) / 3600);
       const m = Math.floor((initialSeconds % 3600) / 60);
       const s = initialSeconds % 60;
-      
+
       setTimeLeft({ d, h, m, s });
     }, 1000);
 
@@ -40,10 +40,10 @@ function CountdownBanner() {
   if (endParam && timeLeft) {
     return (
       <div className="flex flex-col items-end justify-center cursor-default group px-4 py-1.5 rounded-md shadow-md animate-gradient-bg"
-           style={{
-             background: 'linear-gradient(270deg, #ef4444, #f97316, #ef4444)',
-             backgroundSize: '200% 200%'
-           }}>
+        style={{
+          background: 'linear-gradient(270deg, #ef4444, #f97316, #ef4444)',
+          backgroundSize: '200% 200%'
+        }}>
         <style>{`
           @keyframes gradientMove {
             0% { background-position: 0% 50%; }
@@ -54,7 +54,7 @@ function CountdownBanner() {
             animation: gradientMove 3s ease infinite;
           }
         `}</style>
-        
+
         <span className="text-[10px] uppercase font-bold tracking-wider text-white/90 mb-0.5">
           Vendas se encerram em
         </span>
@@ -81,12 +81,12 @@ function CountdownBanner() {
   }
 
   return (
-    <Link 
-      href="/minhas-compras" 
+    <Link
+      href="/minhas-compras"
       className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors"
     >
       <Ticket className="h-5 w-5" />
-      <span className="text-sm">Meus Números</span>
+      <span className="text-sm">Meus ingressos</span>
     </Link>
   );
 }
