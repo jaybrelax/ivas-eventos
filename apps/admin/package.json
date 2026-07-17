@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite\" \"tsx api/index.ts\"",
+    "dev": "concurrently \"vite\" \"tsx watch api/index.ts\"",
     "dev:frontend": "vite",
-    "dev:api": "tsx api/index.ts",
+    "dev:api": "tsx watch api/index.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
