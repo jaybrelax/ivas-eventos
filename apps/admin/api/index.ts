@@ -788,88 +788,69 @@ app.post("/api/pagamento/pix", async (req, res) => {
 
 
 
-// Helper para confirmar convidados e gerar números sequenciais
-async function confirmarEGerarNumeros(supabaseAdmin: any, pedidoId: string, eventoId: string) {
-  const { data: convidadosList } = await supabaseAdmin
-    .from("convidados")
-    .select("id, nome_completo, numero, confirmado")
-    .eq("pedido_id", pedidoId)
-    .order("created_at", { ascending: true });
-
-  if (!convidadosList || convidadosList.length === 0) return [];
-
-  const { data: confirmados } = await supabaseAdmin
-    .from("convidados")
-    .select("numero, pedidos!inner(evento_id)")
-    .eq("pedidos.evento_id", eventoId)
-    .eq("confirmado", true);
-
-  let maxNum = 0;
-  if (confirmados) {
-    confirmados.forEach((c: any) => {
-      if (c.numero !== null && c.numero !== undefined) {
-        const n = Number(c.numero);
-        if (!isNaN(n) && n > maxNum) maxNum = n;
-      }
-    });
-  }
-
-  for (const convidado of convidadosList) {
-    if (!convidado.confirmado) {
-      maxNum++;
-      await supabaseAdmin
-        .from("convidados")
-        .update({ confirmado: true, numero: maxNum })
-        .eq("id", convidado.id);
-      convidado.numero = maxNum;
-      convidado.confirmado = true;
-    }
-  }
-
-  return convidadosList;
-}
-
 
 // Helper para confirmar convidados e gerar números sequenciais
 async function confirmarEGerarNumeros(supabaseAdmin: any, pedidoId: string, eventoId: string) {
-  const { data: convidadosList } = await supabaseAdmin
-    .from("convidados")
-    .select("id, nome_completo, numero, confirmado")
-    .eq("pedido_id", pedidoId)
-    .order("created_at", { ascending: true });
+  try {
+    // Tenta buscar com as colunas novas (confirmado, numero)
+    const { data: convidadosList, error: selectError } = await supabaseAdmin
+      .from("convidados")
+      .select("id, nome_completo, numero, confirmado")
+      .eq("pedido_id", pedidoId)
+      .order("created_at", { ascending: true });
 
-  if (!convidadosList || convidadosList.length === 0) return [];
-
-  const { data: confirmados } = await supabaseAdmin
-    .from("convidados")
-    .select("numero, pedidos!inner(evento_id)")
-    .eq("pedidos.evento_id", eventoId)
-    .eq("confirmado", true);
-
-  let maxNum = 0;
-  if (confirmados) {
-    confirmados.forEach((c: any) => {
-      if (c.numero !== null && c.numero !== undefined) {
-        const n = Number(c.numero);
-        if (!isNaN(n) && n > maxNum) maxNum = n;
-      }
-    });
-  }
-
-  for (const convidado of convidadosList) {
-    if (!convidado.confirmado) {
-      maxNum++;
-      await supabaseAdmin
+    // Se as colunas não existem, faz fallback com campos básicos
+    if (selectError) {
+      console.warn("[confirmarEGerarNumeros] Colunas 'confirmado'/'numero' ausentes. Usando fallback básico:", selectError.message);
+      const { data: fallback } = await supabaseAdmin
         .from("convidados")
-        .update({ confirmado: true, numero: maxNum })
-        .eq("id", convidado.id);
-      convidado.numero = maxNum;
-      convidado.confirmado = true;
+        .select("id, nome_completo")
+        .eq("pedido_id", pedidoId)
+        .order("created_at", { ascending: true });
+      return fallback || [];
     }
-  }
 
-  return convidadosList;
+    if (!convidadosList || convidadosList.length === 0) return [];
+
+    const { data: confirmados } = await supabaseAdmin
+      .from("convidados")
+      .select("numero, pedidos!inner(evento_id)")
+      .eq("pedidos.evento_id", eventoId)
+      .eq("confirmado", true);
+
+    let maxNum = 0;
+    if (confirmados) {
+      confirmados.forEach((c: any) => {
+        if (c.numero !== null && c.numero !== undefined) {
+          const n = Number(c.numero);
+          if (!isNaN(n) && n > maxNum) maxNum = n;
+        }
+      });
+    }
+
+    for (const convidado of convidadosList) {
+      if (!convidado.confirmado) {
+        maxNum++;
+        await supabaseAdmin
+          .from("convidados")
+          .update({ confirmado: true, numero: maxNum })
+          .eq("id", convidado.id);
+        convidado.numero = maxNum;
+        convidado.confirmado = true;
+      }
+    }
+
+    return convidadosList;
+  } catch (err: any) {
+    console.warn("[confirmarEGerarNumeros] Erro inesperado, continuando sem numeração:", err.message);
+    const { data: fallback } = await supabaseAdmin
+      .from("convidados")
+      .select("id, nome_completo")
+      .eq("pedido_id", pedidoId);
+    return fallback || [];
+  }
 }
+
 
 // STATUS WEBHOOKS
 app.get("/api/pagamento/status/:pedido_id", async (req, res) => {
