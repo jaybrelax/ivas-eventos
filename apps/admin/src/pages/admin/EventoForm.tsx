@@ -88,7 +88,7 @@ export default function EventoForm() {
       let formattedDate = "";
       if (evento.data_evento) {
         const dateObj = new Date(evento.data_evento);
-        formattedDate = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+        formattedDate = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
       }
 
       setFormData({
@@ -331,15 +331,26 @@ export default function EventoForm() {
                 <CardTitle>Local e Data</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="dataEvento">Data do Evento (e Abertura)</Label>
-                  <Input 
-                    id="dataEvento" 
-                    type="datetime-local" 
-                    required 
-                    value={formData.dataEvento}
-                    onChange={e => setFormData({...formData, dataEvento: e.target.value})}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dataEvento">Data do Evento</Label>
+                    <Input 
+                      id="dataEvento" 
+                      type="date" 
+                      required 
+                      value={formData.dataEvento}
+                      onChange={e => setFormData({...formData, dataEvento: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="horarioEvento">Horário de Abertura</Label>
+                    <Input 
+                      id="horarioEvento" 
+                      type="time" 
+                      value={formData.horarioEvento}
+                      onChange={e => setFormData({...formData, horarioEvento: e.target.value})}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="localEvento">Local / Endereço</Label>
