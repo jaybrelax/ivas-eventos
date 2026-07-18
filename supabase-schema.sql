@@ -183,6 +183,7 @@ CREATE TABLE IF NOT EXISTS public.configuracoes (
     admin_dark_mode BOOLEAN DEFAULT false,
     webhook_pago TEXT,
     notificacoes_compradores_enabled BOOLEAN DEFAULT true,
+    descricao_expand_enabled BOOLEAN DEFAULT true,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -238,7 +239,8 @@ INSERT INTO public.configuracoes (
     grupo_whatsapp_url = EXCLUDED.grupo_whatsapp_url,
     admin_dark_mode = EXCLUDED.admin_dark_mode,
     webhook_pago = EXCLUDED.webhook_pago,
-    notificacoes_compradores_enabled = EXCLUDED.notificacoes_compradores_enabled;
+    notificacoes_compradores_enabled = EXCLUDED.notificacoes_compradores_enabled,
+    descricao_expand_enabled = EXCLUDED.descricao_expand_enabled;
 
 -- ==============================================================================
 -- 7. View: vw_configuracoes_publicas (Para acesso sem autenticação)
@@ -254,7 +256,8 @@ SELECT
     hero_imagem_url, 
     whatsapp, 
     grupo_whatsapp_url,
-    notificacoes_compradores_enabled
+    notificacoes_compradores_enabled,
+    descricao_expand_enabled
 FROM public.configuracoes;
 
 -- Garantir acesso público à view

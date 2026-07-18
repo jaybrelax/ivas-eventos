@@ -245,22 +245,28 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                   </div>
                 )}
 
-                <div className={`relative overflow-hidden transition-all duration-500 ease-in-out ${isDescriptionExpanded ? 'max-h-[5000px]' : 'max-h-[300px]'}`}>
+                {config?.descricao_expand_enabled !== false ? (
+                  <>
+                    <div className={`relative overflow-hidden transition-all duration-500 ease-in-out ${isDescriptionExpanded ? 'max-h-[5000px]' : 'max-h-[300px]'}`}>
+                      <p className="text-gray-600 text-sm sm:text-base" dangerouslySetInnerHTML={{ __html: formatDescription(evento.descricao || "Sem descrição disponível.") }} />
+                      {!isDescriptionExpanded && (
+                        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none flex items-end justify-center pb-2" />
+                      )}
+                    </div>
+                    {evento.descricao && evento.descricao.length > 200 && (
+                      <div className="flex justify-center mt-2">
+                        <Button
+                          variant="ghost"
+                          onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
+                          className="text-[#1a6eff] hover:text-blue-700 hover:bg-blue-50 font-bold uppercase tracking-wider text-xs"
+                        >
+                          {isDescriptionExpanded ? "Ler menos" : "Ler mais"}
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
                   <p className="text-gray-600 text-sm sm:text-base" dangerouslySetInnerHTML={{ __html: formatDescription(evento.descricao || "Sem descrição disponível.") }} />
-                  {!isDescriptionExpanded && (
-                    <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none flex items-end justify-center pb-2" />
-                  )}
-                </div>
-                {evento.descricao && evento.descricao.length > 200 && (
-                  <div className="flex justify-center mt-2">
-                    <Button
-                      variant="ghost"
-                      onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                      className="text-[#1a6eff] hover:text-blue-700 hover:bg-blue-50 font-bold uppercase tracking-wider text-xs"
-                    >
-                      {isDescriptionExpanded ? "Ler menos" : "Ler mais"}
-                    </Button>
-                  </div>
                 )}
               </CardContent>
             </Card>
@@ -299,15 +305,13 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
             </Card>
 
             {/* Selector de Ingressos */}
-            <Card id="comprar" ref={ticketsRef} className="scroll-mt-[170px]">
+            <Card id="comprar" ref={ticketsRef} className="scroll-mt-[170px] md:hidden">
               <CardContent className="p-4 sm:p-6">
                 <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mb-6">Quantos ingressos?</h2>
 
+                <span className="text-xs text-gray-500 font-medium block mb-2">Compre o seu e de acompanhantes juntos</span>
                 <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 border border-gray-200 rounded-2xl mb-4 shadow-inner">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-gray-800 text-lg">Quantidade</span>
-                    <span className="text-xs text-gray-500 font-medium">Compre o seu e de acompanhantes juntos</span>
-                  </div>
+                  <span className="font-bold text-gray-800 text-lg">Quantidade</span>
                   <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
                     <Button
                       variant="outline"
@@ -343,9 +347,25 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                       {isPromoActive && <span className="font-bold text-green-600">R$ {Number(evento.off_price).toFixed(2)}</span>}
                     </div>
                   </div>
-                  <div className="mb-5 flex justify-between items-center">
-                    <span className="text-sm text-gray-600 font-bold">Quantidade:</span>
-                    <span className="text-lg font-black text-blue-600">{quantidade}x</span>
+                  <span className="text-xs text-gray-500 font-medium block mb-2">Compre o seu e de acompanhantes juntos</span>
+                  <div className="flex items-center justify-between mb-5 bg-gray-50 border border-gray-200 rounded-xl p-2 shadow-inner">
+                    <span className="text-sm text-gray-700 font-bold ml-1">Quantidade</span>
+                    <div className="flex items-center gap-3 bg-white p-1.5 rounded-lg shadow-sm border border-gray-100">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
+                        disabled={quantidade <= 1}
+                        className="rounded-lg h-9 w-9 text-gray-600 hover:text-blue-600 border-gray-200"
+                      ><Minus className="h-4 w-4" /></Button>
+                      <span className="text-xl font-black w-6 text-center text-blue-600">{quantidade}</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setQuantidade(quantidade + 1)}
+                        className="rounded-lg h-9 w-9 text-gray-600 hover:text-blue-600 border-gray-200"
+                      ><Plus className="h-4 w-4" /></Button>
+                    </div>
                   </div>
                   <div className="flex justify-between items-center mb-5 pt-4 border-t border-gray-100">
                     <span className="font-bold text-gray-900">Total</span>

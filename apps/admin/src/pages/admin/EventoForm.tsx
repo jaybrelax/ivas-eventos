@@ -331,34 +331,24 @@ export default function EventoForm() {
                 <CardTitle>Local e Data</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dataEvento">Data do Evento (e Abertura)</Label>
-                    <Input 
-                      id="dataEvento" 
-                      type="datetime-local" 
-                      required 
-                      value={formData.dataEvento}
-                      onChange={e => setFormData({...formData, dataEvento: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="horarioEvento">Horário do Evento</Label>
-                    <Input 
-                      id="horarioEvento" 
-                      placeholder="Ex: 22h as 04h"
-                      value={formData.horarioEvento}
-                      onChange={e => setFormData({...formData, horarioEvento: e.target.value})}
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dataEvento">Data do Evento (e Abertura)</Label>
+                  <Input 
+                    id="dataEvento" 
+                    type="datetime-local" 
+                    required 
+                    value={formData.dataEvento}
+                    onChange={e => setFormData({...formData, dataEvento: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="localEvento">Local / Endereço</Label>
-                  <Input 
+                  <Textarea 
                     id="localEvento" 
                     placeholder="Ex: Espaço das Américas - Av. das Nações Unidas, 123"
                     value={formData.localEvento}
                     onChange={e => setFormData({...formData, localEvento: e.target.value})}
+                    rows={3}
                   />
                 </div>
               </CardContent>
