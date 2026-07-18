@@ -43,7 +43,7 @@ export default function Dashboard() {
         .maybeSingle();
 
       const role = (vData && vData.is_admin === false) ? 'afiliado' : 'admin';
-      
+
       // --- LOGICA DE VENDAS PESSOAIS ---
       let meusEventos: any[] = [];
       let totalMeu = 0;
@@ -156,7 +156,7 @@ export default function Dashboard() {
           d.setDate(d.getDate() - (6 - i));
           return d.toISOString().split('T')[0];
         });
-        
+
         const { data: minhasVendas } = await supabase
           .from('pedidos')
           .select('valor_total, created_at, quantidade, evento_id, eventos!inner(status)')
@@ -208,7 +208,7 @@ export default function Dashboard() {
 
   const buildLink = (rifaSlug: string) => {
     if (!vendedorData) return '';
-    const base = `https://eventos.virtudes.net.br/evento/${rifaSlug}?ref=${vendedorData.codigo_ref}`;
+    const base = `https://eventos.virtudes.net.br//${rifaSlug}?ref=${vendedorData.codigo_ref}`;
     return endAtivado ? `${base}&end=5` : base;
   };
 
@@ -241,7 +241,7 @@ export default function Dashboard() {
           <p className="text-gray-500 dark:text-slate-400 mb-4">
             {userRole === 'admin' ? 'Visão geral do sistema de eventos.' : 'Gerencie seus links e acompanhe seu desempenho.'}
           </p>
-          
+
           {(userRole === 'afiliado' || (userRole === 'admin' && vendedorData)) && stats.meusEventos.length > 1 && (
             <div className="w-full max-w-[300px] space-y-1.5">
               <Label className="text-[10px] uppercase font-black tracking-widest text-slate-400 dark:text-slate-500 ml-1">Evento Ativo</Label>
@@ -291,10 +291,10 @@ export default function Dashboard() {
                   <div className="relative bg-white dark:bg-slate-900 rounded-[5px] px-4 py-3 text-sm font-mono shadow-sm w-full h-11 flex items-center overflow-hidden">
                     {/* Fade na esquerda */}
                     <div className="absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white dark:from-slate-900 to-transparent z-10 pointer-events-none" />
-                    
+
                     {/* Texto posicionado à direita em 1 linha */}
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap">
-                      <span className="text-slate-400 dark:text-slate-500">https://eventos.virtudes.net.br/evento/</span>
+                      <span className="text-slate-400 dark:text-slate-500">https://eventos.virtudes.net.br//</span>
                       <span className="text-[#1a6eff] dark:text-[#3b82f6] font-bold">{selectedEvento?.slug}</span>
                       <span className="text-slate-400 dark:text-slate-500">?ref=</span>
                       <span className="text-slate-800 dark:text-slate-200 font-bold">{vendedorData?.codigo_ref}</span>
@@ -313,11 +313,10 @@ export default function Dashboard() {
                         role="switch"
                         aria-checked={endAtivado}
                         onClick={() => setEndAtivado(!endAtivado)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-200 focus-visible:outline-none ${
-                          endAtivado
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-200 focus-visible:outline-none ${endAtivado
                             ? 'bg-orange-500 shadow-orange-200 dark:shadow-orange-950 shadow-inner'
                             : 'bg-slate-200 dark:bg-slate-800'
-                        }`}
+                          }`}
                       >
                         <span className={`pointer-events-none block h-5 w-5 rounded-full bg-white dark:bg-slate-100 shadow-md ring-0 transition-transform duration-200 ${endAtivado ? 'translate-x-5' : 'translate-x-0'}`} />
                       </button>
@@ -328,11 +327,10 @@ export default function Dashboard() {
                   <div className="flex-1 flex gap-2">
                     <button
                       onClick={() => selectedEvento && copyLink(selectedEvento.slug)}
-                      className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-md font-bold uppercase tracking-wider text-xs transition-all duration-300 ${
-                        copiedLink === selectedEvento?.slug
-                        ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
-                        : "bg-[#1a6eff] text-white shadow-md shadow-blue-500/20 hover:bg-blue-600 active:scale-[0.98]"
-                      }`}
+                      className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-md font-bold uppercase tracking-wider text-xs transition-all duration-300 ${copiedLink === selectedEvento?.slug
+                          ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20"
+                          : "bg-[#1a6eff] text-white shadow-md shadow-blue-500/20 hover:bg-blue-600 active:scale-[0.98]"
+                        }`}
                     >
                       {copiedLink === selectedEvento?.slug ? (
                         <>
@@ -547,11 +545,10 @@ export default function Dashboard() {
               {stats.rankingVendedores.length > 0 ? (
                 stats.rankingVendedores.map((v: any, i: number) => (
                   <div key={`ranking-${i}`} className="flex items-center gap-4 group">
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-all group-hover:scale-110 ${
-                      i === 0 ? 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400 ring-2 ring-yellow-400 dark:ring-yellow-500/50' :
-                      i === 1 ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 ring-2 ring-slate-200 dark:ring-slate-700' :
-                      i === 2 ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400 ring-2 ring-orange-200 dark:ring-orange-500/50' : 'bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400'
-                    }`}>
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-[10px] transition-all group-hover:scale-110 ${i === 0 ? 'bg-yellow-100 dark:bg-yellow-950/40 text-yellow-700 dark:text-yellow-400 ring-2 ring-yellow-400 dark:ring-yellow-500/50' :
+                        i === 1 ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 ring-2 ring-slate-200 dark:ring-slate-700' :
+                          i === 2 ? 'bg-orange-100 dark:bg-orange-950/40 text-orange-700 dark:text-orange-400 ring-2 ring-orange-200 dark:ring-orange-500/50' : 'bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400'
+                      }`}>
                       {i + 1}º
                     </div>
                     <div className="flex-1 min-w-0">

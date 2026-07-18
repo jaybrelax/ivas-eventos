@@ -41,7 +41,7 @@ export default function AdminLayout() {
   const [vendedorData, setVendedorData] = useState<any>(null);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  
+
   const [localTheme, setLocalTheme] = useState<'light' | 'dark' | null>(() => {
     return localStorage.getItem('theme_preference') as 'light' | 'dark' | null;
   });
@@ -113,13 +113,13 @@ export default function AdminLayout() {
   async function checkUserRole(userId: string) {
     try {
       const { data } = await supabase.from('vendedores').select('*').eq('user_id', userId).maybeSingle();
-      if (data) { 
-        setUserRole(data.is_admin === false ? 'afiliado' : 'admin'); 
-        setVendedorData(data); 
+      if (data) {
+        setUserRole(data.is_admin === false ? 'afiliado' : 'admin');
+        setVendedorData(data);
       }
-      else { 
-        setUserRole('admin'); 
-        setVendedorData(null); 
+      else {
+        setUserRole('admin');
+        setVendedorData(null);
       }
     } catch (err) { console.error('Erro ao checar role:', err); }
   }
@@ -128,9 +128,9 @@ export default function AdminLayout() {
     async function fetchConfig() {
       try {
         const { data } = await supabase.from('configuracoes').select('*').eq('id', 1).single();
-        if (data) setConfig({ 
-          nome_sistema: data.nome_sistema || 'Eventos Online', 
-          logo_url: data.logo_url || '', 
+        if (data) setConfig({
+          nome_sistema: data.nome_sistema || 'Eventos Online',
+          logo_url: data.logo_url || '',
           admin_dark_mode: data.admin_dark_mode || false,
           grupo_whatsapp_url: data.grupo_whatsapp_url || ''
         });
@@ -144,11 +144,11 @@ export default function AdminLayout() {
     else document.documentElement.classList.remove('dark');
   }, [isDarkMode]);
 
-    // PWA Isolation para Painel Administrativo
-    useEffect(() => {
+  // PWA Isolation para Painel Administrativo
+  useEffect(() => {
     const manifestUrl = '/admin-manifest.json';
     let manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement;
-    
+
     if (!manifestLink) {
       manifestLink = document.createElement('link');
       manifestLink.rel = 'manifest';
@@ -250,9 +250,8 @@ export default function AdminLayout() {
 
       {/* ─── SIDEBAR ─── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 w-[260px] bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950/50 border-r border-indigo-500/10 dark:border-slate-800 shadow-lg shadow-indigo-500/5 dark:shadow-none ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-in-out lg:relative lg:translate-x-0 w-[260px] bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-950/50 border-r border-indigo-500/10 dark:border-slate-800 shadow-lg shadow-indigo-500/5 dark:shadow-none ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
       >
         {/* Logo */}
         <div className="h-[70px] flex items-center justify-between px-6 shrink-0 border-b border-indigo-500/5 dark:border-slate-800">
@@ -314,9 +313,8 @@ export default function AdminLayout() {
                         : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800/40 hover:shadow-sm"
                     )}
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${
-                      isActive ? 'bg-white/20' : `${item.bg} group-hover:scale-110`
-                    }`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-all ${isActive ? 'bg-white/20' : `${item.bg} group-hover:scale-110`
+                      }`}>
                       <item.icon className={`h-4 w-4 ${isActive ? 'text-white' : item.color}`} />
                     </div>
                     {item.label}
@@ -331,7 +329,7 @@ export default function AdminLayout() {
         {/* View Site + Logout */}
         <div className="p-4 space-y-2 shrink-0 border-t border-indigo-500/5 dark:border-slate-800">
           <a
-            href={`https://eventos.virtudes.net.br/evento${vendedorData?.codigo_ref ? `?ref=${vendedorData.codigo_ref}` : ''}`}
+            href={`https://eventos.virtudes.net.br/${vendedorData?.codigo_ref ? `?ref=${vendedorData.codigo_ref}` : ''}`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all group"

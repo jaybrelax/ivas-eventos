@@ -204,7 +204,7 @@ export default function EventoForm() {
         capacidade: parseInt(formData.capacidade),
         valor_ingresso: parseFloat(formData.valorIngresso),
         data_evento: new Date(formData.dataEvento).toISOString(),
-        horario_evento: formData.horarioEvento || null,
+        horario_evento: formData.horarioEvento || (formData.dataEvento.includes('T') ? formData.dataEvento.split('T')[1] : null),
         local_evento: formData.localEvento || null,
         timeout_reserva: parseInt(formData.timeoutReserva),
         imagem_url: formData.imagemUrl || null,

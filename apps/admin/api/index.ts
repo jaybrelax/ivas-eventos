@@ -150,6 +150,7 @@ async function gerarImagemComprovante(dados: {
   nomeParticipante: string;
   displayId: string;
   dataEvento?: string;
+  horarioEvento?: string;
   localEvento?: string;
   dataCompra?: string;
   convidadoId: string;
@@ -458,9 +459,14 @@ async function gerarImagemComprovante(dados: {
   if (dados.dataEvento) {
     try {
       const d = new Date(dados.dataEvento);
-      const dStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
-      const hStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      dataEv = `${dStr} às ${hStr}`;
+      const dStr = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: 'long', year: 'numeric' });
+      
+      if (dados.horarioEvento) {
+        dataEv = `${dStr} às ${dados.horarioEvento}`;
+      } else {
+        const hStr = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
+        dataEv = `${dStr} às ${hStr}`;
+      }
     } catch (_) { }
   }
   drawRow(row2Y, calIcon, 'DATA DO EVENTO', dataEv || 'Data não informada');
@@ -564,13 +570,14 @@ app.get("/api/comprovante/preview", async (req, res) => {
     const { data: config } = await supabaseAdmin.from("configuracoes").select("logo_url, nome_sistema").eq("id", 1).single();
     
     // Buscar um evento real para o preview
-    const { data: evento } = await supabaseAdmin.from("eventos").select("titulo, data_evento, local_evento, imagem_url").not("imagem_url", "is", null).limit(1).single();
+    const { data: evento } = await supabaseAdmin.from("eventos").select("titulo, data_evento, horario_evento, local_evento, imagem_url").not("imagem_url", "is", null).limit(1).single();
 
     const imgBase64 = await gerarImagemComprovante({
       nomeEvento: evento?.titulo || "Show de Verão 2025 - Exemplo de Evento",
       nomeParticipante: "João da Silva Santos",
       displayId: "AB3X7K",
       dataEvento: evento?.data_evento || new Date().toISOString(),
+      horarioEvento: evento?.horario_evento,
       localEvento: evento?.local_evento || "Arena dos Eventos, Rua das Flores, 123",
       dataCompra: new Date().toISOString(),
       convidadoId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
@@ -890,7 +897,7 @@ app.post("/api/webhooks/mercadopago", async (req, res) => {
 
           const { data: pedidoFull } = await supabaseAdmin
             .from("pedidos")
-            .select("*, cliente:clientes(nome_completo, telefone, cpf, email), evento:eventos(id, titulo, data_evento, local_evento, imagem_url), vendedor:vendedores(nome, whatsapp)")
+            .select("*, cliente:clientes(nome_completo, telefone, cpf, email), evento:eventos(id, titulo, data_evento, horario_evento, local_evento, imagem_url), vendedor:vendedores(nome, whatsapp)")
             .eq("id", p.id)
             .single();
 
@@ -919,6 +926,7 @@ app.post("/api/webhooks/mercadopago", async (req, res) => {
                     nomeParticipante: convidado.nome_completo,
                     displayId: pedidoIdCurto,
                     dataEvento: pedidoFull.evento?.data_evento,
+                    horarioEvento: pedidoFull.evento?.horario_evento,
                     localEvento: pedidoFull.evento?.local_evento,
                     dataCompra: pedidoFull.created_at,
                     convidadoId: convidado.id,
@@ -958,7 +966,7 @@ app.post("/api/pedidos/aprovar-manual/:id", async (req, res) => {
 
     const { data: pedidoFull } = await supabaseAdmin
       .from("pedidos")
-      .select("*, cliente:clientes(nome_completo, telefone, cpf, email), evento:eventos(id, titulo, data_evento, local_evento, imagem_url), vendedor:vendedores(nome, whatsapp)")
+      .select("*, cliente:clientes(nome_completo, telefone, cpf, email), evento:eventos(id, titulo, data_evento, horario_evento, local_evento, imagem_url), vendedor:vendedores(nome, whatsapp)")
       .eq("id", id)
       .single();
 
@@ -984,6 +992,7 @@ app.post("/api/pedidos/aprovar-manual/:id", async (req, res) => {
               nomeParticipante: convidado.nome_completo,
               displayId: pedidoIdCurto,
               dataEvento: pedidoFull.evento?.data_evento,
+              horarioEvento: pedidoFull.evento?.horario_evento,
               localEvento: pedidoFull.evento?.local_evento,
               dataCompra: pedidoFull.created_at,
               convidadoId: convidado.id,
@@ -1017,7 +1026,7 @@ app.post("/api/pedidos/reenviar-comprovante/:id", async (req, res) => {
 
     const { data: pedidoFull } = await supabaseAdmin
       .from("pedidos")
-      .select("*, cliente:clientes(nome_completo, telefone, cpf, email), evento:eventos(id, titulo, data_evento, local_evento, imagem_url)")
+      .select("*, cliente:clientes(nome_completo, telefone, cpf, email), evento:eventos(id, titulo, data_evento, horario_evento, local_evento, imagem_url)")
       .eq("id", id)
       .single();
 
@@ -1043,6 +1052,7 @@ app.post("/api/pedidos/reenviar-comprovante/:id", async (req, res) => {
           nomeParticipante: convidado.nome_completo,
           displayId: pedidoIdCurto,
           dataEvento: pedidoFull.evento?.data_evento,
+          horarioEvento: pedidoFull.evento?.horario_evento,
           localEvento: pedidoFull.evento?.local_evento,
           dataCompra: pedidoFull.created_at,
           convidadoId: convidado.id,
