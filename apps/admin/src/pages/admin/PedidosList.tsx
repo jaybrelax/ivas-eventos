@@ -444,6 +444,17 @@ export default function VendasList() {
                 </div>
               </div>
 
+              <div className="flex justify-between items-center border-t dark:border-slate-800 pt-4">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Status</p>
+                  {getStatusBadge(selectedPedido.status)}
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500 dark:text-slate-400">Valor Total</p>
+                  <p className="text-xl font-bold text-green-600 dark:text-green-400">R$ {Number(selectedPedido.valor_total).toFixed(2)}</p>
+                </div>
+              </div>
+
               {userRole === 'admin' && (
                 <div className="border-t dark:border-slate-800 pt-4">
                   <div className="flex justify-between items-center mb-2">
@@ -529,18 +540,7 @@ export default function VendasList() {
                 </div>
               )}
 
-              <div className="flex justify-between items-center border-t dark:border-slate-800 pt-4">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-slate-400">Status</p>
-                  {getStatusBadge(selectedPedido.status)}
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500 dark:text-slate-400">Valor Total</p>
-                  <p className="text-xl font-bold text-green-600 dark:text-green-400">R$ {Number(selectedPedido.valor_total).toFixed(2)}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs border-t dark:border-slate-800 pt-3 pb-1">
+              <div className="flex flex-col gap-1 text-xs border-t dark:border-slate-800 pt-3 pb-1">
                 {selectedPedido.mp_payment_id && (
                   <span className="text-blue-600 dark:text-blue-400 font-semibold">ID MP: {selectedPedido.mp_payment_id}</span>
                 )}
