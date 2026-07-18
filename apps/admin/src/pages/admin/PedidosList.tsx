@@ -245,11 +245,11 @@ export default function VendasList() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pago': return <Badge className="bg-green-500">Pago</Badge>;
-      case 'pendente': return <Badge className="bg-yellow-500">Pendente</Badge>;
-      case 'expirado': return <Badge className="bg-red-500">Expirado</Badge>;
-      case 'cancelado': return <Badge className="bg-gray-500">Cancelado</Badge>;
-      default: return <Badge>{status}</Badge>;
+      case 'pago': return <Badge className="bg-green-500 text-sm px-3 py-0.5">Pago</Badge>;
+      case 'pendente': return <Badge className="bg-yellow-500 text-sm px-3 py-0.5">Pendente</Badge>;
+      case 'expirado': return <Badge className="bg-red-500 text-sm px-3 py-0.5">Expirado</Badge>;
+      case 'cancelado': return <Badge className="bg-gray-500 text-sm px-3 py-0.5">Cancelado</Badge>;
+      default: return <Badge className="text-sm px-3 py-0.5">{status}</Badge>;
     }
   };
 
@@ -448,6 +448,16 @@ export default function VendasList() {
                 <div>
                   <p className="text-sm text-gray-500 dark:text-slate-400">Status</p>
                   {getStatusBadge(selectedPedido.status)}
+                  <div className="flex flex-col gap-0.5 mt-3 text-xs">
+                    {selectedPedido.mp_payment_id && (
+                      <span className="text-blue-600 dark:text-blue-400 font-semibold">ID MP: {selectedPedido.mp_payment_id}</span>
+                    )}
+                    {selectedPedido.pix_transaction_id && (
+                      <span className="text-green-600 dark:text-green-400 font-semibold truncate max-w-[200px]" title={selectedPedido.pix_transaction_id}>
+                        ID Pix: {selectedPedido.pix_transaction_id}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <p className="text-sm text-gray-500 dark:text-slate-400">Valor Total</p>
@@ -460,28 +470,22 @@ export default function VendasList() {
                   <div className="flex justify-between items-center mb-2">
                     <p className="text-sm text-gray-500 dark:text-slate-450">Origem da Venda</p>
                     {!isEditingAfiliado && (
-                      <div className="flex gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className={`h-8 px-2 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/30 ${selectedPedido.status === 'pago' ? 'cursor-pointer' : ''}`}
-                          onClick={() => handleResendComprovante(selectedPedido.id, true)}
-                          disabled={actionLoading || selectedPedido.status !== 'pago'}
-                        >
-                          <Send className="h-3.5 w-3.5 mr-1" /> Notificar
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 px-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                          onClick={() => {
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="inline-flex items-center justify-center gap-1 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground h-7 px-2 py-1">
+                          Ações <MoreVertical className="h-3.5 w-3.5" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="min-w-40 [&>[data-slot=dropdown-menu-item]]:py-1.5">
+                          <DropdownMenuItem onClick={() => handleResendComprovante(selectedPedido.id, true)} disabled={actionLoading || selectedPedido.status !== 'pago'}>
+                            <Send className="h-4 w-4 mr-2 text-purple-500" /> Notificar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
                             setNewAfiliadoId(selectedPedido.vendedor_id || "");
                             setIsEditingAfiliado(true);
-                          }}
-                        >
-                          <Edit2 className="h-3.5 w-3.5 mr-1" /> Editar
-                        </Button>
-                      </div>
+                          }}>
+                            <Edit2 className="h-4 w-4 mr-2 text-blue-500" /> Editar
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
 
@@ -540,17 +544,6 @@ export default function VendasList() {
                 </div>
               )}
 
-              <div className="flex flex-col gap-1 text-xs border-t dark:border-slate-800 pt-3 pb-1">
-                {selectedPedido.mp_payment_id && (
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">ID MP: {selectedPedido.mp_payment_id}</span>
-                )}
-                {selectedPedido.pix_transaction_id && (
-                  <span className="text-green-600 dark:text-green-400 font-semibold truncate max-w-[200px]" title={selectedPedido.pix_transaction_id}>
-                    ID Pix: {selectedPedido.pix_transaction_id}
-                  </span>
-                )}
-              </div>
-
               {userRole === 'admin' && (
                 <div className="flex items-center justify-between pt-4 border-t dark:border-slate-800">
                   <Button 
@@ -569,9 +562,9 @@ export default function VendasList() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger className="inline-flex items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-3 py-2">
-                      <MoreVertical className="h-4 w-4" /> Ações
+                      Editar Status <MoreVertical className="h-4 w-4" />
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="min-w-44">
+                    <DropdownMenuContent align="end" className="min-w-44 [&>[data-slot=dropdown-menu-item]]:py-1.5">
                       {selectedPedido.status === 'pago' && (
                         <DropdownMenuItem onClick={() => handleResendComprovante(selectedPedido.id)} disabled={actionLoading}>
                           <Send className="h-4 w-4 mr-2 text-blue-500" /> Re-enviar comprovante
