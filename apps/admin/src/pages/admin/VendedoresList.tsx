@@ -225,7 +225,7 @@ export default function VendedoresList() {
   };
 
   const handleCopiarLink = () => {
-    const link = `https://rifa.virtudes.net.br/recrutamento`;
+    const link = `https://eventos.virtudes.net.br/recrutamento`;
     navigator.clipboard.writeText(link);
     setLinkCopiado(true);
     setTimeout(() => setLinkCopiado(false), 2500);
@@ -472,7 +472,7 @@ export default function VendedoresList() {
                             className="h-6 w-6"
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigator.clipboard.writeText(`https://rifa.virtudes.net.br?ref=${vendedor.codigo_ref}`);
+                              navigator.clipboard.writeText(`https://eventos.virtudes.net.br?ref=${vendedor.codigo_ref}`);
                             }}
                           >
                             <Copy className="h-3 w-3" />
@@ -516,7 +516,7 @@ export default function VendedoresList() {
                                 📱 WhatsApp
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => {
-                                navigator.clipboard.writeText(`https://rifa.virtudes.net.br?ref=${vendedor.codigo_ref}`);
+                                navigator.clipboard.writeText(`https://eventos.virtudes.net.br?ref=${vendedor.codigo_ref}`);
                               }}>
                                 <Copy className="mr-2 h-4 w-4" /> Copiar Link
                               </DropdownMenuItem>

@@ -331,7 +331,7 @@ export default function AdminLayout() {
         {/* View Site + Logout */}
         <div className="p-4 space-y-2 shrink-0 border-t border-indigo-500/5 dark:border-slate-800">
           <a
-            href={`https://evento.virtudes.net.br${vendedorData?.codigo_ref ? `?ref=${vendedorData.codigo_ref}` : ''}`}
+            href={`https://eventos.virtudes.net.br/evento${vendedorData?.codigo_ref ? `?ref=${vendedorData.codigo_ref}` : ''}`}
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/20 transition-all group"

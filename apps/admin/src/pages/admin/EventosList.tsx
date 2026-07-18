@@ -98,7 +98,7 @@ export default function EventosList() {
   };
 
   const copyRecruitLink = () => {
-    const url = `http://admin.eventos.com/recrutamento`; // Substituir pela URL correta
+    const url = `https://eventos.virtudes.net.br/recrutamento`;
     navigator.clipboard.writeText(url);
     setCopiedId('recruit');
     setTimeout(() => setCopiedId(null), 2000);
@@ -107,7 +107,7 @@ export default function EventosList() {
   const copyEventoLink = (evento: any) => {
     const ref = vRef ? `?ref=${vRef}` : '';
     // Como a Vercel URL pode mudar, o ideal seria usar window.location.origin do public se fosse o mesmo app
-    const publicOrigin = "https://rifa.virtudes.net.br"; // TODO: Atualizar URL pública
+    const publicOrigin = "https://eventos.virtudes.net.br/evento";
     const url = `${publicOrigin}/${evento.slug || evento.id}${ref}`;
     navigator.clipboard.writeText(url);
     setCopiedId(evento.id);
@@ -280,7 +280,7 @@ export default function EventosList() {
                             variant="secondary" 
                             size="sm"
                             onClick={() => {
-                              const publicOrigin = "https://rifa.virtudes.net.br";
+                              const publicOrigin = "https://eventos.virtudes.net.br/evento";
                               window.open(`${publicOrigin}/${evento.slug || evento.id}${vRef ? `?ref=${vRef}` : ''}`, '_blank');
                             }}
                             className="h-10 text-xs font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 shadow-sm rounded-xl"
@@ -297,12 +297,12 @@ export default function EventosList() {
                           variant="secondary" 
                           size="sm"
                           onClick={() => {
-                            const publicOrigin = "https://rifa.virtudes.net.br";
-                            window.open(`${publicOrigin}/${evento.slug || evento.id}?ref=${vRef}`, '_blank');
-                          }}
-                          className="w-full h-11 text-sm font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 shadow-sm rounded-xl"
-                        >
-                          <Eye className="h-4 w-4 mr-2 text-indigo-600" /> Ver Página
+                              const publicOrigin = "https://eventos.virtudes.net.br/evento";
+                              window.open(`${publicOrigin}/${evento.slug || evento.id}?ref=${vRef}`, '_blank');
+                            }}
+                            className="w-full h-11 text-sm font-bold bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700 shadow-sm rounded-xl"
+                          >
+                            <Eye className="h-4 w-4 mr-2 text-indigo-600" /> Ver Página
                         </Button>
 
                         <Button
@@ -310,8 +310,8 @@ export default function EventosList() {
                           size="sm"
                           className="w-full h-11 text-sm font-bold bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 text-white shadow-md shadow-blue-600/20 dark:shadow-blue-900/30 rounded-xl"
                           onClick={() => {
-                            const publicOrigin = "https://rifa.virtudes.net.br";
-                            const myRefLink = `${publicOrigin}/${evento.slug || evento.id}${vRef ? `?ref=${vRef}` : ''}`;
+                              const publicOrigin = "https://eventos.virtudes.net.br/evento";
+                              const myRefLink = `${publicOrigin}/${evento.slug || evento.id}${vRef ? `?ref=${vRef}` : ''}`;
                             navigator.clipboard.writeText(myRefLink);
                             setCopiedId(evento.id);
                             setTimeout(() => setCopiedId(null), 2000);

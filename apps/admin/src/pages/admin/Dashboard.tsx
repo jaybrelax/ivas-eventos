@@ -208,7 +208,7 @@ export default function Dashboard() {
 
   const buildLink = (rifaSlug: string) => {
     if (!vendedorData) return '';
-    const base = `https://rifa.virtudes.net.br/${rifaSlug}?ref=${vendedorData.codigo_ref}`;
+    const base = `https://eventos.virtudes.net.br/evento/${rifaSlug}?ref=${vendedorData.codigo_ref}`;
     return endAtivado ? `${base}&end=5` : base;
   };
 
@@ -294,7 +294,7 @@ export default function Dashboard() {
                     
                     {/* Texto posicionado à direita em 1 linha */}
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 whitespace-nowrap">
-                      <span className="text-slate-400 dark:text-slate-500">https://rifa.virtudes.net.br/</span>
+                      <span className="text-slate-400 dark:text-slate-500">https://eventos.virtudes.net.br/evento/</span>
                       <span className="text-[#1a6eff] dark:text-[#3b82f6] font-bold">{selectedEvento?.slug}</span>
                       <span className="text-slate-400 dark:text-slate-500">?ref=</span>
                       <span className="text-slate-800 dark:text-slate-200 font-bold">{vendedorData?.codigo_ref}</span>
