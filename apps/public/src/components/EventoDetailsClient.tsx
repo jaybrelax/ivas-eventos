@@ -203,25 +203,24 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
     <div className="bg-gray-50 pb-28 md:pb-12">
       {/* ── HERO ── */}
       <div className="relative h-56 sm:h-64 md:h-80 w-full bg-gray-900">
-        {evento.imagem_url ? (
-          <img src={evento.imagem_url} alt={evento.titulo} className="object-cover w-full h-full opacity-60" />
+        {evento.video_url ? (
+          <video 
+            src={evento.video_url} 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            className="object-cover w-full h-full pointer-events-none" 
+          />
+        ) : evento.imagem_url ? (
+          <img src={evento.imagem_url} alt={evento.titulo} className="object-cover w-full h-full" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-900 opacity-80" />
         )}
-        <div className="absolute top-3 left-3">
-          <Link href="/">
-            <Button variant="secondary" size="sm" className="bg-white/90 hover:bg-white text-gray-900 shadow">
-              <ArrowLeft className="mr-1.5 h-4 w-4" /> Voltar
-            </Button>
-          </Link>
-        </div>
-        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/90 to-transparent">
+        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black via-black/60 to-transparent">
           <div className="max-w-5xl mx-auto">
-            <div className="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-[0.2em] bg-white/20 backdrop-blur-md border border-white/30 text-white mb-3 shadow-lg">
-              EVENTO
-            </div>
-            <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-1 leading-tight">{evento.titulo}</h1>
-            <div className="flex items-center text-gray-300 text-xs sm:text-sm">
+            <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-1 leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{evento.titulo}</h1>
+            <div className="flex items-center text-gray-200 text-xs sm:text-sm">
               <Clock className="h-3.5 w-3.5 mr-1.5 shrink-0" />
               Data: {new Date(evento.data_evento).toLocaleDateString("pt-BR")} {evento.horario_evento ? `às ${evento.horario_evento}` : ''}
             </div>
@@ -391,7 +390,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/40 backdrop-blur-xl border-t border-white/20 px-4 py-4 safe-area-bottom shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-300">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 pr-2 flex-1">
-            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-0.5">{quantidade} Ingressos</p>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-0.5">{quantidade} {quantidade === 1 ? 'pessoa' : 'pessoas'}</p>
             <p className="text-xl font-extrabold text-green-600 leading-tight">R$ {totalValue.toFixed(2)}</p>
           </div>
           <Button

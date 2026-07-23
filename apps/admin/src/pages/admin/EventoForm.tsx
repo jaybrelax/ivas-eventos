@@ -48,6 +48,7 @@ export default function EventoForm() {
     localEvento: "",
     timeoutReserva: "10",
     imagemUrl: "",
+    videoUrl: "",
     slug: "",
     metaGuardiao: "50",
     status: "ativo",
@@ -101,6 +102,7 @@ export default function EventoForm() {
         localEvento: evento.local_evento || "",
         timeoutReserva: evento.timeout_reserva.toString(),
         imagemUrl: evento.imagem_url || "",
+        videoUrl: evento.video_url || "",
         slug: evento.slug || "",
         metaGuardiao: evento.meta_guardiao ? evento.meta_guardiao.toString() : "50",
         status: evento.status,
@@ -208,6 +210,7 @@ export default function EventoForm() {
         local_evento: formData.localEvento || null,
         timeout_reserva: parseInt(formData.timeoutReserva),
         imagem_url: formData.imagemUrl || null,
+        video_url: formData.videoUrl || null,
         slug: formData.slug || null,
         meta_guardiao: parseInt(formData.metaGuardiao) || 50,
         status: formData.status,
@@ -539,6 +542,15 @@ export default function EventoForm() {
                       placeholder="https://exemplo.com/imagem.jpg" 
                       value={formData.imagemUrl}
                       onChange={e => setFormData({...formData, imagemUrl: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2 mt-4 pt-4 border-t border-gray-100 dark:border-slate-800">
+                    <Label htmlFor="videoUrl">URL do Vídeo (Será exibido em loop no lugar da imagem)</Label>
+                    <Input 
+                      id="videoUrl" 
+                      placeholder="https://exemplo.com/video.mp4" 
+                      value={formData.videoUrl}
+                      onChange={e => setFormData({...formData, videoUrl: e.target.value})}
                     />
                   </div>
                 </div>
