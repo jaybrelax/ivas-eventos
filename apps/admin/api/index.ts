@@ -763,19 +763,44 @@ app.post("/api/pagamento/pix", async (req, res) => {
     const listaConvidados = convidados && convidados.length > 0
       ? `\n👥 *Participantes:* ${convidados.join(', ')}`
       : '';
-    const msgPix = `📌 *PEDIDO REALIZADO: #${displayId}*\n\nOlá *${cliente.nome}*!\n\nSua reserva para o evento *${evento?.titulo || 'Evento'}* foi gerada com sucesso.\n\n🎫 *INGRESSOS:* ${qtdIngressos}${listaConvidados}\n💰 *TOTAL:* R$ ${valorTotal.toFixed(2).replace('.', ',')}\n\n⚠️ _Sua reserva expira em ${timeout} minutos._\n\n*💸 CÓDIGO PIX COPIA E COLA:* 👇`;
+    const msgPedido = `📌 *PEDIDO REALIZADO: #${displayId}*\n\nOlá *${cliente.nome}*!\n\nSua reserva para o evento *${evento?.titulo || 'Evento'}* foi gerada com sucesso.\n\n🎫 *INGRESSOS:* ${qtdIngressos}${listaConvidados}\n💰 *TOTAL:* R$ ${valorTotal.toFixed(2).replace('.', ',')}\n\n⚠️ _Sua reserva expira em ${timeout} minutos._\n\n*💸 CÓDIGO PIX COPIA E COLA na próxima mensagem 👇*`;
     const telefoneCliente = cliente.telefone;
 
-    // 📲 Dispara WhatsApp em segundo plano para liberar o checkout do cliente instantaneamente
+    // 📲 Dispara WhatsApp em segundo plano — busca config UMA VEZ e envia as duas mensagens
+    // (antes buscava config 2x = dobro de latência, causando timeout antes da 2ª mensagem)
     (async () => {
       try {
-        await enviarMensagemWhatsApp(telefoneCliente, msgPix);
+        const supabaseWpp = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+        const { data: wppConfig } = await supabaseWpp.from("configuracoes").select("*").eq("id", 1).single();
+
+        if (!wppConfig?.evolution_enabled || !wppConfig?.evolution_api_url || !wppConfig?.evolution_api_key || !wppConfig?.evolution_instance) {
+          console.log("[Evolution] Envio IGNORADO. Configuração incompleta.");
+          return;
+        }
+
+        const numLimpo = telefoneCliente.replace(/\D/g, "");
+        const numFormatado = numLimpo.startsWith("55") ? numLimpo : "55" + numLimpo;
+        const baseUrl = wppConfig.evolution_api_url.endsWith('/') ? wppConfig.evolution_api_url.slice(0, -1) : wppConfig.evolution_api_url;
+        const urlEnvio = `${baseUrl}/message/sendText/${wppConfig.evolution_instance}`;
+        const headers = { 'Content-Type': 'application/json', 'apikey': wppConfig.evolution_api_key };
+
+        // 1ª mensagem: detalhes do pedido
+        const r1 = await fetch(urlEnvio, {
+          method: 'POST', headers,
+          body: JSON.stringify({ number: numFormatado, text: msgPedido, linkPreview: false, delay: 1200 })
+        });
+        if (!r1.ok) console.error(`[Evolution] Erro 1ª msg (${r1.status}):`, await r1.json().catch(() => r1.statusText));
+
+        // 2ª mensagem: apenas o código PIX (fácil de copiar no banco)
         if (pixCode) {
-          await new Promise(r => setTimeout(r, 500));
-          await enviarMensagemWhatsApp(telefoneCliente, pixCode.trim());
+          const r2 = await fetch(urlEnvio, {
+            method: 'POST', headers,
+            body: JSON.stringify({ number: numFormatado, text: pixCode.trim(), linkPreview: false, delay: 1200 })
+          });
+          if (!r2.ok) console.error(`[Evolution] Erro 2ª msg (${r2.status}):`, await r2.json().catch(() => r2.statusText));
         }
       } catch (err) {
-        console.error("[WhatsApp] Erro ao enviar mensagem inicial em segundo plano:", err);
+        console.error("[WhatsApp] Erro ao enviar mensagens em segundo plano:", err);
       }
     })();
 
