@@ -709,9 +709,6 @@ app.post("/api/pagamento/pix", async (req, res) => {
           const randomIndex = Math.floor(Math.random() * vendedoresAtivos.length);
           vendedorIdDB = vendedoresAtivos[randomIndex].id;
         }
-      } else {
-        const { data: vAdmin } = await supabaseAdmin.from('vendedores').select('id').eq('is_admin', true).limit(1).maybeSingle();
-        if (vAdmin) vendedorIdDB = vAdmin.id;
       }
     }
 
