@@ -241,25 +241,36 @@ export default function Configuracoes() {
     setTestingWebhook(true);
     try {
       const payload = {
-        pedido: {
-          id: "test-1234-5678-90ab-cdef12345678",
-          display_id: "ABC123",
-          codigo_transacao: "9876543210",
-          valor_total: 50.00,
-          status: "pago",
-          quantidade: 5,
-          convidados: ["Maria", "José"]
+        evento: {
+          titulo: "Evento Exemplo",
+          data_evento: "09/08/2026",
+          horario_evento: "19:00",
+          local_evento: "Espaço de Eventos, Rua Exemplo, 123"
         },
         cliente: {
           nome: "João da Silva (Teste)",
-          cpf: "12345678900",
+          cpf: "123.456.789-00",
           telefone: "5511999999999",
           email: "joao@teste.com"
         },
-        vendedor: {
-          nome: "Maria Silva",
-          whatsapp: "5511988887777"
-        }
+        pedido: {
+          id: "test-1234-5678-90ab-cdef12345678",
+          display_id: "ABC123",
+          quantidade: 5,
+          valor_total: 250.00,
+          status: "pago",
+          pago_em: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          venda_direta: true,
+          vendedor: {
+            nome: "Maria Silva",
+            whatsapp: "5511988887777"
+          }
+        },
+        convidados: [
+          { nome: "Maria Oliveira", numero: 1 },
+          { nome: "José Santos", numero: 2 }
+        ]
       };
 
       const response = await fetch('/api/webhook-test-proxy', {

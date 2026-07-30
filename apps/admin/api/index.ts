@@ -980,6 +980,9 @@ app.post("/api/webhooks/mercadopago", async (req, res) => {
                 }
               }
             }
+
+            // Webhook de pedido pago
+            await enviarWebhookPedidoPago(pedidoFull, convidadosList, config?.webhook_pago || '');
           }
         }
       }
@@ -1001,7 +1004,7 @@ app.post("/api/pedidos/aprovar-manual/:id", async (req, res) => {
     }).eq("id", id);
 
     // Busca detalhes
-    const { data: config } = await supabaseAdmin.from("configuracoes").select("logo_url, nome_sistema").eq("id", 1).single();
+    const { data: config } = await supabaseAdmin.from("configuracoes").select("logo_url, nome_sistema, webhook_pago").eq("id", 1).single();
 
     const { data: pedidoFull } = await supabaseAdmin
       .from("pedidos")
@@ -1046,7 +1049,11 @@ app.post("/api/pedidos/aprovar-manual/:id", async (req, res) => {
           }
         }
       }
+
+      // Webhook de pedido pago
+      await enviarWebhookPedidoPago(pedidoFull, convidadosList, config?.webhook_pago || '');
     }
+
     res.json({ success: true });
   } catch (error: any) {
     console.error("Erro na aprovação manual:", error);
@@ -1112,6 +1119,68 @@ app.post("/api/pedidos/reenviar-comprovante/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// Helper para enviar webhook de pedido pago
+async function enviarWebhookPedidoPago(pedidoFull: any, convidadosList: any[], webhookUrl: string) {
+  if (!webhookUrl) return;
+  try {
+    const formatDate = (d: string) => {
+      if (!d) return '';
+      const [datePart] = d.split('T');
+      if (!datePart) return '';
+      const [y, m, day] = datePart.split('-');
+      return `${day}/${m}/${y}`;
+    };
+
+    const payload = {
+      evento: {
+        titulo: pedidoFull.evento?.titulo || '',
+        data_evento: formatDate(pedidoFull.evento?.data_evento),
+        horario_evento: pedidoFull.evento?.horario_evento || '',
+        local_evento: pedidoFull.evento?.local_evento || ''
+      },
+      cliente: {
+        nome: pedidoFull.cliente?.nome_completo || '',
+        cpf: pedidoFull.cliente?.cpf || '',
+        telefone: pedidoFull.cliente?.telefone || '',
+        email: pedidoFull.cliente?.email || ''
+      },
+      pedido: {
+        id: pedidoFull.id,
+        display_id: pedidoFull.display_id || pedidoFull.id.substring(0, 8).toUpperCase(),
+        quantidade: pedidoFull.quantidade,
+        valor_total: Number(pedidoFull.valor_total),
+        status: pedidoFull.status,
+        pago_em: pedidoFull.pago_em || new Date().toISOString(),
+        created_at: pedidoFull.created_at,
+        venda_direta: pedidoFull.venda_direta === true,
+        vendedor: pedidoFull.vendedor ? {
+          nome: pedidoFull.vendedor.nome || '',
+          whatsapp: pedidoFull.vendedor.whatsapp || ''
+        } : null
+      },
+      convidados: convidadosList?.map((c: any) => ({
+        nome: c.nome_completo,
+        numero: c.numero || null
+      })) || []
+    };
+
+    console.log(`[Webhook] Enviando para: ${webhookUrl}`);
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      console.log('[Webhook] Enviado com sucesso');
+    } else {
+      console.error(`[Webhook] Erro: Status ${response.status}`);
+    }
+  } catch (err) {
+    console.error('[Webhook] Erro ao enviar:', err);
+  }
+}
 
 // ── CONFIGURAÇÃO DE AMBIENTE ──
 
