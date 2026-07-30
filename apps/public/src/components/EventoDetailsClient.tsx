@@ -329,7 +329,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                 {config?.descricao_expand_enabled !== false ? (
                   <>
                     <div className={`relative overflow-hidden transition-all duration-500 ease-in-out ${isDescriptionExpanded ? 'max-h-[5000px]' : 'max-h-[300px]'}`}>
-                      <p className="text-gray-600 text-sm sm:text-base" dangerouslySetInnerHTML={{ __html: formatDescription(evento.descricao || "Sem descrição disponível.") }} />
+                      <p className="text-gray-600 text-base sm:text-lg" dangerouslySetInnerHTML={{ __html: formatDescription(evento.descricao || "Sem descrição disponível.") }} />
                       {!isDescriptionExpanded && (
                         <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none flex items-end justify-center pb-2" />
                       )}
@@ -347,7 +347,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                     )}
                   </>
                 ) : (
-                  <p className="text-gray-600 text-sm sm:text-base" dangerouslySetInnerHTML={{ __html: formatDescription(evento.descricao || "Sem descrição disponível.") }} />
+                  <p className="text-gray-600 text-base sm:text-lg" dangerouslySetInnerHTML={{ __html: formatDescription(evento.descricao || "Sem descrição disponível.") }} />
                 )}
               </CardContent>
             </Card>
