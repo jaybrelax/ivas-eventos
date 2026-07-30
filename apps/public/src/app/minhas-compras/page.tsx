@@ -18,13 +18,22 @@ export default function MinhasCompras() {
   const [pedidos, setPedidos] = useState<any[]>([]);
   const [clienteNome, setClienteNome] = useState("");
 
+  const formatCPF = (value: string) => {
+    return value
+      .replace(/\D/g, "")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})/, "$1-$2")
+      .replace(/(-\d{2})\d+?$/, "$1");
+  };
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("@evento:client_data");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.cpf) {
-          setCpf(parsed.cpf);
+          setCpf(formatCPF(parsed.cpf));
         }
       }
     } catch {}
@@ -43,21 +52,24 @@ export default function MinhasCompras() {
     setSearched(true);
 
     try {
-      const { data: cliente, error: clienteError } = await supabase
+      const formattedCpf = formatCPF(cleanCpf);
+
+      // Buscar todos os clientes com o CPF (limpo ou formatado)
+      const { data: clientesData, error: clienteError } = await supabase
         .from('clientes')
         .select('id, nome_completo')
-        .eq('cpf', cleanCpf)
-        .maybeSingle();
+        .or(`cpf.eq.${cleanCpf},cpf.eq.${formattedCpf}`);
 
       if (clienteError) throw clienteError;
 
-      if (!cliente) {
+      if (!clientesData || clientesData.length === 0) {
         setPedidos([]);
         setClienteNome("");
         return;
       }
 
-      setClienteNome(cliente.nome_completo);
+      setClienteNome(clientesData[0].nome_completo);
+      const clienteIds = clientesData.map(c => c.id);
 
       const { data: pedidosData, error: pedidosError } = await supabase
         .from('pedidos')
@@ -67,21 +79,23 @@ export default function MinhasCompras() {
             id,
             titulo,
             imagem_url,
-            data_evento
+            data_evento,
+            slug
           ),
           convidados (
-            nome
+            id,
+            nome_completo
           )
         `)
-        .eq('cliente_id', cliente.id)
+        .in('cliente_id', clienteIds)
         .order('created_at', { ascending: false });
 
       if (pedidosError) throw pedidosError;
       setPedidos(pedidosData || []);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao buscar compras:", error);
-      alert("Ocorreu um erro ao buscar suas compras. Tente novamente.");
+      alert(`Ocorreu um erro ao buscar suas compras: ${error?.message || "Tente novamente."}`);
     } finally {
       setLoading(false);
     }
@@ -123,9 +137,9 @@ export default function MinhasCompras() {
                 id="cpf" 
                 placeholder="000.000.000-00" 
                 value={cpf}
-                onChange={(e) => setCpf(e.target.value)}
+                onChange={(e) => setCpf(formatCPF(e.target.value))}
                 maxLength={14}
-                className="h-11"
+                className="h-11 font-mono"
               />
             </div>
             <Button type="submit" disabled={loading} className="w-full sm:w-40 h-11 bg-blue-600 hover:bg-blue-700">
@@ -193,7 +207,7 @@ export default function MinhasCompras() {
                               pedido.convidados.map((c: any, index: number) => (
                                 <div key={index} className="flex items-center text-xs font-semibold text-blue-900 bg-white border border-blue-100 p-1.5 rounded">
                                   <div className="w-4 h-4 rounded-full bg-blue-200 flex items-center justify-center text-blue-700 text-[9px] mr-2 shrink-0">{index+1}</div>
-                                  {c.nome}
+                                  {c.nome_completo || c.nome}
                                 </div>
                               ))
                             ) : (
@@ -210,7 +224,7 @@ export default function MinhasCompras() {
                         </div>
                         
                         {pedido.status === 'pendente' && (
-                          <Button render={<Link href={`/${pedido.slug || pedido.evento_id}`} />} nativeButton={false} size="sm" className="bg-green-600 hover:bg-green-700">
+                          <Button render={<Link href={`/${pedido.evento?.slug || pedido.evento_id}`} />} nativeButton={false} size="sm" className="bg-green-600 hover:bg-green-700">
                             Pagar Agora
                           </Button>
                         )}

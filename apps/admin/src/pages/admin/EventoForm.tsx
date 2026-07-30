@@ -35,6 +35,9 @@ export default function EventoForm() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const [uploadingDescImage, setUploadingDescImage] = useState(false);
+  const descFileInputRef = useRef<HTMLInputElement>(null);
+  
   const [eventoToDelete, setEventoToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   
@@ -184,6 +187,50 @@ export default function EventoForm() {
     }
   };
 
+  const handleDescricaoImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.warning("Por favor, selecione um arquivo de imagem válido.");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB
+      toast.warning("A imagem é muito grande. O limite é de 5MB.");
+      return;
+    }
+
+    try {
+      setUploadingDescImage(true);
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `descricao/${Date.now()}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(fileName, file, { 
+          cacheControl: '3600',
+          upsert: false 
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('images').getPublicUrl(fileName);
+      
+      const imageTag = `\n\n![Imagem](${data.publicUrl})\n\n`;
+      setFormData(prev => ({ ...prev, descricao: (prev.descricao || '') + imageTag }));
+      toast.success("Imagem adicionada à descrição!");
+      
+    } catch (error: any) {
+      console.error("Erro ao fazer upload da imagem para descrição:", error);
+      toast.error(`Erro no upload: ${error.message || "Erro desconhecido"}`);
+    } finally {
+      setUploadingDescImage(false);
+      if (descFileInputRef.current) descFileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -317,14 +364,46 @@ export default function EventoForm() {
                   <p className="text-xs text-gray-500 dark:text-slate-400">Este será o link: sua-url.com/evento/<strong>{formData.slug || "titulo-do-evento"}</strong></p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="descricao">Descrição</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="descricao">Descrição</Label>
+                    <input 
+                      type="file" 
+                      ref={descFileInputRef} 
+                      onChange={handleDescricaoImageUpload} 
+                      accept="image/*" 
+                      className="hidden" 
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingDescImage}
+                      onClick={() => descFileInputRef.current?.click()}
+                      className="h-7 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-blue-200"
+                    >
+                      {uploadingDescImage ? (
+                        <>
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                          Enviando...
+                        </>
+                      ) : (
+                        <>
+                          <ImageIcon className="h-3.5 w-3.5 mr-1 text-blue-600" />
+                          + Inserir Imagem
+                        </>
+                      )}
+                    </Button>
+                  </div>
                   <Textarea 
                     id="descricao" 
-                    placeholder="Descreva as atrações, regras e detalhes importantes..." 
-                    className="min-h-[120px]"
+                    placeholder="Descreva as atrações, regras e detalhes importantes... Clique no botão acima para inserir imagens!" 
+                    className="min-h-[140px]"
                     value={formData.descricao}
                     onChange={e => setFormData({...formData, descricao: e.target.value})}
                   />
+                  <p className="text-[11px] text-gray-500 dark:text-slate-400">
+                    💡 <b>Dica:</b> Você pode inserir imagens usando o botão <b>+ Inserir Imagem</b>. Elas serão salvas como <code className="bg-gray-100 dark:bg-slate-800 px-1 py-0.5 rounded">![Imagem](URL)</code> e exibidas com bordas arredondadas e estilo responsivo no site público!
+                  </p>
                 </div>
               </CardContent>
             </Card>

@@ -36,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     description: "Garanta seus ingressos para eventos incríveis!",
     icons: {
-      icon: config.logo_url || "/favicon.ico",
+      icon: config.logo_url || "/favicon.png",
     }
   };
 }

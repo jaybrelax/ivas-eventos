@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   ArrowLeft, Clock, CheckCircle2, AlertCircle, Loader2, Copy, Ticket, X,
-  User, CreditCard, Phone, Mail, Shield, ArrowRight, Wallet, Minus, Plus, Users
+  User, CreditCard, Phone, Mail, Shield, ArrowRight, Wallet, Minus, Plus, Users,
+  Timer, MapPin, CalendarDays
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { formatDescription } from "@/lib/utils";
@@ -37,6 +38,36 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pixCopied, setPixCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600);
+
+  const [eventCountdown, setEventCountdown] = useState<{ d: number, h: number, m: number, s: number } | null>(null);
+
+  useEffect(() => {
+    if (!evento?.data_evento) return;
+    
+    const targetDateStr = `${evento.data_evento.split('T')[0]}T${evento.horario_evento || '00:00:00'}`;
+    const targetTime = new Date(targetDateStr).getTime();
+    
+    const updateCountdown = () => {
+      const now = new Date().getTime();
+      const diff = targetTime - now;
+      
+      if (diff <= 0) {
+        setEventCountdown(null);
+        return;
+      }
+      
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setEventCountdown({ d, h, m, s });
+    };
+    
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [evento]);
 
   const [formData, setFormData] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -200,49 +231,100 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
   const totalValue = quantidade * currentUnitPrice;
 
   return (
-    <div className="bg-gray-50 pb-28 md:pb-12">
+    <div className="bg-[#eff5fb] pb-28 md:pb-12">
       {/* ── HERO ── */}
-      <div className="relative h-56 sm:h-64 md:h-80 w-full bg-gray-900">
-        {evento.video_url ? (
-          <video 
-            src={evento.video_url} 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
-            className="object-cover w-full h-full pointer-events-none" 
-          />
-        ) : evento.imagem_url ? (
-          <img src={evento.imagem_url} alt={evento.titulo} className="object-cover w-full h-full" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-900 opacity-80" />
-        )}
-        <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black via-black/60 to-transparent">
-          <div className="max-w-5xl mx-auto">
-            <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-white mb-1 leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{evento.titulo}</h1>
-            <div className="flex items-center text-gray-200 text-xs sm:text-sm">
-              <Clock className="h-3.5 w-3.5 mr-1.5 shrink-0" />
-              Data: {new Date(evento.data_evento).toLocaleDateString("pt-BR")} {evento.horario_evento ? `às ${evento.horario_evento}` : ''}
-            </div>
+      <div className="w-full max-w-5xl mx-auto md:pt-8 md:px-8">
+        <div className="relative h-56 sm:h-64 md:h-[400px] w-full bg-gray-900 md:rounded-[32px] overflow-hidden shadow-2xl">
+          {evento.video_url ? (
+            <video 
+              src={evento.video_url} 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              className="object-cover w-full h-full pointer-events-none" 
+            />
+          ) : evento.imagem_url ? (
+            <img src={evento.imagem_url} alt={evento.titulo} className="object-cover w-full h-full" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-900 opacity-80" />
+          )}
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-5 sm:p-8 pt-24 flex flex-col justify-end">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white leading-none drop-shadow-lg tracking-tight mb-0">{evento.titulo}</h1>
           </div>
         </div>
       </div>
 
       {/* ── CONTEÚDO ── */}
       <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-5 md:py-8">
-        <div className="flex flex-col md:grid md:grid-cols-3 gap-5 md:gap-8">
+        <div className="flex flex-col md:grid md:grid-cols-3 gap-4 md:gap-5">
 
           {/* Coluna principal */}
-          <div className="md:col-span-2 space-y-5">
-            <Card>
-              <CardContent className="p-4 sm:p-6">
-                <h2 className="text-lg sm:text-xl font-bold mb-3">Sobre o Evento</h2>
-
-                {evento.local_evento && (
-                  <div className="mb-4 text-sm text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <span className="font-bold">Local:</span> {evento.local_evento}
+          <div className="md:col-span-2 space-y-4">
+            <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden">
+              <CardContent className="p-5 sm:p-8">
+                
+                {/* Grupo de Infos */}
+                <div className="bg-gray-50 rounded-2xl p-4 sm:p-5 border border-gray-100 mb-8 space-y-4 shadow-inner">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-blue-100 p-2 rounded-xl text-blue-600 shrink-0">
+                      <CalendarDays className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] mb-0.5">Data e Hora</p>
+                      <p className="text-gray-900 font-bold text-sm sm:text-base leading-tight">
+                        {new Date(evento.data_evento).toLocaleDateString("pt-BR")} 
+                        {evento.horario_evento ? ` às ${evento.horario_evento}` : ''}
+                      </p>
+                    </div>
                   </div>
-                )}
+
+                  {evento.local_evento && (
+                    <div className="flex items-start gap-3">
+                      <div className="bg-blue-100 p-2 rounded-xl text-blue-600 shrink-0">
+                        <MapPin className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] mb-0.5">Local</p>
+                        <p className="text-gray-900 font-bold text-sm sm:text-base leading-tight">{evento.local_evento}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {eventCountdown && (
+                    <div className="mt-5 pt-5 border-t border-gray-200/60">
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-5">
+                        <div className="flex items-center gap-2.5 text-[#1b5df1]">
+                          <Timer className="h-5 w-5 animate-pulse" />
+                          <span className="text-xs font-black uppercase tracking-widest">O evento começa em:</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <div className="bg-[#1b5df1] text-white rounded-xl px-3 py-2.5 flex flex-col items-center min-w-[64px] shadow-md shadow-blue-500/20">
+                            <span className="text-2xl font-black leading-none mb-1">{eventCountdown.d.toString().padStart(2, '0')}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Dias</span>
+                          </div>
+                          <span className="text-blue-300 font-black text-xl">:</span>
+                          <div className="bg-[#1b5df1] text-white rounded-xl px-3 py-2.5 flex flex-col items-center min-w-[64px] shadow-md shadow-blue-500/20">
+                            <span className="text-2xl font-black leading-none mb-1">{eventCountdown.h.toString().padStart(2, '0')}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Horas</span>
+                          </div>
+                          <span className="text-blue-300 font-black text-xl">:</span>
+                          <div className="bg-[#1b5df1] text-white rounded-xl px-3 py-2.5 flex flex-col items-center min-w-[64px] shadow-md shadow-blue-500/20">
+                            <span className="text-2xl font-black leading-none mb-1">{eventCountdown.m.toString().padStart(2, '0')}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Min</span>
+                          </div>
+                          <span className="text-blue-300 font-black text-xl">:</span>
+                          <div className="bg-[#1b5df1] text-white rounded-xl px-3 py-2.5 flex flex-col items-center min-w-[64px] shadow-md shadow-blue-500/20">
+                            <span className="text-2xl font-black leading-none mb-1">{eventCountdown.s.toString().padStart(2, '0')}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Seg</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <h2 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">Sobre o Evento</h2>
 
                 {config?.descricao_expand_enabled !== false ? (
                   <>
