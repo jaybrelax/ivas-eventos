@@ -467,16 +467,21 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
               {evento.localizacao_maps && (
                 <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden mt-4">
                   <CardContent className="p-0">
-                    <iframe
-                      src={extractMapSrc(evento.localizacao_maps)}
-                      width="100%"
-                      height="200"
-                      style={{ border: 0 }}
-                      allowFullScreen
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      title="Local do Evento"
-                    />
+                    <div className="px-4 pt-3 pb-2">
+                      <h3 className="text-lg font-bold text-gray-900">Localização do Evento</h3>
+                    </div>
+                    <div className="overflow-hidden w-full" style={{ height: 200 }}>
+                      <iframe
+                        src={extractMapSrc(evento.localizacao_maps)}
+                        width="100%"
+                        height="235"
+                        style={{ border: 0, display: 'block', marginTop: -35 }}
+                        allowFullScreen
+                        loading="lazy"
+                        referrerPolicy="no-referrer-when-downgrade"
+                        title="Local do Evento"
+                      />
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -490,16 +495,21 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
         <div className="md:hidden max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 pb-5">
           <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden">
             <CardContent className="p-0">
-              <iframe
-                src={extractMapSrc(evento.localizacao_maps)}
-                width="100%"
-                height="250"
-                style={{ border: 0 }}
-                allowFullScreen
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                title="Local do Evento"
-              />
+              <div className="px-4 pt-3 pb-2">
+                <h3 className="text-lg font-bold text-gray-900">Localização do Evento</h3>
+              </div>
+              <div className="overflow-hidden w-full" style={{ height: 250 }}>
+                <iframe
+                  src={extractMapSrc(evento.localizacao_maps)}
+                  width="100%"
+                  height="285"
+                  style={{ border: 0, display: 'block', marginTop: -35 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Local do Evento"
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
