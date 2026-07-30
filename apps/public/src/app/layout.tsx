@@ -7,7 +7,7 @@ import { Ticket, User } from "lucide-react";
 import HeaderActions from "@/components/HeaderActions";
 
 // Cache de 1 hora para as configurações do sistema no servidor
-export const revalidate = 3600; 
+export const revalidate = 3600;
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +18,7 @@ async function getConfig() {
       .select('*')
       .eq('id', 1)
       .single();
-    
+
     if (error) throw error;
     return data || { nome_sistema: process.env.NEXT_PUBLIC_SITE_NAME || "Sistema de Eventos" };
   } catch (err) {
@@ -93,15 +93,14 @@ export default async function RootLayout({
                   {config.nome_sistema}
                 </span>
               </div>
-              
+
               <p className="max-w-2xl mx-auto text-xs sm:text-sm">
-                Este site é destinado exclusivamente para uso de pessoas maiores de 18 anos. 
-                Ao acessar e utilizar os serviços oferecidos, você confirma que possui 18 anos ou mais.
+                Este site é destinado exclusivamente para venda de ingressos para os eventos do Instituto das Virtudes da Ayahuasca e do Sol.
               </p>
             </div>
-            
+
             <p className="mb-4 text-gray-500">© {new Date().getFullYear()} {config.nome_sistema}. Todos os direitos reservados.</p>
-            
+
             <div className="flex flex-wrap justify-center gap-4 text-xs">
               <Link href="/termos" className="hover:text-white transition-colors">Termos de Uso</Link>
               <Link href="/privacidade" className="hover:text-white transition-colors">Política de Privacidade</Link>
