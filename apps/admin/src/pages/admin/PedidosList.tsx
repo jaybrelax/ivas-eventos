@@ -199,6 +199,28 @@ export default function VendasList() {
     }
   };
 
+  const handleNotificarWebhook = async (pedidoId: string) => {
+    setActionLoading(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL || '';
+      const response = await fetch(`${API_URL}/api/pedidos/notificar-webhook/${pedidoId}`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `Erro ${response.status}`);
+      }
+
+      toast.success("Webhook disparado com sucesso!");
+    } catch (error: any) {
+      console.error("Erro ao notificar webhook:", error);
+      toast.error("Erro ao notificar: " + (error.message || "Erro desconhecido"));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleUpdateAfiliado = async (pedidoId: string) => {
     setActionLoading(true);
     try {
@@ -475,7 +497,7 @@ export default function VendasList() {
                           Ações <MoreVertical className="h-3.5 w-3.5" />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="min-w-40 [&>[data-slot=dropdown-menu-item]]:py-1.5">
-                          <DropdownMenuItem onClick={() => handleResendComprovante(selectedPedido.id, true)} disabled={actionLoading || selectedPedido.status !== 'pago'}>
+                          <DropdownMenuItem onClick={() => handleNotificarWebhook(selectedPedido.id)} disabled={actionLoading || selectedPedido.status !== 'pago'}>
                             <Send className="h-4 w-4 mr-2 text-purple-500" /> Notificar
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => {

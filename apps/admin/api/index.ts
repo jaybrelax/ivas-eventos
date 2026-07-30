@@ -1126,6 +1126,38 @@ app.post("/api/pedidos/reenviar-comprovante/:id", async (req, res) => {
   }
 });
 
+// NOTIFICAR WEBHOOK (manual)
+app.post("/api/pedidos/notificar-webhook/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+    const { data: config } = await supabaseAdmin.from("configuracoes").select("webhook_pago").eq("id", 1).single();
+    if (!config?.webhook_pago) {
+      return res.status(400).json({ error: "Webhook não configurado. Defina a URL do Webhook (Pedido Pago) nas Configurações." });
+    }
+
+    const { data: pedidoFull } = await supabaseAdmin
+      .from("pedidos")
+      .select("*, cliente:clientes(nome_completo, telefone, cpf, email), evento:eventos(id, titulo, data_evento, horario_evento, local_evento, imagem_url), vendedor:vendedores(nome, whatsapp)")
+      .eq("id", id)
+      .single();
+
+    if (!pedidoFull) return res.status(404).json({ error: "Pedido não encontrado" });
+
+    const { data: convidadosList } = await supabaseAdmin
+      .from("convidados")
+      .select("id, nome_completo, numero")
+      .eq("pedido_id", id);
+
+    await enviarWebhookPedidoPago(pedidoFull, convidadosList || [], config.webhook_pago);
+    res.json({ success: true, message: "Webhook disparado com sucesso!" });
+  } catch (error: any) {
+    console.error("[Notificar Webhook] Erro:", error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Helper para enviar webhook de pedido pago
 async function enviarWebhookPedidoPago(pedidoFull: any, convidadosList: any[], webhookUrl: string) {
   if (!webhookUrl) return;
