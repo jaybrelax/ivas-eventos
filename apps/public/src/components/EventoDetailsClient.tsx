@@ -13,7 +13,7 @@ import {
   Timer, MapPin, CalendarDays
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { formatDescription, formatEventDate } from "@/lib/utils";
+import { formatDescription, formatEventDate, extractMapSrc } from "@/lib/utils";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -468,7 +468,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                 <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden mt-4">
                   <CardContent className="p-0">
                     <iframe
-                      src={evento.localizacao_maps}
+                      src={extractMapSrc(evento.localizacao_maps)}
                       width="100%"
                       height="200"
                       style={{ border: 0 }}
@@ -491,7 +491,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
           <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden">
             <CardContent className="p-0">
               <iframe
-                src={evento.localizacao_maps}
+                src={extractMapSrc(evento.localizacao_maps)}
                 width="100%"
                 height="250"
                 style={{ border: 0 }}

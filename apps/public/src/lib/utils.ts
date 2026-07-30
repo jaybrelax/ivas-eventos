@@ -5,6 +5,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function extractMapSrc(input: string): string {
+  // Aceita tanto URL direta quanto iframe completo
+  const match = input.match(/src="([^"]+)"/);
+  return match ? match[1] : input;
+}
+
 export function formatEventDate(dateStr: string): string {
   if (!dateStr) return "";
   const [datePart] = dateStr.split('T');
