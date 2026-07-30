@@ -249,10 +249,12 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-900 opacity-80" />
           )}
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-5 sm:p-8 pt-24 flex flex-col justify-end">
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white leading-none drop-shadow-lg tracking-tight mb-0">{evento.titulo}</h1>
-          </div>
         </div>
+      </div>
+
+      {/* Título */}
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 pt-5 md:pt-6">
+        <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-gray-900 leading-tight tracking-tight">{evento.titulo}</h1>
       </div>
 
       {/* ── CONTEÚDO ── */}
