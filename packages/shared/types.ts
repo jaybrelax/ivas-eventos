@@ -8,6 +8,7 @@ export interface Evento {
   valor_ingresso: number;
   data_evento: string;
   local_evento?: string;
+  localizacao_maps?: string;
   horario_evento?: string;
   status: 'ativo' | 'desativado';
   timeout_reserva: number;

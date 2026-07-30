@@ -463,10 +463,47 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                   </Button>
                 </CardContent>
               </Card>
+
+              {evento.localizacao_maps && (
+                <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden mt-4">
+                  <CardContent className="p-0">
+                    <iframe
+                      src={evento.localizacao_maps}
+                      width="100%"
+                      height="200"
+                      style={{ border: 0 }}
+                      allowFullScreen
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      title="Local do Evento"
+                    />
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Mapa Mobile */}
+      {evento.localizacao_maps && (
+        <div className="md:hidden max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 pb-5">
+          <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden">
+            <CardContent className="p-0">
+              <iframe
+                src={evento.localizacao_maps}
+                width="100%"
+                height="250"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Local do Evento"
+              />
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Floating Mobile Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/40 backdrop-blur-xl border-t border-white/20 px-4 py-4 safe-area-bottom shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-300">

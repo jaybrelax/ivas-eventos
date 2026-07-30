@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS public.eventos (
     data_evento TIMESTAMPTZ NOT NULL,
     local_evento TEXT,
     horario_evento VARCHAR(50),
+    localizacao_maps TEXT,
     status VARCHAR(50) NOT NULL CHECK (status IN ('ativo', 'desativado')),
     timeout_reserva INTEGER NOT NULL DEFAULT 10,
     meta_guardiao INTEGER NOT NULL DEFAULT 50,

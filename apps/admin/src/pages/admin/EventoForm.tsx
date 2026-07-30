@@ -49,6 +49,7 @@ export default function EventoForm() {
     dataEvento: "",
     horarioEvento: "",
     localEvento: "",
+    localizacaoMaps: "",
     timeoutReserva: "10",
     imagemUrl: "",
     videoUrl: "",
@@ -101,6 +102,7 @@ export default function EventoForm() {
         valorIngresso: evento.valor_ingresso.toString(),
         dataEvento: formattedDate,
         horarioEvento: evento.horario_evento || "",
+        localizacaoMaps: evento.localizacao_maps || "",
         localEvento: evento.local_evento || "",
         timeoutReserva: evento.timeout_reserva.toString(),
         imagemUrl: evento.imagem_url || "",
@@ -254,6 +256,7 @@ export default function EventoForm() {
         data_evento: `${formData.dataEvento}T00:00:00+00:00`,
         horario_evento: formData.horarioEvento || (formData.dataEvento.includes('T') ? formData.dataEvento.split('T')[1] : null),
         local_evento: formData.localEvento || null,
+        localizacao_maps: formData.localizacaoMaps || null,
         timeout_reserva: parseInt(formData.timeoutReserva),
         imagem_url: formData.imagemUrl || null,
         video_url: formData.videoUrl || null,
@@ -442,6 +445,16 @@ export default function EventoForm() {
                     onChange={e => setFormData({...formData, localEvento: e.target.value})}
                     rows={3}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="localizacaoMaps">Localização Google Maps (opcional)</Label>
+                  <Input 
+                    id="localizacaoMaps" 
+                    placeholder="https://www.google.com/maps/embed?pb=..."
+                    value={formData.localizacaoMaps}
+                    onChange={e => setFormData({...formData, localizacaoMaps: e.target.value})}
+                  />
+                  <p className="text-xs text-gray-500">Cole o link de incorporação do Google Maps (Share › Embed map › copie o src do iframe).</p>
                 </div>
               </CardContent>
             </Card>
