@@ -252,22 +252,18 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
         </div>
       </div>
 
-      {/* Título */}
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 pt-5 md:pt-6">
-        <h1 className="text-2xl sm:text-3xl md:text-5xl font-black text-gray-900 leading-tight tracking-tight">{evento.titulo}</h1>
-      </div>
-
       {/* ── CONTEÚDO ── */}
       <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-5 md:py-8">
         <div className="flex flex-col md:grid md:grid-cols-3 gap-4 md:gap-5">
 
           {/* Coluna principal */}
           <div className="md:col-span-2 space-y-4">
+
+            {/* Card: Data, Local e Contador */}
             <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden">
               <CardContent className="p-5 sm:p-8">
-                
-                {/* Grupo de Infos */}
-                <div className="bg-gray-50 rounded-2xl p-4 sm:p-5 border border-gray-100 mb-8 space-y-4 shadow-inner">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 leading-tight tracking-tight mb-6">{evento.titulo}</h1>
+                <div className="bg-gray-50 rounded-2xl p-4 sm:p-5 border border-gray-100 space-y-4 shadow-inner">
                   <div className="flex items-start gap-3">
                     <div className="bg-blue-100 p-2 rounded-xl text-blue-600 shrink-0">
                       <CalendarDays className="h-4 w-4" />
@@ -294,7 +290,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                   )}
 
                   {eventCountdown && (
-                    <div className="mt-5 pt-5 border-t border-gray-200/60">
+                    <div className="pt-5 border-t border-gray-200/60">
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-5">
                         <div className="flex items-center gap-2.5 text-[#1b5df1]">
                           <Timer className="h-5 w-5 animate-pulse" />
@@ -322,7 +318,12 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
 
+            {/* Card: Sobre o Evento */}
+            <Card className="border-0 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden">
+              <CardContent className="p-5 sm:p-8">
                 <h2 className="text-2xl font-black text-gray-900 mb-4 tracking-tight">Sobre o Evento</h2>
 
                 {config?.descricao_expand_enabled !== false ? (
