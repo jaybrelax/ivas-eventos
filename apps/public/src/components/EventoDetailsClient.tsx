@@ -299,24 +299,21 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                           <span className="text-xs font-black uppercase tracking-widest">O evento começa em:</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="bg-[#1b5df1] text-white rounded-xl px-3 py-2.5 flex flex-col items-center min-w-[64px] shadow-md shadow-blue-500/20">
+                          <div className="bg-blue-50 text-[#1a4dc9] rounded-lg px-3 py-2.5 flex flex-col items-center min-w-[64px]">
                             <span className="text-2xl font-black leading-none mb-1">{eventCountdown.d.toString().padStart(2, '0')}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Dias</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Dias</span>
                           </div>
-                          <span className="text-blue-300 font-black text-xl">:</span>
-                          <div className="bg-[#1b5df1] text-white rounded-xl px-3 py-2.5 flex flex-col items-center min-w-[64px] shadow-md shadow-blue-500/20">
+                          <div className="bg-blue-50 text-[#1a4dc9] rounded-lg px-3 py-2.5 flex flex-col items-center min-w-[64px]">
                             <span className="text-2xl font-black leading-none mb-1">{eventCountdown.h.toString().padStart(2, '0')}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Horas</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Horas</span>
                           </div>
-                          <span className="text-blue-300 font-black text-xl">:</span>
-                          <div className="bg-[#1b5df1] text-white rounded-xl px-3 py-2.5 flex flex-col items-center min-w-[64px] shadow-md shadow-blue-500/20">
+                          <div className="bg-blue-50 text-[#1a4dc9] rounded-lg px-3 py-2.5 flex flex-col items-center min-w-[64px]">
                             <span className="text-2xl font-black leading-none mb-1">{eventCountdown.m.toString().padStart(2, '0')}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Min</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Min</span>
                           </div>
-                          <span className="text-blue-300 font-black text-xl">:</span>
-                          <div className="bg-[#1b5df1] text-white rounded-xl px-3 py-2.5 flex flex-col items-center min-w-[64px] shadow-md shadow-blue-500/20">
+                          <div className="bg-blue-50 text-[#1a4dc9] rounded-lg px-3 py-2.5 flex flex-col items-center min-w-[64px]">
                             <span className="text-2xl font-black leading-none mb-1">{eventCountdown.s.toString().padStart(2, '0')}</span>
-                            <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Seg</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">Seg</span>
                           </div>
                         </div>
                       </div>
