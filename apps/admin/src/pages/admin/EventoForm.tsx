@@ -88,11 +88,10 @@ export default function EventoForm() {
       const vendidos = pedidosPagos?.reduce((acc, p) => acc + (p.quantidade || 0), 0) || 0;
       setHasSoldTickets(vendidos > 0);
 
-      // Format date for datetime-local input (YYYY-MM-DDThh:mm)
+      // Format date for date input (YYYY-MM-DD)
       let formattedDate = "";
       if (evento.data_evento) {
-        const dateObj = new Date(evento.data_evento);
-        formattedDate = new Date(dateObj.getTime() - dateObj.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+        formattedDate = evento.data_evento.split('T')[0];
       }
 
       setFormData({
@@ -252,7 +251,7 @@ export default function EventoForm() {
         descricao: formData.descricao,
         capacidade: parseInt(formData.capacidade),
         valor_ingresso: parseFloat(formData.valorIngresso),
-        data_evento: new Date(formData.dataEvento).toISOString(),
+        data_evento: `${formData.dataEvento}T00:00:00+00:00`,
         horario_evento: formData.horarioEvento || (formData.dataEvento.includes('T') ? formData.dataEvento.split('T')[1] : null),
         local_evento: formData.localEvento || null,
         timeout_reserva: parseInt(formData.timeoutReserva),
