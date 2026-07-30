@@ -263,7 +263,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
             <Card className="border border-white/20 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden -mt-12 relative z-10 bg-gradient-to-b from-white/40 via-white/75 to-white/95 backdrop-blur-xl">
               <CardContent className="p-5 sm:p-8">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 leading-tight tracking-tight mb-6">{evento.titulo}</h1>
-                <div className="bg-gray-50 rounded-2xl p-4 sm:p-5 border border-gray-100 space-y-4 shadow-inner">
+                <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <div className="bg-blue-100 p-2 rounded-xl text-blue-600 shrink-0">
                       <CalendarDays className="h-4 w-4" />
