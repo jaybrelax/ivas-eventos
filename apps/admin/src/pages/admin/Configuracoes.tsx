@@ -41,7 +41,8 @@ export default function Configuracoes() {
     admin_dark_mode: false,
     webhook_pago: "",
     notificacoes_compradores_enabled: true,
-    descricao_expand_enabled: true
+    descricao_expand_enabled: true,
+    distribuicao_aleatoria_guardiao: false
   });
 
   useEffect(() => {
@@ -86,7 +87,8 @@ export default function Configuracoes() {
             admin_dark_mode: data.admin_dark_mode === true,
             webhook_pago: data.webhook_pago || "",
             notificacoes_compradores_enabled: data.notificacoes_compradores_enabled !== false,
-            descricao_expand_enabled: data.descricao_expand_enabled !== false
+            descricao_expand_enabled: data.descricao_expand_enabled !== false,
+            distribuicao_aleatoria_guardiao: data.distribuicao_aleatoria_guardiao === true
           });
         }
       } catch (error) {
@@ -461,6 +463,24 @@ export default function Configuracoes() {
                     onClick={(e) => { e.stopPropagation(); if (!authError) setFormData({ ...formData, admin_dark_mode: !formData.admin_dark_mode }); }}
                   >
                     <span className={`pointer-events-none block h-5 w-5 rounded-full bg-white dark:bg-slate-100 shadow-md ring-0 transition-transform duration-200 ${formData.admin_dark_mode ? 'translate-x-5' : 'translate-x-0'}`} />
+                  </button>
+                </div>
+
+                {/* Switch: Distribuição Aleatória de Vendas Diretas */}
+                <div className="group flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800/60 bg-white dark:bg-slate-900 hover:border-slate-200 dark:hover:border-slate-700 hover:shadow-sm transition-all cursor-pointer" onClick={() => !authError && setFormData({ ...formData, distribuicao_aleatoria_guardiao: !formData.distribuicao_aleatoria_guardiao })}>
+                  <div className="space-y-0.5 flex-1 min-w-0 mr-3">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-none">Distribuição Aleatória de Vendas</p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider font-semibold mt-1">Vendas Diretas</p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={formData.distribuicao_aleatoria_guardiao}
+                    disabled={authError}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-all duration-200 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${formData.distribuicao_aleatoria_guardiao ? 'bg-blue-500 dark:bg-blue-600' : 'bg-slate-200 dark:bg-slate-800'}`}
+                    onClick={(e) => { e.stopPropagation(); if (!authError) setFormData({ ...formData, distribuicao_aleatoria_guardiao: !formData.distribuicao_aleatoria_guardiao }); }}
+                  >
+                    <span className={`pointer-events-none block h-5 w-5 rounded-full bg-white dark:bg-slate-100 shadow-md ring-0 transition-transform duration-200 ${formData.distribuicao_aleatoria_guardiao ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>
               </div>

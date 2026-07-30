@@ -693,9 +693,20 @@ app.post("/api/pagamento/pix", async (req, res) => {
       if (vInfo) vendedorIdDB = vInfo.id;
     } else {
       vendaDireta = true;
-      // Atribuir para o primeiro admin encontrado
-      const { data: vAdmin } = await supabaseAdmin.from('vendedores').select('id').eq('is_admin', true).limit(1).maybeSingle();
-      if (vAdmin) vendedorIdDB = vAdmin.id;
+      const { data: configDist } = await supabaseAdmin.from("configuracoes")
+        .select("distribuicao_aleatoria_guardiao").eq("id", 1).single();
+
+      if (configDist?.distribuicao_aleatoria_guardiao) {
+        const { data: vendedoresAtivos } = await supabaseAdmin
+          .from('vendedores').select('id').eq('ativo', true);
+        if (vendedoresAtivos && vendedoresAtivos.length > 0) {
+          const randomIndex = Math.floor(Math.random() * vendedoresAtivos.length);
+          vendedorIdDB = vendedoresAtivos[randomIndex].id;
+        }
+      } else {
+        const { data: vAdmin } = await supabaseAdmin.from('vendedores').select('id').eq('is_admin', true).limit(1).maybeSingle();
+        if (vAdmin) vendedorIdDB = vAdmin.id;
+      }
     }
 
     const displayId = gerarDisplayId();

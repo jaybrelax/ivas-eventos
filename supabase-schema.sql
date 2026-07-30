@@ -184,6 +184,7 @@ CREATE TABLE IF NOT EXISTS public.configuracoes (
     webhook_pago TEXT,
     notificacoes_compradores_enabled BOOLEAN DEFAULT true,
     descricao_expand_enabled BOOLEAN DEFAULT true,
+    distribuicao_aleatoria_guardiao BOOLEAN DEFAULT false,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
