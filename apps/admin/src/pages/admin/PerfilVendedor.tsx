@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Camera, UserCircle, Save, Key } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeName } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function PerfilVendedor() {
@@ -156,7 +157,7 @@ export default function PerfilVendedor() {
         const result = await supabase
           .from('vendedores')
           .update({
-            nome: formData.nome,
+            nome: sanitizeName(formData.nome),
             telefone: formData.telefone
           })
           .eq('id', vendedor.id)
@@ -170,7 +171,7 @@ export default function PerfilVendedor() {
           .from('vendedores')
           .insert({
             user_id: vendedor.user_id,
-            nome: formData.nome,
+            nome: sanitizeName(formData.nome),
             telefone: formData.telefone
           })
           .select()

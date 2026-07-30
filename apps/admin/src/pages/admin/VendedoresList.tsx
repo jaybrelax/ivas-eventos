@@ -10,7 +10,7 @@ import {
   TableBody
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, sanitizeName } from "@/lib/utils";
 import { Search, MoreHorizontal, Trash, Copy, Loader2, Shield, CheckCircle2, ExternalLink, Users, User, Camera } from "lucide-react";
 import {
   DropdownMenu,
@@ -132,7 +132,7 @@ export default function VendedoresList() {
       const { error } = await supabase
         .from('vendedores')
         .update({
-          nome: editNome,
+          nome: sanitizeName(editNome),
           telefone: editTelefone,
           email: editEmail,
           genero: editGenero,

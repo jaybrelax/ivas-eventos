@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeName } from "@/lib/utils";
 import { Trophy, Medal, Loader2, User, Camera } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -115,7 +116,7 @@ export default function RankingList() {
       const { error } = await supabase
         .from('vendedores')
         .update({
-          nome: editNome,
+          nome: sanitizeName(editNome),
           telefone: editTelefone,
           email: editEmail,
           genero: editGenero,

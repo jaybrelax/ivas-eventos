@@ -78,6 +78,11 @@ app.post("/api/webhook-test-proxy", async (req, res) => {
   }
 });
 
+// Helper para limpar nome (trim + title case)
+function sanitizeName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // Helper para gerar ID secundário aleatório
 function gerarDisplayId(tamanho: number = 6): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removido I, O, 0, 1 para evitar confusão
@@ -612,6 +617,7 @@ app.post("/api/pagamento/pix", async (req, res) => {
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
     const cpfLimpo = cliente.cpf.replace(/\D/g, "");
+    const nomeLimpo = sanitizeName(cliente.nome);
     let clienteId;
 
     const { data: existingCliente } = await supabaseAdmin
@@ -626,7 +632,7 @@ app.post("/api/pagamento/pix", async (req, res) => {
       const { data: newCliente, error: clientError } = await supabaseAdmin
         .from("clientes")
         .insert({
-          nome_completo: cliente.nome,
+          nome_completo: nomeLimpo,
           cpf: cpfLimpo,
           email: cliente.email,
           telefone: cliente.telefone
@@ -760,7 +766,7 @@ app.post("/api/pagamento/pix", async (req, res) => {
     if (convidados && convidados.length > 0) {
       const convidadosParaInserir = convidados.map((nome: string) => ({
         pedido_id: pedido.id,
-        nome_completo: nome.trim()
+        nome_completo: sanitizeName(nome)
       }));
 
       const { error: convidadosError } = await supabaseAdmin

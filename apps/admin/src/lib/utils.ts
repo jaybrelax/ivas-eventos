@@ -5,6 +5,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export function sanitizeName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+}
+
 export function formatEventDate(dateStr: string): string {
   if (!dateStr) return "";
   const [datePart] = dateStr.split('T');

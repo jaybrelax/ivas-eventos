@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2, PartyPopper, Camera, User } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { sanitizeName } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function Recrutamento() {
@@ -122,7 +123,7 @@ export default function Recrutamento() {
       const { error: vendedorError } = await supabase
         .from("vendedores")
         .insert({
-          nome: formData.nome,
+          nome: sanitizeName(formData.nome),
           email: formData.email,
           telefone: formData.telefone,
           user_id: userId,
