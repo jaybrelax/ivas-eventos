@@ -727,6 +727,13 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                       </p>
                     </div>
 
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-start gap-2.5">
+                      <AlertCircle className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-blue-700 font-semibold leading-relaxed">
+                        Após a confirmação do pagamento você receberá {quantidade > 1 ? 'os tickets' : 'o ticket'} pelo WhatsApp.
+                      </p>
+                    </div>
+
                     <div className="flex flex-col gap-3 pt-2">
                       <Button
                         disabled={isSubmitting}
