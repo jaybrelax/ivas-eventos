@@ -260,8 +260,8 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
           <div className="md:col-span-2 space-y-4">
 
             {/* Card: Data, Local e Contador */}
-            <Card className="border border-white/20 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden -mt-12 relative z-10 bg-gradient-to-b from-white/40 via-white/75 to-white/95 backdrop-blur-xl">
-              <CardContent className="p-5 sm:p-8">
+            <Card className="border border-white/20 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden -mt-12 relative z-10 bg-gradient-to-b from-white/10 via-white/60 to-white/95 backdrop-blur-xl">
+              <CardContent className="px-5 sm:px-8 pt-2 sm:pt-4 pb-5 sm:pb-8">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 leading-tight tracking-tight mb-6">{evento.titulo}</h1>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
