@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Ticket, Clock, Trophy } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { formatEventDate } from "@/lib/utils";
 import Link from "next/link";
 
 export const revalidate = 3600; // Cache de 1 hora
@@ -115,7 +116,7 @@ export default async function Home() {
                       <div className="flex items-center justify-between text-sm text-gray-500">
                         <div className="flex items-center">
                           <Clock className="h-4 w-4 mr-2 text-blue-600" />
-                          <span className="font-medium text-gray-900">{new Date(evento.data_evento).toLocaleDateString('pt-BR')} {evento.horario_evento ? `às ${evento.horario_evento}` : ''}</span>
+                          <span className="font-medium text-gray-900">{formatEventDate(evento.data_evento)} {evento.horario_evento ? `às ${evento.horario_evento}` : ''}</span>
                         </div>
                       </div>
                       

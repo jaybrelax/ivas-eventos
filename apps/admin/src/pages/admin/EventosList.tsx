@@ -14,6 +14,7 @@ import {
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { formatEventDate } from "@/lib/utils";
 
 export default function EventosList() {
   const [eventoToDelete, setEventoToDelete] = useState<string | null>(null);
@@ -198,7 +199,7 @@ export default function EventosList() {
                   <div className="absolute bottom-2 left-2 z-10">
                     <Badge variant="outline" className="bg-black/40 text-white border-none backdrop-blur-md text-[10px] py-0.5 px-2">
                       <Calendar className="h-3 w-3 mr-1" />
-                      {new Date(evento.data_evento).toLocaleDateString('pt-BR')}
+                      {formatEventDate(evento.data_evento)}
                     </Badge>
                   </div>
                 </div>

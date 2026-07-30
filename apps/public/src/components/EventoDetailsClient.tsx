@@ -13,7 +13,7 @@ import {
   Timer, MapPin, CalendarDays
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { formatDescription } from "@/lib/utils";
+import { formatDescription, formatEventDate } from "@/lib/utils";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -273,7 +273,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                     <div>
                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] mb-0.5">Data e Hora</p>
                       <p className="text-gray-900 font-bold text-sm sm:text-base leading-tight">
-                        {new Date(evento.data_evento).toLocaleDateString("pt-BR")} 
+                        {formatEventDate(evento.data_evento)} 
                         {evento.horario_evento ? ` às ${evento.horario_evento}` : ''}
                       </p>
                     </div>

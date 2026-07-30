@@ -458,14 +458,17 @@ async function gerarImagemComprovante(dados: {
   let dataEv = '';
   if (dados.dataEvento) {
     try {
-      const d = new Date(dados.dataEvento);
-      const dStr = d.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: 'long', year: 'numeric' });
-      
-      if (dados.horarioEvento) {
-        dataEv = `${dStr} às ${dados.horarioEvento}`;
-      } else {
-        const hStr = d.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
-        dataEv = `${dStr} às ${hStr}`;
+      const datePart = dados.dataEvento.split('T')[0];
+      if (datePart) {
+        const [year, month, day] = datePart.split('-');
+        const months = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+        const dStr = `${parseInt(day)} de ${months[parseInt(month) - 1]} de ${year}`;
+        
+        if (dados.horarioEvento) {
+          dataEv = `${dStr} às ${dados.horarioEvento}`;
+        } else {
+          dataEv = dStr;
+        }
       }
     } catch (_) { }
   }
