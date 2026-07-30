@@ -287,8 +287,15 @@ export default function Configuracoes() {
       if (response.ok) {
         toast.success("Webhook enviado com sucesso!");
       } else {
-        const data = await response.json();
-        throw new Error(data.error || `Status ${response.status}`);
+        const body = await response.text();
+        let errorMsg = `Status ${response.status}`;
+        try {
+          const data = JSON.parse(body);
+          errorMsg = data.error || errorMsg;
+        } catch {
+          errorMsg = body || errorMsg;
+        }
+        throw new Error(errorMsg);
       }
     } catch (err: any) {
       toast.error("Falha no envio para o webhook: " + err.message);
