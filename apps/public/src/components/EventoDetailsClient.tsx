@@ -234,7 +234,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
     <div className="bg-[#eff5fb] pb-28 md:pb-12">
       {/* ── HERO ── */}
       <div className="w-full max-w-5xl mx-auto md:pt-8 md:px-8">
-        <div className="relative h-56 sm:h-64 md:h-[480px] w-full bg-gray-900 md:rounded-t-[32px] overflow-hidden shadow-2xl">
+        <div className="relative h-56 sm:h-64 md:h-[490px] w-full bg-gray-900 md:rounded-t-[32px] overflow-hidden">
           {evento.video_url ? (
             <video 
               src={evento.video_url} 
@@ -249,7 +249,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-900 opacity-80" />
           )}
-          <div className="hidden md:block absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#eff5fb] to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#eff5fb] via-[#eff5fb]/70 to-transparent pointer-events-none" />
         </div>
       </div>
 
@@ -261,7 +261,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
           <div className="md:col-span-2 space-y-4">
 
             {/* Card: Data, Local e Contador */}
-            <Card className="border border-white/20 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden -mt-12 relative z-10 bg-gradient-to-b from-white/10 via-white/60 to-white/95 backdrop-blur-xl">
+            <Card className="border border-white/20 shadow-lg shadow-gray-200/50 rounded-[32px] overflow-hidden -mt-[88px] relative z-10 bg-gradient-to-b from-white/10 via-white/60 to-white/95 backdrop-blur-xl">
               <CardContent className="px-5 sm:px-8 pt-2 sm:pt-4 pb-5 sm:pb-8">
                 <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 leading-tight tracking-tight mb-6">{evento.titulo}</h1>
                 <div className="space-y-4">
@@ -418,7 +418,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
 
           {/* Sidebar Desktop */}
           <div className="md:col-span-1 hidden md:block">
-            <div className="sticky top-24 -mt-12">
+            <div className="sticky top-24 -mt-[88px]">
               <Card className="border-blue-200 shadow-lg">
                 <CardContent className="p-5">
                   <h3 className="text-lg font-bold mb-4">Resumo da Compra</h3>
