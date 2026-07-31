@@ -368,11 +368,11 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                   </div>
                   <div className="text-right">
                     <p className={`text-3xl font-black text-green-600 ${isPromoActive ? 'line-through text-gray-400 text-lg' : ''}`}>
-                      R$ {Number(evento.valor_ingresso).toFixed(2)}
+                      R$ {Math.floor(Number(evento.valor_ingresso))}
                     </p>
                     {isPromoActive && (
                       <p className="text-3xl font-black text-green-600 animate-pulse">
-                        R$ {Number(evento.off_price).toFixed(2)}
+                        R$ {Math.floor(Number(evento.off_price))}
                       </p>
                     )}
                   </div>
@@ -380,7 +380,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
 
                 {hasPromo && !isPromoActive && (
                   <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-3 rounded-xl text-center text-sm font-medium animate-pulse shadow-md">
-                    🚀 PROMOÇÃO: Compre {evento.qtd_off} ou mais e pague apenas <span className="text-yellow-300 font-bold text-base">R$ {Number(evento.off_price).toFixed(2)}</span> por ingresso!
+                    🚀 PROMOÇÃO: Compre {evento.qtd_off} ou mais e pague apenas <span className="text-yellow-300 font-bold text-base">R$ {Math.floor(Number(evento.off_price))}</span> por ingresso!
                   </div>
                 )}
               </CardContent>
@@ -425,8 +425,8 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                   <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100 text-sm">
                     <span className="text-gray-600">Valor unitário</span>
                     <div className="text-right">
-                      <span className={`font-bold block ${isPromoActive ? 'line-through text-gray-400 text-xs' : ''}`}>R$ {Number(evento.valor_ingresso).toFixed(2)}</span>
-                      {isPromoActive && <span className="font-bold text-green-600">R$ {Number(evento.off_price).toFixed(2)}</span>}
+                      <span className={`font-bold block ${isPromoActive ? 'line-through text-gray-400 text-xs' : ''}`}>R$ {Math.floor(Number(evento.valor_ingresso))}</span>
+                      {isPromoActive && <span className="font-bold text-green-600">R$ {Math.floor(Number(evento.off_price))}</span>}
                     </div>
                   </div>
                   <span className="text-xs text-gray-500 font-medium block mb-2">Compre o seu e de acompanhantes juntos</span>
@@ -451,7 +451,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                   </div>
                   <div className="flex justify-between items-center mb-5 pt-4 border-t border-gray-100">
                     <span className="font-bold text-gray-900">Total</span>
-                    <span className="text-2xl font-extrabold text-green-600">R$ {totalValue.toFixed(2)}</span>
+                    <span className="text-2xl font-extrabold text-green-600">R$ {Math.floor(totalValue)}</span>
                   </div>
                   <Button
                     className="w-full h-14 rounded-full text-base uppercase font-bold shadow-lg transition-all duration-300 bg-[#1b5df1] hover:bg-[#0044cc] text-white font-black scale-[1.02]"
@@ -517,7 +517,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 pr-2 flex-1">
             <p className="text-xs text-gray-500 uppercase tracking-wider font-bold mb-0.5">{quantidade} {quantidade === 1 ? 'pessoa' : 'pessoas'}</p>
-            <p className="text-xl font-extrabold text-green-600 leading-tight">R$ {totalValue.toFixed(2)}</p>
+            <p className="text-xl font-extrabold text-green-600 leading-tight">R$ {Math.floor(totalValue)}</p>
           </div>
           <Button
             className={`h-12 px-6 uppercase text-xs sm:text-sm font-bold rounded-full transition-all duration-300 text-white font-black shadow-lg ${isAtTicketsSection
@@ -767,7 +767,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
                       </div>
                       <p className="text-[11px] uppercase font-bold text-slate-500 tracking-wider pt-1">Total a Pagar</p>
                       <p className="text-[42px] font-black text-[#006b2d] tracking-tighter leading-none">
-                        R$ {totalValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                        R$ {Math.floor(totalValue).toLocaleString("pt-BR")}
                       </p>
                     </div>
 
@@ -887,7 +887,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
 
                 <div className="text-center">
                   <p className="text-[11px] font-black text-blue-300 uppercase tracking-[0.2em] mb-1">Valor a pagar</p>
-                  <p className="text-[52px] font-black text-white leading-none tracking-tight">R$ {totalValue.toFixed(2)}</p>
+                  <p className="text-[52px] font-black text-white leading-none tracking-tight">R$ {Math.floor(totalValue)}</p>
                 </div>
               </div>
 
