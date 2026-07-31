@@ -417,7 +417,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
 
           {/* Sidebar Desktop */}
           <div className="md:col-span-1 hidden md:block">
-            <div className="sticky top-24">
+            <div className="sticky top-24 -mt-12">
               <Card className="border-blue-200 shadow-lg">
                 <CardContent className="p-5">
                   <h3 className="text-lg font-bold mb-4">Resumo da Compra</h3>
