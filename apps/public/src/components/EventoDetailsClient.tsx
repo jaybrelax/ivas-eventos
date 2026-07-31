@@ -234,7 +234,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
     <div className="bg-[#eff5fb] pb-28 md:pb-12">
       {/* ── HERO ── */}
       <div className="w-full max-w-5xl mx-auto md:pt-8 md:px-8">
-        <div className="relative h-56 sm:h-64 md:h-[400px] w-full bg-gray-900 md:rounded-[32px] overflow-hidden shadow-2xl">
+        <div className="relative h-56 sm:h-64 md:h-[480px] w-full bg-gray-900 md:rounded-t-[32px] overflow-hidden shadow-2xl">
           {evento.video_url ? (
             <video 
               src={evento.video_url} 
@@ -249,6 +249,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-blue-900 to-indigo-900 opacity-80" />
           )}
+          <div className="hidden md:block absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#eff5fb] to-transparent pointer-events-none" />
         </div>
       </div>
 
