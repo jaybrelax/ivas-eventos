@@ -25,6 +25,7 @@ interface EventoDetailsClientProps {
 export default function EventoDetailsClient({ initialEvento, config }: EventoDetailsClientProps) {
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
+  const ivasParam = searchParams.get("ivas");
 
   const [evento] = useState<any>(initialEvento);
   const [quantidade, setQuantidade] = useState(1);
@@ -139,8 +140,10 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
   useEffect(() => {
     if (refCode && typeof window !== 'undefined') {
       localStorage.setItem("@evento:vendedor_ref", refCode);
+    } else if (ivasParam !== null && typeof window !== 'undefined') {
+      localStorage.setItem("@evento:vendedor_ref", "JAY");
     }
-  }, [refCode]);
+  }, [refCode, ivasParam]);
 
   // Poll de pagamento
   useEffect(() => {
