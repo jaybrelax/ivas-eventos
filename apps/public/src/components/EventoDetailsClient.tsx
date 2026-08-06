@@ -138,10 +138,11 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
   const [showCpfCorrection, setShowCpfCorrection] = useState(false);
 
   useEffect(() => {
-    if (refCode && typeof window !== 'undefined') {
+    if (typeof window === 'undefined') return;
+    if (refCode) {
       localStorage.setItem("@evento:vendedor_ref", refCode);
-    } else if (ivasParam !== null && typeof window !== 'undefined') {
-      localStorage.setItem("@evento:vendedor_ref", "JAY");
+    } else if (ivasParam !== null) {
+      localStorage.removeItem("@evento:vendedor_ref");
     }
   }, [refCode, ivasParam]);
 
