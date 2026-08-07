@@ -463,6 +463,13 @@ export default function CheckinList() {
                   <p className="font-bold text-lg text-slate-900 dark:text-slate-100 leading-snug whitespace-normal">
                     {p.nome_completo}
                   </p>
+                  {p.checkin_em && (
+                    <span className="ml-auto shrink-0">
+                      <Badge className="bg-green-500 text-white gap-1 text-xs px-2.5 py-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> {formatHora(p.checkin_em)}
+                      </Badge>
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
@@ -664,10 +671,14 @@ export default function CheckinList() {
                 <Button
                   className="flex-1 h-12 text-base bg-green-600 hover:bg-green-700 text-white font-bold"
                   onClick={() => {
-                    if (selectedParticipante.checkin_em) {
+                    const isUndo = !!selectedParticipante.checkin_em;
+                    setSelectedParticipante(null);
+                    if (isUndo) {
                       handleUndoCheckin(selectedParticipante);
+                      setView('todos');
                     } else {
                       handleManualCheckin(selectedParticipante);
+                      setView('feitos');
                     }
                   }}
                   disabled={busyId === selectedParticipante.id}

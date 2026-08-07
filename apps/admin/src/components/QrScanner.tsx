@@ -18,35 +18,54 @@ export function QrScanner({ onResult, onError }: QrScannerProps) {
     let handled = false;
     const scanner = new Html5Qrcode("qr-reader");
 
-    scanner
-      .start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
-        (decodedText) => {
-          if (cancelled || handled) return;
-          handled = true;
-          scanner
-            .stop()
-            .then(() => scanner.clear())
-            .catch(() => {});
-          cbRef.current(decodedText);
-        },
-        () => {}
-      )
-      .catch((err: any) => {
+    const dispose = async () => {
+      try {
+        await scanner.stop();
+      } catch {
+        // Não está escaneando ou já foi parado.
+      }
+      try {
+        scanner.clear();
+      } catch {
+        // Já foi limpo.
+      }
+    };
+
+    const start = async () => {
+      try {
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          (decodedText) => {
+            if (cancelled || handled) return;
+            handled = true;
+            // Para a câmera e limpa o elemento ANTES de notificar o pai,
+            // evitando que o vídeo congele em tela branca após a leitura.
+            void dispose().then(() => {
+              if (!cancelled) cbRef.current(decodedText);
+            });
+          },
+          () => {}
+        );
+        if (cancelled) {
+          await dispose();
+        }
+      } catch (err: any) {
         if (!cancelled) {
           errRef.current?.(String(err?.message || err || "Não foi possível acessar a câmera"));
         }
-      });
+      }
+    };
+
+    // Inicia após o layout para garantir que o container tenha dimensão.
+    const frame = requestAnimationFrame(() => start());
 
     return () => {
       cancelled = true;
-      scanner
-        .stop()
-        .then(() => scanner.clear())
-        .catch(() => {});
+      void dispose();
+      cancelAnimationFrame(frame);
     };
   }, []);
 
-  return <div id="qr-reader" className="w-full overflow-hidden rounded-xl" />;
+  return <div id="qr-reader" className="w-full overflow-hidden rounded-xl min-h-[280px]" />;
 }
