@@ -80,7 +80,7 @@ app.post("/api/webhook-test-proxy", async (req, res) => {
 
 // Helper para limpar nome (trim + title case)
 function sanitizeName(name: string): string {
-  return name.trim().replace(/\s+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+  return name.trim().replace(/\s+/g, ' ').replace(/(^|\s)(\S)/g, (_, sep, ch) => sep + ch.toUpperCase());
 }
 
 // Helper para gerar ID secundário aleatório
@@ -728,7 +728,7 @@ app.post("/api/pagamento/pix", async (req, res) => {
       }
     }
 
-    const vendaDireta = vendedorIdDB === null;
+    const vendaDireta = !vendedor_ref;
 
     const displayId = gerarDisplayId();
 
