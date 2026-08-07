@@ -699,15 +699,34 @@ app.post("/api/pagamento/pix", async (req, res) => {
       if (vInfo) vendedorIdDB = vInfo.id;
     } else {
       vendaDireta = true;
-      const { data: configDist } = await supabaseAdmin.from("configuracoes")
-        .select("distribuicao_aleatoria_guardiao").eq("id", 1).single();
 
-      if (configDist?.distribuicao_aleatoria_guardiao) {
-        const { data: vendedoresAtivos } = await supabaseAdmin
-          .from('vendedores').select('id').eq('ativo', true);
-        if (vendedoresAtivos && vendedoresAtivos.length > 0) {
-          const randomIndex = Math.floor(Math.random() * vendedoresAtivos.length);
-          vendedorIdDB = vendedoresAtivos[randomIndex].id;
+      if (req.body.distribuicao_ivas) {
+        const { data: pedidosPagos } = await supabaseAdmin
+          .from('pedidos')
+          .select('vendedor_id')
+          .eq('status', 'pago')
+          .not('vendedor_id', 'is', null);
+
+        const idsComVendas = [...new Set((pedidosPagos || []).map(p => p.vendedor_id).filter(Boolean))];
+        if (idsComVendas.length > 0) {
+          const { data: vendedoresComVendas } = await supabaseAdmin
+            .from('vendedores').select('id').in('id', idsComVendas).eq('ativo', true);
+          if (vendedoresComVendas && vendedoresComVendas.length > 0) {
+            const randomIndex = Math.floor(Math.random() * vendedoresComVendas.length);
+            vendedorIdDB = vendedoresComVendas[randomIndex].id;
+          }
+        }
+      } else {
+        const { data: configDist } = await supabaseAdmin.from("configuracoes")
+          .select("distribuicao_aleatoria_guardiao").eq("id", 1).single();
+
+        if (configDist?.distribuicao_aleatoria_guardiao) {
+          const { data: vendedoresAtivos } = await supabaseAdmin
+            .from('vendedores').select('id').eq('ativo', true);
+          if (vendedoresAtivos && vendedoresAtivos.length > 0) {
+            const randomIndex = Math.floor(Math.random() * vendedoresAtivos.length);
+            vendedorIdDB = vendedoresAtivos[randomIndex].id;
+          }
         }
       }
     }

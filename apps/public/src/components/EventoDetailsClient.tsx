@@ -200,6 +200,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
           quantidade: quantidade,
           convidados: [formData.nome, ...acompanhantes].map(c => c.trim()).filter(c => c),
           vendedor_ref: vendedorRef,
+          distribuicao_ivas: ivasParam !== null,
         }),
       });
       const data = await response.json();
