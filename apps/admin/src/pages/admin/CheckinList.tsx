@@ -296,6 +296,7 @@ export default function CheckinList() {
 
   return (
     <div className="space-y-4">
+      <div className="space-y-1 sm:space-y-2">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
@@ -338,6 +339,7 @@ export default function CheckinList() {
           <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
         </button>
       )}
+      </div>
 
       {total > 0 && (
         <div className="grid grid-cols-2 gap-3">
@@ -463,9 +465,9 @@ export default function CheckinList() {
                   title="Ver dados da compra"
                 >
                   <Badge variant="outline" className="shrink-0 font-mono text-sm px-2.5 py-1 font-black bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/50 text-blue-600 dark:text-blue-400">
-                    {sortMode === 'numero' && p.numero ? `#${String(p.numero).padStart(2, '0')}` : `#${index + 1}`}
+                    {p.numero ? `#${String(p.numero).padStart(2, '0')}` : `#${index + 1}`}
                   </Badge>
-                  <p className="font-bold text-lg text-slate-900 dark:text-slate-100 leading-snug whitespace-normal">
+                  <p className="font-medium text-lg text-slate-900 dark:text-slate-100 leading-snug whitespace-normal">
                     {p.nome_completo}
                   </p>
                   {p.checkin_em && (
