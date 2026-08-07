@@ -692,14 +692,11 @@ app.post("/api/pagamento/pix", async (req, res) => {
     expiraEm.setMinutes(expiraEm.getMinutes() + timeout);
 
     let vendedorIdDB = null;
-    let vendaDireta = false;
 
     if (vendedor_ref) {
       const { data: vInfo } = await supabaseAdmin.from('vendedores').select('id').eq('codigo_ref', vendedor_ref).maybeSingle();
       if (vInfo) vendedorIdDB = vInfo.id;
     } else {
-      vendaDireta = true;
-
       if (req.body.distribuicao_ivas) {
         const { data: pedidosPagos } = await supabaseAdmin
           .from('pedidos')
@@ -730,6 +727,8 @@ app.post("/api/pagamento/pix", async (req, res) => {
         }
       }
     }
+
+    const vendaDireta = vendedorIdDB === null;
 
     const displayId = gerarDisplayId();
 

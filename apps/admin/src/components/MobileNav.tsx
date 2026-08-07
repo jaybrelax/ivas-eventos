@@ -5,7 +5,7 @@ import {
   Ticket, 
   Trophy,
   ShoppingCart,
-  Settings,
+  ScanLine,
   UserCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,7 @@ export function MobileNav({ userRole }: { userRole?: 'admin' | 'guardiao' }) {
 
   // Adicionar o 5º item dinâmico
   if (userRole === 'admin') {
-    adminItems.push({ label: "Config.", icon: Settings, path: "/configuracoes", color: "text-slate-400" });
+    adminItems.push({ label: "Check-in", icon: ScanLine, path: "/checkin", color: "text-sky-500" });
   } else {
     adminItems.push({ label: "Perfil", icon: UserCircle, path: "/perfil", color: "text-pink-500" });
   }

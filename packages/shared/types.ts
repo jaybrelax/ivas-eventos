@@ -54,5 +54,8 @@ export interface Convidado {
   id: string;
   pedido_id: string;
   nome_completo: string;
+  numero?: number;
+  confirmado?: boolean;
+  checkin_em?: string;
   created_at: string;
 }

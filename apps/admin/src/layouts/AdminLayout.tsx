@@ -12,6 +12,7 @@ import {
   User,
   Eye,
   X,
+  ScanLine,
   Shield,
   Bell,
   Sun,
@@ -208,6 +209,7 @@ export default function AdminLayout() {
     { icon: Ticket, label: 'Eventos', path: '/eventos', roles: ['admin', 'afiliado'], color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/30', activeBg: 'bg-blue-600' },
     { icon: Trophy, label: 'Ranking', path: '/ranking', roles: ['admin', 'afiliado'], color: 'text-amber-500 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30', activeBg: 'bg-amber-500' },
     { icon: ShoppingCart, label: 'Vendas', path: '/vendas', roles: ['admin', 'afiliado'], color: 'text-emerald-500 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30', activeBg: 'bg-emerald-600' },
+    { icon: ScanLine, label: 'Check-in', path: '/checkin', roles: ['admin'], color: 'text-sky-500 dark:text-sky-400', bg: 'bg-sky-50 dark:bg-sky-950/30', activeBg: 'bg-sky-600' },
     { icon: Shield, label: 'Afiliados', path: '/vendedores', roles: ['admin'], color: 'text-indigo-500 dark:text-indigo-400', bg: 'bg-indigo-50 dark:bg-indigo-950/30', activeBg: 'bg-indigo-600' },
     { icon: UserCircle, label: 'Meu Perfil', path: '/perfil', roles: ['admin', 'afiliado'], color: 'text-pink-500 dark:text-pink-400', bg: 'bg-pink-50 dark:bg-pink-950/30', activeBg: 'bg-pink-600' },
     { icon: Settings, label: 'Configurações', path: '/configuracoes', roles: ['admin'], color: 'text-slate-500 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-800/30', activeBg: 'bg-slate-600' },
@@ -230,7 +232,7 @@ export default function AdminLayout() {
 
   if (!session) return <Navigate to="/login" replace />;
 
-  const forbiddenPaths = ['/vendedores', '/configuracoes'];
+  const forbiddenPaths = ['/vendedores', '/configuracoes', '/checkin'];
   const isForbidden = forbiddenPaths.some(path => location.pathname.startsWith(path));
   if (userRole === 'afiliado' && isForbidden) return <Navigate to="/" replace />;
 

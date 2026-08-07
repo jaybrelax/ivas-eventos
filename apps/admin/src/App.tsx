@@ -14,6 +14,7 @@ import PerfilVendedor from './pages/admin/PerfilVendedor';
 import Recrutamento from './pages/admin/Recrutamento';
 import RankingList from './pages/admin/RankingList';
 import NovaSenha from './pages/admin/NovaSenha';
+import CheckinList from './pages/admin/CheckinList';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -57,6 +58,7 @@ export default function App() {
             <Route path="vendas" element={<VendasList />} />
             <Route path="vendedores" element={<VendedoresList />} />
             <Route path="ranking" element={<RankingList />} />
+            <Route path="checkin" element={<CheckinList />} />
             <Route path="perfil" element={<PerfilVendedor />} />
             <Route path="configuracoes" element={<Configuracoes />} />
           </Route>
