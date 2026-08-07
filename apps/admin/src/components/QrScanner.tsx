@@ -16,14 +16,25 @@ export function QrScanner({ onResult, onError }: QrScannerProps) {
   useEffect(() => {
     let cancelled = false;
     let handled = false;
+
+    // Garante um container limpo antes de inicializar, removendo qualquer
+    // resíduo (ex.: <video>) de uma instância anterior da câmera.
+    const el = document.getElementById("qr-reader");
+    if (el) el.innerHTML = "";
+
     const scanner = new Html5Qrcode("qr-reader");
 
     const dispose = async () => {
-      try {
-        await scanner.stop();
-      } catch {
-        // Não está escaneando ou já foi parado.
-      }
+      await Promise.race([
+        (async () => {
+          try {
+            await scanner.stop();
+          } catch {
+            // Não está escaneando ou já foi parado.
+          }
+        })(),
+        new Promise((r) => setTimeout(r, 1500)),
+      ]);
       try {
         scanner.clear();
       } catch {

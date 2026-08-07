@@ -70,6 +70,7 @@ export default function CheckinList() {
   const [view, setView] = useState<'todos' | 'feitos'>('todos');
   const [selectedParticipante, setSelectedParticipante] = useState<Participante | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [scannerSession, setScannerSession] = useState(0);
 
   const { data: eventos = [] } = useQuery({
     queryKey: ['checkin-eventos'],
@@ -257,6 +258,7 @@ export default function CheckinList() {
       queryClient.invalidateQueries({ queryKey: ['checkin', selectedEvento] });
       setScanned(null);
       setScannerOpen(false);
+      setView('feitos');
     } catch (e: any) {
       toast.error("Erro ao fazer check-in: " + (e.message || "erro desconhecido"));
     } finally {
@@ -269,6 +271,14 @@ export default function CheckinList() {
     setScanned(null);
     setScanStatus(null);
     setScanError("");
+  };
+
+  const openScanner = () => {
+    setScannerSession((s) => s + 1);
+    setScanned(null);
+    setScanStatus(null);
+    setScanError("");
+    setScannerOpen(true);
   };
 
   const formatHora = (iso?: string | null) => {
@@ -317,7 +327,7 @@ export default function CheckinList() {
           </Select>
 
           <Button
-            onClick={() => setScannerOpen(true)}
+            onClick={openScanner}
             disabled={!selectedEvento}
             className="hidden md:inline-flex w-full md:w-auto h-11 px-5 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 rounded-xl"
           >
@@ -479,7 +489,7 @@ export default function CheckinList() {
 
       {/* FAB de escanear (mobile) */}
       <button
-        onClick={() => setScannerOpen(true)}
+        onClick={openScanner}
         disabled={!selectedEvento}
         className="md:hidden fixed bottom-24 right-4 z-40 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 active:bg-blue-700 text-white shadow-lg shadow-blue-600/40 flex items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
         title="Escanear QR Code"
@@ -499,7 +509,7 @@ export default function CheckinList() {
 
           <div className="space-y-4">
             {!scanned && !scanStatus && (
-              <QrScanner onResult={(t) => handleScanResultRef.current(t)} onError={handleScanError} />
+              <QrScanner key={scannerSession} onResult={(t) => handleScanResultRef.current(t)} onError={handleScanError} />
             )}
 
             {scanned && scanStatus === 'ok' && (
