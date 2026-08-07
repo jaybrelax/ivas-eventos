@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -31,6 +24,8 @@ import {
   AlertTriangle,
   CalendarDays,
   Clock,
+  ListFilter,
+  ChevronDown,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -71,6 +66,7 @@ export default function CheckinList() {
   const [selectedParticipante, setSelectedParticipante] = useState<Participante | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scannerSession, setScannerSession] = useState(0);
+  const [eventPickerOpen, setEventPickerOpen] = useState(false);
 
   const { data: eventos = [] } = useQuery({
     queryKey: ['checkin-eventos'],
@@ -299,49 +295,48 @@ export default function CheckinList() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-        <div className="text-center md:text-left">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center justify-center md:justify-start gap-2">
-            <ScanLine className="text-blue-500" /> Check-in de Participantes
+    <div className="space-y-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+            <ScanLine className="h-5 w-5 sm:h-7 sm:w-7 text-blue-500 shrink-0" />
+            Check-in de Participantes
           </h1>
-          <p className="hidden md:block text-slate-500 dark:text-slate-400 text-sm mt-1">
-            Escaneie o QR code do ingresso ou faça check-in manualmente.
-          </p>
         </div>
 
-        <div className="w-full md:w-auto flex flex-col md:flex-row items-center gap-4">
-          <Select value={selectedEvento} onValueChange={setSelectedEvento}>
-            <SelectTrigger className="w-full md:w-72 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700">
-              <SelectValue>
-                {eventos.find((e: any) => e.id === selectedEvento)?.titulo || "Selecione o evento..."}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent className="rounded-xl border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-950">
-              {eventos.map((e: any) => (
-                <SelectItem key={e.id} value={e.id}>
-                  {e.titulo}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             onClick={openScanner}
             disabled={!selectedEvento}
-            className="hidden md:inline-flex w-full md:w-auto h-11 px-5 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 rounded-xl"
+            className="hidden sm:inline-flex h-11 px-5 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 rounded-xl"
           >
-            <ScanLine className="h-4 w-4 mr-2" /> Escanear QR Code
+            <ScanLine className="h-5 w-5 mr-2" /> Escanear
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setEventPickerOpen(true)}
+            className="h-11 w-11 rounded-xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm"
+            title="Selecionar evento"
+            aria-label="Selecionar evento"
+          >
+            <ListFilter className="h-5 w-5 text-slate-600 dark:text-slate-300" />
           </Button>
         </div>
       </div>
 
       {selectedEvento && eventoSelecionado && (
-        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+        <button
+          type="button"
+          onClick={() => setEventPickerOpen(true)}
+          className="inline-flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+        >
           <CalendarDays className="h-4 w-4 text-blue-500" />
           <span className="font-semibold text-slate-700 dark:text-slate-200">{eventoSelecionado.titulo}</span>
-          <span>• {formatData(eventoSelecionado.data_evento)}</span>
-        </div>
+          <span className="text-slate-400">•</span>
+          <span>{formatData(eventoSelecionado.data_evento)}</span>
+          <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+        </button>
       )}
 
       {total > 0 && (
@@ -495,7 +490,7 @@ export default function CheckinList() {
         title="Escanear QR Code"
         aria-label="Escanear QR Code"
       >
-        <ScanLine className="h-6 w-6" />
+        <ScanLine className="h-8 w-8" />
       </button>
 
       <Dialog open={scannerOpen} onOpenChange={(open) => !open && closeScanner()}>
@@ -706,6 +701,44 @@ export default function CheckinList() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={eventPickerOpen} onOpenChange={(open) => !open && setEventPickerOpen(false)}>
+        <DialogContent className="sm:max-w-md dark:bg-slate-900 dark:border-slate-800 max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Selecionar evento</DialogTitle>
+            <DialogDescription>Escolha o evento para realizar o check-in.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2">
+            {eventos.map((e: any) => (
+              <button
+                key={e.id}
+                type="button"
+                onClick={() => {
+                  setSelectedEvento(e.id);
+                  setEventPickerOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-3 p-4 rounded-xl border text-left transition-all ${
+                  selectedEvento === e.id
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40'
+                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-blue-300 dark:hover:border-blue-800'
+                }`}
+              >
+                <div className="min-w-0">
+                  <p className="font-bold text-slate-900 dark:text-slate-100 leading-snug">{e.titulo}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{formatData(e.data_evento)}</p>
+                </div>
+                {selectedEvento === e.id && (
+                  <CheckCircle2 className="h-5 w-5 text-blue-500 shrink-0" />
+                )}
+              </button>
+            ))}
+            {eventos.length === 0 && (
+              <p className="text-sm text-slate-500 dark:text-slate-400 text-center py-6">Nenhum evento cadastrado.</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
