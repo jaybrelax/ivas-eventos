@@ -234,6 +234,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
   const isPromoActive = hasPromo && quantidade >= evento.qtd_off;
   const currentUnitPrice = isPromoActive ? evento.off_price : evento.valor_ingresso;
   const totalValue = quantidade * currentUnitPrice;
+  const vendasEncerradas = evento.vendas_encerradas === true;
 
   return (
     <div className="bg-[#eff5fb] pb-28 md:pb-12">
@@ -260,6 +261,18 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
 
       {/* ── CONTEÚDO ── */}
       <div className="max-w-5xl mx-auto px-3 sm:px-6 lg:px-8 py-5 md:py-8">
+        {vendasEncerradas && (
+          <div className="mb-5 md:-mt-4 rounded-3xl border-2 border-red-300 bg-gradient-to-r from-red-600 via-red-500 to-rose-600 text-white px-5 py-4 shadow-lg shadow-red-500/20 flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-xl shrink-0">
+              <AlertCircle className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-lg sm:text-xl font-black uppercase tracking-wider leading-tight">Vendas Encerradas</p>
+              <p className="text-white/90 text-sm font-medium">Este evento esgotou (SOLD OUT). Não é mais possível comprar ingressos.</p>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col md:grid md:grid-cols-3 gap-4 md:gap-5">
 
           {/* Coluna principal */}
@@ -359,34 +372,48 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
             </Card>
 
             {/* Price section for mobile */}
-            <Card className="md:hidden border-blue-200 bg-blue-50/50">
+            <Card className={`md:hidden ${vendasEncerradas ? 'border-red-200 bg-red-50/40' : 'border-blue-200 bg-blue-50/50'}`}>
               <CardContent className="p-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
+                {vendasEncerradas ? (
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-inner">
-                      <Ticket className="h-5 w-5" />
+                    <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-inner underline-offset-0">
+                      <AlertCircle className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-lg font-bold text-gray-900 leading-tight">Valor do ingresso</p>
-                      <p className="text-[13px] text-gray-500 uppercase tracking-wider font-semibold">Por pessoa</p>
+                      <p className="text-lg font-black text-red-600 uppercase leading-tight">Vendas Encerradas</p>
+                      <p className="text-[13px] text-red-500 font-semibold">Este evento esgotou (SOLD OUT)</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className={`text-3xl font-black text-green-600 ${isPromoActive ? 'line-through text-gray-400 text-lg' : ''}`}>
-                      R$ {Math.floor(Number(evento.valor_ingresso))}
-                    </p>
-                    {isPromoActive && (
-                      <p className="text-3xl font-black text-green-600 animate-pulse">
-                        R$ {Math.floor(Number(evento.off_price))}
-                      </p>
-                    )}
-                  </div>
-                </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shadow-inner">
+                          <Ticket className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="text-lg font-bold text-gray-900 leading-tight">Valor do ingresso</p>
+                          <p className="text-[13px] text-gray-500 uppercase tracking-wider font-semibold">Por pessoa</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-3xl font-black text-green-600 ${isPromoActive ? 'line-through text-gray-400 text-lg' : ''}`}>
+                          R$ {Math.floor(Number(evento.valor_ingresso))}
+                        </p>
+                        {isPromoActive && (
+                          <p className="text-3xl font-black text-green-600 animate-pulse">
+                            R$ {Math.floor(Number(evento.off_price))}
+                          </p>
+                        )}
+                      </div>
+                    </div>
 
-                {hasPromo && !isPromoActive && (
-                  <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-3 rounded-xl text-center text-sm font-medium animate-pulse shadow-md">
-                    🚀 PROMOÇÃO: Compre {evento.qtd_off} ou mais e pague apenas <span className="text-yellow-300 font-bold text-base">R$ {Math.floor(Number(evento.off_price))}</span> por ingresso!
-                  </div>
+                    {hasPromo && !isPromoActive && (
+                      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white p-3 rounded-xl text-center text-sm font-medium animate-pulse shadow-md">
+                        🚀 PROMOÇÃO: Compre {evento.qtd_off} ou mais e pague apenas <span className="text-yellow-300 font-bold text-base">R$ {Math.floor(Number(evento.off_price))}</span> por ingresso!
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>
@@ -394,29 +421,40 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
             {/* Selector de Ingressos */}
             <Card id="comprar" ref={ticketsRef} className="scroll-mt-[170px] md:hidden">
               <CardContent className="p-4 sm:p-6">
-                <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mb-6">Quantos ingressos?</h2>
-
-                <span className="text-xs text-gray-500 font-medium block mb-2">Compre o seu e de acompanhantes juntos</span>
-                <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 border border-gray-200 rounded-2xl mb-4 shadow-inner">
-                  <span className="font-bold text-gray-800 text-lg">Quantidade</span>
-                  <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
-                      disabled={quantidade <= 1}
-                      className="rounded-lg h-10 w-10 text-gray-600 hover:text-blue-600 border-gray-200"
-                    ><Minus className="h-5 w-5" /></Button>
-                    <span className="text-2xl font-black w-8 text-center text-blue-600">{quantidade}</span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => setQuantidade(quantidade + 1)}
-                      className="rounded-lg h-10 w-10 text-gray-600 hover:text-blue-600 border-gray-200"
-                    ><Plus className="h-5 w-5" /></Button>
+                {vendasEncerradas ? (
+                  <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 text-center">
+                    <div className="w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-red-500/30">
+                      <AlertCircle className="h-8 w-8" />
+                    </div>
+                    <p className="text-xl font-black text-red-600 uppercase tracking-wide">Sold Out</p>
+                    <p className="text-sm text-red-500 font-medium mt-1">Não é mais possível comprar ingressos para este evento.</p>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <h2 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight mb-6">Quantos ingressos?</h2>
 
+                    <span className="text-xs text-gray-500 font-medium block mb-2">Compre o seu e de acompanhantes juntos</span>
+                    <div className="flex items-center justify-between p-4 sm:p-6 bg-gray-50 border border-gray-200 rounded-2xl mb-4 shadow-inner">
+                      <span className="font-bold text-gray-800 text-lg">Quantidade</span>
+                      <div className="flex items-center gap-4 bg-white p-2 rounded-xl shadow-sm border border-gray-100">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
+                          disabled={quantidade <= 1}
+                          className="rounded-lg h-10 w-10 text-gray-600 hover:text-blue-600 border-gray-200"
+                        ><Minus className="h-5 w-5" /></Button>
+                        <span className="text-2xl font-black w-8 text-center text-blue-600">{quantidade}</span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setQuantidade(quantidade + 1)}
+                          className="rounded-lg h-10 w-10 text-gray-600 hover:text-blue-600 border-gray-200"
+                        ><Plus className="h-5 w-5" /></Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -424,49 +462,61 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
           {/* Sidebar Desktop */}
           <div className="md:col-span-1 hidden md:block">
             <div className="sticky top-24 -mt-[88px]">
-              <Card className="border-blue-200 shadow-lg">
+              <Card className="border-red-200 shadow-lg">
                 <CardContent className="p-5">
                   <h3 className="text-lg font-bold mb-4">Resumo da Compra</h3>
-                  <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100 text-sm">
-                    <span className="text-gray-600">Valor unitário</span>
-                    <div className="text-right">
-                      <span className={`font-bold block ${isPromoActive ? 'line-through text-gray-400 text-xs' : ''}`}>R$ {Math.floor(Number(evento.valor_ingresso))}</span>
-                      {isPromoActive && <span className="font-bold text-green-600">R$ {Math.floor(Number(evento.off_price))}</span>}
+                  {vendasEncerradas ? (
+                    <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 text-center">
+                      <div className="w-16 h-16 rounded-full bg-red-600 text-white flex items-center justify-center mx-auto mb-3 shadow-lg shadow-red-500/30">
+                        <AlertCircle className="h-8 w-8" />
+                      </div>
+                      <p className="text-xl font-black text-red-600 uppercase tracking-wide">Sold Out</p>
+                      <p className="text-sm text-red-500 font-medium mt-1">Vendas encerradas para este evento.</p>
                     </div>
-                  </div>
-                  <span className="text-xs text-gray-500 font-medium block mb-2">Compre o seu e de acompanhantes juntos</span>
-                  <div className="flex items-center justify-between mb-5 bg-gray-50 border border-gray-200 rounded-xl p-2 shadow-inner">
-                    <span className="text-sm text-gray-700 font-bold ml-1">Quantidade</span>
-                    <div className="flex items-center gap-3 bg-white p-1.5 rounded-lg shadow-sm border border-gray-100">
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100 text-sm">
+                        <span className="text-gray-600">Valor unitário</span>
+                        <div className="text-right">
+                          <span className={`font-bold block ${isPromoActive ? 'line-through text-gray-400 text-xs' : ''}`}>R$ {Math.floor(Number(evento.valor_ingresso))}</span>
+                          {isPromoActive && <span className="font-bold text-green-600">R$ {Math.floor(Number(evento.off_price))}</span>}
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500 font-medium block mb-2">Compre o seu e de acompanhantes juntos</span>
+                      <div className="flex items-center justify-between mb-5 bg-gray-50 border border-gray-200 rounded-xl p-2 shadow-inner">
+                        <span className="text-sm text-gray-700 font-bold ml-1">Quantidade</span>
+                        <div className="flex items-center gap-3 bg-white p-1.5 rounded-lg shadow-sm border border-gray-100">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
+                            disabled={quantidade <= 1}
+                            className="rounded-lg h-9 w-9 text-gray-600 hover:text-blue-600 border-gray-200"
+                          ><Minus className="h-4 w-4" /></Button>
+                          <span className="text-xl font-black w-6 text-center text-blue-600">{quantidade}</span>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => setQuantidade(quantidade + 1)}
+                            className="rounded-lg h-9 w-9 text-gray-600 hover:text-blue-600 border-gray-200"
+                          ><Plus className="h-4 w-4" /></Button>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center mb-5 pt-4 border-t border-gray-100">
+                        <span className="font-bold text-gray-900">Total</span>
+                        <span className="text-2xl font-extrabold text-green-600">R$ {Math.floor(totalValue)}</span>
+                      </div>
                       <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setQuantidade(Math.max(1, quantidade - 1))}
-                        disabled={quantidade <= 1}
-                        className="rounded-lg h-9 w-9 text-gray-600 hover:text-blue-600 border-gray-200"
-                      ><Minus className="h-4 w-4" /></Button>
-                      <span className="text-xl font-black w-6 text-center text-blue-600">{quantidade}</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setQuantidade(quantidade + 1)}
-                        className="rounded-lg h-9 w-9 text-gray-600 hover:text-blue-600 border-gray-200"
-                      ><Plus className="h-4 w-4" /></Button>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center mb-5 pt-4 border-t border-gray-100">
-                    <span className="font-bold text-gray-900">Total</span>
-                    <span className="text-2xl font-extrabold text-green-600">R$ {Math.floor(totalValue)}</span>
-                  </div>
-                  <Button
-                    className="w-full h-14 rounded-full text-base uppercase font-bold shadow-lg transition-all duration-300 bg-[#1b5df1] hover:bg-[#0044cc] text-white font-black scale-[1.02]"
-                    onClick={() => {
-                      setCheckoutStep(1);
-                      setIsModalOpen(true);
-                    }}
-                  >
-                    Comprar Ingressos
-                  </Button>
+                        className="w-full h-14 rounded-full text-base uppercase font-bold shadow-lg transition-all duration-300 bg-[#1b5df1] hover:bg-[#0044cc] text-white font-black scale-[1.02]"
+                        onClick={() => {
+                          setCheckoutStep(1);
+                          setIsModalOpen(true);
+                        }}
+                      >
+                        Comprar Ingressos
+                      </Button>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -517,7 +567,12 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
         </div>
       )}
 
-      {/* Floating Mobile Bar */}
+      {vendasEncerradas ? (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-red-600 text-white px-4 py-4 safe-area-bottom shadow-[0_-10px_40px_rgba(0,0,0,0.15)] flex items-center justify-center gap-2.5">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <p className="font-black uppercase tracking-wider text-sm">Vendas Encerradas — Sold Out</p>
+        </div>
+      ) : (
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/40 backdrop-blur-xl border-t border-white/20 px-4 py-4 safe-area-bottom shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-all duration-300">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0 pr-2 flex-1">
@@ -543,6 +598,7 @@ export default function EventoDetailsClient({ initialEvento, config }: EventoDet
           </Button>
         </div>
       </div>
+      )}
 
       {/* Checkout Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

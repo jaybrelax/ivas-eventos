@@ -659,12 +659,16 @@ app.post("/api/pagamento/pix", async (req, res) => {
     // Buscar dados do evento
     const { data: evento } = await supabaseAdmin
       .from("eventos")
-      .select("titulo, valor_ingresso, timeout_reserva, off_price, qtd_off, capacidade")
+      .select("titulo, valor_ingresso, timeout_reserva, off_price, qtd_off, capacidade, vendas_encerradas")
       .eq("id", evento_id)
       .single();
 
     if (!evento) {
       return res.status(404).json({ error: "Evento não encontrado." });
+    }
+
+    if (evento.vendas_encerradas) {
+      return res.status(400).json({ error: "Vendas encerradas para este evento. Ingressos esgotados (SOLD OUT)." });
     }
 
     // Verificar capacidade restante

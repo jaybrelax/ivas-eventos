@@ -193,7 +193,10 @@ export default function EventosList() {
                       )}
                     </>
                   )}
-                  <div className="absolute top-2 right-2 z-10">
+                  <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
+                    {evento.vendas_encerradas && (
+                      <Badge className="bg-red-600 text-white text-[10px] px-2 py-0.5">VENDAS ENCERRADAS</Badge>
+                    )}
                     {getStatusBadge(evento.status)}
                   </div>
                   <div className="absolute bottom-2 left-2 z-10">

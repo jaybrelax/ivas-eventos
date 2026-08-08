@@ -11,6 +11,7 @@ export interface Evento {
   localizacao_maps?: string;
   horario_evento?: string;
   status: 'ativo' | 'desativado';
+  vendas_encerradas?: boolean;
   timeout_reserva: number;
   meta_guardiao?: number;
   off_price?: number;

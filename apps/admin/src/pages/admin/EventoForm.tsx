@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, Image as ImageIcon, Upload, Trash, Loader2, Trophy } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -56,6 +57,7 @@ export default function EventoForm() {
     slug: "",
     metaGuardiao: "50",
     status: "ativo",
+    vendasEncerradas: false,
     offPrice: "",
     qtdOff: ""
   });
@@ -110,6 +112,7 @@ export default function EventoForm() {
         slug: evento.slug || "",
         metaGuardiao: evento.meta_guardiao ? evento.meta_guardiao.toString() : "50",
         status: evento.status,
+        vendasEncerradas: !!evento.vendas_encerradas,
         offPrice: evento.off_price ? evento.off_price.toString() : "",
         qtdOff: evento.qtd_off ? evento.qtd_off.toString() : ""
       });
@@ -263,6 +266,7 @@ export default function EventoForm() {
         slug: formData.slug || null,
         meta_guardiao: parseInt(formData.metaGuardiao) || 50,
         status: formData.status,
+        vendas_encerradas: formData.vendasEncerradas,
         off_price: formData.offPrice ? parseFloat(formData.offPrice) : null,
         qtd_off: formData.qtdOff ? parseInt(formData.qtdOff) : null
       };
@@ -588,6 +592,22 @@ export default function EventoForm() {
                   {formData.status === 'desativado' && (
                     <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 p-2 rounded">
                       Eventos desativados não são visíveis para o público.
+                    </p>
+                  )}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-slate-800">
+                    <div>
+                      <Label htmlFor="vendasEncerradas" className="font-medium cursor-pointer">Vendas Encerradas</Label>
+                      <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">Página segue ativa, mas ninguém consegue comprar (SOLD OUT).</p>
+                    </div>
+                    <Switch
+                      id="vendasEncerradas"
+                      checked={formData.vendasEncerradas}
+                      onCheckedChange={(checked) => setFormData({ ...formData, vendasEncerradas: checked })}
+                    />
+                  </div>
+                  {formData.vendasEncerradas && (
+                    <p className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 p-2 rounded">
+                      ⚠️ A página continua visível, mas novas compras serão bloqueadas.
                     </p>
                   )}
                 </div>
