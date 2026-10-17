@@ -49,6 +49,19 @@ export const Banner = forwardRef<HTMLDivElement, Props & { refConteudo?: React.R
           };
 
   const colunas = c.layout === "lista" ? 1 : c.layout === "grade2" ? 2 : 3;
+  // Glassmorphism: card translúcido que desfoca o fundo atrás dele (só em 2 e 3 colunas).
+  const vidro = c.vidro && colunas > 1;
+  const estiloVidro = vidro
+    ? {
+        backdropFilter: `blur(${c.desfoque}px) saturate(150%)`,
+        WebkitBackdropFilter: `blur(${c.desfoque}px) saturate(150%)`,
+        // Lados separados: a borda esquerda tem a cor do tipo e não pode ser sobrescrita.
+        borderTop: `${px(1.5)} solid ${rgba("#ffffff", 0.28)}`,
+        borderRight: `${px(1.5)} solid ${rgba("#ffffff", 0.28)}`,
+        borderBottom: `${px(1.5)} solid ${rgba("#ffffff", 0.28)}`,
+        boxShadow: `inset 0 ${px(1)} 0 ${rgba("#ffffff", 0.35)}, 0 ${px(10)} ${px(30)} ${rgba("#000000", 0.25)}`,
+      }
+    : {};
 
   return (
     <div
@@ -110,7 +123,10 @@ export const Banner = forwardRef<HTMLDivElement, Props & { refConteudo?: React.R
                 display: "flex",
                 gap: px(26),
                 alignItems: "center",
-                background: rgba(c.corCard, c.opacidadeCard),
+                background: vidro
+                  ? `linear-gradient(135deg, ${rgba(c.corCard, Math.min(1, c.opacidadeCard + 0.12))}, ${rgba(c.corCard, c.opacidadeCard)})`
+                  : rgba(c.corCard, c.opacidadeCard),
+                ...estiloVidro,
                 borderLeft: `${px(12)} solid ${cor}`,
                 borderRadius: px(22),
                 padding: `${px(22)} ${px(28)}`,

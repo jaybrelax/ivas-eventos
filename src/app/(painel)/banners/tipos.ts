@@ -19,6 +19,8 @@ export type ConfigBanner = {
   corTexto: string;
   corCard: string;
   opacidadeCard: number;
+  vidro: boolean; // glassmorphism nos cards (layouts de 2 e 3 colunas)
+  desfoque: number; // intensidade do desfoque do vidro, em px
   corDestaque: string;
   corTitulo: string; // título dourado do layout Calendário
   usarCorTipo: boolean;
@@ -55,6 +57,8 @@ export function configPadrao(inst: Instituto, titulo: string, subtitulo: string)
     corTexto: "#ffffff",
     corCard: "#ffffff",
     opacidadeCard: 0.1,
+    vidro: true,
+    desfoque: 18,
     corDestaque: inst.cor_secundaria,
     corTitulo: "#f2c14e",
     usarCorTipo: true,

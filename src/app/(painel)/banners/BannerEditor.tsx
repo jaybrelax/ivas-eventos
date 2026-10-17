@@ -324,6 +324,12 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
           <Cor rotulo={c.layout === "calendario" ? "Ícone de local e detalhes" : "Destaque (título, Pix)"} v={c.corDestaque} set={set("corDestaque")} />
           <Cor rotulo="Fundo do card" v={c.corCard} set={set("corCard")} />
           <Faixa rotulo="Opacidade do card" v={c.opacidadeCard} set={set("opacidadeCard")} min={0} max={1} passo={0.05} />
+          {(c.layout === "grade2" || c.layout === "grade3") && (
+            <>
+              <Check rotulo="Efeito vidro (desfoca o fundo atrás do card)" v={c.vidro} set={set("vidro")} />
+              {c.vidro && <Faixa rotulo="Intensidade do desfoque" v={c.desfoque} set={set("desfoque")} min={4} max={40} passo={2} />}
+            </>
+          )}
           <Check rotulo="Usar a cor de cada tipo de evento" v={c.usarCorTipo} set={set("usarCorTipo")} />
           <label className="block text-xs">Logo
             <select value={c.logo} onChange={(e) => set("logo")(e.target.value as ConfigBanner["logo"])} className="campo mt-1">
