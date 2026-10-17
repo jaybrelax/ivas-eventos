@@ -78,7 +78,7 @@ export function FormNovoUsuario({ aoCriar }: { aoCriar?: (mensagem: string) => v
         </div>
         <div>
           <Rot icone={ShieldCheck} htmlFor="nu-perfil">Perfil de acesso</Rot>
-          <select id="nu-perfil" name="perfil" defaultValue="coordenador" className="campo">
+          <select id="nu-perfil" name="perfil" defaultValue="normal" className="campo">
             {PERFIS.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </select>
         </div>
@@ -108,18 +108,14 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-1.5 font-semibold text-stone-900">
             <span className="truncate">{u.nome}</span>
+            {u.sexo && (
+              <span title={GENERO_ROTULO[u.sexo]} className="inline-flex">
+                <IconeGenero genero={u.sexo} size={16} />
+              </span>
+            )}
             {souEu && <span className="chip bg-stone-100 text-stone-500">você</span>}
             {u.funcaoRitual !== "nenhuma" && (
-              <span className="chip bg-mata-50 text-mata-700 ring-1 ring-mata-200 ring-inset">
-                {FUNCAO_ROTULO[u.funcaoRitual]}
-                {u.sexo && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <IconeGenero genero={u.sexo} size={13} />
-                    {GENERO_ROTULO[u.sexo]}
-                  </>
-                )}
-              </span>
+              <span className="chip bg-mata-50 text-mata-700 ring-1 ring-mata-200 ring-inset">{FUNCAO_ROTULO[u.funcaoRitual]}</span>
             )}
           </p>
           <p className="flex flex-wrap items-center gap-x-3 text-sm text-stone-500">
@@ -131,8 +127,8 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
             )}
           </p>
         </div>
-        <span className="chip bg-stone-100 text-stone-600" title="Perfil de acesso ao painel">
-          Acesso: {PERFIS.find((p) => p.id === u.perfil)?.nome ?? "sem perfil"}
+        <span className="text-sm text-stone-500 italic" title="Perfil de acesso ao painel">
+          {PERFIS.find((p) => p.id === u.perfil)?.nome ?? "sem perfil"}
         </span>
         <div className="flex gap-1">
           {pendente && <span className="grid h-10 w-6 place-items-center text-stone-400"><Carregando /></span>}

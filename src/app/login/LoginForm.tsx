@@ -17,7 +17,7 @@ export function LoginForm({ semPerfil }: { semPerfil: boolean }) {
         startTransition(() => acao(dados));
       }}
     >
-      {semPerfil && <Aviso tipo="info">Sua conta ainda não tem perfil (Admin ou Coordenador). Peça a um Admin.</Aviso>}
+      {semPerfil && <Aviso tipo="info">Sua conta ainda não tem perfil (Admin, Coordenador ou Normal). Peça a um Admin.</Aviso>}
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
       <div>
         <label className="rotulo" htmlFor="email">E-mail</label>

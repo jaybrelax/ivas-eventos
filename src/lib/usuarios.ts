@@ -31,7 +31,7 @@ export function prefsDe(prefs: unknown) {
 }
 
 export function perfilDosLabels(labels: string[] = []): Perfil | null {
-  return (["admin", "coordenador"] as const).find((p) => labels.includes(p)) ?? null;
+  return (["admin", "coordenador", "normal"] as const).find((p) => labels.includes(p)) ?? null;
 }
 
 /** Usuários que podem ser escalados: mestres e guardiões ativos, em ordem de nome. */

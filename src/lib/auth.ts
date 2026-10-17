@@ -14,6 +14,7 @@ export type Usuario = {
 function perfilDe(labels: string[]): Perfil | null {
   if (labels.includes("admin")) return "admin";
   if (labels.includes("coordenador")) return "coordenador";
+  if (labels.includes("normal")) return "normal";
   return null;
 }
 

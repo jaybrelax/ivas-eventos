@@ -85,8 +85,9 @@ npm run dev
 | --- | --- |
 | **Admin** | Tudo: eventos, numeração manual, configurações, usuários, exclusões |
 | **Coordenador** | Cria e edita eventos, vê o resumo, gera banners e salva modelos de banner |
+| **Normal** | Acesso padrão de novos usuários: vê a agenda e o resumo e gera banners (as permissões de cada perfil serão definidas depois) |
 
-O perfil é um *label* do usuário no Appwrite (`admin` ou `coordenador`). Crie e altere usuários pela página **Usuários**.
+O perfil é um *label* do usuário no Appwrite (`admin`, `coordenador` ou `normal`). Crie e altere usuários pela página **Usuários**.
 
 Separado do perfil de acesso, cada usuário tem uma **Função do usuário** (Mestre, Guardião ou nenhuma) e um **Gênero**. Elas definem quem pode ser escalado em cada evento, em "Mestres e guardiões"; um Admin ou Coordenador também pode ser Mestre ou Guardião.
 
