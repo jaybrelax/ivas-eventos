@@ -4,6 +4,7 @@ import { ID, Query } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 import { createAdminClient } from "./appwrite";
 import { BUCKET_ID, type Perfil } from "./config";
+import { conferirImagem } from "./imagem";
 import type { Funcao, Pessoa, Sexo } from "./types";
 
 /** Função do usuário nos rituais, independente do perfil de acesso (um Admin pode ser Mestre). */
@@ -71,8 +72,8 @@ export async function salvarContato(userId: string, form: FormData, podeFuncao =
 
   const arquivo = form.get("foto");
   if (arquivo instanceof File && arquivo.size > 0) {
-    if (!arquivo.type.startsWith("image/")) return { erro: "A foto precisa ser uma imagem (PNG, JPG ou WEBP)." };
-    if (arquivo.size > 5 * 1024 * 1024) return { erro: "A foto pode ter no máximo 5 MB." };
+    const invalida = conferirImagem(arquivo, "foto");
+    if (invalida) return { erro: invalida };
     try {
       const novo = await storage.createFile({
         bucketId: BUCKET_ID, fileId: ID.unique(), file: InputFile.fromBuffer(Buffer.from(await arquivo.arrayBuffer()), arquivo.name),

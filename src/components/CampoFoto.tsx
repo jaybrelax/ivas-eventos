@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Camera, Trash2 } from "lucide-react";
 import { iniciais } from "./Avatar";
+import { useImagem } from "./useImagem";
 
 /** Envio da foto de perfil com prévia. Manda `foto` (arquivo) e `remover_foto`. */
 export function CampoFoto({ nome, fotoAtual, tamanho = 88 }: { nome: string; fotoAtual?: string | null; tamanho?: number }) {
-  const [local, setLocal] = useState<string | null>(null);
+  const { local, erro, otimizando, escolher, limpar } = useImagem("foto");
   const [remover, setRemover] = useState(false);
-  useEffect(() => () => { if (local) URL.revokeObjectURL(local); }, [local]);
   const preview = local ?? (fotoAtual && !remover ? `/api/arquivo/${fotoAtual}` : null);
 
   return (
@@ -35,22 +35,21 @@ export function CampoFoto({ nome, fotoAtual, tamanho = 88 }: { nome: string; fot
           className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            setLocal(f ? URL.createObjectURL(f) : null);
+            escolher(e.currentTarget, f);
             if (f) setRemover(false);
           }}
         />
       </label>
       <div className="text-sm">
         <p className="font-medium text-stone-800">Foto de perfil</p>
-        <p className="text-xs text-stone-500">PNG, JPG ou WEBP · até 5 MB</p>
+        <p className="text-xs text-stone-500">{otimizando ? "Otimizando a foto…" : "PNG, JPG ou WEBP · reduzida automaticamente"}</p>
+        {erro && <p className="mt-1.5 text-xs text-red-700">{erro}</p>}
         {(local || (fotoAtual && !remover)) && (
           <button
             type="button"
             className="mt-1.5 inline-flex items-center gap-1 text-xs text-stone-500 hover:text-red-700"
             onClick={(e) => {
-              const input = e.currentTarget.closest("form")?.querySelector<HTMLInputElement>('input[name="foto"]');
-              if (input) input.value = "";
-              setLocal(null);
+              limpar(e.currentTarget.closest("form")?.querySelector<HTMLInputElement>('input[name="foto"]'));
               if (fotoAtual) setRemover(true);
             }}
           >

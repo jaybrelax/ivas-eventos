@@ -8,6 +8,7 @@ import { exigir } from "@/lib/auth";
 import { BUCKET_ID, DB_ID, INSTITUTO_ROW_ID, TABLES } from "@/lib/config";
 import { getInstituto } from "@/lib/data";
 import { slugify } from "@/lib/format";
+import { conferirImagem } from "@/lib/imagem";
 import { CAMPOS, type TabelaEditavel } from "./campos";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
@@ -30,6 +31,12 @@ export async function salvarInstituto(_: Resultado, form: FormData): Promise<Res
     ritual_numero_inicial: Math.max(1, Number(form.get("ritual_numero_inicial")) || atual.ritual_numero_inicial),
   };
 
+  for (const nome of ["logo", "logo_escura"]) {
+    const arquivo = form.get(nome);
+    const invalida = arquivo instanceof File && arquivo.size > 0 ? conferirImagem(arquivo, "logo") : null;
+    if (invalida) return { erro: invalida };
+  }
+
   try {
     for (const campo of ["logo_file_id", "logo_escura_file_id"] as const) {
       const arquivo = form.get(campo.replace("_file_id", ""));
@@ -48,7 +55,7 @@ export async function salvarInstituto(_: Resultado, form: FormData): Promise<Res
     await tablesDB.upsertRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: dados });
   } catch (e) {
     console.error(e);
-    return { erro: "Não foi possível salvar. Confira o tamanho e o formato da imagem (PNG, JPG, WEBP ou SVG, até 10 MB)." };
+    return { erro: "Não foi possível salvar. Confira o formato da imagem (PNG, JPG, WEBP ou SVG)." };
   }
   revalidatePath("/", "layout");
   return { ok: "Dados do Instituto salvos." };

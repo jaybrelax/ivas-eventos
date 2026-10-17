@@ -1,16 +1,16 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { salvarInstituto } from "./actions";
 import { FONTES } from "./campos";
 import { Aviso, BotaoEnviar } from "@/components/ui";
+import { useImagem } from "@/components/useImagem";
 import type { Instituto } from "@/lib/types";
 
 function Logo({ rotulo, dica, nome, fileId, fundo }: { rotulo: string; dica: string; nome: string; fileId: string | null; fundo: string }) {
-  const [local, setLocal] = useState<string | null>(null);
+  const { local, erro, otimizando, escolher } = useImagem("logo");
   const [remover, setRemover] = useState(false);
-  useEffect(() => () => { if (local) URL.revokeObjectURL(local); }, [local]);
   const preview = local ?? (fileId && !remover ? `/api/arquivo/${fileId}` : null);
   return (
     <div>
@@ -42,13 +42,13 @@ function Logo({ rotulo, dica, nome, fileId, fundo }: { rotulo: string; dica: str
           className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            setLocal(f ? URL.createObjectURL(f) : null);
+            escolher(e.currentTarget, f);
             if (f) setRemover(false);
           }}
         />
       </label>
       {remover && <input type="hidden" name={`remover_${nome}_file_id`} value="on" />}
-      <p className="ajuda">{dica}</p>
+      {erro ? <p className="ajuda text-red-700">{erro}</p> : <p className="ajuda">{otimizando ? "Otimizando a imagem…" : dica}</p>}
     </div>
   );
 }
@@ -89,8 +89,8 @@ export function InstitutoForm({ instituto }: { instituto: Instituto }) {
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
-        <Logo rotulo="Logo para fundo claro" dica="Usada nos banners claros." nome="logo" fileId={instituto.logo_file_id} fundo="#ffffff" />
-        <Logo rotulo="Logo para fundo escuro" dica="Aparece no menu lateral e na tela de entrada." nome="logo_escura" fileId={instituto.logo_escura_file_id} fundo={instituto.cor_primaria} />
+        <Logo rotulo="Logo para fundo claro" dica="Usada nos banners claros. PNG, JPG, WEBP ou SVG." nome="logo" fileId={instituto.logo_file_id} fundo="#ffffff" />
+        <Logo rotulo="Logo para fundo escuro" dica="Aparece no menu lateral e na tela de entrada. PNG, JPG, WEBP ou SVG." nome="logo_escura" fileId={instituto.logo_escura_file_id} fundo={instituto.cor_primaria} />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

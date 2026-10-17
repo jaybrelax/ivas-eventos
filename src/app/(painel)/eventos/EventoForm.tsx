@@ -1,10 +1,11 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useState } from "react";
+import { startTransition, useActionState, useState } from "react";
 import Link from "next/link";
 import { Check, Flame, Hash, ImagePlus, Megaphone, RefreshCw, Star, Trash2 } from "lucide-react";
 import { salvarEvento } from "./actions";
 import { Aviso, Carregando } from "@/components/ui";
+import { useImagem } from "@/components/useImagem";
 import type { Endereco, Evento, Pessoa, TipoEvento } from "@/lib/types";
 import { EscolhaEquipe } from "./Equipe";
 import { formatarIdRitual } from "@/lib/format";
@@ -40,20 +41,14 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Pr
   const idRitual = formatarIdRitual(evento?.ritual_numero_geral ?? null, evento?.ritual_ano ?? null, evento?.ritual_numero_ano ?? null);
   const [destaque, setDestaque] = useState(evento?.destaque ?? false);
   const [banner, setBanner] = useState(evento?.mostrar_banner ?? true);
-  const [capaLocal, setCapaLocal] = useState<string | null>(null);
+  const { local: capaLocal, erro: erroCapa, otimizando, escolher, limpar } = useImagem("capa");
   const [removerCapa, setRemoverCapa] = useState(false);
   const [arrastando, setArrastando] = useState(false);
   const capaSalva = evento?.capa_file_id && !removerCapa ? `/api/arquivo/${evento.capa_file_id}` : null;
   const capaPreview = capaLocal ?? capaSalva;
-  useEffect(() => () => { if (capaLocal) URL.revokeObjectURL(capaLocal); }, [capaLocal]);
 
   const escolherCapa = (input: HTMLInputElement, f?: File | null) => {
-    if (f && input.files?.[0] !== f) {
-      const dt = new DataTransfer();
-      dt.items.add(f);
-      input.files = dt.files;
-    }
-    setCapaLocal(f ? URL.createObjectURL(f) : null);
+    escolher(input, f);
     if (f) setRemoverCapa(false);
   };
 
@@ -186,8 +181,7 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Pr
                       title="Remover imagem"
                       onClick={(e) => {
                         const principal = e.currentTarget.form?.elements.namedItem("capa") as HTMLInputElement;
-                        principal.value = "";
-                        setCapaLocal(null);
+                        limpar(principal);
                         if (evento?.capa_file_id) setRemoverCapa(true);
                       }}
                     >
@@ -222,7 +216,7 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Pr
                 <span className="flex aspect-video w-full flex-col items-center justify-center gap-2 px-4 text-center">
                   <span className="grid h-11 w-11 place-items-center rounded-xl bg-white text-mata-600 shadow-sm ring-1 ring-stone-200 transition group-hover:scale-105"><ImagePlus size={20} /></span>
                   <span className="text-sm font-medium text-stone-700">Arraste uma imagem ou clique</span>
-                  <span className="text-xs text-stone-500">PNG, JPG ou WEBP · até 10 MB · ideal 16:9</span>
+                  <span className="text-xs text-stone-500">PNG, JPG ou WEBP · ideal 16:9 · reduzida automaticamente</span>
                 </span>
               )}
               <input
@@ -233,6 +227,8 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Pr
                 onChange={(e) => escolherCapa(e.currentTarget, e.target.files?.[0])}
               />
             </label>
+            {otimizando && <p className="text-xs text-stone-500">Otimizando a imagem…</p>}
+            {erroCapa && <p className="text-xs text-red-700">{erroCapa}</p>}
             {removerCapa && <input type="hidden" name="remover_capa" value="on" />}
             {removerCapa && <p className="text-xs text-red-700">A capa atual será removida ao salvar.</p>}
           </section>

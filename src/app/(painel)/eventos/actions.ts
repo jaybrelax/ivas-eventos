@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/appwrite";
 import { exigir, pode } from "@/lib/auth";
 import { BUCKET_ID, DB_ID, PODE, TABLES } from "@/lib/config";
 import { getEvento, listarTipos } from "@/lib/data";
+import { conferirImagem } from "@/lib/imagem";
 import { listarEquipe } from "@/lib/usuarios";
 import type { Pessoa } from "@/lib/types";
 import { comNumeracao, isConflito } from "@/lib/ritual";
@@ -77,7 +78,8 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
   let capaApagar: string | null = null;
   let capaNova: string | null = null;
   if (capa instanceof File && capa.size > 0) {
-    if (!capa.type.startsWith("image/")) return { erro: "A capa precisa ser uma imagem (PNG, JPG ou WEBP)." };
+    const invalida = conferirImagem(capa, "capa");
+    if (invalida) return { erro: invalida };
     try {
       const novo = await storage.createFile({
         bucketId: BUCKET_ID, fileId: ID.unique(), file: InputFile.fromBuffer(Buffer.from(await capa.arrayBuffer()), capa.name),
@@ -87,7 +89,7 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
       capaApagar = capaAntiga;
     } catch (e) {
       console.error(e);
-      return { erro: "Não foi possível enviar a capa. Use PNG, JPG ou WEBP de até 10 MB." };
+      return { erro: "Não foi possível enviar a capa. Use uma imagem PNG, JPG ou WEBP." };
     }
   } else if (form.get("remover_capa") === "on" && capaAntiga) {
     Object.assign(dados, { capa_file_id: null });
