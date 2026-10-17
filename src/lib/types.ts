@@ -8,6 +8,10 @@ export type Instituto = {
   fonte_titulo: string;
   fonte_texto: string;
   ritual_numero_inicial: number;
+  /** Informações gerais, mostradas na página de todo evento que conta como ritual. */
+  info_rituais: string | null;
+  /** Como contribuir (pagamento), mostrado na página de todo ritual. */
+  info_contribuicao: string | null;
 };
 
 export type Endereco = { $id: string; apelido: string; endereco: string; cidade: string; link_maps: string | null; padrao: boolean };

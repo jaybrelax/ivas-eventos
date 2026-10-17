@@ -2,16 +2,17 @@ import Link from "next/link";
 import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
-import { Building2, CreditCard, MapPin, Phone, Share2, Tags } from "lucide-react";
+import { Building2, CreditCard, Info, MapPin, Phone, Share2, Tags } from "lucide-react";
 import { Titulo } from "@/components/Titulo";
 import { InstitutoForm } from "./InstitutoForm";
+import { InformacoesForm } from "./InformacoesForm";
 import { ListaEditavel } from "./ListaEditavel";
 import { TiposEvento, type TipoItem } from "./TiposEvento";
 
 type Item = Record<string, unknown> & { $id: string };
 const limpo = (rows: object[]) => JSON.parse(JSON.stringify(rows)) as Item[];
 
-const SECOES = ["instituto", "enderecos", "telefones", "redes", "pix", "tipos"] as const;
+const SECOES = ["instituto", "informacoes", "enderecos", "telefones", "redes", "pix", "tipos"] as const;
 type Secao = (typeof SECOES)[number];
 
 /** Cada seção aparece sozinha: o menu troca a seção (?secao=...) em vez de rolar a página. */
@@ -26,6 +27,7 @@ export default async function Configuracoes({ searchParams }: PageProps<"/config
   if (atual === "tipos") for (const e of await listarEventos()) contagem[e.tipo_id] = (contagem[e.tipo_id] ?? 0) + 1;
   const secoes: { id: Secao; rotulo: string; Icone: typeof Building2; n?: number }[] = [
     { id: "instituto", rotulo: "Instituto", Icone: Building2 },
+    { id: "informacoes", rotulo: "Informações", Icone: Info },
     { id: "enderecos", rotulo: "Endereços", Icone: MapPin, n: d.enderecos.length },
     { id: "telefones", rotulo: "Telefones", Icone: Phone, n: d.telefones.length },
     { id: "redes", rotulo: "Redes sociais", Icone: Share2, n: d.redes.length },
@@ -62,6 +64,7 @@ export default async function Configuracoes({ searchParams }: PageProps<"/config
         </nav>
         <div className="animate-aparecer" key={atual}>
           {atual === "instituto" && <InstitutoForm instituto={d.instituto} />}
+          {atual === "informacoes" && <InformacoesForm instituto={d.instituto} />}
           {atual === "enderecos" && <ListaEditavel tabela="enderecos" itens={limpo(d.enderecos)} />}
           {atual === "telefones" && <ListaEditavel tabela="telefones" itens={limpo(d.telefones)} />}
           {atual === "redes" && <ListaEditavel tabela="redes" itens={limpo(d.redes)} />}

@@ -2,13 +2,14 @@
 
 import { startTransition, useActionState, useState } from "react";
 import Link from "next/link";
-import { Check, Flame, Hash, ImagePlus, Megaphone, RefreshCw, Shield, Star, Trash2, type LucideIcon } from "lucide-react";
+import { Check, Flame, Hash, SquarePen, ImagePlus, Megaphone, RefreshCw, Shield, Star, Trash2, type LucideIcon } from "lucide-react";
 import { IconeGenero } from "@/components/genero";
 import { IconeTipo } from "@/components/IconeTipo";
+import { InfoRitual } from "@/components/InfoRitual";
 import { salvarEvento } from "./actions";
 import { Aviso, Carregando } from "@/components/ui";
 import { useImagem } from "@/components/useImagem";
-import type { Endereco, Evento, Pessoa, TipoEvento } from "@/lib/types";
+import type { Endereco, Evento, Instituto, Pessoa, TipoEvento } from "@/lib/types";
 import { EscolhaEquipe } from "./Equipe";
 import { formatarIdRitual } from "@/lib/format";
 
@@ -20,6 +21,9 @@ type Props = {
   podeNumerar: boolean;
   /** Lista de guardiões do evento (incluir, retirar, espera), mostrada dentro do grupo Guarnição. */
   guarnicao?: React.ReactNode;
+  /** Textos fixos de Configurações › Informações, que aparecem na página de todo ritual. */
+  informacoes?: Pick<Instituto, "info_rituais" | "info_contribuicao">;
+  podeConfigurar?: boolean;
 };
 
 function Bloco({
@@ -54,7 +58,7 @@ function Bloco({
   );
 }
 
-export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guarnicao }: Props) {
+export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guarnicao, informacoes, podeConfigurar = false }: Props) {
   const [estado, acao, pendente] = useActionState(salvarEvento, undefined);
   const padrao = enderecos.find((e) => e.padrao) ?? enderecos[0];
   const [endSel, setEndSel] = useState<string>(
@@ -310,6 +314,26 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guar
               <input type="checkbox" name="mostrar_banner" checked={banner} onChange={(e) => setBanner(e.target.checked)} className="interruptor mt-1.5" />
             </label>
           </section>
+          {tipo?.conta_como_ritual && informacoes && (
+            <section className="cartao space-y-4 p-4 sm:p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="cartao-titulo">Na página do ritual</h2>
+                  <p className="cartao-sub">Textos fixos, iguais em todos os rituais.</p>
+                </div>
+                {podeConfigurar && (
+                  <Link href="/configuracoes?secao=informacoes" className="btn-icone h-8 w-8 shrink-0" title="Editar em Configurações">
+                    <SquarePen size={15} />
+                  </Link>
+                )}
+              </div>
+              {informacoes.info_rituais?.trim() || informacoes.info_contribuicao?.trim() ? (
+                <div className="max-h-96 overflow-y-auto pr-1"><InfoRitual instituto={informacoes} compacto /></div>
+              ) : (
+                <p className="text-[13px] text-stone-500">Nenhum texto definido ainda{podeConfigurar ? " — preencha em Configurações › Informações." : "."}</p>
+              )}
+            </section>
+          )}
         </aside>
       </div>
 

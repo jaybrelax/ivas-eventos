@@ -61,6 +61,24 @@ export async function salvarInstituto(_: Resultado, form: FormData): Promise<Res
   return { ok: "Dados do Instituto salvos." };
 }
 
+/** Textos fixos que aparecem na página de todo ritual: informações gerais e contribuição. */
+export async function salvarInformacoes(_: Resultado, form: FormData): Promise<Resultado> {
+  await exigir(["admin"]);
+  const { tablesDB } = createAdminClient();
+  const texto = (k: string) => String(form.get(k) ?? "").trim().slice(0, 5000) || null;
+  try {
+    await tablesDB.upsertRow({
+      databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID,
+      data: { info_rituais: texto("info_rituais"), info_contribuicao: texto("info_contribuicao") },
+    });
+  } catch (e) {
+    console.error(e);
+    return { erro: "Não foi possível salvar as informações. Tente de novo." };
+  }
+  revalidatePath("/", "layout");
+  return { ok: "Informações salvas." };
+}
+
 export async function salvarItem(tabela: TabelaEditavel, _: Resultado, form: FormData): Promise<Resultado> {
   await exigir(["admin"]);
   const def = CAMPOS[tabela];

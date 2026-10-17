@@ -17,6 +17,8 @@ export const INSTITUTO_PADRAO: Instituto = {
   fonte_titulo: "Cinzel",
   fonte_texto: "Montserrat",
   ritual_numero_inicial: 500,
+  info_rituais: null,
+  info_contribuicao: null,
 };
 
 /** Linhas do SDK vêm como instâncias de classe; os Client Components só aceitam objetos simples. */

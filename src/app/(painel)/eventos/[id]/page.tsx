@@ -9,6 +9,7 @@ import { listarEquipe } from "@/lib/usuarios";
 import { dataPorExtenso, formatarIdRitual } from "@/lib/format";
 import { BadgeDestaque, BadgeRitual, BadgeTipo, Titulo } from "@/components/Titulo";
 import { GENERO_ROTULO, IconeGenero } from "@/components/genero";
+import { InfoRitual } from "@/components/InfoRitual";
 import { EventoForm } from "../EventoForm";
 import { Guarnicao } from "../Guarnicao";
 import { dadosGuarnicao } from "../guarnicao-dados";
@@ -18,7 +19,7 @@ import { excluirEvento } from "../actions";
 export default async function EditarEvento({ params }: PageProps<"/eventos/[id]">) {
   const u = await exigir();
   const { id } = await params;
-  const [evento, { tipos, enderecos }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
+  const [evento, { tipos, enderecos, instituto }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
   if (!evento) notFound();
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const idRitual = formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano);
@@ -73,6 +74,7 @@ export default async function EditarEvento({ params }: PageProps<"/eventos/[id]"
             </dl>
             <EquipeDoEvento equipe={equipe} mestres={evento.mestres ?? []} />
             {evento.descricao && <p className="text-[15px] leading-relaxed whitespace-pre-line text-stone-700">{evento.descricao}</p>}
+            {tipo?.conta_como_ritual && <InfoRitual instituto={instituto} />}
           </div>
         </article>
         {guarnicao && <div className="mt-6 max-w-3xl"><Guarnicao dados={guarnicao} /></div>}
@@ -101,6 +103,8 @@ export default async function EditarEvento({ params }: PageProps<"/eventos/[id]"
         enderecos={enderecos}
         equipe={equipe}
         podeNumerar={pode(u, PODE.editarNumeracao)}
+        informacoes={instituto}
+        podeConfigurar={pode(u, PODE.configurar)}
         guarnicao={guarnicao && <Guarnicao dados={guarnicao} embutido />}
       />
       {u.perfil === "admin" && (

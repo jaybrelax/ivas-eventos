@@ -45,6 +45,8 @@ const TABELAS = {
       v("nome", 120), v("nome_curto", 40), v("logo_file_id", 36), v("logo_escura_file_id", 36),
       v("cor_primaria", 9), v("cor_secundaria", 9), v("fonte_titulo", 60), v("fonte_texto", 60),
       i("ritual_numero_inicial", { xdefault: 500, min: 1 }),
+      // Textos fixos mostrados na página de todo ritual
+      t("info_rituais"), t("info_contribuicao"),
     ],
   },
   enderecos: {

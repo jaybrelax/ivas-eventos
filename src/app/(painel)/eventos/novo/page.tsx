@@ -1,4 +1,4 @@
-import { exigir } from "@/lib/auth";
+import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, getEvento } from "@/lib/data";
 import { listarEquipe } from "@/lib/usuarios";
@@ -6,9 +6,9 @@ import { Titulo } from "@/components/Titulo";
 import { EventoForm } from "../EventoForm";
 
 export default async function NovoEvento({ searchParams }: PageProps<"/eventos/novo">) {
-  await exigir(PODE.editarEventos);
+  const u = await exigir(PODE.editarEventos);
   const sp = await searchParams;
-  const [{ tipos, enderecos }, equipe, base] = await Promise.all([
+  const [{ tipos, enderecos, instituto }, equipe, base] = await Promise.all([
     getDadosInstituto(),
     listarEquipe(),
     typeof sp.de === "string" ? getEvento(sp.de) : null,
@@ -29,7 +29,7 @@ export default async function NovoEvento({ searchParams }: PageProps<"/eventos/n
         titulo={base ? "Duplicar evento" : "Novo evento"}
         subtitulo={base ? `Copiando “${base.titulo}”. Escolha a nova data.` : "Preencha as informações e salve. Rituais recebem o número automaticamente."}
       />
-      <EventoForm evento={copia} tipos={tipos} enderecos={enderecos} equipe={equipe} podeNumerar={false} />
+      <EventoForm evento={copia} tipos={tipos} enderecos={enderecos} equipe={equipe} podeNumerar={false} informacoes={instituto} podeConfigurar={pode(u, PODE.configurar)} />
       {/* espaço para a barra fixa de salvar */}
       <div className="h-20" />
     </>
