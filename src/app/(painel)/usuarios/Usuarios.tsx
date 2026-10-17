@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { KeyRound, Pencil, Phone, Trash2, UserPlus, X } from "lucide-react";
 import { criarUsuario, excluirUsuario, redefinirSenha, salvarDadosPessoais } from "./actions";
 import { PERFIS, type Perfil } from "@/lib/config";
@@ -141,7 +142,11 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
         </div>
       </div>
 
-      {editando && <EditarDados u={u} souEu={souEu} aoSalvar={() => setEditando(false)} />}
+      {editando && (
+        <PainelEdicao u={u} onFechar={() => setEditando(false)}>
+          <EditarDados u={u} souEu={souEu} aoSalvar={() => setEditando(false)} />
+        </PainelEdicao>
+      )}
 
       {trocandoSenha && (
         <form
@@ -182,7 +187,7 @@ function EditarDados({ u, souEu, aoSalvar }: { u: U; souEu: boolean; aoSalvar: (
     return r;
   }, undefined);
   return (
-    <form action={acao} className="mt-3 animate-surgir space-y-4 rounded-xl bg-stone-50 p-4 ring-1 ring-stone-200 sm:ml-14">
+    <form action={acao} className="space-y-5">
       <input type="hidden" name="userId" value={u.id} />
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
       <CampoFoto nome={u.nome} fotoAtual={u.foto} tamanho={64} />
@@ -204,5 +209,31 @@ function EditarDados({ u, souEu, aoSalvar }: { u: U; souEu: boolean; aoSalvar: (
         <button className="btn-primario" disabled={salvando}>{salvando ? <><Carregando /> Salvando…</> : "Salvar"}</button>
       </div>
     </form>
+  );
+}
+
+/** Painel lateral (no body) com o formulário de edição do usuário. Fecha com Esc, X ou clicando fora. */
+function PainelEdicao({ u, onFechar, children }: { u: U; onFechar: () => void; children: React.ReactNode }) {
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && onFechar();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [onFechar]);
+  return createPortal(
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`Editar ${u.nome}`}>
+      <button type="button" aria-label="Fechar" className="absolute inset-0 bg-mata-950/40 backdrop-blur-[2px]" onClick={onFechar} />
+      <aside className="absolute inset-y-0 right-0 flex w-full max-w-lg animate-surgir flex-col bg-white shadow-elevado">
+        <div className="flex items-center gap-3 border-b border-stone-100 px-5 py-4">
+          <Avatar nome={u.nome} foto={u.foto} perfil={u.perfil} tamanho={40} />
+          <div className="min-w-0 flex-1">
+            <h2 className="cartao-titulo truncate">Editar usuário</h2>
+            <p className="truncate text-sm text-stone-500">{u.email}</p>
+          </div>
+          <button type="button" onClick={onFechar} className="btn-icone h-9 w-9" aria-label="Fechar"><X size={18} /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-5">{children}</div>
+      </aside>
+    </div>,
+    document.body,
   );
 }
