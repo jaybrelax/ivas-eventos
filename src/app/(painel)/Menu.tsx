@@ -5,9 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
 import type { Perfil } from "@/lib/config";
-import { BarChart3, CalendarDays, Image as ImageIcon, LogOut, Menu as MenuIcone, Plus, Settings, Users, X } from "lucide-react";
+import { BarChart3, CalendarDays, Image as ImageIcon, LogOut, Menu as MenuIcone, Plus, Settings, Shield, Users, X } from "lucide-react";
 
-const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users };
+const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users, shield: Shield };
 
 export type ItemMenu = { href: string; rotulo: string; icone: keyof typeof ICONES };
 export type GrupoMenu = { titulo: string; itens: ItemMenu[] };

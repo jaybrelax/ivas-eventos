@@ -45,6 +45,20 @@ export const listarEquipe = cache(async (): Promise<Pessoa[]> => {
   });
 });
 
+/** Resumo de todos os usuários (ativos ou não), por ID: para exibir nomes e fotos em listas. */
+export type ResumoUsuario = { id: string; nome: string; foto: string | null; sexo: Sexo | null; funcao: FuncaoRitual; ativo: boolean };
+
+export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> => {
+  const { users } = createAdminClient();
+  const res = await users.list({ queries: [Query.limit(500), Query.orderAsc("name")] });
+  return new Map(
+    res.users.map((u) => {
+      const p = prefsDe(u.prefs);
+      return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: p.funcao_ritual, ativo: !!u.status }];
+    }),
+  );
+});
+
 /** Aceita formatos livres ("(43) 99999-0000", "+55 43 ..."); exige de 10 a 13 dígitos. */
 export function validarTelefone(bruto: string): { valor: string | null } | { erro: string } {
   const t = bruto.trim().slice(0, 30);

@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Clock, Flame, List, MapPin, Plus, Sparkles, Star, Users } from "lucide-react";
+import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Clock, Flame, List, MapPin, Plus, Shield, Sparkles, Star, Users } from "lucide-react";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
 import { listarEquipe } from "@/lib/usuarios";
+import { candidaturasDosEventos, vagasDe } from "@/lib/guarnicao";
+import { IconeGenero } from "@/components/genero";
 import { formatarIdRitual, hoje, limitesMes, nomeMes, partesData, somarMes } from "@/lib/format";
 import { BadgeDestaque, BadgeRitual, BadgeTipo, Titulo, Vazio } from "@/components/Titulo";
 import { Aviso } from "@/components/ui";
@@ -37,6 +39,16 @@ export default async function Agenda({ searchParams }: PageProps<"/eventos">) {
   const tipoPorId = new Map(tipos.map((t) => [t.$id, t]));
   const endPorId = new Map(enderecos.map((e) => [e.$id, e]));
   const pessoaPorId = new Map(equipe.map((p) => [p.$id, p]));
+  // Guarnição: guardiões confirmados por gênero em cada ritual do mês
+  const rituaisDoMes = eventos.filter((e) => tipoPorId.get(e.tipo_id)?.conta_como_ritual);
+  const candidaturas = await candidaturasDosEventos(rituaisDoMes.map((e) => e.$id));
+  const guarnicaoPorId = new Map(
+    rituaisDoMes.map((e) => {
+      const conf = candidaturas.filter((c) => c.evento_id === e.$id && c.situacao === "confirmada");
+      const v = vagasDe(e);
+      return [e.$id, { m: conf.filter((c) => c.sexo === "masculino").length, f: conf.filter((c) => c.sexo === "feminino").length, vm: v.masculino, vf: v.feminino }];
+    }),
+  );
   const rituaisAno = doAno.filter((e) => e.ritual_numero_geral).length;
   const doMes = doAno.filter((e) => e.data.startsWith(mes));
   const proximo = futuros[0];
@@ -105,12 +117,12 @@ export default async function Agenda({ searchParams }: PageProps<"/eventos">) {
           <div className="space-y-8">
             {proximos.length > 0 && (
               <Secao titulo={passados.length ? "Próximos" : undefined} total={proximos.length}>
-                {proximos.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} end={e.endereco_id ? endPorId.get(e.endereco_id) : undefined} hj={hj} pessoas={pessoaPorId} />)}
+                {proximos.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} end={e.endereco_id ? endPorId.get(e.endereco_id) : undefined} hj={hj} pessoas={pessoaPorId} guarnicao={guarnicaoPorId.get(e.$id)} />)}
               </Secao>
             )}
             {passados.length > 0 && (
               <Secao titulo={proximos.length ? "Já aconteceram" : undefined} total={passados.length}>
-                {passados.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} end={e.endereco_id ? endPorId.get(e.endereco_id) : undefined} hj={hj} pessoas={pessoaPorId} passado />)}
+                {passados.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} end={e.endereco_id ? endPorId.get(e.endereco_id) : undefined} hj={hj} pessoas={pessoaPorId} guarnicao={guarnicaoPorId.get(e.$id)} passado />)}
               </Secao>
             )}
           </div>
@@ -174,14 +186,11 @@ function Secao({ titulo, total, children }: { titulo?: string; total: number; ch
 
 function resumoEquipe(e: Evento, pessoas: Map<string, Pessoa>) {
   const mestres = (e.mestres ?? []).map((id) => pessoas.get(id)?.nome).filter(Boolean) as string[];
-  const nGuardioes = (e.guardioes ?? []).filter((id) => pessoas.has(id)).length;
-  const partes = [];
-  if (mestres.length) partes.push(`${mestres.length > 1 ? "Mestres" : "Mestre"} ${mestres.map((n) => n.split(" ")[0]).join(", ")}`);
-  if (nGuardioes) partes.push(`${nGuardioes} ${nGuardioes > 1 ? "guardiões" : "guardião"}`);
-  return partes.join(" · ");
+  // Os guardiões aparecem no indicador da guarnição.
+  return mestres.length ? `${mestres.length > 1 ? "Mestres" : "Mestre"} ${mestres.map((n) => n.split(" ")[0]).join(", ")}` : "";
 }
 
-function CartaoEvento({ e, t, end, hj, passado, pessoas }: { e: Evento; t?: TipoEvento; end?: Endereco; hj: string; passado?: boolean; pessoas: Map<string, Pessoa> }) {
+function CartaoEvento({ e, t, end, hj, passado, pessoas, guarnicao }: { e: Evento; t?: TipoEvento; end?: Endereco; hj: string; passado?: boolean; pessoas: Map<string, Pessoa>; guarnicao?: { m: number; f: number; vm: number; vf: number } }) {
   const equipeTxt = resumoEquipe(e, pessoas);
   const d = partesData(e.data);
   const idR = formatarIdRitual(e.ritual_numero_geral, e.ritual_ano, e.ritual_numero_ano);
@@ -220,6 +229,13 @@ function CartaoEvento({ e, t, end, hj, passado, pessoas }: { e: Evento; t?: Tipo
           <span className="inline-flex items-center gap-1.5"><Clock size={14} />{e.hora_inicio}</span>
           <span className="inline-flex min-w-0 items-center gap-1.5"><MapPin size={14} /><span className="truncate">{end ? end.apelido : e.endereco_livre}</span></span>
           {equipeTxt && <span className="inline-flex min-w-0 items-center gap-1.5"><Users size={14} /><span className="truncate">{equipeTxt}</span></span>}
+          {guarnicao && (
+            <span className="inline-flex items-center gap-1.5 tabular-nums" title="Guarnição: guardiões confirmados / vagas">
+              <Shield size={14} />
+              <IconeGenero genero="masculino" size={13} />{guarnicao.m}/{guarnicao.vm}
+              <IconeGenero genero="feminino" size={13} className="ml-1" />{guarnicao.f}/{guarnicao.vf}
+            </span>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5 md:hidden">
           {t && <BadgeTipo nome={t.nome} cor={t.cor} />}

@@ -10,6 +10,9 @@ import { dataPorExtenso, formatarIdRitual } from "@/lib/format";
 import { BadgeDestaque, BadgeRitual, BadgeTipo, Titulo } from "@/components/Titulo";
 import { GENERO_ROTULO, IconeGenero } from "@/components/genero";
 import { EventoForm } from "../EventoForm";
+import { Guarnicao } from "../Guarnicao";
+import { dadosGuarnicao } from "../guarnicao-dados";
+import { temGuarnicao } from "@/lib/guarnicao";
 import { excluirEvento } from "../actions";
 
 export default async function EditarEvento({ params }: PageProps<"/eventos/[id]">) {
@@ -19,6 +22,7 @@ export default async function EditarEvento({ params }: PageProps<"/eventos/[id]"
   if (!evento) notFound();
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const idRitual = formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano);
+  const guarnicao = temGuarnicao(tipo) ? await dadosGuarnicao(evento, u, pode(u, PODE.editarEventos)) : null;
   const voltar = (
     <Link href={`/eventos?mes=${evento.data.slice(0, 7)}`} className="inline-flex items-center gap-1.5 hover:text-ouro-700">
       <ArrowLeft size={13} /> Agenda
@@ -62,10 +66,11 @@ export default async function EditarEvento({ params }: PageProps<"/eventos/[id]"
                 </div>
               ))}
             </dl>
-            <EquipeDoEvento equipe={equipe} mestres={evento.mestres ?? []} guardioes={evento.guardioes ?? []} />
+            <EquipeDoEvento equipe={equipe} mestres={evento.mestres ?? []} />
             {evento.descricao && <p className="text-[15px] leading-relaxed whitespace-pre-line text-stone-700">{evento.descricao}</p>}
           </div>
         </article>
+        {guarnicao && <div className="mt-6 max-w-3xl"><Guarnicao dados={guarnicao} /></div>}
       </>
     );
   }
@@ -79,6 +84,7 @@ export default async function EditarEvento({ params }: PageProps<"/eventos/[id]"
         acoes={acoes}
       />
       <EventoForm evento={evento} tipos={tipos} enderecos={enderecos} equipe={equipe} podeNumerar={pode(u, PODE.editarNumeracao)} />
+      {guarnicao && <div className="mb-6 xl:mr-[23.5rem]"><Guarnicao dados={guarnicao} /></div>}
       {u.perfil === "admin" && (
         <form action={excluirEvento} className="xl:mr-[23.5rem]">
           <input type="hidden" name="id" value={evento.$id} />
@@ -102,10 +108,10 @@ export default async function EditarEvento({ params }: PageProps<"/eventos/[id]"
   );
 }
 
-function EquipeDoEvento({ equipe, mestres, guardioes }: { equipe: Pessoa[]; mestres: string[]; guardioes: string[] }) {
+/** Mestres do evento (os guardiões aparecem no cartão da guarnição). */
+function EquipeDoEvento({ equipe, mestres }: { equipe: Pessoa[]; mestres: string[] }) {
   const grupos = [
     { titulo: "Mestres", ids: mestres },
-    { titulo: "Guardiões", ids: guardioes },
   ].map((g) => ({ ...g, pessoas: equipe.filter((p) => g.ids.includes(p.$id)) }));
   if (!grupos.some((g) => g.pessoas.length)) return null;
   return (

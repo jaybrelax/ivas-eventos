@@ -2,7 +2,8 @@
 
 import { startTransition, useActionState, useState } from "react";
 import Link from "next/link";
-import { Check, Flame, Hash, ImagePlus, Megaphone, RefreshCw, Star, Trash2 } from "lucide-react";
+import { Check, Flame, Hash, ImagePlus, Megaphone, RefreshCw, Shield, Star, Trash2 } from "lucide-react";
+import { IconeGenero } from "@/components/genero";
 import { salvarEvento } from "./actions";
 import { Aviso, Carregando } from "@/components/ui";
 import { useImagem } from "@/components/useImagem";
@@ -148,11 +149,33 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Pr
             </Bloco>
           )}
 
-          <Bloco titulo="Mestres e guardiões" sub="Quem conduz e quem cuida. Toque nos nomes para escolher.">
+          <Bloco titulo="Mestres" sub="Quem conduz o ritual. Toque nos nomes para escolher.">
             <EscolhaEquipe funcao="mestre" equipe={equipe} inicial={evento?.mestres ?? []} />
-            <div className="h-px bg-stone-100" />
-            <EscolhaEquipe funcao="guardiao" equipe={equipe} inicial={evento?.guardioes ?? []} />
           </Bloco>
+
+          {tipo?.conta_como_ritual && (
+            <Bloco titulo="Guarnição" sub="Os guardiões se candidatam na página do evento, por ordem de chegada. Defina quantas vagas há para cada gênero.">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="rotulo flex items-center gap-1.5" htmlFor="vagas_guardioes"><IconeGenero genero="masculino" size={14} /> Vagas de guardiões</label>
+                  <input id="vagas_guardioes" name="vagas_guardioes" type="number" min={0} max={50} defaultValue={evento?.vagas_guardioes ?? 2} className="campo" />
+                </div>
+                <div>
+                  <label className="rotulo flex items-center gap-1.5" htmlFor="vagas_guardias"><IconeGenero genero="feminino" size={14} /> Vagas de guardiãs</label>
+                  <input id="vagas_guardias" name="vagas_guardias" type="number" min={0} max={50} defaultValue={evento?.vagas_guardias ?? 2} className="campo" />
+                </div>
+              </div>
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-stone-200 p-3.5 transition hover:border-stone-300">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-mata-50 text-mata-600"><Shield size={18} /></span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-stone-900">Aceitar candidaturas</span>
+                  <span className="block text-xs text-stone-500">Desligue para fechar as inscrições deste evento. Quem já está inscrito continua.</span>
+                </span>
+                <input type="checkbox" name="candidaturas_abertas" defaultChecked={evento?.candidaturas_abertas ?? true} className="interruptor mt-1.5" />
+              </label>
+              {evento?.$id && <p className="ajuda">Para incluir ou retirar guardiões, use o cartão Guarnição abaixo do formulário.</p>}
+            </Bloco>
+          )}
         </div>
 
         {/* Coluna lateral */}

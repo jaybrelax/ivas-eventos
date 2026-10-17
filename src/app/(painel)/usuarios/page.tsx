@@ -5,11 +5,14 @@ import { PODE, type Perfil } from "@/lib/config";
 import { Titulo } from "@/components/Titulo";
 import { perfilDosLabels, prefsDe } from "@/lib/usuarios";
 import { GestaoUsuarios } from "./GestaoUsuarios";
+import { todasCandidaturasAtivas } from "@/lib/guarnicao";
+import { participacoesPorUsuario } from "@/lib/participacoes";
 
 export default async function Usuarios() {
   const eu = await exigir(PODE.gerenciarUsuarios);
   const { users } = createAdminClient();
-  const lista = await users.list({ queries: [Query.limit(200), Query.orderAsc("name")] });
+  const [lista, candidaturas] = await Promise.all([users.list({ queries: [Query.limit(200), Query.orderAsc("name")] }), todasCandidaturasAtivas()]);
+  const participacoes = await participacoesPorUsuario(candidaturas);
   const us = lista.users.map((u) => {
     const p = prefsDe(u.prefs);
     return {
@@ -21,6 +24,7 @@ export default async function Usuarios() {
       foto: p.foto_file_id,
       funcaoRitual: p.funcao_ritual,
       sexo: p.sexo,
+      participacoes: participacoes.get(u.$id) ?? [],
     };
   });
   return (

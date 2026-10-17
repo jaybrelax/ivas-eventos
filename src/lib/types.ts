@@ -34,7 +34,10 @@ export type Evento = {
   destaque: boolean;
   capa_file_id: string | null;
   mestres: string[] | null; // IDs de usuários
-  guardioes: string[] | null;
+  guardioes: string[] | null; // preenchido pela guarnição (candidaturas confirmadas)
+  vagas_guardioes: number | null; // vagas masculinas (padrão 2)
+  vagas_guardias: number | null; // vagas femininas (padrão 2)
+  candidaturas_abertas: boolean | null;
   mostrar_banner: boolean;
   ritual_numero_geral: number | null;
   ritual_ano: number | null;
@@ -43,6 +46,31 @@ export type Evento = {
   atualizado_por: string | null;
   $createdAt: string;
   $updatedAt: string;
+};
+
+export type SituacaoCandidatura = "confirmada" | "espera" | "cancelada" | "removida";
+
+/** Candidatura de um guardião a uma vaga de um evento. A ordem de chegada é o campo `ordem`. */
+export type Candidatura = {
+  $id: string;
+  evento_id: string;
+  usuario_id: string;
+  sexo: Sexo;
+  situacao: SituacaoCandidatura;
+  ordem: number;
+  alterado_por: string | null;
+  $createdAt: string;
+  $updatedAt: string;
+};
+
+/** Um evento no histórico de participações de um guardião. */
+export type ItemParticipacao = {
+  eventoId: string;
+  titulo: string;
+  data: string;
+  hora: string;
+  situacao: "confirmada" | "espera";
+  passado: boolean;
 };
 
 export type ModeloBanner = { $id: string; nome: string; config: string };

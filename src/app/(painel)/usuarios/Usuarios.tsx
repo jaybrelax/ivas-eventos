@@ -13,10 +13,13 @@ import { InputTelefone } from "@/components/InputTelefone";
 import { mascararTelefone } from "@/lib/telefone";
 import { GENERO_ROTULO, IconeGenero } from "@/components/genero";
 import { BotaoConfirmar } from "@/components/Confirmar";
+import { Participacoes } from "@/components/Participacoes";
+import type { ItemParticipacao } from "@/lib/types";
 
 type U = {
   id: string; nome: string; email: string; perfil: Perfil | null; telefone: string | null; foto: string | null;
   funcaoRitual: "mestre" | "guardiao" | "nenhuma"; sexo: "masculino" | "feminino" | null;
+  participacoes?: ItemParticipacao[];
 };
 
 const FUNCAO_ROTULO = { mestre: "Mestre", guardiao: "Guardião", nenhuma: "" } as const;
@@ -219,6 +222,11 @@ function EditarDados({ u, souEu, aoSalvar, aoExcluir }: { u: U; souEu: boolean; 
           <CampoGenero id={`ed-${u.id}-sexo`} inicial={u.sexo} />
         </div>
       </div>
+      {(u.funcaoRitual === "guardiao" || (u.participacoes?.length ?? 0) > 0) && (
+        <div className="border-t border-stone-100 pt-5">
+          <Participacoes itens={u.participacoes ?? []} />
+        </div>
+      )}
       <div className="mt-auto flex items-center justify-between gap-3 border-t border-stone-100 pt-4">
         {!souEu ? (
           <BotaoConfirmar

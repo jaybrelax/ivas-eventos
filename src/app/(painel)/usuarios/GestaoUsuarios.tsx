@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Flame, Plus, Shield, UserPlus, X, type LucideIcon } from "lucide-react";
 import type { Perfil } from "@/lib/config";
+import type { ItemParticipacao } from "@/lib/types";
 import { Aviso } from "@/components/ui";
 import { FormNovoUsuario, LinhaUsuario } from "./Usuarios";
 
@@ -16,6 +17,7 @@ export type UsuarioLista = {
   foto: string | null;
   funcaoRitual: "mestre" | "guardiao" | "nenhuma";
   sexo: "masculino" | "feminino" | null;
+  participacoes: ItemParticipacao[];
 };
 
 type Funcao = "mestre" | "guardiao";

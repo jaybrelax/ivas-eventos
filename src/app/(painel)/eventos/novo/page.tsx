@@ -18,7 +18,8 @@ export default async function NovoEvento({ searchParams }: PageProps<"/eventos/n
     ? {
         titulo: base.titulo, hora_inicio: base.hora_inicio, tipo_id: base.tipo_id, endereco_id: base.endereco_id,
         endereco_livre: base.endereco_livre, descricao: base.descricao, mostrar_banner: base.mostrar_banner, destaque: base.destaque,
-        mestres: base.mestres, guardioes: base.guardioes,
+        mestres: base.mestres,
+        vagas_guardioes: base.vagas_guardioes, vagas_guardias: base.vagas_guardias, candidaturas_abertas: base.candidaturas_abertas,
       }
     : undefined;
   return (

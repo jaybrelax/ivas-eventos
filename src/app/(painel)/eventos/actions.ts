@@ -13,6 +13,7 @@ import { conferirImagem } from "@/lib/imagem";
 import { listarEquipe } from "@/lib/usuarios";
 import type { Pessoa } from "@/lib/types";
 import { comNumeracao, isConflito } from "@/lib/ritual";
+import { VAGAS_PADRAO, reorganizar } from "@/lib/guarnicao";
 
 const esquema = z.object({
   titulo: z.string().trim().min(1, "Informe o título").max(80, "Título com no máximo 80 caracteres"),
@@ -52,7 +53,16 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     return [...new Set(form.getAll(campo).map(String))].filter((id) => validos.has(id));
   };
 
+  // Guarnição: os campos só vêm no formulário de tipos que contam como ritual.
+  const vagas = (campo: string) => {
+    const n = Number(form.get(campo));
+    return Number.isInteger(n) && n >= 0 && n <= 50 ? n : VAGAS_PADRAO;
+  };
+  const guarnicao = form.has("vagas_guardioes")
+    ? { vagas_guardioes: vagas("vagas_guardioes"), vagas_guardias: vagas("vagas_guardias"), candidaturas_abertas: form.get("candidaturas_abertas") === "on" }
+    : {};
   const dados = {
+    ...guarnicao,
     titulo: d.titulo,
     data: d.data,
     hora_inicio: d.hora_inicio,
@@ -63,7 +73,6 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     endereco_livre: usaLivre ? d.endereco_livre! : null,
     mostrar_banner: form.get("mostrar_banner") === "on",
     mestres: escalados("mestres", "mestre"),
-    guardioes: escalados("guardioes", "guardiao"),
     atualizado_por: u.id,
   };
   const ano = Number(d.data.slice(0, 4));
@@ -136,6 +145,13 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
   }
   if (capaApagar) await storage.deleteFile({ bucketId: BUCKET_ID, fileId: capaApagar }).catch(() => {});
 
+  // Mudou o limite de vagas: confirma da lista de espera ou devolve o excedente para a espera.
+  if (id) {
+    const salvo = await getEvento(id);
+    if (salvo) await reorganizar(salvo, u.id).catch((e) => console.error(e));
+    revalidatePath(`/eventos/${id}`);
+    revalidatePath("/guarnicao");
+  }
   revalidatePath("/eventos");
   redirect(`/eventos?mes=${d.data.slice(0, 7)}&ok=salvo`);
 }

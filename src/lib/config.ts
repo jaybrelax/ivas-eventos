@@ -12,6 +12,7 @@ export const TABLES = {
   tipos: "tipos_evento",
   eventos: "eventos",
   modelos: "modelos_banner",
+  candidaturas: "candidaturas",
 } as const;
 
 export type Perfil = "admin" | "coordenador" | "normal";

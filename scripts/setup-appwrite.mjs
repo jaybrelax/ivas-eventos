@@ -82,12 +82,29 @@ const TABELAS = {
       b("destaque"), v("capa_file_id", 36), b("mostrar_banner", true), ids("mestres"), ids("guardioes"),
       i("ritual_numero_geral", { min: 1 }), i("ritual_ano", { min: 2000 }), i("ritual_numero_ano", { min: 1 }),
       v("criado_por", 36), v("atualizado_por", 36),
+      // Guarnição: vagas de guardiões (♂) e guardiãs (♀) e se aceita candidaturas
+      i("vagas_guardioes", { xdefault: 2, min: 0, max: 50 }), i("vagas_guardias", { xdefault: 2, min: 0, max: 50 }), b("candidaturas_abertas", true),
     ],
     indices: [
       ["ux_ritual_geral", "unique", ["ritual_numero_geral"]],
       ["ux_ritual_ano", "unique", ["ritual_ano", "ritual_numero_ano"]],
       ["ix_data", "key", ["data"]],
       ["ix_tipo", "key", ["tipo_id"]],
+    ],
+  },
+  // Guarnição: candidaturas dos guardiões às vagas de cada evento (ordem de chegada)
+  candidaturas: {
+    nome: "Candidaturas da guarnição",
+    colunas: [
+      v("evento_id", 36, { required: true }), v("usuario_id", 36, { required: true }),
+      en("sexo", ["masculino", "feminino"], "masculino"),
+      en("situacao", ["confirmada", "espera", "cancelada", "removida"], "espera"),
+      i("ordem", { min: 0 }), v("alterado_por", 36),
+    ],
+    indices: [
+      ["ux_candidatura", "unique", ["evento_id", "usuario_id"]],
+      ["ix_cand_evento", "key", ["evento_id", "situacao"]],
+      ["ix_cand_usuario", "key", ["usuario_id", "situacao"]],
     ],
   },
   modelos_banner: {

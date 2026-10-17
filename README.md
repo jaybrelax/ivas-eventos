@@ -91,6 +91,17 @@ O perfil é um *label* do usuário no Appwrite (`admin`, `coordenador` ou `norma
 
 Separado do perfil de acesso, cada usuário tem uma **Função do usuário** (Mestre, Guardião ou nenhuma) e um **Gênero**. Elas definem quem pode ser escalado em cada evento, em "Mestres e guardiões"; um Admin ou Coordenador também pode ser Mestre ou Guardião.
 
+## Guarnição
+
+Guardiões se candidatam às vagas de cada ritual (tipos que contam como ritual) pela página do evento.
+
+- **Vagas por gênero:** cada evento tem vagas de guardiões (♂) e guardiãs (♀), padrão 2 e 2. O coordenador muda no grupo "Guarnição" do formulário do evento e pode fechar as candidaturas.
+- **Ordem de chegada:** a candidatura vale na hora. Com as vagas cheias, a pessoa entra na **lista de espera**; quando alguém sai, o primeiro da espera assume a vaga sozinho.
+- **Cancelamento:** o guardião cancela até **4 horas antes** do início. O coordenador inclui e retira guardiões a qualquer momento.
+- Os guardiões veem quem mais se candidatou. A página **Guarnição** (menu, só coordenação e admin) resume as vagas dos próximos 90 dias.
+- O histórico de participações aparece em **Meu perfil** e no painel de edição do usuário.
+- Dados: tabela `candidaturas`; a lista `guardioes` do evento é mantida igual às candidaturas confirmadas.
+
 ## Estrutura
 
 ```

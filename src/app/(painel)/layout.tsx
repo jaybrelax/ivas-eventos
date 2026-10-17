@@ -13,6 +13,8 @@ export default async function PainelLayout({ children }: LayoutProps<"/">) {
       itens: [
         { href: "/eventos", rotulo: "Eventos", icone: "calendar" },
         ...(pode(u, PODE.editarEventos) ? [{ href: "/eventos/novo", rotulo: "Novo evento", icone: "plus" as const }] : []),
+        // Gestão da guarnição: só coordenação e admin (o guardião se candidata pela página do evento)
+        ...(pode(u, PODE.editarEventos) ? [{ href: "/guarnicao", rotulo: "Guarnição", icone: "shield" as const }] : []),
         { href: "/resumo", rotulo: "Resumo do ano", icone: "chart" },
       ],
     },
