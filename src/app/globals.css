@@ -1,0 +1,159 @@
+@import "tailwindcss";
+
+@theme {
+  --color-mata-50: #f2f7f3;
+  --color-mata-100: #e0ece3;
+  --color-mata-200: #c2d9c8;
+  --color-mata-300: #97bda2;
+  --color-mata-400: #659a76;
+  --color-mata-500: #3f6b4d;
+  --color-mata-600: #315a3e;
+  --color-mata-700: #26472f;
+  --color-mata-800: #1f3d2b;
+  --color-mata-900: #142a1d;
+  --color-mata-950: #0b1a11;
+  --color-ouro-50: #fbf7ec;
+  --color-ouro-100: #f5ecd0;
+  --color-ouro-200: #ecd9a3;
+  --color-ouro-300: #e2c57a;
+  --color-ouro-400: #d6b45e;
+  --color-ouro-500: #c8a24a;
+  --color-ouro-600: #a9853a;
+  --color-ouro-700: #87692f;
+  --color-fundo: #f6f6f3;
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cinzel Variable", serif;
+  --shadow-cartao: 0 1px 2px rgb(20 42 29 / 0.04), 0 4px 16px -8px rgb(20 42 29 / 0.1);
+  --shadow-elevado: 0 2px 4px rgb(20 42 29 / 0.04), 0 16px 40px -16px rgb(20 42 29 / 0.25);
+  --animate-surgir: surgir 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-gaveta: gaveta 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  /* Só opacidade: transform no contêiner da página quebraria elementos "fixed" lá dentro */
+  --animate-aparecer: aparecer 0.3s ease-out both;
+
+  @keyframes surgir {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes aparecer {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes gaveta {
+    from { transform: translateX(-100%); }
+    to { transform: none; }
+  }
+}
+
+html {
+  color-scheme: light;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--color-fundo);
+  color: #18201b;
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  background: var(--color-ouro-200);
+  color: var(--color-mata-950);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-ouro-500);
+  outline-offset: 2px;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 0.18) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ---------- Formulários ---------- */
+@utility campo {
+  @apply h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-900 shadow-[0_1px_2px_rgb(0_0_0/0.04)] outline-none transition placeholder:text-stone-400 hover:border-stone-300 focus:border-mata-400 focus:ring-4 focus:ring-mata-100 disabled:bg-stone-100 disabled:text-stone-500;
+}
+textarea.campo {
+  @apply h-auto py-2.5 leading-relaxed;
+}
+select.campo {
+  @apply cursor-pointer appearance-none bg-[length:16px] bg-[right_0.6rem_center] bg-no-repeat pr-9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+@utility rotulo {
+  @apply mb-1.5 block text-[13px] font-medium text-stone-700;
+}
+@utility ajuda {
+  @apply mt-1.5 text-xs text-stone-500;
+}
+
+/* Interruptor (checkbox com cara de switch) */
+@utility interruptor {
+  @apply relative h-6 w-11 shrink-0 cursor-pointer appearance-none rounded-full bg-stone-300 transition-colors checked:bg-mata-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ouro-500;
+  &::after {
+    content: "";
+    @apply absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform;
+  }
+  &:checked::after {
+    transform: translateX(1.25rem);
+  }
+}
+
+/* ---------- Botões ---------- */
+@utility btn {
+  @apply inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold whitespace-nowrap transition active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50;
+}
+@utility btn-primario {
+  @apply btn bg-gradient-to-b from-mata-600 to-mata-800 text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.15),0_1px_2px_rgb(20_42_29/0.3),0_4px_12px_-4px_rgb(20_42_29/0.5)] hover:from-mata-500 hover:to-mata-700;
+}
+@utility btn-ouro {
+  @apply btn bg-gradient-to-b from-ouro-400 to-ouro-600 text-mata-950 shadow-[inset_0_1px_0_rgb(255_255_255/0.35),0_4px_12px_-4px_rgb(169_133_58/0.6)] hover:from-ouro-300 hover:to-ouro-500;
+}
+@utility btn-secundario {
+  @apply btn border border-stone-200 bg-white text-stone-800 shadow-[0_1px_2px_rgb(0_0_0/0.05)] hover:border-stone-300 hover:bg-stone-50;
+}
+@utility btn-fantasma {
+  @apply btn text-stone-600 hover:bg-stone-900/5 hover:text-stone-900;
+}
+@utility btn-perigo {
+  @apply btn border border-red-200 bg-white text-red-700 hover:border-red-300 hover:bg-red-50;
+}
+/* Botão só com ícone, sem fundo. Não combinar com outros btn-*: os dois trazem padding e um anula o outro. */
+@utility btn-icone {
+  @apply inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-stone-600 transition hover:bg-stone-900/5 hover:text-stone-900 active:scale-[0.95] disabled:pointer-events-none disabled:opacity-50;
+}
+
+/* ---------- Superfícies ---------- */
+@utility cartao {
+  @apply rounded-2xl border border-stone-200/80 bg-white p-5 shadow-cartao sm:p-6;
+}
+@utility cartao-titulo {
+  @apply text-base font-semibold tracking-tight text-stone-900;
+}
+@utility cartao-sub {
+  @apply mt-0.5 text-sm text-stone-500;
+}
+
+/* Grupo de opções lado a lado (Lista | Calendário) */
+@utility segmentado {
+  @apply inline-flex items-center gap-0.5 rounded-xl border border-stone-200 bg-stone-100/80 p-1 text-sm;
+  & > * {
+    @apply inline-flex h-8 items-center gap-1.5 rounded-lg px-3 font-medium text-stone-600 transition hover:text-stone-900;
+  }
+  & > [data-ativo="true"] {
+    @apply bg-white text-stone-900 shadow-[0_1px_3px_rgb(0_0_0/0.1)];
+  }
+}
+
+@utility chip {
+  @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+}
+
+@utility esqueleto {
+  @apply animate-pulse rounded-lg bg-stone-200/70;
+}
