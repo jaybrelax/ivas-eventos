@@ -5,6 +5,7 @@ import { Mail } from "lucide-react";
 import { salvarDadosPessoais } from "../usuarios/actions";
 import { Aviso, BotaoEnviar } from "@/components/ui";
 import { CampoFoto } from "@/components/CampoFoto";
+import { CampoGenero } from "@/components/CampoGenero";
 
 type Props = { nome: string; email: string; telefone: string | null; foto: string | null; perfil: string; funcao: string; sexo: string | null };
 
@@ -35,13 +36,8 @@ export function PerfilForm({ nome, email, telefone, foto, perfil, funcao, sexo }
         </div>
       </div>
 
-      <div className="max-w-xs">
-        <label className="rotulo" htmlFor="pf-sexo">Categoria</label>
-        <select id="pf-sexo" name="sexo" defaultValue={sexo ?? ""} className="campo">
-          <option value="">Não informada</option>
-          <option value="masculino">Masculino</option>
-          <option value="feminino">Feminino</option>
-        </select>
+      <div>
+        <CampoGenero id="pf-sexo" inicial={sexo === "masculino" || sexo === "feminino" ? sexo : null} />
         <p className="ajuda">Separa mestres e guardiões na escala dos eventos.</p>
       </div>
 

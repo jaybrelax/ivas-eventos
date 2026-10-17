@@ -79,7 +79,17 @@ export async function salvarDadosPessoais(_: Resultado, form: FormData): Promise
     console.error(e);
     return { erro: "Não foi possível salvar o nome." };
   }
-  // Só o Admin define a função nos rituais (Mestre/Guardião).
+  // Só o Admin muda o perfil de acesso (campo ausente = não mexe) e a função nos rituais.
+  const novoPerfil = String(form.get("perfil") ?? "") as Perfil;
+  if (eu.perfil === "admin" && PERFIS_VALIDOS.includes(novoPerfil)) {
+    if (userId === eu.id && novoPerfil !== "admin") return { erro: "Você não pode tirar o seu próprio perfil de Admin." };
+    try {
+      await users.updateLabels({ userId, labels: [novoPerfil] });
+    } catch (e) {
+      console.error(e);
+      return { erro: "Não foi possível alterar o perfil de acesso." };
+    }
+  }
   const r = await salvarContato(userId, form, eu.perfil === "admin");
   if (r.erro) return { erro: r.erro };
   revalidatePath("/", "layout");

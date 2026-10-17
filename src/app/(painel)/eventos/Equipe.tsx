@@ -4,11 +4,12 @@ import { useState } from "react";
 import { Check, Search } from "lucide-react";
 import type { Funcao, Pessoa, Sexo } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
+import { IconeGenero } from "@/components/genero";
 
 const SEXOS: { id: Sexo | null; rotulo: string }[] = [
   { id: "masculino", rotulo: "Masculino" },
   { id: "feminino", rotulo: "Feminino" },
-  { id: null, rotulo: "Sem categoria" },
+  { id: null, rotulo: "Gênero não informado" },
 ];
 
 export const NOME_FUNCAO: Record<Funcao, { um: string; varios: string }> = {
@@ -61,7 +62,10 @@ export function EscolhaEquipe({ funcao, equipe, inicial }: { funcao: Funcao; equ
             return (
               <div key={sx.id ?? "sem"} className="rounded-xl border border-stone-200/80 bg-stone-50/50 p-3">
                 <p className="mb-2 flex items-center justify-between text-xs font-semibold tracking-wide text-stone-500 uppercase">
-                  {sx.rotulo}
+                  <span className="inline-flex items-center gap-1.5">
+                    {sx.id && <IconeGenero genero={sx.id} size={15} />}
+                    {sx.rotulo}
+                  </span>
                   {marcados > 0 && <span className="tabular-nums normal-case text-mata-700">{marcados} escolhido{marcados > 1 ? "s" : ""}</span>}
                 </p>
                 {grupo.length ? (

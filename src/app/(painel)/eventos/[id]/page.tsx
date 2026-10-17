@@ -8,6 +8,7 @@ import { getDadosInstituto, getEvento } from "@/lib/data";
 import { listarEquipe } from "@/lib/usuarios";
 import { dataPorExtenso, formatarIdRitual } from "@/lib/format";
 import { BadgeDestaque, BadgeRitual, BadgeTipo, Titulo } from "@/components/Titulo";
+import { GENERO_ROTULO, IconeGenero } from "@/components/genero";
 import { EventoForm } from "../EventoForm";
 import { excluirEvento } from "../actions";
 
@@ -119,7 +120,10 @@ function EquipeDoEvento({ equipe, mestres, guardioes }: { equipe: Pessoa[]; mest
                 if (!nomes.length) return null;
                 return (
                   <div key={sx}>
-                    <p className="text-[11px] font-semibold tracking-wide text-stone-400 uppercase">{sx === "masculino" ? "Masculino" : "Feminino"}</p>
+                    <p className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-stone-400 uppercase">
+                      <IconeGenero genero={sx} size={13} />
+                      {GENERO_ROTULO[sx]}
+                    </p>
                     <p className="text-sm font-medium text-stone-900">{nomes.map((p) => p.nome).join(", ")}</p>
                   </div>
                 );

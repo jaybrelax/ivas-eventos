@@ -2,11 +2,13 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { KeyRound, Pencil, Phone, Trash2, UserPlus, X } from "lucide-react";
-import { alterarPerfil, criarUsuario, excluirUsuario, redefinirSenha, salvarDadosPessoais } from "./actions";
+import { criarUsuario, excluirUsuario, redefinirSenha, salvarDadosPessoais } from "./actions";
 import { PERFIS, type Perfil } from "@/lib/config";
 import { Aviso, BotaoEnviar, Carregando } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
 import { CampoFoto } from "@/components/CampoFoto";
+import { CampoGenero } from "@/components/CampoGenero";
+import { GENERO_ROTULO, IconeGenero } from "@/components/genero";
 import { BotaoConfirmar } from "@/components/Confirmar";
 
 type U = {
@@ -15,9 +17,8 @@ type U = {
 };
 
 const FUNCAO_ROTULO = { mestre: "Mestre", guardiao: "Guardião", nenhuma: "" } as const;
-const SEXO_ROTULO = { masculino: "Masculino", feminino: "Feminino" } as const;
 
-/** Selects de função nos rituais e categoria, usados ao criar e ao editar. */
+/** Função nos rituais (select) e gênero (opções com ícone), usados ao criar e ao editar. */
 function CamposRitual({ id, funcao, sexo, comAuto }: { id: string; funcao?: U["funcaoRitual"]; sexo?: U["sexo"]; comAuto?: boolean }) {
   return (
     <>
@@ -30,13 +31,8 @@ function CamposRitual({ id, funcao, sexo, comAuto }: { id: string; funcao?: U["f
           <option value="nenhuma">Nenhuma (não é escalado)</option>
         </select>
       </div>
-      <div>
-        <label className="rotulo" htmlFor={`${id}-sexo`}>Categoria</label>
-        <select id={`${id}-sexo`} name="sexo" defaultValue={sexo ?? ""} className="campo">
-          <option value="">Não informada</option>
-          <option value="masculino">Masculino</option>
-          <option value="feminino">Feminino</option>
-        </select>
+      <div className="sm:col-span-2">
+        <CampoGenero id={`${id}-sexo`} inicial={sexo} />
       </div>
     </>
   );
@@ -100,7 +96,14 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
             {souEu && <span className="chip bg-stone-100 text-stone-500">você</span>}
             {u.funcaoRitual !== "nenhuma" && (
               <span className="chip bg-mata-50 text-mata-700 ring-1 ring-mata-200 ring-inset">
-                {FUNCAO_ROTULO[u.funcaoRitual]}{u.sexo && ` · ${SEXO_ROTULO[u.sexo]}`}
+                {FUNCAO_ROTULO[u.funcaoRitual]}
+                {u.sexo && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <IconeGenero genero={u.sexo} size={13} />
+                    {GENERO_ROTULO[u.sexo]}
+                  </>
+                )}
               </span>
             )}
           </p>
@@ -113,20 +116,12 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
             )}
           </p>
         </div>
-        <select
-          defaultValue={u.perfil ?? ""}
-          disabled={pendente}
-          onChange={(e) => rodar(() => alterarPerfil(u.id, e.target.value as Perfil))}
-          className="campo w-auto min-w-36"
-          aria-label={`Perfil de acesso de ${u.nome}`}
-          title="Perfil de acesso" 
-        >
-          {!u.perfil && <option value="">Sem perfil</option>}
-          {PERFIS.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-        </select>
+        <span className="chip bg-stone-100 text-stone-600" title="Perfil de acesso ao painel">
+          Acesso: {PERFIS.find((p) => p.id === u.perfil)?.nome ?? "sem perfil"}
+        </span>
         <div className="flex gap-1">
           {pendente && <span className="grid h-10 w-6 place-items-center text-stone-400"><Carregando /></span>}
-          <button className="btn-icone" disabled={pendente} onClick={() => { setEditando((v) => !v); setTrocandoSenha(false); }} title="Editar nome, telefone e foto" aria-label="Editar dados">
+          <button className="btn-icone" disabled={pendente} onClick={() => { setEditando((v) => !v); setTrocandoSenha(false); }} title="Editar dados e perfil de acesso" aria-label="Editar dados">
             <Pencil size={17} />
           </button>
           <button className="btn-icone" disabled={pendente} onClick={() => { setTrocandoSenha((v) => !v); setEditando(false); }} title="Redefinir senha" aria-label="Redefinir senha">
@@ -146,7 +141,7 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
         </div>
       </div>
 
-      {editando && <EditarDados u={u} aoSalvar={() => setEditando(false)} />}
+      {editando && <EditarDados u={u} souEu={souEu} aoSalvar={() => setEditando(false)} />}
 
       {trocandoSenha && (
         <form
@@ -180,7 +175,7 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
   );
 }
 
-function EditarDados({ u, aoSalvar }: { u: U; aoSalvar: () => void }) {
+function EditarDados({ u, souEu, aoSalvar }: { u: U; souEu: boolean; aoSalvar: () => void }) {
   const [estado, acao, salvando] = useActionState(async (prev: Awaited<ReturnType<typeof salvarDadosPessoais>>, form: FormData) => {
     const r = await salvarDadosPessoais(prev, form);
     if (r?.ok) aoSalvar();
@@ -195,6 +190,14 @@ function EditarDados({ u, aoSalvar }: { u: U; aoSalvar: () => void }) {
         <CamposRitual id={`ed-${u.id}`} funcao={u.funcaoRitual} sexo={u.sexo} />
         <div><label className="rotulo" htmlFor={`ed-nome-${u.id}`}>Nome</label><input id={`ed-nome-${u.id}`} name="nome" defaultValue={u.nome} required className="campo" /></div>
         <div><label className="rotulo" htmlFor={`ed-tel-${u.id}`}>Telefone</label><input id={`ed-tel-${u.id}`} name="telefone" type="tel" inputMode="tel" defaultValue={u.telefone ?? ""} placeholder="(43) 99999-0000" className="campo" /></div>
+        <div>
+          <label className="rotulo" htmlFor={`ed-perfil-${u.id}`}>Perfil de acesso</label>
+          <select id={`ed-perfil-${u.id}`} name="perfil" defaultValue={u.perfil ?? ""} disabled={souEu} className="campo">
+            {!u.perfil && <option value="">Sem perfil</option>}
+            {PERFIS.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+          </select>
+          {souEu && <p className="ajuda">Você não pode tirar o seu próprio acesso de Admin.</p>}
+        </div>
       </div>
       <div className="flex justify-end gap-2">
         <button type="button" className="btn-secundario" onClick={aoSalvar}>Cancelar</button>
