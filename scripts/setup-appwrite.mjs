@@ -70,7 +70,7 @@ const TABELAS = {
     nome: "Tipos de evento",
     colunas: [
       v("nome", 60, { required: true }), v("slug", 60, { required: true }), v("cor", 9), v("icone", 30),
-      b("conta_como_ritual"), b("ativo", true), i("ordem", { xdefault: 0 }),
+      b("conta_como_ritual"), b("ativo", true), i("ordem", { xdefault: 0 }), t("descricao"),
     ],
     indices: [["ux_tipo_slug", "unique", ["slug"]]],
   },

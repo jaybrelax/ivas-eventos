@@ -20,7 +20,11 @@ export type Sexo = "masculino" | "feminino";
 /** Usuário do painel que pode ser escalado nos eventos como mestre ou guardião. */
 export type Pessoa = { $id: string; nome: string; funcao: Funcao; sexo: Sexo | null; foto: string | null };
 
-export type TipoEvento = { $id: string; nome: string; slug: string; cor: string; icone: string | null; conta_como_ritual: boolean; ativo: boolean; ordem: number };
+/** `icone`: nome de um ícone da biblioteca Lucide (ex.: "flame"); `descricao`: texto que acompanha os eventos desse tipo. */
+export type TipoEvento = {
+  $id: string; nome: string; slug: string; cor: string; icone: string | null; descricao: string | null;
+  conta_como_ritual: boolean; ativo: boolean; ordem: number;
+};
 
 export type Evento = {
   $id: string;

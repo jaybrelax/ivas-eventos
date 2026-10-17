@@ -1,7 +1,8 @@
 "use client";
 
 import { forwardRef } from "react";
-import { AtSign, CalendarCheck, CalendarDays, Clock, Flame, Leaf, MapPin, Moon, Sparkles, Star, Sun, Users } from "lucide-react";
+import { AtSign, CalendarCheck, Clock, MapPin, Star } from "lucide-react";
+import { IconeTipo } from "@/components/IconeTipo";
 import type { DadosInstituto, Evento } from "@/lib/types";
 import { partesData } from "@/lib/format";
 import { mascararTelefone } from "@/lib/telefone";
@@ -16,7 +17,6 @@ type Props = {
   refConteudo?: React.Ref<HTMLDivElement>;
 };
 
-const ICONES = { flame: Flame, moon: Moon, leaf: Leaf, users: Users, sparkles: Sparkles, sun: Sun } as const;
 
 /** Ícone do WhatsApp (balão com telefone). */
 function IconeWhats({ tamanho }: { tamanho: number }) {
@@ -157,7 +157,6 @@ export const BannerCalendario = forwardRef<HTMLDivElement, Props>(function Banne
         {eventos.map((e) => {
           const t = tipoPorId.get(e.tipo_id);
           const cor = c.usarCorTipo && t ? t.cor : c.corDestaque;
-          const Icone = (t?.icone && ICONES[t.icone as keyof typeof ICONES]) || CalendarDays;
           const d = partesData(e.data);
           const end = e.endereco_id ? endPorId.get(e.endereco_id) : null;
           const textoEnd = end
@@ -262,7 +261,7 @@ export const BannerCalendario = forwardRef<HTMLDivElement, Props>(function Banne
                 )}
                 <div style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: px(10) }}>
                   <span style={{ flexShrink: 0, color: cor, marginTop: px(2) }}>
-                    <Icone size={n(28)} strokeWidth={2.2} />
+                    <IconeTipo nome={t?.icone} size={n(28)} strokeWidth={2.2} />
                   </span>
                   <div
                     style={{

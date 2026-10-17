@@ -6,10 +6,10 @@ import { InputFile } from "node-appwrite/file";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
 import { BUCKET_ID, DB_ID, INSTITUTO_ROW_ID, TABLES } from "@/lib/config";
-import { getInstituto } from "@/lib/data";
+import { getInstituto, listarTipos } from "@/lib/data";
 import { slugify } from "@/lib/format";
 import { conferirImagem } from "@/lib/imagem";
-import { CAMPOS, type TabelaEditavel } from "./campos";
+import { CAMPOS, type Campo, type TabelaEditavel } from "./campos";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
 
@@ -67,7 +67,7 @@ export async function salvarItem(tabela: TabelaEditavel, _: Resultado, form: For
   const id = String(form.get("$id") ?? "");
   const dados: Record<string, unknown> = {};
 
-  for (const c of def.campos) {
+  for (const c of def.campos as Campo[]) {
     const bruto = form.get(c.nome);
     if (c.tipo === "checkbox") dados[c.nome] = bruto === "on";
     else if (c.tipo === "number") dados[c.nome] = Number(bruto) || 0;
@@ -77,7 +77,17 @@ export async function salvarItem(tabela: TabelaEditavel, _: Resultado, form: For
       dados[c.nome] = v || null;
     }
   }
-  if (tabela === "tipos" && !id) dados.slug = slugify(String(dados.nome)) + "-" + Date.now().toString(36);
+  if (tabela === "tipos") {
+    // Ícone: nome de um ícone da biblioteca Lucide (letras, números e hífen).
+    if (dados.icone && !/^[a-z0-9-]{1,30}$/.test(String(dados.icone))) dados.icone = null;
+    if (typeof dados.descricao === "string") dados.descricao = dados.descricao.slice(0, 1000);
+    if (!id) {
+      dados.slug = slugify(String(dados.nome)) + "-" + Date.now().toString(36);
+      // Sem campo de ordem na tela: o tipo novo entra no fim da lista.
+      const ultimos = await listarTipos();
+      dados.ordem = Math.max(0, ...ultimos.map((t) => t.ordem ?? 0)) + 1;
+    }
+  }
 
   const { tablesDB } = createAdminClient();
   const tableId = TABLES[tabela];

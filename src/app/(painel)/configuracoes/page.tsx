@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
-import { getDadosInstituto } from "@/lib/data";
+import { getDadosInstituto, listarEventos } from "@/lib/data";
 import { Building2, CreditCard, MapPin, Phone, Share2, Tags } from "lucide-react";
 import { Titulo } from "@/components/Titulo";
 import { InstitutoForm } from "./InstitutoForm";
 import { ListaEditavel } from "./ListaEditavel";
+import { TiposEvento, type TipoItem } from "./TiposEvento";
 
 type Item = Record<string, unknown> & { $id: string };
 const limpo = (rows: object[]) => JSON.parse(JSON.stringify(rows)) as Item[];
@@ -20,6 +21,9 @@ export default async function Configuracoes({ searchParams }: PageProps<"/config
   const pedida = typeof sp.secao === "string" ? sp.secao : "";
   const atual: Secao = (SECOES as readonly string[]).includes(pedida) ? (pedida as Secao) : "instituto";
   const d = await getDadosInstituto();
+  // Quantos eventos usam cada tipo (só na aba de tipos)
+  const contagem: Record<string, number> = {};
+  if (atual === "tipos") for (const e of await listarEventos()) contagem[e.tipo_id] = (contagem[e.tipo_id] ?? 0) + 1;
   const secoes: { id: Secao; rotulo: string; Icone: typeof Building2; n?: number }[] = [
     { id: "instituto", rotulo: "Instituto", Icone: Building2 },
     { id: "enderecos", rotulo: "Endereços", Icone: MapPin, n: d.enderecos.length },
@@ -62,7 +66,7 @@ export default async function Configuracoes({ searchParams }: PageProps<"/config
           {atual === "telefones" && <ListaEditavel tabela="telefones" itens={limpo(d.telefones)} />}
           {atual === "redes" && <ListaEditavel tabela="redes" itens={limpo(d.redes)} />}
           {atual === "pix" && <ListaEditavel tabela="pix" itens={limpo(d.pix)} />}
-          {atual === "tipos" && <ListaEditavel tabela="tipos" itens={limpo(d.tipos)} />}
+          {atual === "tipos" && <TiposEvento itens={limpo(d.tipos) as unknown as TipoItem[]} contagem={contagem} />}
         </div>
       </div>
     </>

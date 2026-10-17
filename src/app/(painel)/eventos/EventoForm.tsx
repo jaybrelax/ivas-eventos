@@ -4,6 +4,7 @@ import { startTransition, useActionState, useState } from "react";
 import Link from "next/link";
 import { Check, Flame, Hash, ImagePlus, Megaphone, RefreshCw, Shield, Star, Trash2, type LucideIcon } from "lucide-react";
 import { IconeGenero } from "@/components/genero";
+import { IconeTipo } from "@/components/IconeTipo";
 import { salvarEvento } from "./actions";
 import { Aviso, Carregando } from "@/components/ui";
 import { useImagem } from "@/components/useImagem";
@@ -212,7 +213,7 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guar
                   >
                     <input type="radio" name="tipo_id" value={t.$id} checked={on} onChange={() => setTipoId(t.$id)} className="sr-only" />
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${t.cor}1a`, color: t.cor }}>
-                      {t.conta_como_ritual ? <Flame size={17} /> : <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.cor }} />}
+                      <IconeTipo nome={t.icone} size={18} />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-stone-900">{t.nome}</span>
@@ -223,6 +224,11 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guar
                 );
               })}
             </div>
+            {tipo?.descricao && (
+              <p className="rounded-xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line text-stone-700 ring-1 ring-inset" style={{ background: `${tipo.cor}0d`, ["--tw-ring-color" as string]: `${tipo.cor}26` }}>
+                {tipo.descricao}
+              </p>
+            )}
           </Bloco>
 
           {tipo?.conta_como_ritual && (

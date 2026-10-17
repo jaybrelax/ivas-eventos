@@ -80,7 +80,7 @@ export default async function GuarnicaoPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="truncate font-semibold text-stone-900 group-hover:text-mata-700">{e.titulo}</h3>
-                    {t && <BadgeTipo nome={t.nome} cor={t.cor} />}
+                    {t && <BadgeTipo nome={t.nome} cor={t.cor} icone={t.icone} />}
                     {e.candidaturas_abertas === false && <span className="chip bg-stone-100 text-stone-500">Candidaturas fechadas</span>}
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-stone-600 tabular-nums">

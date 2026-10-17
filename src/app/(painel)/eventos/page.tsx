@@ -238,13 +238,13 @@ function CartaoEvento({ e, t, end, hj, passado, pessoas, guarnicao }: { e: Event
           )}
         </div>
         <div className="flex flex-wrap items-center gap-1.5 md:hidden">
-          {t && <BadgeTipo nome={t.nome} cor={t.cor} />}
+          {t && <BadgeTipo nome={t.nome} cor={t.cor} icone={t.icone} />}
           {idR && <BadgeRitual id={idR} />}
         </div>
       </div>
 
       <div className="hidden shrink-0 flex-col items-end justify-center gap-1.5 md:flex">
-        {t && <BadgeTipo nome={t.nome} cor={t.cor} />}
+        {t && <BadgeTipo nome={t.nome} cor={t.cor} icone={t.icone} />}
         {idR && <BadgeRitual id={idR} />}
         {e.destaque && <BadgeDestaque />}
       </div>

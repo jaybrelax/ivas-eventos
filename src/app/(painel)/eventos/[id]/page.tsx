@@ -47,10 +47,15 @@ export default async function EditarEvento({ params }: PageProps<"/eventos/[id]"
           )}
           <div className="space-y-5 p-5 sm:p-7">
             <div className="flex flex-wrap gap-2">
-              {tipo && <BadgeTipo nome={tipo.nome} cor={tipo.cor} />}
+              {tipo && <BadgeTipo nome={tipo.nome} cor={tipo.cor} icone={tipo.icone} />}
               {idRitual && <BadgeRitual id={idRitual} />}
               {evento.destaque && <BadgeDestaque />}
             </div>
+            {tipo?.descricao && (
+              <p className="rounded-xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line text-stone-700 ring-1 ring-inset" style={{ background: `${tipo.cor}0d`, ["--tw-ring-color" as string]: `${tipo.cor}26` }}>
+                {tipo.descricao}
+              </p>
+            )}
             <dl className="grid gap-4 sm:grid-cols-3">
               {[
                 { Icone: CalendarDays, rotulo: "Data", valor: <span className="capitalize">{dataPorExtenso(evento.data)}</span> },
@@ -83,7 +88,7 @@ export default async function EditarEvento({ params }: PageProps<"/eventos/[id]"
         subtitulo={
           (tipo || idRitual) && (
             <span className="inline-flex flex-wrap items-center gap-2">
-              {tipo && <BadgeTipo nome={tipo.nome} cor={tipo.cor} />}
+              {tipo && <BadgeTipo nome={tipo.nome} cor={tipo.cor} icone={tipo.icone} />}
               {idRitual && <BadgeRitual id={idRitual} />}
             </span>
           )

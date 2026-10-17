@@ -69,7 +69,8 @@ export const CAMPOS = {
     campos: [
       { nome: "nome", rotulo: "Nome", tipo: "text", obrigatorio: true, largura: "md" },
       { nome: "cor", rotulo: "Cor", tipo: "color" },
-      { nome: "ordem", rotulo: "Ordem", tipo: "number" },
+      { nome: "icone", rotulo: "Ícone", tipo: "text" },
+      { nome: "descricao", rotulo: "Descrição", tipo: "text" },
       { nome: "conta_como_ritual", rotulo: "Conta como ritual", tipo: "checkbox" },
       { nome: "ativo", rotulo: "Ativo", tipo: "checkbox" },
     ],

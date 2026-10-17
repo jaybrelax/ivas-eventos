@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Star } from "lucide-react";
+import { IconeTipo } from "./IconeTipo";
 
 export function Titulo({
   titulo,
@@ -25,10 +26,10 @@ export function Titulo({
   );
 }
 
-export function BadgeTipo({ nome, cor }: { nome: string; cor: string }) {
+export function BadgeTipo({ nome, cor, icone }: { nome: string; cor: string; icone?: string | null }) {
   return (
     <span className="chip ring-1 ring-inset" style={{ background: `${cor}14`, color: cor, ["--tw-ring-color" as string]: `${cor}33` }}>
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: cor }} />
+      {icone ? <IconeTipo nome={icone} size={12} strokeWidth={2.4} /> : <span className="h-1.5 w-1.5 rounded-full" style={{ background: cor }} />}
       {nome}
     </span>
   );
