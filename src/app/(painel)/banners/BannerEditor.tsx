@@ -13,6 +13,7 @@ import { Banner } from "./Banner";
 import { FORMATOS, configPadrao, type ConfigBanner, type Formato } from "./tipos";
 import { excluirModelo, salvarModelo } from "./actions";
 import { Aviso } from "@/components/ui";
+import { BotaoConfirmar } from "@/components/Confirmar";
 
 type Props = {
   dados: DadosInstituto;
@@ -81,6 +82,7 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
   const [ajuste, setAjuste] = useState<null | "subindo" | "descendo">(null);
   const [baixando, setBaixando] = useState(false);
   const [modeloId, setModeloId] = useState("");
+  const [nomeNovo, setNomeNovo] = useState<string | null>(null); // campo do "Salvar como novo"
   const [msg, setMsg] = useState<{ ok?: string; erro?: string }>();
   const [salvando, iniciar] = useTransition();
 
@@ -174,10 +176,11 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
     }
   }
 
-  function guardarModelo(novo: boolean) {
+  function guardarModelo(novo: boolean, nomeDigitado?: string) {
     const atual = modelos.find((m) => m.$id === modeloId);
-    const nome = novo || !atual ? prompt("Nome do modelo:", "") : atual.nome;
+    const nome = (novo || !atual ? nomeDigitado : atual.nome)?.trim();
     if (!nome) return;
+    setNomeNovo(null);
     // O modelo guarda só o visual; título e eventos vêm do período.
     const { titulo: _t, subtitulo: _s, ...visual } = c;
     void _t;
@@ -252,19 +255,39 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
           </select>
           {podeSalvarModelo && (
             <div className="flex flex-wrap gap-2">
-              <button type="button" disabled={salvando} onClick={() => guardarModelo(true)} className="btn-secundario px-3 py-1.5 text-xs">Salvar como novo</button>
+              <button type="button" disabled={salvando} onClick={() => setNomeNovo((v) => (v === null ? "" : null))} className="btn-secundario px-3 py-1.5 text-xs">Salvar como novo</button>
               {modeloId && <button type="button" disabled={salvando} onClick={() => guardarModelo(false)} className="btn-secundario px-3 py-1.5 text-xs">Atualizar modelo</button>}
               {modeloId && (
-                <button
-                  type="button"
+                <BotaoConfirmar
                   disabled={salvando}
-                  onClick={() => confirm("Excluir este modelo?") && iniciar(async () => { setMsg(await excluirModelo(modeloId)); setModeloId(""); router.refresh(); })}
+                  pergunta="Excluir este modelo de banner?"
+                  aoConfirmar={() => iniciar(async () => { setMsg(await excluirModelo(modeloId)); setModeloId(""); router.refresh(); })}
                   className="btn-perigo px-3 py-1.5 text-xs"
                 >
                   Excluir
-                </button>
+                </BotaoConfirmar>
               )}
             </div>
+          )}
+          {podeSalvarModelo && nomeNovo !== null && (
+            <form
+              className="flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                guardarModelo(true, nomeNovo);
+              }}
+            >
+              <input
+                value={nomeNovo}
+                onChange={(e) => setNomeNovo(e.target.value)}
+                placeholder="Nome do modelo"
+                maxLength={80}
+                autoFocus
+                className="campo h-9 flex-1 text-xs"
+                aria-label="Nome do novo modelo"
+              />
+              <button className="btn-primario h-9 px-3 text-xs" disabled={salvando || !nomeNovo.trim()}>Salvar</button>
+            </form>
           )}
           <p className="text-xs text-stone-500">O modelo guarda só o visual. Os eventos são lidos de novo a cada vez.</p>
         </Secao>

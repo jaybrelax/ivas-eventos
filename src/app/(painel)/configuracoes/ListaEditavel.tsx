@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { excluirItem, salvarItem, type Resultado } from "./actions";
 import { CAMPOS, type Campo, type TabelaEditavel } from "./campos";
 import { Aviso } from "@/components/ui";
+import { BotaoConfirmar } from "@/components/Confirmar";
 
 type Item = Record<string, unknown> & { $id: string };
 
@@ -64,21 +65,20 @@ function Linha({ tabela, item, aoSalvar }: { tabela: TabelaEditavel; item?: Item
             {salvando ? "Salvando…" : item ? "Salvar" : <><Plus size={16} /> Adicionar</>}
           </button>
           {item && (
-            <button
-              type="button"
+            <BotaoConfirmar
               className="btn-icone text-stone-400 hover:bg-red-50 hover:text-red-700"
               disabled={excluindo}
-              aria-label="Excluir"
-              onClick={() => {
-                if (!confirm("Excluir este item?")) return;
+              title="Excluir"
+              pergunta="Excluir este item?"
+              aoConfirmar={() =>
                 iniciar(async () => {
                   const r = await excluirItem(tabela, item.$id);
                   setErroExcluir(r?.erro);
-                });
-              }}
+                })
+              }
             >
               <Trash2 size={15} />
-            </button>
+            </BotaoConfirmar>
           )}
         </div>
       </div>

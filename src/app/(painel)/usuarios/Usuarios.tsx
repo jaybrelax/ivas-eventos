@@ -7,6 +7,7 @@ import { PERFIS, type Perfil } from "@/lib/config";
 import { Aviso, BotaoEnviar, Carregando } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
 import { CampoFoto } from "@/components/CampoFoto";
+import { BotaoConfirmar } from "@/components/Confirmar";
 
 type U = {
   id: string; nome: string; email: string; perfil: Perfil | null; telefone: string | null; foto: string | null;
@@ -132,15 +133,15 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
             <KeyRound size={17} />
           </button>
           {!souEu && (
-            <button
+            <BotaoConfirmar
               className="btn-icone hover:bg-red-50 hover:text-red-700"
               disabled={pendente}
               title="Excluir usuário"
-              aria-label="Excluir usuário"
-              onClick={() => confirm(`Excluir ${u.nome}? Essa ação não pode ser desfeita.`) && rodar(() => excluirUsuario(u.id))}
+              pergunta={`Excluir ${u.nome}? Essa ação não pode ser desfeita.`}
+              aoConfirmar={() => rodar(() => excluirUsuario(u.id))}
             >
               <Trash2 size={17} />
-            </button>
+            </BotaoConfirmar>
           )}
         </div>
       </div>
