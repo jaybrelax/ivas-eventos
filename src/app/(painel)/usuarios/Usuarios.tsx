@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { KeyRound, Pencil, Phone, Trash2, UserPlus, X } from "lucide-react";
+import { Flame, KeyRound, Phone, ShieldCheck, SquarePen, Trash2, User, UserPlus, X, type LucideIcon } from "lucide-react";
 import { criarUsuario, excluirUsuario, redefinirSenha, salvarDadosPessoais } from "./actions";
 import { PERFIS, type Perfil } from "@/lib/config";
 import { Aviso, BotaoEnviar, Carregando } from "@/components/ui";
@@ -19,12 +19,22 @@ type U = {
 
 const FUNCAO_ROTULO = { mestre: "Mestre", guardiao: "Guardião", nenhuma: "" } as const;
 
+/** Rótulo de campo com ícone. */
+function Rot({ icone: Icone, htmlFor, children }: { icone: LucideIcon; htmlFor?: string; children: React.ReactNode }) {
+  return (
+    <label className="rotulo flex items-center gap-1.5" htmlFor={htmlFor}>
+      <Icone size={14} className="text-stone-400" aria-hidden />
+      {children}
+    </label>
+  );
+}
+
 /** Função nos rituais (select) e gênero (opções com ícone), usados ao criar e ao editar. */
 function CamposRitual({ id, funcao, sexo, comAuto }: { id: string; funcao?: U["funcaoRitual"]; sexo?: U["sexo"]; comAuto?: boolean }) {
   return (
     <>
       <div>
-        <label className="rotulo" htmlFor={`${id}-funcao`}>Função nos rituais</label>
+        <Rot icone={Flame} htmlFor={`${id}-funcao`}>Função nos rituais</Rot>
         <select id={`${id}-funcao`} name="funcao_ritual" defaultValue={comAuto ? "" : funcao} className="campo">
           {comAuto && <option value="">Igual ao perfil</option>}
           <option value="mestre">Mestre</option>
@@ -122,29 +132,18 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
         </span>
         <div className="flex gap-1">
           {pendente && <span className="grid h-10 w-6 place-items-center text-stone-400"><Carregando /></span>}
-          <button className="btn-icone" disabled={pendente} onClick={() => { setEditando((v) => !v); setTrocandoSenha(false); }} title="Editar dados e perfil de acesso" aria-label="Editar dados">
-            <Pencil size={17} />
+          <button className="btn-icone" disabled={pendente} onClick={() => { setEditando((v) => !v); setTrocandoSenha(false); }} title="Editar usuário" aria-label="Editar dados">
+            <SquarePen size={17} />
           </button>
           <button className="btn-icone" disabled={pendente} onClick={() => { setTrocandoSenha((v) => !v); setEditando(false); }} title="Redefinir senha" aria-label="Redefinir senha">
             <KeyRound size={17} />
           </button>
-          {!souEu && (
-            <BotaoConfirmar
-              className="btn-icone hover:bg-red-50 hover:text-red-700"
-              disabled={pendente}
-              title="Excluir usuário"
-              pergunta={`Excluir ${u.nome}? Essa ação não pode ser desfeita.`}
-              aoConfirmar={() => rodar(() => excluirUsuario(u.id))}
-            >
-              <Trash2 size={17} />
-            </BotaoConfirmar>
-          )}
         </div>
       </div>
 
       {editando && (
         <PainelEdicao u={u} onFechar={() => setEditando(false)}>
-          <EditarDados u={u} souEu={souEu} aoSalvar={() => setEditando(false)} />
+          <EditarDados u={u} souEu={souEu} aoSalvar={() => setEditando(false)} aoExcluir={() => { setEditando(false); rodar(() => excluirUsuario(u.id)); }} />
         </PainelEdicao>
       )}
 
@@ -180,7 +179,7 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
   );
 }
 
-function EditarDados({ u, souEu, aoSalvar }: { u: U; souEu: boolean; aoSalvar: () => void }) {
+function EditarDados({ u, souEu, aoSalvar, aoExcluir }: { u: U; souEu: boolean; aoSalvar: () => void; aoExcluir: () => void }) {
   const [estado, acao, salvando] = useActionState(async (prev: Awaited<ReturnType<typeof salvarDadosPessoais>>, form: FormData) => {
     const r = await salvarDadosPessoais(prev, form);
     if (r?.ok) aoSalvar();
@@ -191,23 +190,52 @@ function EditarDados({ u, souEu, aoSalvar }: { u: U; souEu: boolean; aoSalvar: (
       <input type="hidden" name="userId" value={u.id} />
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
       <CampoFoto nome={u.nome} fotoAtual={u.foto} tamanho={64} />
-      <div className="grid gap-3 sm:grid-cols-2">
-        <CamposRitual id={`ed-${u.id}`} funcao={u.funcaoRitual} sexo={u.sexo} />
-        <div><label className="rotulo" htmlFor={`ed-nome-${u.id}`}>Nome</label><input id={`ed-nome-${u.id}`} name="nome" defaultValue={u.nome} required className="campo" /></div>
-        <div><label className="rotulo" htmlFor={`ed-tel-${u.id}`}>Telefone</label><input id={`ed-tel-${u.id}`} name="telefone" type="tel" inputMode="tel" defaultValue={u.telefone ?? ""} placeholder="(43) 99999-0000" className="campo" /></div>
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="rotulo" htmlFor={`ed-perfil-${u.id}`}>Perfil de acesso</label>
+          <Rot icone={User} htmlFor={`ed-nome-${u.id}`}>Nome</Rot>
+          <input id={`ed-nome-${u.id}`} name="nome" defaultValue={u.nome} required className="campo" />
+        </div>
+        <div>
+          <Rot icone={Phone} htmlFor={`ed-tel-${u.id}`}>Telefone</Rot>
+          <input id={`ed-tel-${u.id}`} name="telefone" type="tel" inputMode="tel" defaultValue={u.telefone ?? ""} placeholder="(43) 99999-0000" className="campo" />
+        </div>
+        <div>
+          <Rot icone={Flame} htmlFor={`ed-funcao-${u.id}`}>Função nos rituais</Rot>
+          <select id={`ed-funcao-${u.id}`} name="funcao_ritual" defaultValue={u.funcaoRitual} className="campo">
+            <option value="mestre">Mestre</option>
+            <option value="guardiao">Guardião</option>
+            <option value="nenhuma">Nenhuma (não é escalado)</option>
+          </select>
+        </div>
+        <div>
+          <Rot icone={ShieldCheck} htmlFor={`ed-perfil-${u.id}`}>Perfil de acesso</Rot>
           <select id={`ed-perfil-${u.id}`} name="perfil" defaultValue={u.perfil ?? ""} disabled={souEu} className="campo">
             {!u.perfil && <option value="">Sem perfil</option>}
             {PERFIS.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </select>
-          {souEu && <p className="ajuda">Você não pode tirar o seu próprio acesso de Admin.</p>}
+        </div>
+        {souEu && <p className="ajuda -mt-2 sm:col-span-2">Você não pode tirar o seu próprio acesso de Admin.</p>}
+        <div className="sm:col-span-2">
+          <CampoGenero id={`ed-${u.id}-sexo`} inicial={u.sexo} />
         </div>
       </div>
       <div className="flex justify-end gap-2">
         <button type="button" className="btn-secundario" onClick={aoSalvar}>Cancelar</button>
         <button className="btn-primario" disabled={salvando}>{salvando ? <><Carregando /> Salvando…</> : "Salvar"}</button>
       </div>
+      {!souEu && (
+        <div className="flex items-center justify-between gap-3 border-t border-stone-100 pt-4">
+          <p className="text-xs text-stone-500">Excluir remove o acesso e a foto desta pessoa.</p>
+          <BotaoConfirmar
+            acima
+            className="btn border border-red-200 bg-white px-3 text-sm text-red-700 hover:bg-red-50"
+            pergunta={`Excluir ${u.nome}? Essa ação não pode ser desfeita.`}
+            aoConfirmar={aoExcluir}
+          >
+            <Trash2 size={16} /> Excluir usuário
+          </BotaoConfirmar>
+        </div>
+      )}
     </form>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { Mail } from "lucide-react";
+import { Mail, Phone, User } from "lucide-react";
 import { salvarDadosPessoais } from "../usuarios/actions";
 import { Aviso, BotaoEnviar } from "@/components/ui";
 import { CampoFoto } from "@/components/CampoFoto";
@@ -26,11 +26,11 @@ export function PerfilForm({ nome, email, telefone, foto, perfil, funcao, sexo }
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="rotulo" htmlFor="pf-nome">Nome</label>
+          <label className="rotulo flex items-center gap-1.5" htmlFor="pf-nome"><User size={14} className="text-stone-400" aria-hidden />Nome</label>
           <input id="pf-nome" name="nome" defaultValue={nome} required maxLength={128} className="campo" autoComplete="name" />
         </div>
         <div>
-          <label className="rotulo" htmlFor="pf-tel">Telefone</label>
+          <label className="rotulo flex items-center gap-1.5" htmlFor="pf-tel"><Phone size={14} className="text-stone-400" aria-hidden />Telefone</label>
           <input id="pf-tel" name="telefone" type="tel" inputMode="tel" defaultValue={telefone ?? ""} placeholder="(43) 99999-0000" className="campo" autoComplete="tel" />
           <p className="ajuda">Com DDD. Usado para contato pela equipe.</p>
         </div>
