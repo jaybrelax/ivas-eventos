@@ -48,7 +48,8 @@ export default async function Agenda({ searchParams }: PageProps<"/eventos">) {
   };
   const p = partesData(`${mes}-01`);
   const proximos = eventos.filter((e) => e.data >= hj);
-  const passados = eventos.filter((e) => e.data < hj);
+  // Já aconteceram: do mais recente para o mais antigo (a lista vem em ordem crescente).
+  const passados = eventos.filter((e) => e.data < hj).reverse();
 
   const kpis = [
     { rotulo: `Eventos em ${p.mesNome}`, valor: doMes.length, Icone: CalendarRange, cor: "text-mata-600 bg-mata-50" },
