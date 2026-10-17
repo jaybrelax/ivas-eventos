@@ -20,8 +20,9 @@ const DB = "ivas";
 
 const TIPOS = {
   Normal: "ritual-normal",
-  Jejum: "ritual-jejum",
-  Feitio: "feitio",
+  // Jejum e Feitio deixaram de ser tipos próprios: entram como Ritual normal.
+  Jejum: "ritual-normal",
+  Feitio: "ritual-normal",
   "Reunião": "reuniao",
   "Evento comemorativo": "comemorativo",
 };

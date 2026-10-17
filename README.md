@@ -59,20 +59,20 @@ npm run setup
 npm run dev
 ```
 
-- `npm run setup` cria o database `ivas`, as 8 tabelas, os índices, o bucket de imagens, os 5 tipos de evento e o seu usuário Admin. Pode rodar de novo sem problema: o que já existe é pulado.
+- `npm run setup` cria o database `ivas`, as tabelas, os índices, o bucket de imagens, os 3 tipos de evento (Ritual normal, Reunião e Evento comemorativo) e o seu usuário Admin. Pode rodar de novo sem problema: o que já existe é pulado.
 - Acesse **http://localhost:3000** e entre com o e-mail e a senha do `.env.local`.
 
 ### Primeiros passos no painel
 
 1. **Configurações**: envie a logo (versão clara e escura), cadastre endereços, telefones, Instagram e a chave Pix (marque como padrão).
-2. **Novo evento**: cadastre os eventos. Rituais (normal, jejum e feitio) recebem o número automaticamente.
+2. **Novo evento**: cadastre os eventos. Os tipos marcados como "Conta como ritual" recebem o número automaticamente.
 3. **Banners**: escolha o período, ajuste o visual e clique em **Baixar PNG**.
 
 ---
 
 ## Regras de numeração dos rituais
 
-- **Uma sequência só** para todos os tipos marcados como "Conta como ritual" (Ritual normal, Ritual de jejum e Feitio). Começa em **500** (dá para mudar em Configurações enquanto nenhum ritual existir).
+- **Uma sequência só** para todos os tipos marcados como "Conta como ritual" (por padrão, Ritual normal). Começa em **500** (dá para mudar em Configurações enquanto nenhum ritual existir).
 - **Número do ano**: reinicia em 1 a cada ano civil. Exibição: `R-0500 · 2026/01`.
 - O número é dado na criação, na ordem de cadastro. O Admin pode ajustar manualmente na edição do evento.
 - Eventos não têm status: marque **Evento em destaque** para realçá-lo na agenda. Cada evento pode ter uma **imagem de capa**.

@@ -195,8 +195,6 @@ async function main() {
 
   const tipos = [
     { nome: "Ritual normal", slug: "ritual-normal", cor: "#7c3aed", icone: "flame", conta_como_ritual: true, ordem: 1 },
-    { nome: "Ritual de jejum", slug: "ritual-jejum", cor: "#d97706", icone: "moon", conta_como_ritual: true, ordem: 2 },
-    { nome: "Feitio", slug: "feitio", cor: "#16a34a", icone: "leaf", conta_como_ritual: true, ordem: 3 },
     { nome: "Reunião", slug: "reuniao", cor: "#2563eb", icone: "users", conta_como_ritual: false, ordem: 4 },
     { nome: "Evento comemorativo", slug: "comemorativo", cor: "#db2777", icone: "sparkles", conta_como_ritual: false, ordem: 5 },
   ];
