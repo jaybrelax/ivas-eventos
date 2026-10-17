@@ -10,7 +10,7 @@ export type Formato = keyof typeof FORMATOS;
 
 export type ConfigBanner = {
   formato: Formato;
-  layout: "lista" | "grade2" | "grade3";
+  layout: "calendario" | "lista" | "grade2" | "grade3";
   fundoTipo: "solido" | "degrade" | "imagem";
   cor1: string;
   cor2: string;
@@ -20,6 +20,7 @@ export type ConfigBanner = {
   corCard: string;
   opacidadeCard: number;
   corDestaque: string;
+  corTitulo: string; // título dourado do layout Calendário
   usarCorTipo: boolean;
   fonteTitulo: string;
   fonteTexto: string;
@@ -34,6 +35,7 @@ export type ConfigBanner = {
   enderecoCompleto: boolean;
   mostrarNumero: boolean;
   mostrarDescricao: boolean;
+  mostrarCapa: boolean; // capa do evento esmaecida no card (layout Calendário)
   rodapeInstagram: boolean;
   rodapeTelefones: boolean;
   rodapePix: boolean;
@@ -41,36 +43,39 @@ export type ConfigBanner = {
   valorPix: number;
 };
 
-export function configPadrao(inst: Instituto, titulo: string): ConfigBanner {
+export function configPadrao(inst: Instituto, titulo: string, subtitulo: string): ConfigBanner {
   return {
     formato: "feed",
-    layout: "lista",
+    layout: "calendario",
     fundoTipo: "degrade",
     cor1: inst.cor_primaria,
-    cor2: "#0b1a12",
+    cor2: "#120a20",
     angulo: 160,
     imagemOpacidade: 0.55,
     corTexto: "#ffffff",
     corCard: "#ffffff",
     opacidadeCard: 0.1,
     corDestaque: inst.cor_secundaria,
+    corTitulo: "#f2c14e",
     usarCorTipo: true,
-    fonteTitulo: inst.fonte_titulo,
+    // Serifa com minúsculas, como no modelo de calendário (a do Instituto continua na lista).
+    fonteTitulo: "Playfair Display",
     fonteTexto: inst.fonte_texto,
     escala: 1,
     titulo,
-    subtitulo: inst.nome,
+    subtitulo,
     mensagem: "",
     logo: "escura",
     mostrarTipo: true,
     mostrarHora: true,
     mostrarEndereco: true,
-    enderecoCompleto: false,
+    enderecoCompleto: true,
     mostrarNumero: true,
     mostrarDescricao: false,
-    rodapeInstagram: true,
+    mostrarCapa: true,
+    rodapeInstagram: false,
     rodapeTelefones: true,
-    rodapePix: true,
+    rodapePix: false,
     rodapeQr: true,
     valorPix: 0,
   };
@@ -100,5 +105,11 @@ export function luminancia(hex: string) {
 /** Mistura a cor com branco (t = 0..1). */
 export function clarear(hex: string, t: number) {
   const [r, g, b] = canais(hex).map((v) => Math.round(v + (255 - v) * t));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+/** Mistura a cor com preto (t = 0..1). */
+export function escurecer(hex: string, t: number) {
+  const [r, g, b] = canais(hex).map((v) => Math.round(v * (1 - t)));
   return `rgb(${r}, ${g}, ${b})`;
 }

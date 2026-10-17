@@ -5,6 +5,7 @@ import { AtSign, Clock, Hash, MapPin, Phone } from "lucide-react";
 import type { DadosInstituto, Evento } from "@/lib/types";
 import { formatarIdRitual, partesData } from "@/lib/format";
 import { FORMATOS, clarear, luminancia, rgba, type ConfigBanner } from "./tipos";
+import { BannerCalendario } from "./BannerCalendario";
 
 type Props = {
   c: ConfigBanner;
@@ -14,12 +15,14 @@ type Props = {
   qr: string | null;
 };
 
-const ESCALA_LAYOUT = { lista: 1, grade2: 0.8, grade3: 0.64 };
+const ESCALA_LAYOUT = { calendario: 1, lista: 1, grade2: 0.8, grade3: 0.64 };
 
 export const Banner = forwardRef<HTMLDivElement, Props & { refConteudo?: React.Ref<HTMLDivElement> }>(function Banner(
   { c, dados, eventos, fundoImagem, qr, refConteudo },
   ref,
 ) {
+  if (c.layout === "calendario")
+    return <BannerCalendario ref={ref} refConteudo={refConteudo} c={c} dados={dados} eventos={eventos} fundoImagem={fundoImagem} qr={qr} />;
   const f = FORMATOS[c.formato];
   const s = c.escala * ESCALA_LAYOUT[c.layout];
   const px = (n: number) => `${Math.round(n * s)}px`;

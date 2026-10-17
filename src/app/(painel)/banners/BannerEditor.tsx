@@ -20,6 +20,7 @@ type Props = {
   modelos: ModeloBanner[];
   periodo: { inicio: string; fim: string; tipos: string[]; eventoId: string | null };
   tituloSugerido: string;
+  subtituloSugerido: string;
   podeSalvarModelo: boolean;
 };
 
@@ -65,9 +66,9 @@ function Faixa({ rotulo, v, set, min, max, passo }: { rotulo: string; v: number;
   );
 }
 
-export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido, podeSalvarModelo }: Props) {
+export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido, subtituloSugerido, podeSalvarModelo }: Props) {
   const router = useRouter();
-  const [c, setC] = useState<ConfigBanner>(() => configPadrao(dados.instituto, tituloSugerido));
+  const [c, setC] = useState<ConfigBanner>(() => configPadrao(dados.instituto, tituloSugerido, subtituloSugerido));
   const set = <K extends keyof ConfigBanner>(k: K) => (v: ConfigBanner[K]) => setC((o) => ({ ...o, [k]: v }));
 
   const [inicio, setInicio] = useState(periodo.inicio);
@@ -84,7 +85,7 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
   const [salvando, iniciar] = useTransition();
 
   // Título acompanha o período escolhido
-  useEffect(() => setC((o) => ({ ...o, titulo: tituloSugerido })), [tituloSugerido]);
+  useEffect(() => setC((o) => ({ ...o, titulo: tituloSugerido, subtitulo: subtituloSugerido })), [tituloSugerido, subtituloSugerido]);
 
   const visiveis = useMemo(() => eventos.filter((e) => !excluidos.has(e.$id)), [eventos, excluidos]);
   const pix = dados.pix.find((p) => p.padrao) ?? dados.pix[0];
@@ -167,7 +168,7 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
     if (!m) return;
     try {
       const salvo = JSON.parse(m.config) as Partial<ConfigBanner>;
-      setC((o) => ({ ...o, ...salvo, titulo: o.titulo }));
+      setC((o) => ({ ...o, ...salvo, titulo: o.titulo, subtitulo: o.subtitulo }));
     } catch {
       setMsg({ erro: "Modelo corrompido." });
     }
@@ -178,8 +179,9 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
     const nome = novo || !atual ? prompt("Nome do modelo:", "") : atual.nome;
     if (!nome) return;
     // O modelo guarda só o visual; título e eventos vêm do período.
-    const { titulo: _t, ...visual } = c;
+    const { titulo: _t, subtitulo: _s, ...visual } = c;
     void _t;
+    void _s;
     iniciar(async () => {
       const r = await salvarModelo(nome, JSON.stringify(visual), novo ? undefined : modeloId || undefined);
       setMsg(r);
@@ -271,16 +273,16 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
           <select value={c.formato} onChange={(e) => set("formato")(e.target.value as Formato)} className="campo">
             {Object.entries(FORMATOS).map(([k, v]) => <option key={k} value={k}>{v.nome}</option>)}
           </select>
-          <div className="grid grid-cols-3 gap-1 rounded-lg border border-stone-300 p-0.5 text-xs">
-            {([["lista", "Lista"], ["grade2", "2 colunas"], ["grade3", "3 colunas"]] as const).map(([k, r]) => (
+          <div className="grid grid-cols-2 gap-1 rounded-lg border border-stone-300 p-0.5 text-xs">
+            {([["calendario", "Calendário (cards)"], ["lista", "Lista"], ["grade2", "2 colunas"], ["grade3", "3 colunas"]] as const).map(([k, r]) => (
               <button key={k} type="button" onClick={() => set("layout")(k)} className={`rounded-md py-1.5 ${c.layout === k ? "bg-mata-800 text-white" : ""}`}>{r}</button>
             ))}
           </div>
         </Secao>
 
         <Secao titulo="Textos">
-          <label className="block text-xs">Título<input value={c.titulo} onChange={(e) => set("titulo")(e.target.value)} className="campo mt-1" /></label>
-          <label className="block text-xs">Subtítulo<input value={c.subtitulo} onChange={(e) => set("subtitulo")(e.target.value)} className="campo mt-1" /></label>
+          <label className="block text-xs">{c.layout === "calendario" ? "Título grande" : "Título"}<input value={c.titulo} onChange={(e) => set("titulo")(e.target.value)} className="campo mt-1" /></label>
+          <label className="block text-xs">{c.layout === "calendario" ? "Faixa abaixo do título (ex.: mês)" : "Subtítulo"}<input value={c.subtitulo} onChange={(e) => set("subtitulo")(e.target.value)} className="campo mt-1" /></label>
           <label className="block text-xs">Mensagem acima do rodapé<input value={c.mensagem} onChange={(e) => set("mensagem")(e.target.value)} className="campo mt-1" placeholder="Ex.: Inscrições pelo WhatsApp" /></label>
         </Secao>
 
@@ -318,7 +320,8 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
 
         <Secao titulo="Cores">
           <Cor rotulo="Texto" v={c.corTexto} set={set("corTexto")} />
-          <Cor rotulo="Destaque (título, Pix)" v={c.corDestaque} set={set("corDestaque")} />
+          {c.layout === "calendario" && <Cor rotulo="Título dourado e faixa" v={c.corTitulo} set={set("corTitulo")} />}
+          <Cor rotulo={c.layout === "calendario" ? "Ícone de local e detalhes" : "Destaque (título, Pix)"} v={c.corDestaque} set={set("corDestaque")} />
           <Cor rotulo="Fundo do card" v={c.corCard} set={set("corCard")} />
           <Faixa rotulo="Opacidade do card" v={c.opacidadeCard} set={set("opacidadeCard")} min={0} max={1} passo={0.05} />
           <Check rotulo="Usar a cor de cada tipo de evento" v={c.usarCorTipo} set={set("usarCorTipo")} />
@@ -348,11 +351,12 @@ export function BannerEditor({ dados, eventos, modelos, periodo, tituloSugerido,
           {c.mostrarEndereco && <div className="pl-6"><Check rotulo="Endereço completo (em vez do apelido)" v={c.enderecoCompleto} set={set("enderecoCompleto")} /></div>}
           <Check rotulo="Número do ritual" v={c.mostrarNumero} set={set("mostrarNumero")} />
           <Check rotulo="Descrição" v={c.mostrarDescricao} set={set("mostrarDescricao")} />
+          {c.layout === "calendario" && <Check rotulo="Capa do evento no card" v={c.mostrarCapa} set={set("mostrarCapa")} />}
         </Secao>
 
         <Secao titulo="Rodapé">
           <Check rotulo="Instagram" v={c.rodapeInstagram} set={set("rodapeInstagram")} />
-          <Check rotulo="Telefones" v={c.rodapeTelefones} set={set("rodapeTelefones")} />
+          <Check rotulo={c.layout === "calendario" ? "Agendamento e WhatsApp (telefone padrão)" : "Telefones"} v={c.rodapeTelefones} set={set("rodapeTelefones")} />
           <Check rotulo="Chave Pix" v={c.rodapePix} set={set("rodapePix")} />
           {c.rodapePix && <div className="pl-6"><Check rotulo="QR Code Pix" v={c.rodapeQr} set={set("rodapeQr")} /></div>}
           {c.rodapePix && c.rodapeQr && (
