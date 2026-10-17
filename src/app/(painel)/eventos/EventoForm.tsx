@@ -92,32 +92,107 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guar
         {/* Coluna principal */}
         <div className="space-y-6">
           <Bloco titulo="Informações" sub="O essencial que aparece na agenda e nos banners.">
-            <div>
-              <label className="rotulo" htmlFor="titulo">Título do evento</label>
-              <input id="titulo" name="titulo" required maxLength={80} defaultValue={evento?.titulo} className="campo h-11 text-base" placeholder="Ex.: Ritual de Lua Cheia" />
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="rotulo" htmlFor="data">Data</label>
-                <input id="data" name="data" type="date" required defaultValue={evento?.data} className="campo" />
+            <div className="grid gap-5 md:grid-cols-[minmax(0,17rem)_minmax(0,1fr)]">
+              {/* Capa à esquerda de título, data e endereço */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="rotulo mb-0">Imagem de capa</span>
+                  {capaPreview && (
+                    <div className="flex gap-1">
+                      <label className="btn-icone h-8 w-8 cursor-pointer" title="Trocar imagem">
+                        <RefreshCw size={15} />
+                        <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => {
+                          const principal = e.currentTarget.form?.elements.namedItem("capa") as HTMLInputElement;
+                          escolherCapa(principal, e.target.files?.[0]);
+                        }} />
+                      </label>
+                      {(capaLocal || evento?.capa_file_id) && (
+                        <button
+                          type="button"
+                          className="btn-icone h-8 w-8 hover:bg-red-50 hover:text-red-700"
+                          title="Remover imagem"
+                          onClick={(e) => {
+                            const principal = e.currentTarget.form?.elements.namedItem("capa") as HTMLInputElement;
+                            limpar(principal);
+                            if (evento?.capa_file_id) setRemoverCapa(true);
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <label
+                  className={`group relative flex min-h-44 flex-1 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition ${
+                    arrastando ? "border-mata-400 bg-mata-50" : capaPreview ? "border-transparent" : "border-stone-200 bg-stone-50 hover:border-mata-300 hover:bg-mata-50/40"
+                  }`}
+                  onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
+                  onDragLeave={() => setArrastando(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setArrastando(false);
+                    const f = e.dataTransfer.files?.[0];
+                    if (f?.type.startsWith("image/")) escolherCapa(e.currentTarget.querySelector("input")!, f);
+                  }}
+                >
+                  {capaPreview ? (
+                    <>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={capaPreview} alt="Capa do evento" className="absolute inset-0 h-full w-full rounded-xl object-cover" />
+                      <span className="absolute inset-0 grid place-items-center rounded-xl bg-mata-950/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-mata-950/40 group-hover:opacity-100">
+                        Clique ou arraste para trocar
+                      </span>
+                    </>
+                  ) : (
+                    <span className="flex h-full w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center">
+                      <span className="grid h-11 w-11 place-items-center rounded-xl bg-white text-mata-600 shadow-sm ring-1 ring-stone-200 transition group-hover:scale-105"><ImagePlus size={20} /></span>
+                      <span className="text-sm font-medium text-stone-700">Arraste uma imagem ou clique</span>
+                      <span className="text-xs text-stone-500">PNG, JPG ou WEBP · ideal 16:9 · reduzida automaticamente</span>
+                    </span>
+                  )}
+                  <input
+                    type="file"
+                    name="capa"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    onChange={(e) => escolherCapa(e.currentTarget, e.target.files?.[0])}
+                  />
+                </label>
+                {otimizando && <p className="text-xs text-stone-500">Otimizando a imagem…</p>}
+                {erroCapa && <p className="text-xs text-red-700">{erroCapa}</p>}
+                {removerCapa && <input type="hidden" name="remover_capa" value="on" />}
+                {removerCapa && <p className="text-xs text-red-700">A capa atual será removida ao salvar.</p>}
               </div>
-              <div>
-                <label className="rotulo" htmlFor="hora_inicio">Horário de início</label>
-                <input id="hora_inicio" name="hora_inicio" type="time" required defaultValue={evento?.hora_inicio ?? "19:00"} className="campo" />
+              <div className="space-y-4">
+                <div>
+                  <label className="rotulo" htmlFor="titulo">Título do evento</label>
+                  <input id="titulo" name="titulo" required maxLength={80} defaultValue={evento?.titulo} className="campo h-11 text-base" placeholder="Ex.: Ritual de Lua Cheia" />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="rotulo" htmlFor="data">Data</label>
+                    <input id="data" name="data" type="date" required defaultValue={evento?.data} className="campo" />
+                  </div>
+                  <div>
+                    <label className="rotulo" htmlFor="hora_inicio">Horário de início</label>
+                    <input id="hora_inicio" name="hora_inicio" type="time" required defaultValue={evento?.hora_inicio ?? "19:00"} className="campo" />
+                  </div>
+                </div>
+                <div>
+                  <label className="rotulo" htmlFor="endereco_id">Endereço</label>
+                  <select id="endereco_id" name="endereco_id" value={endSel} onChange={(e) => setEndSel(e.target.value)} className="campo">
+                    {enderecos.map((e) => (
+                      <option key={e.$id} value={e.$id}>{e.apelido} — {e.endereco}</option>
+                    ))}
+                    <option value="__livre">Outro endereço…</option>
+                  </select>
+                  {endSel === "__livre" && (
+                    <input name="endereco_livre" defaultValue={evento?.endereco_livre ?? ""} className="campo mt-2" placeholder="Rua, número, bairro, cidade" autoFocus />
+                  )}
+                  {!enderecos.length && <p className="ajuda">Dica: cadastre endereços fixos em Configurações.</p>}
+                </div>
               </div>
-            </div>
-            <div>
-              <label className="rotulo" htmlFor="endereco_id">Endereço</label>
-              <select id="endereco_id" name="endereco_id" value={endSel} onChange={(e) => setEndSel(e.target.value)} className="campo">
-                {enderecos.map((e) => (
-                  <option key={e.$id} value={e.$id}>{e.apelido} — {e.endereco}</option>
-                ))}
-                <option value="__livre">Outro endereço…</option>
-              </select>
-              {endSel === "__livre" && (
-                <input name="endereco_livre" defaultValue={evento?.endereco_livre ?? ""} className="campo mt-2" placeholder="Rua, número, bairro, cidade" autoFocus />
-              )}
-              {!enderecos.length && <p className="ajuda">Dica: cadastre endereços fixos em Configurações.</p>}
             </div>
             <div>
               <label className="rotulo" htmlFor="descricao">Descrição e observações</label>
@@ -126,7 +201,7 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guar
           </Bloco>
 
           <Bloco titulo="Tipo do evento" sub="Tipos marcados como ritual recebem numeração automática.">
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3" role="radiogroup">
+            <div className="grid gap-2 sm:grid-cols-3" role="radiogroup">
               {tipos.filter((t) => t.ativo || t.$id === tipoId).map((t) => {
                 const on = tipoId === t.$id;
                 return (
@@ -202,77 +277,6 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guar
 
         {/* Coluna lateral */}
         <aside className="space-y-6 xl:sticky xl:top-8">
-          <section className="cartao space-y-3 p-4 sm:p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="cartao-titulo">Imagem de capa</h2>
-              {capaPreview && (
-                <div className="flex gap-1">
-                  <label className="btn-icone h-8 w-8 cursor-pointer" title="Trocar imagem">
-                    <RefreshCw size={15} />
-                    <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => {
-                      const principal = e.currentTarget.form?.elements.namedItem("capa") as HTMLInputElement;
-                      escolherCapa(principal, e.target.files?.[0]);
-                    }} />
-                  </label>
-                  {(capaLocal || evento?.capa_file_id) && (
-                    <button
-                      type="button"
-                      className="btn-icone h-8 w-8 hover:bg-red-50 hover:text-red-700"
-                      title="Remover imagem"
-                      onClick={(e) => {
-                        const principal = e.currentTarget.form?.elements.namedItem("capa") as HTMLInputElement;
-                        limpar(principal);
-                        if (evento?.capa_file_id) setRemoverCapa(true);
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-            <label
-              className={`group relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition ${
-                arrastando ? "border-mata-400 bg-mata-50" : capaPreview ? "border-transparent" : "border-stone-200 bg-stone-50 hover:border-mata-300 hover:bg-mata-50/40"
-              }`}
-              onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
-              onDragLeave={() => setArrastando(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setArrastando(false);
-                const f = e.dataTransfer.files?.[0];
-                if (f?.type.startsWith("image/")) escolherCapa(e.currentTarget.querySelector("input")!, f);
-              }}
-            >
-              {capaPreview ? (
-                <>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={capaPreview} alt="Capa do evento" className="aspect-video w-full rounded-xl object-cover" />
-                  <span className="absolute inset-0 grid place-items-center rounded-xl bg-mata-950/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-mata-950/40 group-hover:opacity-100">
-                    Clique ou arraste para trocar
-                  </span>
-                </>
-              ) : (
-                <span className="flex aspect-video w-full flex-col items-center justify-center gap-2 px-4 text-center">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl bg-white text-mata-600 shadow-sm ring-1 ring-stone-200 transition group-hover:scale-105"><ImagePlus size={20} /></span>
-                  <span className="text-sm font-medium text-stone-700">Arraste uma imagem ou clique</span>
-                  <span className="text-xs text-stone-500">PNG, JPG ou WEBP · ideal 16:9 · reduzida automaticamente</span>
-                </span>
-              )}
-              <input
-                type="file"
-                name="capa"
-                accept="image/png,image/jpeg,image/webp"
-                className="sr-only"
-                onChange={(e) => escolherCapa(e.currentTarget, e.target.files?.[0])}
-              />
-            </label>
-            {otimizando && <p className="text-xs text-stone-500">Otimizando a imagem…</p>}
-            {erroCapa && <p className="text-xs text-red-700">{erroCapa}</p>}
-            {removerCapa && <input type="hidden" name="remover_capa" value="on" />}
-            {removerCapa && <p className="text-xs text-red-700">A capa atual será removida ao salvar.</p>}
-          </section>
-
           <section className="cartao space-y-3 p-4 sm:p-4">
             <h2 className="cartao-titulo">Visibilidade</h2>
             <label
