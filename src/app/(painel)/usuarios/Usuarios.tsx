@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { KeyRound, Pencil, Phone, Trash2, UserPlus, X } from "lucide-react";
 import { alterarPerfil, criarUsuario, excluirUsuario, redefinirSenha, salvarDadosPessoais } from "./actions";
 import { PERFIS, type Perfil } from "@/lib/config";
@@ -49,8 +49,13 @@ export function linkWhats(tel: string) {
 }
 
 /** Formulário de novo usuário (sem moldura: quem exibe é o modal em GestaoUsuarios). */
-export function FormNovoUsuario() {
+export function FormNovoUsuario({ aoCriar }: { aoCriar?: (mensagem: string) => void }) {
   const [estado, acao] = useActionState(criarUsuario, undefined);
+  // Criou com sucesso: quem exibe o formulário (o modal) fecha e mostra o aviso na lista.
+  useEffect(() => {
+    if (estado?.ok) aoCriar?.(estado.ok);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estado]);
   return (
     <form action={acao} className="space-y-5">
       <p className="text-sm text-stone-500">A pessoa entra com o e-mail e a senha definidos aqui.</p>

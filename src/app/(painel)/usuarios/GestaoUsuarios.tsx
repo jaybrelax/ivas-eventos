@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Crown, Flame, Plus, Shield, UserPlus, X } from "lucide-react";
 import { PERFIS, type Perfil } from "@/lib/config";
+import { Aviso } from "@/components/ui";
 import { FormNovoUsuario, LinhaUsuario } from "./Usuarios";
 
 export type UsuarioLista = {
@@ -25,8 +27,15 @@ const ICONES = { admin: Crown, mestre: Flame, guardiao: Shield } as const;
 export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string }) {
   const [filtro, setFiltro] = useState<Perfil | null>(null);
   const [novoAberto, setNovoAberto] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
   const visiveis = filtro ? us.filter((u) => u.perfil === filtro) : us;
   const nomeFiltro = PERFIS.find((p) => p.id === filtro)?.nome;
+
+  useEffect(() => {
+    if (!aviso) return;
+    const t = setTimeout(() => setAviso(null), 6000);
+    return () => clearTimeout(t);
+  }, [aviso]);
 
   useEffect(() => {
     if (!novoAberto) return;
@@ -67,6 +76,8 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
         })}
       </div>
 
+      {aviso && <div className="mb-4"><Aviso tipo="ok">{aviso}</Aviso></div>}
+
       <section className="cartao overflow-hidden p-0 sm:p-0">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4 sm:px-6">
           <div className="flex flex-wrap items-center gap-2">
@@ -98,7 +109,8 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
         )}
       </section>
 
-      {novoAberto && (
+      {/* No body (portal): dentro da página, o menu lateral e a animação do conteúdo ficariam por cima do modal. */}
+      {novoAberto && createPortal(
         <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-labelledby="novo-usuario-titulo">
           <button type="button" aria-label="Fechar" className="absolute inset-0 bg-mata-950/50 backdrop-blur-sm" onClick={() => setNovoAberto(false)} />
           <div className="cartao relative max-h-[90vh] w-full max-w-2xl animate-surgir overflow-y-auto shadow-elevado">
@@ -116,9 +128,10 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
                 <X size={18} />
               </button>
             </div>
-            <FormNovoUsuario />
+            <FormNovoUsuario aoCriar={(mensagem) => { setNovoAberto(false); setAviso(mensagem); }} />
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
