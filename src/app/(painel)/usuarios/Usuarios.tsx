@@ -48,17 +48,12 @@ export function linkWhats(tel: string) {
   return `https://wa.me/${d.length <= 11 ? "55" + d : d}`;
 }
 
-export function NovoUsuario() {
+/** Formulário de novo usuário (sem moldura: quem exibe é o modal em GestaoUsuarios). */
+export function FormNovoUsuario() {
   const [estado, acao] = useActionState(criarUsuario, undefined);
   return (
-    <form action={acao} className="cartao space-y-5">
-      <div className="flex items-center gap-3">
-        <span className="grid h-10 w-10 place-items-center rounded-xl bg-mata-50 text-mata-600"><UserPlus size={19} /></span>
-        <div>
-          <h2 className="cartao-titulo">Novo usuário</h2>
-          <p className="cartao-sub">A pessoa entra com o e-mail e a senha definidos aqui.</p>
-        </div>
-      </div>
+    <form action={acao} className="space-y-5">
+      <p className="text-sm text-stone-500">A pessoa entra com o e-mail e a senha definidos aqui.</p>
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
       {estado?.ok && <Aviso tipo="ok">{estado.ok}</Aviso>}
       <CampoFoto nome="" tamanho={72} />
