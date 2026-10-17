@@ -36,7 +36,7 @@ export function MarcaInstituto({ instituto, altura = 48, legenda }: { instituto:
             <img src={`/api/arquivo/${clara}`} alt={instituto.nome} style={{ height: altura - 12 }} className="w-auto max-w-full object-contain" />
           </span>
         )}
-        {legenda && <p className="mt-2 truncate text-xs tracking-wide text-mata-300">{legenda}</p>}
+        {legenda && <p className="mt-2 text-xs leading-snug tracking-wide text-mata-300">{legenda}</p>}
       </div>
     );
 
@@ -45,7 +45,7 @@ export function MarcaInstituto({ instituto, altura = 48, legenda }: { instituto:
       <Monograma instituto={instituto} tamanho={altura - 4} />
       <div className="min-w-0">
         <p className="truncate font-display text-lg leading-tight font-semibold tracking-wide text-ouro-300">{nome}</p>
-        {legenda && <p className="truncate text-xs text-mata-300">{legenda}</p>}
+        {legenda && <p className="text-xs leading-snug text-mata-300">{legenda}</p>}
       </div>
     </div>
   );

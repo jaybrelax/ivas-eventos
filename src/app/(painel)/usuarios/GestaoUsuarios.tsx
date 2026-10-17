@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ClipboardList, Crown, Plus, User, UserPlus, X } from "lucide-react";
-import { PERFIS, type Perfil } from "@/lib/config";
+import { Flame, Plus, Shield, UserPlus, X, type LucideIcon } from "lucide-react";
+import type { Perfil } from "@/lib/config";
 import { Aviso } from "@/components/ui";
 import { FormNovoUsuario, LinhaUsuario } from "./Usuarios";
 
@@ -18,18 +18,24 @@ export type UsuarioLista = {
   sexo: "masculino" | "feminino" | null;
 };
 
-const ICONES = { admin: Crown, coordenador: ClipboardList, normal: User } as const;
+type Funcao = "mestre" | "guardiao";
+
+/** Cartões de filtro pela função do usuário. */
+const FUNCOES: { id: Funcao; nome: string; descricao: string; Icone: LucideIcon }[] = [
+  { id: "mestre", nome: "Mestres", descricao: "Conduzem os rituais", Icone: Flame },
+  { id: "guardiao", nome: "Guardiões", descricao: "Cuidam dos participantes", Icone: Shield },
+];
 
 /**
- * Cards de perfil que filtram a lista (clique de novo para limpar) e o botão
+ * Cards de mestres e guardiões que filtram a lista (clique de novo para limpar) e o botão
  * "Novo usuário", que abre o formulário num modal.
  */
 export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string }) {
-  const [filtro, setFiltro] = useState<Perfil | null>(null);
+  const [filtro, setFiltro] = useState<Funcao | null>(null);
   const [novoAberto, setNovoAberto] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
-  const visiveis = filtro ? us.filter((u) => u.perfil === filtro) : us;
-  const nomeFiltro = PERFIS.find((p) => p.id === filtro)?.nome;
+  const visiveis = filtro ? us.filter((u) => u.funcaoRitual === filtro) : us;
+  const nomeFiltro = FUNCOES.find((f) => f.id === filtro)?.nome;
 
   useEffect(() => {
     if (!aviso) return;
@@ -46,10 +52,10 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
 
   return (
     <>
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
-        {PERFIS.map((p) => {
-          const Icone = ICONES[p.id];
-          const n = us.filter((u) => u.perfil === p.id).length;
+      <div className="mb-6 grid gap-3 sm:grid-cols-2">
+        {FUNCOES.map((p) => {
+          const Icone = p.Icone;
+          const n = us.filter((u) => u.funcaoRitual === p.id).length;
           const ativo = filtro === p.id;
           return (
             <button
@@ -105,7 +111,7 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
             ))}
           </ul>
         ) : (
-          <p className="px-6 py-10 text-center text-sm text-stone-500">Nenhum usuário com esse perfil.</p>
+          <p className="px-6 py-10 text-center text-sm text-stone-500">Ninguém com essa função.</p>
         )}
       </section>
 
