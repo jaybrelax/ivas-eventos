@@ -30,8 +30,11 @@ const GRUPO: Record<Sexo, { titulo: string; um: string }> = {
   feminino: { titulo: "Guardiãs", um: "guardiã" },
 };
 
-/** Cartão da guarnição do evento: vagas, candidatos, candidatura do guardião e ações do coordenador. */
-export function Guarnicao({ dados }: { dados: DadosGuarnicao }) {
+/**
+ * Guarnição do evento: vagas, candidatos, candidatura do guardião e ações do coordenador.
+ * `embutido`: sem moldura nem cabeçalho, para ficar dentro do grupo "Guarnição" do formulário.
+ */
+export function Guarnicao({ dados, embutido = false }: { dados: DadosGuarnicao; embutido?: boolean }) {
   const [msg, setMsg] = useState<{ ok?: string; erro?: string }>();
   const [pendente, iniciar] = useTransition();
   const rodar = (fn: () => Promise<{ ok?: string; erro?: string }>) => iniciar(async () => setMsg(await fn()));
@@ -39,7 +42,14 @@ export function Guarnicao({ dados }: { dados: DadosGuarnicao }) {
   const livresMeu = eu.sexo ? Math.max(0, vagas[eu.sexo] - confirmados[eu.sexo].length) : 0;
 
   return (
-    <section id="guarnicao" className="cartao scroll-mt-6 space-y-5">
+    <section id="guarnicao" className={`scroll-mt-6 space-y-5 ${embutido ? "" : "cartao"}`}>
+      {embutido ? (
+        <p className="flex flex-wrap items-center gap-2 text-[13px] text-stone-500">
+          <Shield size={14} className="text-stone-400" />
+          Guardiões deste evento · cancelamento até 4 h antes do início ({dados.prazoTexto})
+          {!dados.abertas && <span className="chip bg-stone-100 text-stone-600">Candidaturas fechadas</span>}
+        </p>
+      ) : (
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-mata-50 text-mata-600"><Shield size={19} /></span>
@@ -50,6 +60,7 @@ export function Guarnicao({ dados }: { dados: DadosGuarnicao }) {
         </div>
         {!dados.abertas && <span className="chip bg-stone-100 text-stone-600">Candidaturas fechadas</span>}
       </div>
+      )}
 
       {msg && <Aviso tipo={msg.erro ? "erro" : "ok"}>{msg.erro ?? msg.ok}</Aviso>}
 

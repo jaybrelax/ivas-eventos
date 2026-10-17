@@ -17,6 +17,8 @@ type Props = {
   enderecos: Endereco[];
   equipe: Pessoa[];
   podeNumerar: boolean;
+  /** Lista de guardiões do evento (incluir, retirar, espera), mostrada dentro do grupo Guarnição. */
+  guarnicao?: React.ReactNode;
 };
 
 function Bloco({ titulo, sub, children }: { titulo: string; sub?: string; children: React.ReactNode }) {
@@ -31,7 +33,7 @@ function Bloco({ titulo, sub, children }: { titulo: string; sub?: string; childr
   );
 }
 
-export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Props) {
+export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guarnicao }: Props) {
   const [estado, acao, pendente] = useActionState(salvarEvento, undefined);
   const padrao = enderecos.find((e) => e.padrao) ?? enderecos[0];
   const [endSel, setEndSel] = useState<string>(
@@ -173,7 +175,7 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Pr
                 </span>
                 <input type="checkbox" name="candidaturas_abertas" defaultChecked={evento?.candidaturas_abertas ?? true} className="interruptor mt-1.5" />
               </label>
-              {evento?.$id && <p className="ajuda">Para incluir ou retirar guardiões, use o cartão Guarnição abaixo do formulário.</p>}
+              {guarnicao && <div className="border-t border-stone-100 pt-5">{guarnicao}</div>}
             </Bloco>
           )}
         </div>

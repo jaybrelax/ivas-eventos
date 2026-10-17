@@ -78,13 +78,26 @@ export default async function EditarEvento({ params }: PageProps<"/eventos/[id]"
   return (
     <>
       <Titulo
-        sobre={voltar}
-        titulo="Editar evento"
-        subtitulo={<span className="inline-flex flex-wrap items-center gap-2">{evento.titulo}{idRitual && <BadgeRitual id={idRitual} />}</span>}
+        sobre={<span className="inline-flex items-center gap-2">{voltar}<span className="text-stone-300">/</span>Editar evento</span>}
+        titulo={evento.titulo}
+        subtitulo={
+          (tipo || idRitual) && (
+            <span className="inline-flex flex-wrap items-center gap-2">
+              {tipo && <BadgeTipo nome={tipo.nome} cor={tipo.cor} />}
+              {idRitual && <BadgeRitual id={idRitual} />}
+            </span>
+          )
+        }
         acoes={acoes}
       />
-      <EventoForm evento={evento} tipos={tipos} enderecos={enderecos} equipe={equipe} podeNumerar={pode(u, PODE.editarNumeracao)} />
-      {guarnicao && <div className="mb-6 xl:mr-[23.5rem]"><Guarnicao dados={guarnicao} /></div>}
+      <EventoForm
+        evento={evento}
+        tipos={tipos}
+        enderecos={enderecos}
+        equipe={equipe}
+        podeNumerar={pode(u, PODE.editarNumeracao)}
+        guarnicao={guarnicao && <Guarnicao dados={guarnicao} embutido />}
+      />
       {u.perfil === "admin" && (
         <form action={excluirEvento} className="xl:mr-[23.5rem]">
           <input type="hidden" name="id" value={evento.$id} />
