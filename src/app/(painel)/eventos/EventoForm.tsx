@@ -83,6 +83,23 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Pr
                 <input id="hora_inicio" name="hora_inicio" type="time" required defaultValue={evento?.hora_inicio ?? "19:00"} className="campo" />
               </div>
             </div>
+            <div>
+              <label className="rotulo" htmlFor="endereco_id">Endereço</label>
+              <select id="endereco_id" name="endereco_id" value={endSel} onChange={(e) => setEndSel(e.target.value)} className="campo">
+                {enderecos.map((e) => (
+                  <option key={e.$id} value={e.$id}>{e.apelido} — {e.endereco}</option>
+                ))}
+                <option value="__livre">Outro endereço…</option>
+              </select>
+              {endSel === "__livre" && (
+                <input name="endereco_livre" defaultValue={evento?.endereco_livre ?? ""} className="campo mt-2" placeholder="Rua, número, bairro, cidade" autoFocus />
+              )}
+              {!enderecos.length && <p className="ajuda">Dica: cadastre endereços fixos em Configurações.</p>}
+            </div>
+            <div>
+              <label className="rotulo" htmlFor="descricao">Descrição e observações</label>
+              <textarea id="descricao" name="descricao" rows={5} defaultValue={evento?.descricao ?? ""} className="campo" placeholder="Orientações de dieta, o que levar…" />
+            </div>
           </Bloco>
 
           <Bloco titulo="Tipo do evento" sub="Tipos marcados como ritual recebem numeração automática.">
@@ -108,18 +125,16 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Pr
                 );
               })}
             </div>
-            {tipo?.conta_como_ritual && (
+          </Bloco>
+
+          {tipo?.conta_como_ritual && (
+            <Bloco titulo="Numeração" sub={podeNumerar ? "Automática ao salvar. Você pode ajustar se precisar." : "Gerada automaticamente ao salvar."}>
               <div className="flex items-center gap-2.5 rounded-xl bg-mata-50 px-3.5 py-2.5 text-sm text-mata-800 ring-1 ring-mata-100">
                 <Hash size={16} className="shrink-0" />
                 {idRitual ? <span>Numeração atual: <strong className="font-mono">{idRitual}</strong></span> : "O número geral e o do ano serão gerados ao salvar."}
               </div>
-            )}
-            {podeNumerar && tipo?.conta_como_ritual && evento?.ritual_numero_geral && (
-              <details className="group rounded-xl border border-stone-200 px-4 py-3 text-sm open:bg-stone-50/60">
-                <summary className="cursor-pointer list-none font-medium text-stone-700 select-none">
-                  <span className="inline-flex items-center gap-2">Ajustar numeração <span className="chip bg-stone-200/70 text-stone-600">Admin</span></span>
-                </summary>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {podeNumerar && evento?.ritual_numero_geral && (
+                <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label className="rotulo" htmlFor="rng">Nº geral</label>
                     <input id="rng" name="ritual_numero_geral" type="number" min={1} defaultValue={evento.ritual_numero_geral ?? ""} className="campo" />
@@ -129,34 +144,14 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar }: Pr
                     <input id="rna" name="ritual_numero_ano" type="number" min={1} defaultValue={evento.ritual_numero_ano ?? ""} className="campo" />
                   </div>
                 </div>
-              </details>
-            )}
-          </Bloco>
+              )}
+            </Bloco>
+          )}
 
-          <Bloco titulo="Equipe" sub="Quem conduz e quem cuida. Toque nos nomes para escolher.">
+          <Bloco titulo="Mestres e guardiões" sub="Quem conduz e quem cuida. Toque nos nomes para escolher.">
             <EscolhaEquipe funcao="mestre" equipe={equipe} inicial={evento?.mestres ?? []} />
             <div className="h-px bg-stone-100" />
             <EscolhaEquipe funcao="guardiao" equipe={equipe} inicial={evento?.guardioes ?? []} />
-          </Bloco>
-
-          <Bloco titulo="Local e detalhes">
-            <div>
-              <label className="rotulo" htmlFor="endereco_id">Endereço</label>
-              <select id="endereco_id" name="endereco_id" value={endSel} onChange={(e) => setEndSel(e.target.value)} className="campo">
-                {enderecos.map((e) => (
-                  <option key={e.$id} value={e.$id}>{e.apelido} — {e.endereco}</option>
-                ))}
-                <option value="__livre">Outro endereço…</option>
-              </select>
-              {endSel === "__livre" && (
-                <input name="endereco_livre" defaultValue={evento?.endereco_livre ?? ""} className="campo mt-2" placeholder="Rua, número, bairro, cidade" autoFocus />
-              )}
-              {!enderecos.length && <p className="ajuda">Dica: cadastre endereços fixos em Configurações.</p>}
-            </div>
-            <div>
-              <label className="rotulo" htmlFor="descricao">Descrição e observações</label>
-              <textarea id="descricao" name="descricao" rows={5} defaultValue={evento?.descricao ?? ""} className="campo" placeholder="Orientações de dieta, o que levar…" />
-            </div>
           </Bloco>
         </div>
 
