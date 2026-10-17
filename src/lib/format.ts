@@ -40,10 +40,11 @@ export function somarMes(anoMes: string, n: number) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
+/** "N° 520 · 75/2026": número geral sem zeros à esquerda, depois o número do ano e o ano. */
 export function formatarIdRitual(geral: number | null, ano: number | null, numAno: number | null) {
   if (!geral) return null;
-  const g = `R-${String(geral).padStart(4, "0")}`;
-  return ano && numAno ? `${g} · ${ano}/${String(numAno).padStart(2, "0")}` : g;
+  const g = `N° ${geral}`;
+  return ano && numAno ? `${g} · ${numAno}/${ano}` : g;
 }
 
 export function slugify(s: string) {

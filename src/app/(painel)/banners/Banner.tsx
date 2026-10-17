@@ -155,7 +155,7 @@ export const Banner = forwardRef<HTMLDivElement, Props & { refConteudo?: React.R
                   )}
                   {c.mostrarNumero && idR && (
                     <span style={{ display: "inline-flex", alignItems: "center", gap: px(6), opacity: 0.85 }}>
-                      <Hash size={Math.round(22 * s)} /> {idR.replace("R-", "")}
+                      <Hash size={Math.round(22 * s)} /> {idR}
                     </span>
                   )}
                 </div>
