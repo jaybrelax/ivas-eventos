@@ -12,7 +12,7 @@ export const INSTITUTO_PADRAO: Instituto = {
   nome_curto: "IVAS",
   logo_file_id: null,
   logo_escura_file_id: null,
-  cor_primaria: "#1f3d2b",
+  cor_primaria: "#35204f",
   cor_secundaria: "#c8a24a",
   fonte_titulo: "Cinzel",
   fonte_texto: "Montserrat",

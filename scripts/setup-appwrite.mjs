@@ -170,7 +170,7 @@ async function main() {
     db.createRow({
       databaseId: DB, tableId: "instituto", rowId: "principal",
       data: {
-        nome: "Instituto IVAS", nome_curto: "IVAS", cor_primaria: "#1f3d2b", cor_secundaria: "#c8a24a",
+        nome: "Instituto IVAS", nome_curto: "IVAS", cor_primaria: "#35204f", cor_secundaria: "#c8a24a",
         fonte_titulo: "Cinzel", fonte_texto: "Montserrat", ritual_numero_inicial: 500,
       },
     }),

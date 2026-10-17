@@ -52,7 +52,7 @@ export default async function Agenda({ searchParams }: PageProps<"/eventos">) {
 
   const kpis = [
     { rotulo: `Eventos em ${p.mesNome}`, valor: doMes.length, Icone: CalendarRange, cor: "text-mata-600 bg-mata-50" },
-    { rotulo: `Rituais em ${ano}`, valor: rituaisAno, Icone: Flame, cor: "text-violet-600 bg-violet-50" },
+    { rotulo: `Rituais em ${ano}`, valor: rituaisAno, Icone: Flame, cor: "text-orange-600 bg-orange-50" },
     { rotulo: "Destaques no mês", valor: doMes.filter((e) => e.destaque).length, Icone: Star, cor: "text-ouro-600 bg-ouro-50" },
   ];
 

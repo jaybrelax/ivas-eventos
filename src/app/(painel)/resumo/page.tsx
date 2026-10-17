@@ -28,7 +28,7 @@ export default async function Resumo({ searchParams }: PageProps<"/resumo">) {
   const grade = Array.from({ length: topo / passo + 1 }, (_, i) => i * passo);
 
   const kpis = [
-    { rotulo: "Rituais no ano", valor: rituais.length, Icone: Flame, cor: "bg-violet-50 text-violet-600" },
+    { rotulo: "Rituais no ano", valor: rituais.length, Icone: Flame, cor: "bg-orange-50 text-orange-600" },
     { rotulo: "Faixa de numeração", valor: nums.length ? `${nums[0]}–${nums.at(-1)}` : "—", Icone: Hash, cor: "bg-mata-50 text-mata-600" },
     { rotulo: "Eventos (todos os tipos)", valor: eventos.length, Icone: CalendarRange, cor: "bg-sky-50 text-sky-600" },
     { rotulo: "Em destaque", valor: eventos.filter((e) => e.destaque).length, Icone: Star, cor: "bg-ouro-50 text-ouro-600" },
