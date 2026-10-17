@@ -4,6 +4,7 @@ import { forwardRef } from "react";
 import { AtSign, CalendarCheck, CalendarDays, Clock, Flame, Leaf, MapPin, Moon, Sparkles, Star, Sun, Users } from "lucide-react";
 import type { DadosInstituto, Evento } from "@/lib/types";
 import { partesData } from "@/lib/format";
+import { mascararTelefone } from "@/lib/telefone";
 import { FORMATOS, clarear, escurecer, rgba, type ConfigBanner } from "./tipos";
 
 type Props = {
@@ -350,7 +351,7 @@ export const BannerCalendario = forwardRef<HTMLDivElement, Props>(function Banne
               <div style={{ width: 2, height: 58, background: rgba(ouro, 0.7) }} />
               <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 44 * c.escala, fontWeight: 800, letterSpacing: 0.5 }}>
                 {tel.whatsapp ? <IconeWhats tamanho={Math.round(54 * c.escala)} /> : null}
-                {tel.numero}
+                {mascararTelefone(tel.numero)}
               </div>
             </>
           )}

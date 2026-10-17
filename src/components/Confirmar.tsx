@@ -12,6 +12,7 @@ export function BotaoConfirmar({
   confirmar = "Sim, excluir",
   aoConfirmar,
   acima = false,
+  alinhar = "direita",
   className,
   disabled,
   title,
@@ -22,6 +23,8 @@ export function BotaoConfirmar({
   aoConfirmar: () => void;
   /** Abre o balão acima do botão (para botões no rodapé de painéis). */
   acima?: boolean;
+  /** Lado do botão em que o balão se alinha (use "esquerda" para botões no canto esquerdo). */
+  alinhar?: "direita" | "esquerda";
   className?: string;
   disabled?: boolean;
   title?: string;
@@ -49,7 +52,7 @@ export function BotaoConfirmar({
       {aberto && (
         <span
           role="dialog"
-          className={`absolute right-0 z-30 w-64 animate-surgir ${acima ? "bottom-full mb-2" : "top-full mt-2"} rounded-xl border border-stone-200 bg-white p-3 text-left shadow-elevado`}
+          className={`absolute ${alinhar === "esquerda" ? "left-0" : "right-0"} z-30 w-64 animate-surgir ${acima ? "bottom-full mb-2" : "top-full mt-2"} rounded-xl border border-stone-200 bg-white p-3 text-left shadow-elevado`}
         >
           <span className="block text-sm font-medium text-stone-800">{pergunta}</span>
           <span className="mt-3 flex justify-end gap-2">

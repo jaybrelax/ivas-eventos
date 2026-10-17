@@ -1,7 +1,7 @@
 export type Campo = {
   nome: string;
   rotulo: string;
-  tipo: "text" | "checkbox" | "select" | "color" | "number";
+  tipo: "text" | "checkbox" | "select" | "color" | "number" | "telefone";
   obrigatorio?: boolean;
   opcoes?: { valor: string; rotulo: string }[];
   dica?: string;
@@ -25,7 +25,7 @@ export const CAMPOS = {
     descricao: "Aparecem no rodapé dos banners.",
     campos: [
       { nome: "rotulo", rotulo: "Rótulo", tipo: "text", dica: "Ex.: Secretaria", largura: "sm" },
-      { nome: "numero", rotulo: "Número", tipo: "text", obrigatorio: true, dica: "(00) 00000-0000", largura: "md" },
+      { nome: "numero", rotulo: "Número", tipo: "telefone", obrigatorio: true, dica: "(00) 00000-0000", largura: "md" },
       { nome: "whatsapp", rotulo: "WhatsApp", tipo: "checkbox" },
       { nome: "padrao", rotulo: "Padrão", tipo: "checkbox" },
     ],

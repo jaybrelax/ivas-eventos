@@ -4,6 +4,7 @@ import { forwardRef } from "react";
 import { AtSign, Clock, Hash, MapPin, Phone } from "lucide-react";
 import type { DadosInstituto, Evento } from "@/lib/types";
 import { formatarIdRitual, partesData } from "@/lib/format";
+import { mascararTelefone } from "@/lib/telefone";
 import { FORMATOS, clarear, luminancia, rgba, type ConfigBanner } from "./tipos";
 import { BannerCalendario } from "./BannerCalendario";
 
@@ -192,7 +193,7 @@ export const Banner = forwardRef<HTMLDivElement, Props & { refConteudo?: React.R
               ))}
             {c.rodapeTelefones && tels.length > 0 && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                <Phone size={Math.round(26 * c.escala)} /> {tels.map((t) => t.numero).join("  ·  ")}
+                <Phone size={Math.round(26 * c.escala)} /> {tels.map((t) => mascararTelefone(t.numero)).join("  ·  ")}
               </span>
             )}
             {c.rodapePix && pix && (

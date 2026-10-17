@@ -6,6 +6,7 @@ import { salvarDadosPessoais } from "../usuarios/actions";
 import { Aviso, BotaoEnviar } from "@/components/ui";
 import { CampoFoto } from "@/components/CampoFoto";
 import { CampoGenero } from "@/components/CampoGenero";
+import { InputTelefone } from "@/components/InputTelefone";
 
 type Props = { nome: string; email: string; telefone: string | null; foto: string | null; perfil: string; funcao: string; sexo: string | null };
 
@@ -31,7 +32,7 @@ export function PerfilForm({ nome, email, telefone, foto, perfil, funcao, sexo }
         </div>
         <div>
           <label className="rotulo flex items-center gap-1.5" htmlFor="pf-tel"><Phone size={14} className="text-stone-400" aria-hidden />Telefone</label>
-          <input id="pf-tel" name="telefone" type="tel" inputMode="tel" defaultValue={telefone ?? ""} placeholder="(43) 99999-0000" className="campo" autoComplete="tel" />
+          <InputTelefone id="pf-tel" name="telefone" defaultValue={telefone} />
           <p className="ajuda">Com DDD. Usado para contato pela equipe.</p>
         </div>
       </div>

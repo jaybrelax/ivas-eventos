@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { excluirItem, salvarItem, type Resultado } from "./actions";
 import { CAMPOS, type Campo, type TabelaEditavel } from "./campos";
 import { Aviso } from "@/components/ui";
+import { InputTelefone } from "@/components/InputTelefone";
 import { BotaoConfirmar } from "@/components/Confirmar";
 
 type Item = Record<string, unknown> & { $id: string };
@@ -28,6 +29,8 @@ function Entrada({ c, valor }: { c: Campo; valor: unknown }) {
         <select id={id} name={c.nome} defaultValue={String(valor ?? c.opcoes?.[0]?.valor ?? "")} className="campo">
           {c.opcoes?.map((o) => <option key={o.valor} value={o.valor}>{o.rotulo}</option>)}
         </select>
+      ) : c.tipo === "telefone" ? (
+        <InputTelefone id={id} name={c.nome} defaultValue={valor == null ? "" : String(valor)} required={c.obrigatorio} placeholder={c.dica} autoComplete="off" />
       ) : c.tipo === "color" ? (
         <span className="campo flex items-center px-1.5">
           <input id={id} name={c.nome} type="color" defaultValue={String(valor ?? "#6d28d9")} className="h-7 w-full cursor-pointer rounded-lg border-0 bg-transparent p-0" />

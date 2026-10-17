@@ -9,6 +9,8 @@ import { Aviso, BotaoEnviar, Carregando } from "@/components/ui";
 import { Avatar } from "@/components/Avatar";
 import { CampoFoto } from "@/components/CampoFoto";
 import { CampoGenero } from "@/components/CampoGenero";
+import { InputTelefone } from "@/components/InputTelefone";
+import { mascararTelefone } from "@/lib/telefone";
 import { GENERO_ROTULO, IconeGenero } from "@/components/genero";
 import { BotaoConfirmar } from "@/components/Confirmar";
 
@@ -72,7 +74,7 @@ export function FormNovoUsuario({ aoCriar }: { aoCriar?: (mensagem: string) => v
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div><label className="rotulo" htmlFor="nu-nome">Nome</label><input id="nu-nome" name="nome" required className="campo" /></div>
         <div><label className="rotulo" htmlFor="nu-email">E-mail</label><input id="nu-email" name="email" type="email" required className="campo" /></div>
-        <div><label className="rotulo" htmlFor="nu-tel">Telefone</label><input id="nu-tel" name="telefone" type="tel" inputMode="tel" placeholder="(43) 99999-0000" autoComplete="off" className="campo" /></div>
+        <div><label className="rotulo" htmlFor="nu-tel">Telefone</label><InputTelefone id="nu-tel" name="telefone" autoComplete="off" /></div>
         <div><label className="rotulo" htmlFor="nu-senha">Senha</label><input id="nu-senha" name="senha" type="password" placeholder="Mínimo 8 caracteres" minLength={8} required autoComplete="new-password" className="campo" /></div>
         <CamposRitual id="nu" comAuto />
         <div>
@@ -122,7 +124,7 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
             <span className="truncate">{u.email}</span>
             {u.telefone && (
               <a href={linkWhats(u.telefone)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-mata-700" title="Abrir no WhatsApp">
-                <Phone size={13} />{u.telefone}
+                <Phone size={13} />{mascararTelefone(u.telefone)}
               </a>
             )}
           </p>
@@ -186,7 +188,7 @@ function EditarDados({ u, souEu, aoSalvar, aoExcluir }: { u: U; souEu: boolean; 
     return r;
   }, undefined);
   return (
-    <form action={acao} className="space-y-5">
+    <form action={acao} className="flex min-h-full flex-col gap-5">
       <input type="hidden" name="userId" value={u.id} />
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
       <CampoFoto nome={u.nome} fotoAtual={u.foto} tamanho={64} />
@@ -197,7 +199,7 @@ function EditarDados({ u, souEu, aoSalvar, aoExcluir }: { u: U; souEu: boolean; 
         </div>
         <div>
           <Rot icone={Phone} htmlFor={`ed-tel-${u.id}`}>Telefone</Rot>
-          <input id={`ed-tel-${u.id}`} name="telefone" type="tel" inputMode="tel" defaultValue={u.telefone ?? ""} placeholder="(43) 99999-0000" className="campo" />
+          <InputTelefone id={`ed-tel-${u.id}`} name="telefone" defaultValue={u.telefone} />
         </div>
         <div>
           <Rot icone={Flame} htmlFor={`ed-funcao-${u.id}`}>Função nos rituais</Rot>
@@ -219,23 +221,25 @@ function EditarDados({ u, souEu, aoSalvar, aoExcluir }: { u: U; souEu: boolean; 
           <CampoGenero id={`ed-${u.id}-sexo`} inicial={u.sexo} />
         </div>
       </div>
-      <div className="flex justify-end gap-2">
-        <button type="button" className="btn-secundario" onClick={aoSalvar}>Cancelar</button>
-        <button className="btn-primario" disabled={salvando}>{salvando ? <><Carregando /> Salvando…</> : "Salvar"}</button>
-      </div>
-      {!souEu && (
-        <div className="flex items-center justify-between gap-3 border-t border-stone-100 pt-4">
-          <p className="text-xs text-stone-500">Excluir remove o acesso e a foto desta pessoa.</p>
+      <div className="mt-auto flex items-center justify-between gap-3 border-t border-stone-100 pt-4">
+        {!souEu ? (
           <BotaoConfirmar
             acima
+            alinhar="esquerda"
             className="btn border border-red-200 bg-white px-3 text-sm text-red-700 hover:bg-red-50"
-            pergunta={`Excluir ${u.nome}? Essa ação não pode ser desfeita.`}
+            pergunta={`Excluir ${u.nome}? Remove o acesso e a foto. Essa ação não pode ser desfeita.`}
             aoConfirmar={aoExcluir}
           >
-            <Trash2 size={16} /> Excluir usuário
+            <Trash2 size={16} /> Excluir
           </BotaoConfirmar>
+        ) : (
+          <span />
+        )}
+        <div className="flex gap-2">
+          <button type="button" className="btn-secundario" onClick={aoSalvar}>Cancelar</button>
+          <button className="btn-primario" disabled={salvando}>{salvando ? <><Carregando /> Salvando…</> : "Salvar"}</button>
         </div>
-      )}
+      </div>
     </form>
   );
 }
