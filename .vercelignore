@@ -1,0 +1,8 @@
+# Nunca enviar segredos nem arquivos locais para a Vercel
+.env*
+!.env.example
+*.tgz
+.claude
+.next
+node_modules
+tsconfig.tsbuildinfo
