@@ -52,7 +52,7 @@ export function EscolhaEquipe({ funcao, equipe, inicial }: { funcao: Funcao; equ
 
       {!pessoas.length ? (
         <p className="rounded-xl border border-dashed border-stone-200 px-4 py-3 text-sm text-stone-500">
-          Nenhum usuário com a função {rotulo.um}. Defina em <a href="/usuarios" className="font-medium text-mata-700 underline-offset-2 hover:underline">Usuários</a> (lápis → Função nos rituais).
+          Nenhum usuário com a função {rotulo.um}. Defina em <a href="/usuarios" className="font-medium text-mata-700 underline-offset-2 hover:underline">Usuários</a> (lápis → Função do usuário).
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">

@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { Flame, KeyRound, Phone, ShieldCheck, SquarePen, Trash2, User, UserPlus, X, type LucideIcon } from "lucide-react";
+import { Flame, KeyRound, Mail, Phone, ShieldCheck, SquarePen, Trash2, User, UserPlus, X, type LucideIcon } from "lucide-react";
 import { criarUsuario, excluirUsuario, redefinirSenha, salvarDadosPessoais } from "./actions";
 import { PERFIS, type Perfil } from "@/lib/config";
 import { Aviso, BotaoEnviar, Carregando } from "@/components/ui";
@@ -31,26 +31,6 @@ function Rot({ icone: Icone, htmlFor, children }: { icone: LucideIcon; htmlFor?:
   );
 }
 
-/** Função nos rituais (select) e gênero (opções com ícone), usados ao criar e ao editar. */
-function CamposRitual({ id, funcao, sexo, comAuto }: { id: string; funcao?: U["funcaoRitual"]; sexo?: U["sexo"]; comAuto?: boolean }) {
-  return (
-    <>
-      <div>
-        <Rot icone={Flame} htmlFor={`${id}-funcao`}>Função nos rituais</Rot>
-        <select id={`${id}-funcao`} name="funcao_ritual" defaultValue={comAuto ? "" : funcao} className="campo">
-          {comAuto && <option value="">Igual ao perfil</option>}
-          <option value="mestre">Mestre</option>
-          <option value="guardiao">Guardião</option>
-          <option value="nenhuma">Nenhuma (não é escalado)</option>
-        </select>
-      </div>
-      <div className="sm:col-span-2">
-        <CampoGenero id={`${id}-sexo`} inicial={sexo} />
-      </div>
-    </>
-  );
-}
-
 /** Link do WhatsApp a partir do telefone (assume Brasil se vier sem DDI). */
 export function linkWhats(tel: string) {
   const d = tel.replace(/\D/g, "");
@@ -71,17 +51,39 @@ export function FormNovoUsuario({ aoCriar }: { aoCriar?: (mensagem: string) => v
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
       {estado?.ok && <Aviso tipo="ok">{estado.ok}</Aviso>}
       <CampoFoto nome="" tamanho={72} />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <div><label className="rotulo" htmlFor="nu-nome">Nome</label><input id="nu-nome" name="nome" required className="campo" /></div>
-        <div><label className="rotulo" htmlFor="nu-email">E-mail</label><input id="nu-email" name="email" type="email" required className="campo" /></div>
-        <div><label className="rotulo" htmlFor="nu-tel">Telefone</label><InputTelefone id="nu-tel" name="telefone" autoComplete="off" /></div>
-        <div><label className="rotulo" htmlFor="nu-senha">Senha</label><input id="nu-senha" name="senha" type="password" placeholder="Mínimo 8 caracteres" minLength={8} required autoComplete="new-password" className="campo" /></div>
-        <CamposRitual id="nu" comAuto />
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="rotulo" htmlFor="nu-perfil">Perfil de acesso</label>
-          <select id="nu-perfil" name="perfil" defaultValue="guardiao" className="campo">
+          <Rot icone={User} htmlFor="nu-nome">Nome</Rot>
+          <input id="nu-nome" name="nome" required className="campo" />
+        </div>
+        <div>
+          <Rot icone={Mail} htmlFor="nu-email">E-mail</Rot>
+          <input id="nu-email" name="email" type="email" required className="campo" />
+        </div>
+        <div>
+          <Rot icone={Phone} htmlFor="nu-tel">Telefone</Rot>
+          <InputTelefone id="nu-tel" name="telefone" autoComplete="off" />
+        </div>
+        <div>
+          <Rot icone={KeyRound} htmlFor="nu-senha">Senha</Rot>
+          <input id="nu-senha" name="senha" type="password" placeholder="Mínimo 8 caracteres" minLength={8} required autoComplete="new-password" className="campo" />
+        </div>
+        <div>
+          <Rot icone={Flame} htmlFor="nu-funcao">Função do usuário</Rot>
+          <select id="nu-funcao" name="funcao_ritual" defaultValue="nenhuma" className="campo">
+            <option value="mestre">Mestre</option>
+            <option value="guardiao">Guardião</option>
+            <option value="nenhuma">Nenhuma (não é escalado)</option>
+          </select>
+        </div>
+        <div>
+          <Rot icone={ShieldCheck} htmlFor="nu-perfil">Perfil de acesso</Rot>
+          <select id="nu-perfil" name="perfil" defaultValue="coordenador" className="campo">
             {PERFIS.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
           </select>
+        </div>
+        <div className="sm:col-span-2">
+          <CampoGenero id="nu-sexo" />
         </div>
       </div>
       <div className="flex justify-end">
@@ -202,7 +204,7 @@ function EditarDados({ u, souEu, aoSalvar, aoExcluir }: { u: U; souEu: boolean; 
           <InputTelefone id={`ed-tel-${u.id}`} name="telefone" defaultValue={u.telefone} />
         </div>
         <div>
-          <Rot icone={Flame} htmlFor={`ed-funcao-${u.id}`}>Função nos rituais</Rot>
+          <Rot icone={Flame} htmlFor={`ed-funcao-${u.id}`}>Função do usuário</Rot>
           <select id={`ed-funcao-${u.id}`} name="funcao_ritual" defaultValue={u.funcaoRitual} className="campo">
             <option value="mestre">Mestre</option>
             <option value="guardiao">Guardião</option>

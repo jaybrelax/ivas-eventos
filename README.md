@@ -84,10 +84,11 @@ npm run dev
 | Perfil | Acesso |
 | --- | --- |
 | **Admin** | Tudo: eventos, numeração manual, configurações, usuários, exclusões |
-| **Mestre** | Cria e edita eventos, gera banners, salva modelos de banner |
-| **Guardião** | Vê agenda e resumo, gera e baixa banners |
+| **Coordenador** | Cria e edita eventos, vê o resumo, gera banners e salva modelos de banner |
 
-O perfil é um *label* do usuário no Appwrite (`admin`, `mestre` ou `guardiao`). Crie e altere usuários pela página **Usuários**.
+O perfil é um *label* do usuário no Appwrite (`admin` ou `coordenador`). Crie e altere usuários pela página **Usuários**.
+
+Separado do perfil de acesso, cada usuário tem uma **Função do usuário** (Mestre, Guardião ou nenhuma) e um **Gênero**. Elas definem quem pode ser escalado em cada evento, em "Mestres e guardiões"; um Admin ou Coordenador também pode ser Mestre ou Guardião.
 
 ## Estrutura
 

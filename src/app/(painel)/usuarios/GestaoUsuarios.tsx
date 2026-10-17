@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { Crown, Flame, Plus, Shield, UserPlus, X } from "lucide-react";
+import { ClipboardList, Crown, Plus, UserPlus, X } from "lucide-react";
 import { PERFIS, type Perfil } from "@/lib/config";
 import { Aviso } from "@/components/ui";
 import { FormNovoUsuario, LinhaUsuario } from "./Usuarios";
@@ -18,7 +18,7 @@ export type UsuarioLista = {
   sexo: "masculino" | "feminino" | null;
 };
 
-const ICONES = { admin: Crown, mestre: Flame, guardiao: Shield } as const;
+const ICONES = { admin: Crown, coordenador: ClipboardList } as const;
 
 /**
  * Cards de perfil que filtram a lista (clique de novo para limpar) e o botão
@@ -46,7 +46,7 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
 
   return (
     <>
-      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2">
         {PERFIS.map((p) => {
           const Icone = ICONES[p.id];
           const n = us.filter((u) => u.perfil === p.id).length;

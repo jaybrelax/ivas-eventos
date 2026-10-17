@@ -21,7 +21,7 @@ export function PerfilForm({ nome, email, telefone, foto, perfil, funcao, sexo }
         <CampoFoto nome={nome} fotoAtual={foto} tamanho={96} />
         <div className="flex flex-col items-end gap-1.5">
           <span className="chip bg-stone-100 text-stone-600">Acesso: {perfil}</span>
-          <span className="chip bg-mata-50 text-mata-700 ring-1 ring-mata-200 ring-inset">Nos rituais: {funcao}</span>
+          <span className="chip bg-mata-50 text-mata-700 ring-1 ring-mata-200 ring-inset">Função: {funcao}</span>
         </div>
       </div>
 

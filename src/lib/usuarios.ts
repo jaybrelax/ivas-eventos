@@ -7,7 +7,7 @@ import { BUCKET_ID, type Perfil } from "./config";
 import { conferirImagem } from "./imagem";
 import type { Funcao, Pessoa, Sexo } from "./types";
 
-/** Função do usuário nos rituais, independente do perfil de acesso (um Admin pode ser Mestre). */
+/** Função do usuário (Mestre, Guardião ou nenhuma), independente do perfil de acesso (um Admin pode ser Mestre). */
 export type FuncaoRitual = Funcao | "nenhuma";
 
 /** Dados extras de cada usuário, guardados nas preferências (prefs) da conta no Appwrite. */
@@ -16,12 +16,12 @@ export type PrefsUsuario = { telefone?: string | null; foto_file_id?: string | n
 const FUNCOES: FuncaoRitual[] = ["mestre", "guardiao", "nenhuma"];
 const SEXOS: Sexo[] = ["masculino", "feminino"];
 
-/** Sem função definida, vale a do perfil de acesso (Mestre → mestre, Guardião → guardião). */
-export function prefsDe(prefs: unknown, perfil?: Perfil | null) {
+/** Sem função definida, o usuário não é escalado nos eventos. */
+export function prefsDe(prefs: unknown) {
   const p = (prefs ?? {}) as PrefsUsuario;
   const funcao: FuncaoRitual = p.funcao_ritual && FUNCOES.includes(p.funcao_ritual)
     ? p.funcao_ritual
-    : perfil === "mestre" || perfil === "guardiao" ? perfil : "nenhuma";
+    : "nenhuma";
   return {
     telefone: p.telefone || null,
     foto_file_id: p.foto_file_id || null,
@@ -31,7 +31,7 @@ export function prefsDe(prefs: unknown, perfil?: Perfil | null) {
 }
 
 export function perfilDosLabels(labels: string[] = []): Perfil | null {
-  return (["admin", "mestre", "guardiao"] as const).find((p) => labels.includes(p)) ?? null;
+  return (["admin", "coordenador"] as const).find((p) => labels.includes(p)) ?? null;
 }
 
 /** Usuários que podem ser escalados: mestres e guardiões ativos, em ordem de nome. */
@@ -39,7 +39,7 @@ export const listarEquipe = cache(async (): Promise<Pessoa[]> => {
   const { users } = createAdminClient();
   const res = await users.list({ queries: [Query.limit(500), Query.orderAsc("name")] });
   return res.users.flatMap((u) => {
-    const p = prefsDe(u.prefs, perfilDosLabels(u.labels));
+    const p = prefsDe(u.prefs);
     if (p.funcao_ritual === "nenhuma" || !u.status) return [];
     return [{ $id: u.$id, nome: u.name || u.email, funcao: p.funcao_ritual, sexo: p.sexo, foto: p.foto_file_id }];
   });

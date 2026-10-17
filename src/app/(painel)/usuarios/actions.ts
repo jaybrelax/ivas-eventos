@@ -8,7 +8,7 @@ import { apagarFotoDe, salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Perfil } from "@/lib/config";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
-const PERFIS_VALIDOS: Perfil[] = ["admin", "mestre", "guardiao"];
+const PERFIS_VALIDOS: Perfil[] = ["admin", "coordenador"];
 
 export async function criarUsuario(_: Resultado, form: FormData): Promise<Resultado> {
   await exigir(["admin"]);

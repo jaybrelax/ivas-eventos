@@ -7,7 +7,7 @@ import { exigir } from "@/lib/auth";
 import { DB_ID, TABLES } from "@/lib/config";
 
 export async function salvarModelo(nome: string, config: string, id?: string) {
-  await exigir(["admin", "mestre"]);
+  await exigir(["admin", "coordenador"]);
   const n = nome.trim().slice(0, 80);
   if (!n) return { erro: "Dê um nome ao modelo." };
   const { tablesDB } = createAdminClient();
@@ -20,7 +20,7 @@ export async function salvarModelo(nome: string, config: string, id?: string) {
 }
 
 export async function excluirModelo(id: string) {
-  await exigir(["admin", "mestre"]);
+  await exigir(["admin", "coordenador"]);
   const { tablesDB } = createAdminClient();
   await tablesDB.deleteRow({ databaseId: DB_ID, tableId: TABLES.modelos, rowId: id });
   revalidatePath("/banners");

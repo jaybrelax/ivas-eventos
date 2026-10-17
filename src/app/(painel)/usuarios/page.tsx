@@ -11,7 +11,7 @@ export default async function Usuarios() {
   const { users } = createAdminClient();
   const lista = await users.list({ queries: [Query.limit(200), Query.orderAsc("name")] });
   const us = lista.users.map((u) => {
-    const p = prefsDe(u.prefs, perfilDosLabels(u.labels));
+    const p = prefsDe(u.prefs);
     return {
       id: u.$id,
       nome: u.name || u.email,

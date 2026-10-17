@@ -2,8 +2,7 @@ import type { Perfil } from "@/lib/config";
 
 const COR_PERFIL: Record<Perfil, string> = {
   admin: "from-ouro-300 to-ouro-600 text-mata-950",
-  mestre: "from-mata-400 to-mata-700 text-white",
-  guardiao: "from-sky-300 to-sky-600 text-white",
+  coordenador: "from-mata-400 to-mata-700 text-white",
 };
 
 export function iniciais(nome: string) {

@@ -46,7 +46,7 @@ export default async function Banners({ searchParams }: PageProps<"/banners">) {
         periodo={{ inicio, fim, tipos, eventoId: eventoUnico?.$id ?? null }}
         tituloSugerido={tituloSugerido}
         subtituloSugerido={subtituloSugerido}
-        podeSalvarModelo={pode(u, ["admin", "mestre"])}
+        podeSalvarModelo={pode(u, ["admin", "coordenador"])}
       />
     </>
   );

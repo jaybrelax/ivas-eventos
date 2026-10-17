@@ -13,8 +13,7 @@ export type Usuario = {
 
 function perfilDe(labels: string[]): Perfil | null {
   if (labels.includes("admin")) return "admin";
-  if (labels.includes("mestre")) return "mestre";
-  if (labels.includes("guardiao")) return "guardiao";
+  if (labels.includes("coordenador")) return "coordenador";
   return null;
 }
 
@@ -24,7 +23,7 @@ export const getUsuario = cache(async (): Promise<Usuario | null> => {
   try {
     const u = await s.account.get();
     const perfil = perfilDe(u.labels ?? []);
-    const p = prefsDe(u.prefs, perfil);
+    const p = prefsDe(u.prefs);
     return {
       id: u.$id, nome: u.name || u.email, email: u.email, perfil,
       telefone: p.telefone, foto: p.foto_file_id, funcaoRitual: p.funcao_ritual, sexo: p.sexo,
