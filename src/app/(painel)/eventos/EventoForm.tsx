@@ -2,7 +2,7 @@
 
 import { startTransition, useActionState, useState } from "react";
 import Link from "next/link";
-import { Check, Flame, Hash, ImagePlus, Megaphone, RefreshCw, Shield, Star, Trash2 } from "lucide-react";
+import { Check, Flame, Hash, ImagePlus, Megaphone, RefreshCw, Shield, Star, Trash2, type LucideIcon } from "lucide-react";
 import { IconeGenero } from "@/components/genero";
 import { salvarEvento } from "./actions";
 import { Aviso, Carregando } from "@/components/ui";
@@ -21,12 +21,32 @@ type Props = {
   guarnicao?: React.ReactNode;
 };
 
-function Bloco({ titulo, sub, children }: { titulo: string; sub?: string; children: React.ReactNode }) {
+function Bloco({
+  titulo,
+  sub,
+  icone: Icone,
+  destaque = false,
+  children,
+}: {
+  titulo: string;
+  sub?: string;
+  icone?: LucideIcon;
+  /** Moldura dourada para o grupo ganhar destaque na página. */
+  destaque?: boolean;
+  children: React.ReactNode;
+}) {
   return (
-    <section className="cartao space-y-5">
-      <div>
-        <h2 className="cartao-titulo">{titulo}</h2>
-        {sub && <p className="cartao-sub">{sub}</p>}
+    <section className={`cartao space-y-5 ${destaque ? "border-ouro-300 bg-gradient-to-br from-ouro-50 via-white to-white ring-1 ring-ouro-200/70" : ""}`}>
+      <div className={Icone ? "flex items-start gap-3" : ""}>
+        {Icone && (
+          <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${destaque ? "bg-gradient-to-br from-ouro-300 to-ouro-600 text-white shadow-sm" : "bg-mata-50 text-mata-600"}`}>
+            <Icone size={19} />
+          </span>
+        )}
+        <div>
+          <h2 className={`cartao-titulo ${destaque ? "text-lg" : ""}`}>{titulo}</h2>
+          {sub && <p className="cartao-sub">{sub}</p>}
+        </div>
       </div>
       {children}
     </section>
@@ -151,12 +171,12 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guar
             </Bloco>
           )}
 
-          <Bloco titulo="Mestres" sub="Quem conduz o ritual. Toque nos nomes para escolher.">
+          <Bloco titulo="Mestres" sub="Quem conduz o ritual. Toque nos nomes para escolher." icone={Flame} destaque>
             <EscolhaEquipe funcao="mestre" equipe={equipe} inicial={evento?.mestres ?? []} />
           </Bloco>
 
           {tipo?.conta_como_ritual && (
-            <Bloco titulo="Guarnição" sub="Os guardiões se candidatam na página do evento, por ordem de chegada. Defina quantas vagas há para cada gênero.">
+            <Bloco titulo="Guarnição" icone={Shield} sub="Os guardiões se candidatam na página do evento, por ordem de chegada. Defina quantas vagas há para cada gênero.">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="rotulo flex items-center gap-1.5" htmlFor="vagas_guardioes"><IconeGenero genero="masculino" size={14} /> Vagas de guardiões</label>
