@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, MessageCircle, Share2 } from "lucide-react";
+import { Check, Copy, MessageCircle } from "lucide-react";
 
 type Props = {
   titulo: string;
@@ -29,23 +29,6 @@ export function BotoesCompartilhar({ titulo, data, hora }: Props) {
     }
   };
 
-  const compartilharNativo = async () => {
-    const url = obterUrl();
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({
-          title: `${titulo} — Instituto IVAS`,
-          text: `Confira o evento "${titulo}" no Instituto IVAS em ${data} às ${hora}.`,
-          url,
-        });
-        return;
-      } catch {
-        // usuário cancelou
-      }
-    }
-    copiarLink();
-  };
-
   const compartilharWhatsApp = () => {
     const url = obterUrl();
     const texto = encodeURIComponent(
@@ -54,12 +37,13 @@ export function BotoesCompartilhar({ titulo, data, hora }: Props) {
     window.open(`https://api.whatsapp.com/send?text=${texto}`, "_blank");
   };
 
-  // Discretos, sem fundo: só contorno leve sobre o topo escuro
+  // Discretos, sem fundo: só contorno leve sobre o topo escuro.
+  // No celular os dois dividem a largura toda e ficam mais altos (alvo de toque maior).
   const discreto =
-    "inline-flex h-9 items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium text-white/70 ring-1 ring-white/15 ring-inset transition hover:bg-white/5 hover:text-white active:scale-[0.98]";
+    "inline-flex h-11 min-w-0 items-center justify-center gap-1.5 rounded-xl px-2 text-xs sm:text-[13px] font-medium whitespace-nowrap text-white/75 ring-1 ring-white/15 ring-inset transition hover:bg-white/5 hover:text-white active:scale-[0.98] sm:h-9 sm:justify-start sm:px-3";
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="grid w-full grid-cols-[3fr_2fr] gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
       <button
         type="button"
         onClick={compartilharWhatsApp}
@@ -67,7 +51,7 @@ export function BotoesCompartilhar({ titulo, data, hora }: Props) {
         title="Compartilhar no WhatsApp"
       >
         <MessageCircle size={15} />
-        <span>WhatsApp</span>
+        <span className="truncate">Compartilhar no WhatsApp</span>
       </button>
 
       <button
@@ -78,15 +62,6 @@ export function BotoesCompartilhar({ titulo, data, hora }: Props) {
       >
         {copiado ? <Check size={15} className="text-emerald-300" /> : <Copy size={15} />}
         <span>{copiado ? "Copiado!" : "Copiar link"}</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={compartilharNativo}
-        className={`${discreto} w-9 justify-center px-0 sm:hidden`}
-        title="Compartilhar"
-      >
-        <Share2 size={15} />
       </button>
     </div>
   );

@@ -164,17 +164,17 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 {tipo && (
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white ring-1 ring-white/15 ring-inset backdrop-blur">
-                    <span style={{ color: tipo.cor }} className="brightness-150"><IconeTipo nome={tipo.icone} size={13} strokeWidth={2.4} /></span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1.5 text-[13px] font-semibold text-white ring-1 ring-white/15 ring-inset backdrop-blur sm:px-3 sm:py-1 sm:text-xs">
+                    <span style={{ color: tipo.cor }} className="brightness-150"><IconeTipo nome={tipo.icone} size={14} strokeWidth={2.4} /></span>
                     {tipo.nome}
                   </span>
                 )}
                 {evento.destaque && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-ouro-400/15 px-3 py-1 text-xs font-semibold text-ouro-200 ring-1 ring-ouro-300/30 ring-inset">
-                    <Star size={12} className="fill-ouro-300 text-ouro-300" /> Destaque
+                  <span className="inline-flex items-center gap-1 rounded-full bg-ouro-400/15 px-3.5 py-1.5 text-[13px] font-semibold text-ouro-200 sm:px-3 sm:py-1 sm:text-xs ring-1 ring-ouro-300/30 ring-inset">
+                    <Star size={13} className="fill-ouro-300 text-ouro-300" /> Destaque
                   </span>
                 )}
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${sit.cor}`}>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-semibold ring-1 ring-inset sm:px-3 sm:py-1 sm:text-xs ${sit.cor}`}>
                   <span className={`h-1.5 w-1.5 rounded-full ${sit.ponto}`} />
                   {sit.texto}
                 </span>
