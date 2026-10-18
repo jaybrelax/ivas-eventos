@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { HandCoins, Info } from "lucide-react";
 import { salvarInformacoes } from "./actions";
 import { Aviso, BotaoEnviar } from "@/components/ui";
+import { CampoFormatado } from "./CampoFormatado";
 import type { Instituto } from "@/lib/types";
 
 const CAMPOS = [
@@ -37,8 +38,8 @@ export function InformacoesForm({ instituto }: { instituto: Instituto }) {
           <label className="rotulo flex items-center gap-1.5" htmlFor={nome}>
             <Icone size={15} className="text-mata-600" /> {rotulo}
           </label>
-          <textarea id={nome} name={nome} rows={7} maxLength={5000} defaultValue={instituto[nome] ?? ""} className="campo leading-relaxed" placeholder={dica} />
-          <p className="ajuda">{dica} As quebras de linha são mantidas.</p>
+          <CampoFormatado id={nome} nome={nome} inicial={instituto[nome] ?? ""} placeholder={dica} />
+          <p className="ajuda">{dica} Selecione um trecho e use os botões (ou Ctrl+B, I, U) para negrito, itálico e sublinhado.</p>
         </div>
       ))}
 

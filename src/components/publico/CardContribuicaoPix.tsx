@@ -1,4 +1,5 @@
 import { HandCoins } from "lucide-react";
+import { TextoFormatado } from "@/components/TextoFormatado";
 
 /** Texto de contribuição das Configurações › Informações. A chave Pix fica na janela “Participar”. */
 export function CardContribuicaoPix({ infoContribuicao }: { infoContribuicao?: string | null }) {
@@ -17,7 +18,7 @@ export function CardContribuicaoPix({ infoContribuicao }: { infoContribuicao?: s
           <h2 className="titulo-card text-xl sm:text-[22px]">Contribuição</h2>
         </div>
       </div>
-      <p className="max-w-[68ch] text-[15px] leading-[1.85] whitespace-pre-line text-stone-700 sm:text-base">{texto}</p>
+      <TextoFormatado texto={texto} className="max-w-[68ch] text-[15px] leading-[1.85] text-stone-700 sm:text-base" />
     </section>
   );
 }

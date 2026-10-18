@@ -1,5 +1,6 @@
 import { HandCoins, Info } from "lucide-react";
 import type { Instituto } from "@/lib/types";
+import { TextoFormatado } from "./TextoFormatado";
 
 /** Textos fixos das Configurações (Informações) mostrados na página de todo ritual. */
 export function InfoRitual({ instituto, compacto = false }: { instituto: Pick<Instituto, "info_rituais" | "info_contribuicao">; compacto?: boolean }) {
@@ -16,7 +17,7 @@ export function InfoRitual({ instituto, compacto = false }: { instituto: Pick<In
             <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-lg ${cor}`}><Icone size={15} /></span>
             {titulo}
           </h3>
-          <p className={`leading-relaxed whitespace-pre-line text-stone-700 ${compacto ? "text-[13px]" : "text-sm"}`}>{texto}</p>
+          <TextoFormatado texto={texto ?? ""} className={`leading-relaxed text-stone-700 ${compacto ? "text-[13px]" : "text-sm"}`} />
         </section>
       ))}
     </div>

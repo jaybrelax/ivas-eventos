@@ -9,6 +9,7 @@ import type { Evento, Pessoa } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
 import { IconeTipo } from "@/components/IconeTipo";
+import { TextoFormatado } from "@/components/TextoFormatado";
 import { MarcaInstituto } from "@/components/Marca";
 import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
 import { TipografiaPublica } from "@/components/publico/TipografiaPublica";
@@ -257,7 +258,7 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
               <section className="cartao relative overflow-hidden p-6 sm:p-9">
                 <div aria-hidden className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-mata-400 via-mata-600 to-ouro-500" />
                 <TituloSecao sobre="Antes de vir" titulo="Orientações aos participantes" icone={Info} />
-                <div className="max-w-[68ch] text-[15px] leading-[1.85] whitespace-pre-line text-stone-700 sm:text-base">{instituto.info_rituais}</div>
+                <TextoFormatado texto={instituto.info_rituais} className="max-w-[68ch] text-[15px] leading-[1.85] text-stone-700 sm:text-base" />
               </section>
             )}
 
