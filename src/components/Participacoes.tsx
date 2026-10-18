@@ -20,7 +20,7 @@ export function Participacoes({ itens, vazio = "Ainda não participou de nenhum 
             const d = partesData(i.data);
             return (
               <li key={i.eventoId}>
-                <Link href={`/eventos/${i.eventoId}`} className="flex items-center gap-3 px-3 py-2.5 text-sm transition hover:bg-stone-50">
+                <Link href={`/admin/eventos/${i.eventoId}`} className="flex items-center gap-3 px-3 py-2.5 text-sm transition hover:bg-stone-50">
                   <span className="w-12 shrink-0 text-center text-xs font-semibold text-stone-500 tabular-nums">
                     {String(d.dia).padStart(2, "0")}/{String(d.mes).padStart(2, "0")}
                     <span className="block text-[10px] font-normal text-stone-400">{d.ano}</span>

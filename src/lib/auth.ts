@@ -39,7 +39,7 @@ export async function exigir(perfis?: Perfil[]): Promise<Usuario & { perfil: Per
   const u = await getUsuario();
   if (!u) redirect("/login");
   if (!u.perfil) redirect("/login?erro=sem-perfil");
-  if (perfis && !perfis.includes(u.perfil)) redirect("/eventos?erro=sem-permissao");
+  if (perfis && !perfis.includes(u.perfil)) redirect("/admin/eventos?erro=sem-permissao");
   return u as Usuario & { perfil: Perfil };
 }
 

@@ -36,6 +36,18 @@ export async function proximosNumeros(ano: number) {
   };
 }
 
+/** Número geral do último ritual numerado (o maior), para ter noção do total já realizado. */
+export async function ultimoNumeroRitual(): Promise<number | null> {
+  const { tablesDB } = createAdminClient();
+  const r = await tablesDB.listRows({
+    databaseId: DB_ID,
+    tableId: TABLES.eventos,
+    queries: [Query.isNotNull("ritual_numero_geral"), Query.orderDesc("ritual_numero_geral"), Query.limit(1)],
+    total: false,
+  });
+  return (r.rows[0]?.ritual_numero_geral as number | undefined) ?? null;
+}
+
 export function isConflito(e: unknown) {
   return e instanceof AppwriteException && e.code === 409;
 }

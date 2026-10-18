@@ -15,28 +15,62 @@ function Monograma({ instituto, tamanho }: { instituto: DadosMarca; tamanho: num
 }
 
 /**
- * Logo do Instituto sobre fundo escuro, no tamanho natural (logos horizontais
- * ficam largas). Usa a versão escura; se só houver a clara, põe sobre um quadro
- * claro; sem logo, monograma + nome.
+ * Logo do Instituto.
+ * - `fundoClaro`: usa a versão colorida (logo_file_id) ideal para fundos brancos/claros.
+ * - padrão: usa a versão clara para fundo escuro (logo_escura_file_id).
  */
-export function MarcaInstituto({ instituto, altura = 48, legenda }: { instituto: DadosMarca; altura?: number; legenda?: string }) {
+export function MarcaInstituto({
+  instituto,
+  altura = 48,
+  legenda,
+  fundoClaro = false,
+}: {
+  instituto: DadosMarca;
+  altura?: number;
+  legenda?: string;
+  fundoClaro?: boolean;
+}) {
   const escura = instituto.logo_escura_file_id;
   const clara = instituto.logo_file_id;
   const nome = instituto.nome_curto || instituto.nome;
 
-  if (escura || clara)
+  const logoEscolhida = fundoClaro ? (clara || escura) : (escura || clara);
+
+  if (logoEscolhida)
     return (
       <div className="min-w-0">
-        {escura ? (
+        {fundoClaro ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={`/api/arquivo/${escura}`} alt={instituto.nome} style={{ height: altura }} className="w-auto max-w-full object-contain object-left" />
+          <img
+            src={`/api/arquivo/${logoEscolhida}`}
+            alt={instituto.nome}
+            style={{ height: altura }}
+            className="w-auto max-w-full object-contain object-left"
+          />
+        ) : escura ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/api/arquivo/${escura}`}
+            alt={instituto.nome}
+            style={{ height: altura }}
+            className="w-auto max-w-full object-contain object-left"
+          />
         ) : (
           <span className="inline-flex rounded-xl bg-white px-2.5 py-1.5 shadow-sm">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={`/api/arquivo/${clara}`} alt={instituto.nome} style={{ height: altura - 12 }} className="w-auto max-w-full object-contain" />
+            <img
+              src={`/api/arquivo/${clara}`}
+              alt={instituto.nome}
+              style={{ height: altura - 12 }}
+              className="w-auto max-w-full object-contain"
+            />
           </span>
         )}
-        {legenda && <p className="mt-2 text-xs leading-snug tracking-wide text-mata-300">{legenda}</p>}
+        {legenda && (
+          <p className={`mt-2 text-xs leading-snug tracking-wide ${fundoClaro ? "text-stone-500" : "text-mata-300"}`}>
+            {legenda}
+          </p>
+        )}
       </div>
     );
 
@@ -44,8 +78,14 @@ export function MarcaInstituto({ instituto, altura = 48, legenda }: { instituto:
     <div className="flex min-w-0 items-center gap-3">
       <Monograma instituto={instituto} tamanho={altura - 4} />
       <div className="min-w-0">
-        <p className="truncate font-display text-lg leading-tight font-semibold tracking-wide text-ouro-300">{nome}</p>
-        {legenda && <p className="text-xs leading-snug text-mata-300">{legenda}</p>}
+        <p className={`truncate font-display text-lg leading-tight font-semibold tracking-wide ${fundoClaro ? "text-mata-900" : "text-ouro-300"}`}>
+          {nome}
+        </p>
+        {legenda && (
+          <p className={`text-xs leading-snug ${fundoClaro ? "text-stone-500" : "text-mata-300"}`}>
+            {legenda}
+          </p>
+        )}
       </div>
     </div>
   );

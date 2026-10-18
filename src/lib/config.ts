@@ -1,6 +1,8 @@
 export const DB_ID = "ivas";
 export const BUCKET_ID = "midia";
 export const INSTITUTO_ROW_ID = "principal";
+/** Linha à parte da tabela instituto com a chave da OpenAI e o prompt: não é lida junto dos dados públicos. */
+export const IA_ROW_ID = "ia";
 export const SESSION_COOKIE = "ivas-session";
 
 export const TABLES = {

@@ -6,8 +6,9 @@ function campo(id: string, valor: string) {
   return id + String(valor.length).padStart(2, "0") + valor;
 }
 
-function limpar(s: string, max: number) {
-  return s
+// Campos vazios (ex.: chave Pix sem cidade) viram texto vazio e caem no padrão de quem chama
+function limpar(s: string | null | undefined, max: number) {
+  return (s ?? "")
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^A-Za-z0-9 .,-]/g, "")
@@ -42,8 +43,8 @@ export function normalizarChave(tipo: TipoPix, chave: string) {
 export function gerarPayloadPix(opts: {
   tipo: TipoPix;
   chave: string;
-  favorecido: string;
-  cidade: string;
+  favorecido: string | null;
+  cidade: string | null;
   valor?: number | null;
   descricao?: string;
 }) {

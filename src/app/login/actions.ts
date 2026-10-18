@@ -26,7 +26,7 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
       return { erro: "Não consegui falar com o Appwrite. Ele está rodando? Confira APPWRITE_ENDPOINT no .env.local." };
     return { erro: "E-mail ou senha incorretos." };
   }
-  redirect("/eventos");
+  redirect("/admin/eventos");
 }
 
 export async function sair() {

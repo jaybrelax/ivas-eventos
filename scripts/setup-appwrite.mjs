@@ -47,6 +47,10 @@ const TABELAS = {
       i("ritual_numero_inicial", { xdefault: 500, min: 1 }),
       // Textos fixos mostrados na página de todo ritual
       t("info_rituais"), t("info_contribuicao"),
+      // Tipografia da página pública
+      v("fonte_publica_titulo", 60), v("fonte_publica_texto", 60),
+      // Capas com IA (linha própria "ia" da tabela; nunca vai para o navegador)
+      v("openai_api_key", 255), t("prompt_imagem"),
     ],
   },
   enderecos: {
@@ -72,7 +76,7 @@ const TABELAS = {
     nome: "Tipos de evento",
     colunas: [
       v("nome", 60, { required: true }), v("slug", 60, { required: true }), v("cor", 9), v("icone", 30),
-      b("conta_como_ritual"), b("ativo", true), i("ordem", { xdefault: 0 }), t("descricao"),
+      b("conta_como_ritual"), b("ativo", true), b("aberto_publico", true), b("fechado_guardioes"), i("ordem", { xdefault: 0 }), t("descricao"),
     ],
     indices: [["ux_tipo_slug", "unique", ["slug"]]],
   },

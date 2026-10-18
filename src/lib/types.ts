@@ -12,6 +12,10 @@ export type Instituto = {
   info_rituais: string | null;
   /** Como contribuir (pagamento), mostrado na página de todo ritual. */
   info_contribuicao: string | null;
+  /** Fonte dos títulos na página pública (Google Fonts). */
+  fonte_publica_titulo: string | null;
+  /** Fonte dos textos na página pública. */
+  fonte_publica_texto: string | null;
 };
 
 export type Endereco = { $id: string; apelido: string; endereco: string; cidade: string; link_maps: string | null; padrao: boolean };
@@ -27,7 +31,9 @@ export type Pessoa = { $id: string; nome: string; funcao: Funcao; sexo: Sexo | n
 /** `icone`: nome de um ícone da biblioteca Lucide (ex.: "flame"); `descricao`: texto que acompanha os eventos desse tipo. */
 export type TipoEvento = {
   $id: string; nome: string; slug: string; cor: string; icone: string | null; descricao: string | null;
-  conta_como_ritual: boolean; ativo: boolean; ordem: number;
+  conta_como_ritual: boolean; ativo: boolean;
+  /** Qualquer pessoa pode se inscrever. */ aberto_publico: boolean;
+  /** Só guardiões logados podem se inscrever. */ fechado_guardioes: boolean; ordem: number;
 };
 
 export type Evento = {

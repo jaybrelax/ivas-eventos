@@ -19,6 +19,8 @@ export const INSTITUTO_PADRAO: Instituto = {
   ritual_numero_inicial: 500,
   info_rituais: null,
   info_contribuicao: null,
+  fonte_publica_titulo: null,
+  fonte_publica_texto: null,
 };
 
 /** Linhas do SDK vêm como instâncias de classe; os Client Components só aceitam objetos simples. */
@@ -90,6 +92,13 @@ export async function getEvento(id: string): Promise<Evento | null> {
   } catch {
     return null;
   }
+}
+
+/** Ritual pelo número geral (o “ID” público: /ritual/525). */
+export async function getEventoPorNumero(numero: number): Promise<Evento | null> {
+  if (!Number.isInteger(numero) || numero < 1) return null;
+  const achados = await listar<Evento>(TABLES.eventos, [Query.equal("ritual_numero_geral", numero), Query.limit(1)]);
+  return achados[0] ?? null;
 }
 
 export async function listarModelos() {
