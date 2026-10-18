@@ -14,6 +14,7 @@ import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
 import { TipografiaPublica } from "@/components/publico/TipografiaPublica";
 import { RodapePublico } from "@/components/publico/RodapePublico";
 import { BotaoParticipar } from "@/components/publico/BotaoParticipar";
+import { BarraParticipar } from "@/components/publico/BarraParticipar";
 import { BotoesCompartilhar } from "@/components/publico/BotoesCompartilhar";
 import { CardContribuicaoPix } from "@/components/publico/CardContribuicaoPix";
 import { OutrosEventos } from "@/components/publico/OutrosEventos";
@@ -126,7 +127,11 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
       <CabecalhoPublico instituto={instituto} />
 
       {/* ───────── Hero: capa + título + dados essenciais ───────── */}
-      <section className="relative isolate overflow-hidden bg-gradient-to-br from-mata-900 via-mata-950 to-[#120a1c] text-white">
+      <section
+        className={`relative isolate overflow-hidden text-white ${evento.cor_capa ? "" : "bg-gradient-to-br from-mata-900 via-mata-950 to-[#120a1c]"}`}
+        // Degradê da cor predominante da capa (calculada ao salvar) até o preto
+        style={evento.cor_capa ? { background: `linear-gradient(135deg, ${evento.cor_capa} 0%, color-mix(in oklab, ${evento.cor_capa} 45%, #000) 55%, #050307 100%)` } : undefined}
+      >
         {/* Fundo: a própria capa desfocada sobre o degradê (a 15% ela sumia no roxo escuro) */}
         {capa && (
           <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
@@ -180,7 +185,7 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
               </h1>
               {evento.ritual_numero_geral && (
                 <p className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm font-normal tracking-wide text-ouro-200/90 sm:text-base">
-                  <span>Ritual N° {evento.ritual_numero_geral}</span>
+                  <span>Ritual N° {evento.ritual_numero_geral} do {instituto.nome_curto || "IVAS"}</span>
                   {evento.ritual_numero_ano && evento.ritual_ano && (
                     <>
                       <span aria-hidden className="h-1 w-1 rounded-full bg-ouro-300/70" />
@@ -191,7 +196,7 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
               )}
 
               {/* Dados essenciais em uma faixa */}
-              <dl className="mt-6 grid overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/12 backdrop-blur-md grid-cols-2 sm:mt-8 sm:grid-cols-[1.45fr_0.8fr_1fr]">
+              <dl className="mt-6 grid overflow-hidden rounded-2xl bg-white/[0.06] ring-1 ring-white/12 backdrop-blur-md grid-cols-[2fr_3fr] sm:mt-8 sm:grid-cols-[1.45fr_0.8fr_1fr]">
                 {[
                   { Icone: CalendarDays, rotulo: "Data", valor: dataExtenso },
                   { Icone: Clock, rotulo: "Início", valor: `${evento.hora_inicio.replace(":", "h")}` },
@@ -219,7 +224,7 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
                     Ver próximos encontros <ArrowRight size={16} />
                   </Link>
                 ) : (
-                  // no celular a barra fixa de baixo já oferece o botão
+                  // no celular o botão fica só na barra fixa, que surge depois de rolar
                   <div className="hidden sm:block"><BotaoParticipar {...participar} variante="hero" /></div>
                 )}
                 <BotoesCompartilhar titulo={evento.titulo} data={dataExtenso} hora={evento.hora_inicio} />
@@ -328,19 +333,13 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
         </div>
       </main>
 
-      {/* Barra fixa no celular para a ação principal */}
+      {/* Barra fixa no celular: aparece depois de rolar a página */}
       {!sit.passou && (
-        <>
-          <div className="fixed inset-x-0 bottom-0 z-30 border-t border-stone-200/80 bg-white/90 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.25)] backdrop-blur-xl sm:hidden">
-            <div className="flex items-center gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-stone-900">{evento.titulo}</p>
-                <p className="text-xs text-stone-500 first-letter:uppercase">{d.diaSemana.slice(0, 3)}, {d.dia} {d.mesCurto.toLowerCase()} · {evento.hora_inicio}</p>
-              </div>
-              <BotaoParticipar {...participar} localEvento={local} variante="sticky" />
-            </div>
-          </div>
-        </>
+        <BarraParticipar
+          titulo={evento.titulo}
+          quando={`${d.diaSemana.slice(0, 3)}, ${d.dia} ${d.mesCurto.toLowerCase()} · ${evento.hora_inicio}`}
+          participar={{ ...participar, localEvento: local }}
+        />
       )}
 
       <RodapePublico instituto={instituto} enderecos={enderecos} telefones={telefones} redes={redes} />

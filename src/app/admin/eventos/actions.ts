@@ -1,5 +1,6 @@
 "use server";
 
+import { corDaCapa } from "@/lib/cor";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ID } from "node-appwrite";
@@ -90,18 +91,18 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     const invalida = conferirImagem(capa, "capa");
     if (invalida) return { erro: invalida };
     try {
-      const novo = await storage.createFile({
-        bucketId: BUCKET_ID, fileId: ID.unique(), file: InputFile.fromBuffer(Buffer.from(await capa.arrayBuffer()), capa.name),
-      });
+      const bytes = Buffer.from(await capa.arrayBuffer());
+      const novo = await storage.createFile({ bucketId: BUCKET_ID, fileId: ID.unique(), file: InputFile.fromBuffer(bytes, capa.name) });
       capaNova = novo.$id;
-      Object.assign(dados, { capa_file_id: capaNova });
+      // A cor predominante vira o degradê do topo da página pública
+      Object.assign(dados, { capa_file_id: capaNova, cor_capa: await corDaCapa(bytes) });
       capaApagar = capaAntiga;
     } catch (e) {
       console.error(e);
       return { erro: "Não foi possível enviar a capa. Use uma imagem PNG, JPG ou WEBP." };
     }
   } else if (form.get("remover_capa") === "on" && capaAntiga) {
-    Object.assign(dados, { capa_file_id: null });
+    Object.assign(dados, { capa_file_id: null, cor_capa: null });
     capaApagar = capaAntiga;
   }
 

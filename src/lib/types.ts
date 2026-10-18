@@ -47,6 +47,8 @@ export type Evento = {
   tipo_id: string;
   destaque: boolean;
   capa_file_id: string | null;
+  /** Cor predominante da capa, ajustada para o fundo do topo da página pública. */
+  cor_capa?: string | null;
   mestres: string[] | null; // IDs de usuários
   guardioes: string[] | null; // preenchido pela guarnição (candidaturas confirmadas)
   vagas_guardioes: number | null; // vagas masculinas (padrão 2)
