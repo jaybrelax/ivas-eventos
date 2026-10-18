@@ -16,6 +16,7 @@ import { TipografiaPublica } from "@/components/publico/TipografiaPublica";
 import { RodapePublico } from "@/components/publico/RodapePublico";
 import { BotaoParticipar } from "@/components/publico/BotaoParticipar";
 import { BarraParticipar } from "@/components/publico/BarraParticipar";
+import { FundoParallax } from "@/components/publico/FundoParallax";
 import { BotoesCompartilhar } from "@/components/publico/BotoesCompartilhar";
 import { CardContribuicaoPix } from "@/components/publico/CardContribuicaoPix";
 import { OutrosEventos } from "@/components/publico/OutrosEventos";
@@ -133,13 +134,8 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
         // Degradê da cor predominante da capa (calculada ao salvar) até o preto
         style={evento.cor_capa ? { background: `linear-gradient(135deg, ${evento.cor_capa} 0%, color-mix(in oklab, ${evento.cor_capa} 45%, #000) 55%, #050307 100%)` } : undefined}
       >
-        {/* Fundo: a própria capa desfocada sobre o degradê (a 15% ela sumia no roxo escuro) */}
-        {capa && (
-          <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={capa} alt="" className="h-full w-full scale-105 object-cover opacity-30 blur-md" />
-          </div>
-        )}
+        {/* Fundo: a própria capa desfocada sobre o degradê, com parallax ao rolar */}
+        {capa && <FundoParallax src={capa} />}
         <div aria-hidden className="pointer-events-none absolute -top-40 right-[-10%] -z-10 h-[34rem] w-[34rem] rounded-full bg-ouro-500/10 blur-3xl" />
 
         <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6 sm:pt-12 sm:pb-16 lg:px-8 lg:pt-16 lg:pb-20">

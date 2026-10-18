@@ -9,7 +9,7 @@ import { BarChart3, CalendarDays, Image as ImageIcon, LogOut, Menu as MenuIcone,
 
 const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users, shield: Shield };
 
-export type ItemMenu = { href: string; rotulo: string; icone: keyof typeof ICONES };
+export type ItemMenu = { href: string; rotulo: string; icone: keyof typeof ICONES; /** contador ao lado (ex.: cadastros pendentes) */ aviso?: number };
 export type GrupoMenu = { titulo: string; itens: ItemMenu[] };
 
 type Props = {
@@ -62,6 +62,11 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
                     {on && <span className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r-full bg-ouro-400" />}
                     <Icone size={18} className={on ? "text-ouro-400" : "text-mata-300/80 transition group-hover:text-mata-100"} />
                     {i.rotulo}
+                    {!!i.aviso && (
+                      <span className="ml-auto grid h-5 min-w-5 place-items-center rounded-full bg-ouro-400 px-1.5 text-[11px] font-bold text-mata-950 tabular-nums" title="Cadastros aguardando aprovação">
+                        {i.aviso}
+                      </span>
+                    )}
                   </Link>
                 );
               })}

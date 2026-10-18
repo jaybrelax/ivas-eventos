@@ -4,6 +4,7 @@ import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
 import { Menu, type GrupoMenu } from "./Menu";
 import { sair } from "../login/actions";
+import { listarPendentes } from "@/lib/usuarios";
 
 export default async function PainelLayout({ children }: LayoutProps<"/">) {
   const [u, instituto] = await Promise.all([exigir(), getInstituto()]);
@@ -22,7 +23,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/">) {
   ];
   const admin = [
     ...(pode(u, PODE.configurar) ? [{ href: "/admin/configuracoes", rotulo: "Configurações", icone: "settings" as const }] : []),
-    ...(pode(u, PODE.gerenciarUsuarios) ? [{ href: "/admin/usuarios", rotulo: "Usuários", icone: "users" as const }] : []),
+    ...(pode(u, PODE.gerenciarUsuarios) ? [{ href: "/admin/usuarios", rotulo: "Usuários", icone: "users" as const, aviso: (await listarPendentes()).length }] : []),
   ];
   if (admin.length) grupos.push({ titulo: "Administração", itens: admin });
   const perfil = PERFIS.find((p) => p.id === u.perfil)?.nome ?? "";

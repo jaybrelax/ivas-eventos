@@ -11,5 +11,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!login|_next|favicon.ico|icon|apple-icon|api/arquivo|api/og|evento|ritual).*)"],
+  matcher: ["/((?!login|cadastro|_next|favicon.ico|icon|apple-icon|api/arquivo|api/og|evento|ritual).*)"],
 };

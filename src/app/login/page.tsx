@@ -40,6 +40,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <h2 className="text-2xl font-semibold tracking-tight text-stone-900">Entrar</h2>
           <p className="mt-1.5 mb-8 text-sm text-stone-500">Use o e-mail e a senha cadastrados pelo Admin.</p>
           <LoginForm semPerfil={semPerfil} />
+          <p className="mt-6 text-center text-sm text-stone-500">
+            Ainda não tem acesso? <a href="/cadastro" className="font-medium text-mata-700 hover:underline">Criar cadastro</a>
+          </p>
         </div>
       </section>
     </main>

@@ -11,7 +11,15 @@ import type { Funcao, Pessoa, Sexo } from "./types";
 export type FuncaoRitual = Funcao | "nenhuma";
 
 /** Dados extras de cada usuário, guardados nas preferências (prefs) da conta no Appwrite. */
-export type PrefsUsuario = { telefone?: string | null; foto_file_id?: string | null; funcao_ritual?: FuncaoRitual | null; sexo?: Sexo | null };
+export type PrefsUsuario = {
+  telefone?: string | null; foto_file_id?: string | null; funcao_ritual?: FuncaoRitual | null; sexo?: Sexo | null;
+  /** Cadastro feito pela página pública, aguardando um Admin aprovar. */
+  situacao?: "pendente" | null;
+  /** Função que a pessoa indicou ao se cadastrar (vem do link: /cadastro?funcao=guardiao). */
+  funcao_solicitada?: Funcao | null;
+  /** Endereço informado no cadastro. */
+  endereco?: string | null;
+};
 
 const FUNCOES: FuncaoRitual[] = ["mestre", "guardiao", "nenhuma"];
 const SEXOS: Sexo[] = ["masculino", "feminino"];
@@ -57,6 +65,21 @@ export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> 
       return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: p.funcao_ritual, ativo: !!u.status }];
     }),
   );
+});
+
+/** Cadastros da página pública aguardando aprovação (conta bloqueada até o Admin aprovar). */
+export type Pendente = { id: string; nome: string; email: string; telefone: string | null; sexo: Sexo | null; funcaoSolicitada: Funcao | null; endereco: string | null; foto: string | null; criadoEm: string };
+
+export const listarPendentes = cache(async (): Promise<Pendente[]> => {
+  const { users } = createAdminClient();
+  const res = await users.list({ queries: [Query.limit(500), Query.orderDesc("$createdAt")] });
+  return res.users.flatMap((u) => {
+    const bruto = (u.prefs ?? {}) as PrefsUsuario;
+    if (bruto.situacao !== "pendente") return [];
+    const p = prefsDe(u.prefs);
+    const f = bruto.funcao_solicitada;
+    return [{ id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone, sexo: p.sexo, funcaoSolicitada: f === "mestre" || f === "guardiao" ? f : null, endereco: bruto.endereco || null, foto: p.foto_file_id, criadoEm: u.$createdAt }];
+  });
 });
 
 /** Aceita formatos livres ("(43) 99999-0000", "+55 43 ..."); exige de 10 a 13 dígitos. */
@@ -105,6 +128,7 @@ export async function salvarContato(userId: string, form: FormData, podeFuncao =
 
   try {
     const extra: PrefsUsuario = {};
+    if (form.has("endereco")) extra.endereco = String(form.get("endereco") ?? "").trim().replace(/\s+/g, " ").slice(0, 255) || null;
     if (form.has("sexo")) {
       const sx = String(form.get("sexo"));
       extra.sexo = SEXOS.includes(sx as Sexo) ? (sx as Sexo) : null;

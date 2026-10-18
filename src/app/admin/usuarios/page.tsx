@@ -3,7 +3,8 @@ import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
 import { PODE, type Perfil } from "@/lib/config";
 import { Titulo } from "@/components/Titulo";
-import { perfilDosLabels, prefsDe } from "@/lib/usuarios";
+import { listarPendentes, perfilDosLabels, prefsDe } from "@/lib/usuarios";
+import { Pendentes } from "./Pendentes";
 import { GestaoUsuarios } from "./GestaoUsuarios";
 import { todasCandidaturasAtivas } from "@/lib/guarnicao";
 import { participacoesPorUsuario } from "@/lib/participacoes";
@@ -11,9 +12,11 @@ import { participacoesPorUsuario } from "@/lib/participacoes";
 export default async function Usuarios() {
   const eu = await exigir(PODE.gerenciarUsuarios);
   const { users } = createAdminClient();
-  const [lista, candidaturas] = await Promise.all([users.list({ queries: [Query.limit(200), Query.orderAsc("name")] }), todasCandidaturasAtivas()]);
+  const [lista, candidaturas, pendentes] = await Promise.all([users.list({ queries: [Query.limit(200), Query.orderAsc("name")] }), todasCandidaturasAtivas(), listarPendentes()]);
+  const idsPendentes = new Set(pendentes.map((p) => p.id));
   const participacoes = await participacoesPorUsuario(candidaturas);
-  const us = lista.users.map((u) => {
+  // Cadastros pendentes ficam na seção própria, fora da lista principal
+  const us = lista.users.filter((u) => !idsPendentes.has(u.$id)).map((u) => {
     const p = prefsDe(u.prefs);
     return {
       id: u.$id,
@@ -30,6 +33,7 @@ export default async function Usuarios() {
   return (
     <>
       <Titulo sobre="Administração" titulo="Usuários" subtitulo="Quem acessa o painel e com qual perfil." />
+      <Pendentes lista={pendentes} />
       <GestaoUsuarios us={us} euId={eu.id} />
     </>
   );

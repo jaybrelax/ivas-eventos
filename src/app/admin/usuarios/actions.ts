@@ -95,3 +95,34 @@ export async function salvarDadosPessoais(_: Resultado, form: FormData): Promise
   revalidatePath("/", "layout");
   return { ok: "Dados salvos." };
 }
+
+/** Aprova um cadastro da página pública: define função e perfil e libera o acesso. */
+export async function aprovarCadastro(userId: string, funcao: "mestre" | "guardiao" | "nenhuma", perfil: Perfil) {
+  await exigir(["admin"]);
+  if (!PERFIS_VALIDOS.includes(perfil)) return { erro: "Perfil inválido." };
+  if (!["mestre", "guardiao", "nenhuma"].includes(funcao)) return { erro: "Função inválida." };
+  const { users } = createAdminClient();
+  try {
+    const prefs = (await users.getPrefs({ userId })) as Record<string, unknown>;
+    await users.updatePrefs({ userId, prefs: { ...prefs, funcao_ritual: funcao, situacao: null } });
+    await users.updateLabels({ userId, labels: [perfil] });
+    await users.updateStatus({ userId, status: true });
+  } catch (e) {
+    console.error("Aprovar cadastro:", e instanceof Error ? e.message : e);
+    return { erro: "Não foi possível aprovar agora. Tente de novo." };
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: "Cadastro aprovado. A pessoa já pode entrar." };
+}
+
+/** Recusa um cadastro pendente: apaga a conta (só contas ainda pendentes). */
+export async function recusarCadastro(userId: string) {
+  await exigir(["admin"]);
+  const { users } = createAdminClient();
+  const prefs = (await users.getPrefs({ userId }).catch(() => ({}))) as { situacao?: string };
+  if (prefs.situacao !== "pendente") return { erro: "Esse cadastro não está mais pendente." };
+  await apagarFotoDe(userId);
+  await users.delete({ userId });
+  revalidatePath("/admin", "layout");
+  return { ok: "Cadastro recusado." };
+}
