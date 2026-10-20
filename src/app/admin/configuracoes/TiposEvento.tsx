@@ -253,7 +253,7 @@ function PainelTipo({ tipo, usos, onFechar }: { tipo: TipoItem | null; usos: num
   );
 }
 
-function SeletorIcone({ valor, cor, aoEscolher }: { valor: string; cor: string; aoEscolher: (n: string) => void }) {
+export function SeletorIcone({ valor, cor, aoEscolher }: { valor: string; cor: string; aoEscolher: (n: string) => void }) {
   const [busca, setBusca] = useState("");
   const [aberto, setAberto] = useState(false);
   const termo = semAcento(busca).replace(/\s+/g, "-");

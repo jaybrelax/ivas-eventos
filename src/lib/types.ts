@@ -8,6 +8,11 @@ export type Instituto = {
   fonte_titulo: string;
   fonte_texto: string;
   ritual_numero_inicial: number;
+  /** Contribuição sugerida aos participantes, igual para todos os rituais. */
+  valor_contribuicao: number | null;
+  /** Estado (sigla) e cidade do Instituto: já vêm escolhidos nos formulários de cadastro. */
+  estado: string | null;
+  cidade: string | null;
   /** Informações gerais, mostradas na página de todo evento que conta como ritual. */
   info_rituais: string | null;
   /** Como contribuir (pagamento), mostrado na página de todo ritual. */
@@ -36,6 +41,9 @@ export type TipoEvento = {
   /** Só guardiões logados podem se inscrever. */ fechado_guardioes: boolean; ordem: number;
 };
 
+/** Tag de evento: o texto dela complementa a descrição de todos os eventos que a usam. */
+export type TagEvento = { $id: string; nome: string; cor: string | null; icone: string | null; descricao: string | null; ativo: boolean; ordem: number };
+
 export type Evento = {
   $id: string;
   titulo: string;
@@ -45,6 +53,8 @@ export type Evento = {
   endereco_id: string | null;
   endereco_livre: string | null;
   tipo_id: string;
+  /** IDs das tags de evento aplicadas. */
+  tags?: string[] | null;
   destaque: boolean;
   capa_file_id: string | null;
   /** Cor predominante da capa, ajustada para o fundo do topo da página pública. */
@@ -54,6 +64,8 @@ export type Evento = {
   vagas_guardioes: number | null; // vagas masculinas (padrão 2)
   vagas_guardias: number | null; // vagas femininas (padrão 2)
   candidaturas_abertas: boolean | null;
+  /** Vagas para participantes (público geral, separado da guarnição). */
+  vagas_participantes: number | null;
   mostrar_banner: boolean;
   ritual_numero_geral: number | null;
   ritual_ano: number | null;
@@ -65,6 +77,27 @@ export type Evento = {
 };
 
 export type SituacaoCandidatura = "confirmada" | "espera" | "cancelada" | "removida";
+
+export type SituacaoInscricao = "confirmada" | "espera" | "cancelada";
+export type SituacaoPagamento = "pendente" | "informado" | "pago" | "isento";
+
+/** Inscrição de um participante (público geral) num evento. */
+export type Inscricao = {
+  $id: string;
+  evento_id: string;
+  usuario_id: string;
+  situacao: SituacaoInscricao;
+  ordem: number;
+  pagamento: SituacaoPagamento;
+  valor: number | null;
+  informado_em: string | null;
+  pago_em: string | null;
+  comprovante_file_id: string | null;
+  observacao: string | null;
+  alterado_por: string | null;
+  $createdAt: string;
+  $updatedAt: string;
+};
 
 /** Candidatura de um guardião a uma vaga de um evento. A ordem de chegada é o campo `ordem`. */
 export type Candidatura = {
@@ -98,4 +131,5 @@ export type DadosInstituto = {
   redes: Rede[];
   pix: ChavePix[];
   tipos: TipoEvento[];
+  tags: TagEvento[];
 };

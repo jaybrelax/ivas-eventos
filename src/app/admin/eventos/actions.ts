@@ -9,7 +9,7 @@ import { z } from "zod";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigir, pode } from "@/lib/auth";
 import { BUCKET_ID, DB_ID, PODE, TABLES } from "@/lib/config";
-import { getEvento, listarTipos } from "@/lib/data";
+import { getEvento, listarTags, listarTipos } from "@/lib/data";
 import { conferirImagem } from "@/lib/imagem";
 import { listarEquipe } from "@/lib/usuarios";
 import type { Pessoa } from "@/lib/types";
@@ -45,7 +45,7 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
   if (usaLivre && !d.endereco_livre) return { erro: "Digite o endereço" };
   if (!usaLivre && !d.endereco_id) return { erro: "Escolha o endereço" };
 
-  const [tipos, equipe] = await Promise.all([listarTipos(), listarEquipe()]);
+  const [tipos, equipe, todasTags] = await Promise.all([listarTipos(), listarEquipe(), listarTags()]);
   const tipo = tipos.find((t) => t.$id === d.tipo_id);
   if (!tipo) return { erro: "Tipo de evento não encontrado" };
   // Só aceita usuários que existem e têm a função certa nos rituais.
@@ -60,14 +60,27 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     return Number.isInteger(n) && n >= 0 && n <= 50 ? n : VAGAS_PADRAO;
   };
   const guarnicao = form.has("vagas_guardioes")
-    ? { vagas_guardioes: vagas("vagas_guardioes"), vagas_guardias: vagas("vagas_guardias"), candidaturas_abertas: form.get("candidaturas_abertas") === "on" }
+    ? { vagas_guardioes: vagas("vagas_guardioes"), vagas_guardias: vagas("vagas_guardias") }
     : {};
+  // Participantes: campos só vêm no formulário de tipos abertos ao público (e não fechados para guardiões).
+  const aceitaParticipantes = tipo.aberto_publico && !tipo.fechado_guardioes;
+  const participantes = aceitaParticipantes
+    ? { vagas_participantes: Math.min(1000, Math.max(0, Math.trunc(Number(form.get("vagas_participantes"))) || 30)) }
+    : {};
+  // "Aceitar candidaturas/inscrições" é um campo só, usado tanto pela guarnição quanto pelos participantes;
+  // só é lido quando algum dos dois blocos (que o exibem) estava presente no formulário.
+  const mostrouToggleAbertas = tipo.conta_como_ritual || aceitaParticipantes;
+  const toggleAbertas = mostrouToggleAbertas ? { candidaturas_abertas: form.get("candidaturas_abertas") === "on" } : {};
   const dados = {
     ...guarnicao,
+    ...participantes,
+    ...toggleAbertas,
     titulo: d.titulo,
     data: d.data,
     hora_inicio: d.hora_inicio,
     tipo_id: d.tipo_id,
+    // Só tags que existem (sem repetir), na ordem em que foram cadastradas
+    tags: todasTags.filter((t) => form.getAll("tags").map(String).includes(t.$id)).map((t) => t.$id),
     destaque: form.get("destaque") === "on",
     descricao: d.descricao || null,
     endereco_id: usaLivre ? null : d.endereco_id!,

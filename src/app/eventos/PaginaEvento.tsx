@@ -1,9 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Clock, Flame, Info, MapPin, Navigation, Star } from "lucide-react";
-import { getDadosInstituto, listarEventos } from "@/lib/data";
+import { descricaoComTags, getDadosInstituto, listarEventos } from "@/lib/data";
 import { urlPublicaEvento } from "@/lib/links";
 import { listarEquipe } from "@/lib/usuarios";
+import { getUsuario } from "@/lib/auth";
+import {
+  aceitaParticipantes, HORAS_LIMITE_CANCELAMENTO, inicioDe, inscricoesDoEvento,
+  prazoCancelamento, vagasParticipantesDe,
+} from "@/lib/inscricoes";
 import { dataPorExtenso, hoje, partesData } from "@/lib/format";
 import type { Evento, Pessoa } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
@@ -31,14 +36,14 @@ function resumo(texto: string, max = 160) {
 /** Título, descrição, imagem (JPEG) e endereço para compartilhar no WhatsApp e redes. */
 export async function metadadosEvento(evento: Evento | null): Promise<Metadata> {
   if (!evento) return { title: "Evento não encontrado — Instituto IVAS" };
-  const { tipos, instituto } = await getDadosInstituto();
+  const { tipos, tags, instituto } = await getDadosInstituto();
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const site = instituto.nome || "Instituto IVAS";
 
   const d = partesData(evento.data);
   const semana = d.diaSemana.charAt(0).toUpperCase() + d.diaSemana.slice(1);
   const quando = `${semana}, ${d.dia} de ${d.mesNome} de ${d.ano} às ${evento.hora_inicio}`;
-  const texto = evento.descricao?.trim() || tipo?.descricao?.trim();
+  const texto = descricaoComTags(evento.descricao, evento.tags, tags) || tipo?.descricao?.trim();
   const desc = texto ? resumo(`${quando} · ${texto}`) : `${quando} · ${tipo?.nome ?? "Encontro"} no ${site}.`;
 
   const titulo = `${evento.titulo} — ${instituto.nome_curto || "IVAS"}`;
@@ -92,10 +97,12 @@ function TituloSecao({ sobre, titulo, icone: Icone }: { sobre: string; titulo: s
 
 /** Página pública de um evento. Usada por /ritual/[numero] e /evento/[id]. */
 export async function PaginaEvento({ evento }: { evento: Evento }) {
-  const [{ tipos, enderecos, telefones, redes, pix, instituto }, equipe] = await Promise.all([getDadosInstituto(), listarEquipe()]);
+  const [{ tipos, tags, enderecos, telefones, redes, pix, instituto }, equipe] = await Promise.all([getDadosInstituto(), listarEquipe()]);
 
   const hj = hoje();
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
+  // Descrição do evento + o texto de cada tag aplicada (a tag complementa mesmo quando já há descrição)
+  const descricaoFinal = descricaoComTags(evento.descricao, evento.tags, tags);
   const end = enderecos.find((e) => e.$id === evento.endereco_id);
   const sit = situacao(evento.data, hj);
   const ritual = !!tipo?.conta_como_ritual;
@@ -112,7 +119,42 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
   const capa = evento.capa_file_id ? `/api/arquivo/${evento.capa_file_id}` : null;
   const local = end ? end.apelido : evento.endereco_livre || "Londrina - PR";
   const endereco = end ? [end.endereco, end.cidade].filter(Boolean).join(" — ") : null;
+  // Inscrição de participantes (público geral): vagas, se o próprio usuário já está inscrito, se pode cancelar
+  const usuario = await getUsuario();
+  const aceitaPublico = aceitaParticipantes(tipo);
+  const inscricoesAtivas = aceitaPublico ? await inscricoesDoEvento(evento.$id) : [];
+  const vagas = vagasParticipantesDe(evento);
+  const confirmadas = inscricoesAtivas.filter((i) => i.situacao === "confirmada").length;
+  const vagasLivres = Math.max(0, vagas - confirmadas);
+  const minhaRaw = usuario ? inscricoesAtivas.find((i) => i.usuario_id === usuario.id) : undefined;
+  const filaEspera = inscricoesAtivas.filter((i) => i.situacao === "espera");
+  const minhaInscricao = minhaRaw
+    ? {
+        id: minhaRaw.$id,
+        situacao: minhaRaw.situacao as "confirmada" | "espera",
+        pagamento: minhaRaw.pagamento,
+        posicaoEspera: minhaRaw.situacao === "espera" ? filaEspera.findIndex((i) => i.$id === minhaRaw.$id) + 1 : null,
+      }
+    : null;
+  const jaComecou = inicioDe(evento).getTime() <= Date.now();
+  const podeInscrever = aceitaPublico && evento.candidaturas_abertas !== false && !jaComecou;
+  const motivoBloqueio = !aceitaPublico
+    ? "Este evento não está aberto para inscrição pública. Fale com a coordenação."
+    : jaComecou
+      ? "Este evento já começou."
+      : evento.candidaturas_abertas === false
+        ? "As inscrições deste evento estão fechadas."
+        : null;
+  const prazo = prazoCancelamento(evento);
+  const podeCancelar = Date.now() <= prazo.getTime();
+  const prazoTexto = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+    .format(prazo)
+    .replace(",", " às");
+  void HORAS_LIMITE_CANCELAMENTO;
+
+  const urlAtual = urlPublicaEvento(evento, tipo);
   const participar = {
+    eventoId: evento.$id,
     ehRitual: ritual,
     chavePix: ritual ? (pix.find((c) => c.padrao) ?? pix[0] ?? null) : null,
     tituloEvento: evento.titulo,
@@ -120,8 +162,18 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
     horaEvento: evento.hora_inicio,
     localEvento: end ? `${end.apelido} — ${end.endereco}` : evento.endereco_livre,
     telefoneWhatsapp: telWhatsapp?.numero,
+    logado: !!usuario,
+    urlAtual,
+    podeInscrever,
+    motivoBloqueio,
+    vagasLivres,
+    minhaInscricao,
+    podeCancelar,
+    prazoTexto,
+    valorContribuicao: instituto.valor_contribuicao,
   };
   const temContribuicao = ritual && !!instituto.info_contribuicao?.trim();
+
 
   return (
     <div className="min-h-screen bg-fundo text-stone-900 selection:bg-ouro-200 selection:text-mata-950">
@@ -241,8 +293,8 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
               {!ritual && tipo?.descricao?.trim() && (
                 <div className="mb-5 max-w-[68ch] text-[16px] leading-[1.8] whitespace-pre-line text-stone-700 sm:text-[17px]">{tipo.descricao}</div>
               )}
-              {evento.descricao ? (
-                <div className="max-w-[68ch] text-[16px] leading-[1.8] whitespace-pre-line text-stone-700 sm:text-[17px]">{evento.descricao}</div>
+              {descricaoFinal ? (
+                <div className="max-w-[68ch] text-[16px] leading-[1.8] whitespace-pre-line text-stone-700 sm:text-[17px]">{descricaoFinal}</div>
               ) : (
                 (ritual || !tipo?.descricao?.trim()) && (
                   <p className="text-[15px] text-stone-500 italic">Informações e temática específica serão compartilhadas pela coordenação do Instituto.</p>

@@ -13,11 +13,15 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
-import { getDadosInstituto, listarEventos } from "@/lib/data";
+import { descricaoComTags, getDadosInstituto, listarEventos } from "@/lib/data";
 import { dataCurta, hoje, partesData } from "@/lib/format";
-import { BadgeDestaque, BadgeRitual, BadgeTipo } from "@/components/Titulo";
+import { IconeTipo } from "@/components/IconeTipo";
 import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
 import { RodapePublico } from "@/components/publico/RodapePublico";
+import { Paginacao } from "@/components/publico/Paginacao";
+
+/** Quantos eventos aparecem por página na agenda. */
+const POR_PAGINA = 12;
 
 export async function generateMetadata(): Promise<Metadata> {
   const { instituto } = await getDadosInstituto();
@@ -42,14 +46,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 type Props = {
-  searchParams: Promise<{ tipo?: string }>;
+  searchParams: Promise<{ tipo?: string; pagina?: string }>;
 };
 
 export default async function AgendaPublica({ searchParams }: Props) {
   const sp = await searchParams;
   const tipoFiltro = sp.tipo;
 
-  const [{ tipos, enderecos, telefones, redes, instituto }, eventosFuturos] = await Promise.all([
+  const [{ tipos, tags, enderecos, telefones, redes, instituto }, eventosFuturos] = await Promise.all([
     getDadosInstituto(),
     listarEventos({ inicio: hoje() }),
   ]);
@@ -60,6 +64,18 @@ export default async function AgendaPublica({ searchParams }: Props) {
   const eventosFiltrados = tipoFiltro
     ? eventosFuturos.filter((e) => e.tipo_id === tipoFiltro)
     : eventosFuturos;
+
+  // Paginação: 12 por página; página fora do intervalo cai na mais próxima
+  const totalPaginas = Math.max(1, Math.ceil(eventosFiltrados.length / POR_PAGINA));
+  const pagina = Math.min(totalPaginas, Math.max(1, Math.trunc(Number(sp.pagina)) || 1));
+  const eventosDaPagina = eventosFiltrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+  const hrefPagina = (n: number) => {
+    const q = new URLSearchParams();
+    if (tipoFiltro) q.set("tipo", tipoFiltro);
+    if (n > 1) q.set("pagina", String(n));
+    const texto = q.toString();
+    return texto ? `/eventos?${texto}` : "/eventos";
+  };
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900 selection:bg-ouro-200 selection:text-mata-950">
@@ -134,16 +150,17 @@ export default async function AgendaPublica({ searchParams }: Props) {
           </div>
         ) : (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {eventosFiltrados.map((e) => {
+            {eventosDaPagina.map((e) => {
               const tipo = tipoPorId.get(e.tipo_id);
               const end = endPorId.get(e.endereco_id ?? "");
               const d = partesData(e.data);
+              const descricao = descricaoComTags(e.descricao, e.tags, tags);
 
               return (
                 <Link
                   key={e.$id}
                   href={urlPublicaEvento(e, tipo)}
-                  className="group flex flex-col overflow-hidden rounded-3xl border border-stone-200/90 bg-white shadow-cartao transition-all duration-300 hover:-translate-y-1.5 hover:border-ouro-300 hover:shadow-elevado"
+                  className={`group flex flex-col overflow-hidden rounded-3xl border bg-white shadow-cartao ${e.destaque ? "border-ouro-300/70" : "border-stone-200/90"} transition-all duration-300 hover:-translate-y-1.5 hover:border-ouro-300 hover:shadow-elevado`}
                 >
                   {/* Capa com proporção destacada */}
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-mata-950">
@@ -162,20 +179,42 @@ export default async function AgendaPublica({ searchParams }: Props) {
                       </div>
                     )}
 
-                    {/* Badges sobre a capa */}
-                    <div className="absolute top-3.5 left-3.5 flex flex-wrap gap-1.5">
-                      {tipo && <BadgeTipo nome={tipo.nome} cor={tipo.cor} icone={tipo.icone} />}
-                    </div>
+                    {/* Sombra suave embaixo para o tipo do evento ficar legível sobre qualquer capa */}
+                    <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/55 via-black/15 to-transparent" />
 
+                    {/* Data em vidro fosco, sem contorno: dia, mês (3 letras) e ano, no canto superior esquerdo */}
+                    <time
+                      dateTime={e.data}
+                      className="absolute top-3.5 left-3.5 flex min-w-[3.4rem] flex-col items-center overflow-hidden rounded-[0.4rem] rounded-tl-[1.15rem] bg-gradient-to-b from-white/30 via-white/15 to-black/20 px-3 py-2 text-center text-white shadow-[0_12px_32px_-8px_rgb(0_0_0/0.5)] backdrop-blur-md backdrop-saturate-[1.8]"
+                    >
+                      {/* Reflexo de luz suave no topo */}
+                      <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent" />
+                      <span className="relative font-sans text-[1.85rem] leading-[0.95] font-extrabold tracking-tight tabular-nums [text-shadow:0_2px_12px_rgb(0_0_0/0.55)]">{d.dia}</span>
+                      <span className="relative mt-0.5 text-[0.7rem] leading-none font-bold tracking-[0.24em] [text-shadow:0_1px_6px_rgb(0_0_0/0.55)]">{d.mesCurto}</span>
+                      <span className="relative mt-0.5 text-[0.6rem] leading-none font-medium tracking-[0.16em] text-white/75 tabular-nums [text-shadow:0_1px_4px_rgb(0_0_0/0.5)]">{d.ano}</span>
+                    </time>
+
+                    {/* Tipo do evento, no canto inferior esquerdo */}
+                    {tipo && (
+                      <span className="absolute bottom-3.5 left-3.5 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/35 ring-inset backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_2px_rgb(0_0_0/0.35)]">
+                        <IconeTipo nome={tipo.icone} size={13} strokeWidth={2.4} className="drop-shadow-[0_1px_1px_rgb(0_0_0/0.3)]" />
+                        {tipo.nome}
+                      </span>
+                    )}
+
+                    {/* Destaque: marcador de página pendurado no topo da capa */}
                     {e.destaque && (
-                      <div className="absolute top-3.5 right-3.5">
-                        <BadgeDestaque />
-                      </div>
+                      <span
+                        title="Evento em destaque"
+                        className="absolute top-0 right-5 flex h-[3.4rem] w-9 items-start justify-center bg-gradient-to-b from-ouro-300 via-ouro-400 to-ouro-600 pt-2.5 text-mata-950 shadow-[0_6px_14px_-4px_rgb(0_0_0/0.55)] [clip-path:polygon(0_0,100%_0,100%_100%,50%_78%,0_100%)]"
+                      >
+                        <Star size={15} className="fill-mata-950" aria-label="Destaque" />
+                      </span>
                     )}
                   </div>
 
                   {/* Conteúdo */}
-                  <div className="flex flex-1 flex-col justify-between p-6">
+                  <div className={`flex flex-1 flex-col justify-between p-6 ${e.destaque ? "bg-gradient-to-b from-ouro-50/90 via-white to-white" : ""}`}>
                     <div>
                       {/* Data e Hora */}
                       <div className="mb-2.5 flex items-center gap-2 text-xs font-semibold text-mata-700">
@@ -192,22 +231,23 @@ export default async function AgendaPublica({ searchParams }: Props) {
                       </h3>
 
                       {/* Descrição resumida */}
-                      {e.descricao && (
+                      {descricao && (
                         <p className="mt-2.5 line-clamp-3 text-xs leading-relaxed text-stone-600">
-                          {e.descricao.replace(/\r?\n+/g, " ")}
+                          {descricao.replace(/\r?\n+/g, " ")}
                         </p>
                       )}
                     </div>
 
                     {/* Rodapé do Card com Local e Botão */}
                     <div className="mt-6 flex items-center justify-between border-t border-stone-100 pt-4 text-xs">
-                      <span className="inline-flex items-center gap-1.5 text-stone-500 truncate max-w-[55%]">
-                        <MapPin size={13} className="shrink-0 text-stone-400" />
+                      <span className="inline-flex items-center gap-1.5 text-stone-500 min-w-0 truncate">
+                        <MapPin size={14} className="shrink-0 fill-current text-[#ee4b2b]" />
                         <span className="truncate">{end ? end.apelido : e.endereco_livre || "Londrina - PR"}</span>
                       </span>
 
-                      <span className="inline-flex items-center gap-1.5 font-bold text-ouro-700 transition group-hover:translate-x-0.5">
-                        Ver Encontro <ArrowRight size={13} />
+                      {/* Botão sutil: contorno fino que ganha cor quando o cartão recebe o mouse */}
+                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-50/70 px-3 py-1.5 font-semibold text-stone-700 transition group-hover:border-ouro-300 group-hover:bg-ouro-50 group-hover:text-ouro-800">
+                        Mais informações <ArrowRight size={13} className="transition group-hover:translate-x-0.5" />
                       </span>
                     </div>
                   </div>
@@ -216,6 +256,8 @@ export default async function AgendaPublica({ searchParams }: Props) {
             })}
           </div>
         )}
+
+        <Paginacao atual={pagina} total={totalPaginas} href={hrefPagina} />
       </main>
 
       <RodapePublico

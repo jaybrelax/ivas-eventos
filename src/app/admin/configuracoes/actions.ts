@@ -5,10 +5,11 @@ import { ID, Query } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
+import { ehUf } from "@/lib/perfil-extra";
 import { BUCKET_ID, DB_ID, IA_ROW_ID, INSTITUTO_ROW_ID, TABLES } from "@/lib/config";
 import { getConfigIA } from "@/lib/ia";
 import { FONTES_TEXTO, FONTES_TITULO, fonteValida } from "@/lib/tipografia";
-import { getInstituto, listarTipos } from "@/lib/data";
+import { getInstituto, listarTags, listarTipos } from "@/lib/data";
 import { slugify } from "@/lib/format";
 import { conferirImagem } from "@/lib/imagem";
 import { CAMPOS, type Campo, type TabelaEditavel } from "./campos";
@@ -32,6 +33,14 @@ export async function salvarInstituto(_: Resultado, form: FormData): Promise<Res
     fonte_texto: texto("fonte_texto", 60) || atual.fonte_texto,
     ritual_numero_inicial: Math.max(1, Number(form.get("ritual_numero_inicial")) || atual.ritual_numero_inicial),
   };
+  // Estado e cidade padrão dos cadastros (a cidade só vale junto com um estado válido)
+  if (form.has("estado")) {
+    const uf = texto("estado", 2);
+    dados.estado = ehUf(uf) ? uf : null;
+    // Lista de cidades ainda carregando (campo desabilitado não é enviado): mantém a cidade salva.
+    const cidadeAnterior = uf === atual.estado ? atual.cidade : null;
+    dados.cidade = dados.estado ? (form.has("cidade") ? texto("cidade", 100) || null : cidadeAnterior) : null;
+  }
 
   for (const nome of ["logo", "logo_escura"]) {
     const arquivo = form.get(nome);
@@ -110,10 +119,12 @@ export async function salvarInformacoes(_: Resultado, form: FormData): Promise<R
   await exigir(["admin"]);
   const { tablesDB } = createAdminClient();
   const texto = (k: string) => String(form.get(k) ?? "").trim().slice(0, 5000) || null;
+  const valorBruto = String(form.get("valor_contribuicao") ?? "").replace(",", ".").trim();
+  const valor = valorBruto && Number.isFinite(Number(valorBruto)) && Number(valorBruto) >= 0 ? Number(valorBruto) : null;
   try {
     await tablesDB.upsertRow({
       databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID,
-      data: { info_rituais: texto("info_rituais"), info_contribuicao: texto("info_contribuicao") },
+      data: { info_rituais: texto("info_rituais"), info_contribuicao: texto("info_contribuicao"), valor_contribuicao: valor },
     });
   } catch (e) {
     console.error(e);
@@ -151,6 +162,17 @@ export async function salvarItem(tabela: TabelaEditavel, _: Resultado, form: For
     }
   }
 
+  if (tabela === "tags") {
+    // Ícone: nome de um ícone da biblioteca Lucide (letras, números e hífen).
+    if (dados.icone && !/^[a-z0-9-]{1,30}$/.test(String(dados.icone))) dados.icone = null;
+    if (typeof dados.descricao === "string") dados.descricao = dados.descricao.slice(0, 3000);
+    if (!id) {
+      // Sem campo de ordem na tela: a tag nova entra no fim da lista.
+      const ultimas = await listarTags();
+      dados.ordem = Math.max(0, ...ultimas.map((t) => t.ordem ?? 0)) + 1;
+    }
+  }
+
   const { tablesDB } = createAdminClient();
   const tableId = TABLES[tabela];
   try {
@@ -172,6 +194,10 @@ export async function salvarItem(tabela: TabelaEditavel, _: Resultado, form: For
 export async function excluirItem(tabela: TabelaEditavel, id: string): Promise<Resultado> {
   await exigir(["admin"]);
   const { tablesDB } = createAdminClient();
+  if (tabela === "tags") {
+    const usados = await tablesDB.listRows({ databaseId: DB_ID, tableId: TABLES.eventos, queries: [Query.contains("tags", [id]), Query.limit(1)] });
+    if (usados.rows.length) return { erro: "Há eventos com essa tag. Desative-a em vez de excluir." };
+  }
   const campoRef = tabela === "tipos" ? "tipo_id" : tabela === "enderecos" ? "endereco_id" : null;
   if (campoRef) {
     const usados = await tablesDB.listRows({ databaseId: DB_ID, tableId: TABLES.eventos, queries: [Query.equal(campoRef, id), Query.limit(1)] });

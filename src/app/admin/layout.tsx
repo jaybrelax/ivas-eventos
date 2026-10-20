@@ -1,3 +1,4 @@
+import type { Metadata, Viewport } from "next";
 import { exigir, pode } from "@/lib/auth";
 import { PERFIS, PODE } from "@/lib/config";
 import { getInstituto } from "@/lib/data";
@@ -5,6 +6,15 @@ import { MarcaInstituto } from "@/components/Marca";
 import { Menu, type GrupoMenu } from "./Menu";
 import { sair } from "../login/actions";
 import { listarPendentes } from "@/lib/usuarios";
+
+// O painel é um app instalável à parte: manifesto, nome e cor próprios (o site público mantém o dele)
+export const metadata: Metadata = {
+  manifest: "/admin-app.webmanifest",
+  applicationName: "IVAS Painel",
+  appleWebApp: { capable: true, title: "IVAS Painel", statusBarStyle: "black-translucent" },
+  icons: { apple: "/icons/admin-192.png" },
+};
+export const viewport: Viewport = { themeColor: "#1a0b2e" };
 
 export default async function PainelLayout({ children }: LayoutProps<"/">) {
   const [u, instituto] = await Promise.all([exigir(), getInstituto()]);
@@ -16,6 +26,8 @@ export default async function PainelLayout({ children }: LayoutProps<"/">) {
         ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/eventos/novo", rotulo: "Novo evento", icone: "plus" as const }] : []),
         // Gestão da guarnição: só coordenação e admin (o guardião se candidata pela página do evento)
         ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/guarnicao", rotulo: "Guarnição", icone: "shield" as const }] : []),
+        ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/participantes", rotulo: "Participantes", icone: "participantes" as const }] : []),
+        ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/pagamentos", rotulo: "Pagamentos", icone: "receipt" as const }] : []),
         { href: "/admin/resumo", rotulo: "Resumo do ano", icone: "chart" },
       ],
     },

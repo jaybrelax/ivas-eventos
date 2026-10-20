@@ -37,6 +37,8 @@ const i = (key, o = {}) => ["integer", key, o];
 const en = (key, elements, def) => ["enum", key, { elements, xdefault: def }];
 // Lista de IDs (ex.: usuários escalados no evento)
 const ids = (key) => ["varchar", key, { size: 36, array: true }];
+const f = (key, o = {}) => ["float", key, o];
+const dt = (key, o = {}) => ["datetime", key, o];
 
 const TABELAS = {
   instituto: {
@@ -51,6 +53,10 @@ const TABELAS = {
       v("fonte_publica_titulo", 60), v("fonte_publica_texto", 60),
       // Capas com IA (linha própria "ia" da tabela; nunca vai para o navegador)
       v("openai_api_key", 255), t("prompt_imagem"),
+      // Contribuição sugerida aos participantes (um valor só, vale para todos os rituais)
+      f("valor_contribuicao", { min: 0 }),
+      // Estado (sigla) e cidade do Instituto: vêm já escolhidos nos formulários de cadastro
+      v("estado", 2), v("cidade", 100),
     ],
   },
   enderecos: {
@@ -80,16 +86,23 @@ const TABELAS = {
     ],
     indices: [["ux_tipo_slug", "unique", ["slug"]]],
   },
+  // Tags de evento: cada uma traz um texto que complementa a descrição de todos os eventos que a usam
+  tags_evento: {
+    nome: "Tags de evento",
+    colunas: [v("nome", 60, { required: true }), v("cor", 9), v("icone", 30), t("descricao"), b("ativo", true), i("ordem", { xdefault: 0 })],
+  },
   eventos: {
     nome: "Eventos",
     colunas: [
       v("titulo", 80, { required: true }), t("descricao"), v("data", 10, { required: true }), v("hora_inicio", 5, { required: true }),
-      v("endereco_id", 36), v("endereco_livre", 255), v("tipo_id", 36, { required: true }),
+      v("endereco_id", 36), v("endereco_livre", 255), v("tipo_id", 36, { required: true }), ids("tags"),
       b("destaque"), v("capa_file_id", 36), v("cor_capa", 9), b("mostrar_banner", true), ids("mestres"), ids("guardioes"),
       i("ritual_numero_geral", { min: 1 }), i("ritual_ano", { min: 2000 }), i("ritual_numero_ano", { min: 1 }),
       v("criado_por", 36), v("atualizado_por", 36),
       // Guarnição: vagas de guardiões (♂) e guardiãs (♀) e se aceita candidaturas
       i("vagas_guardioes", { xdefault: 2, min: 0, max: 50 }), i("vagas_guardias", { xdefault: 2, min: 0, max: 50 }), b("candidaturas_abertas", true),
+      // Participantes (público geral, separado da guarnição)
+      i("vagas_participantes", { xdefault: 30, min: 0, max: 1000 }),
     ],
     indices: [
       ["ux_ritual_geral", "unique", ["ritual_numero_geral"]],
@@ -113,6 +126,25 @@ const TABELAS = {
       ["ix_cand_usuario", "key", ["usuario_id", "situacao"]],
     ],
   },
+  // Inscrições de participantes (público geral) nos rituais/eventos
+  inscricoes: {
+    nome: "Inscrições de participantes",
+    colunas: [
+      v("evento_id", 36, { required: true }), v("usuario_id", 36, { required: true }),
+      en("situacao", ["confirmada", "espera", "cancelada"], "espera"),
+      i("ordem", { min: 0 }),
+      en("pagamento", ["pendente", "informado", "pago", "isento"], "pendente"),
+      f("valor", { min: 0 }), dt("informado_em"), dt("pago_em"),
+      v("comprovante_file_id", 36), t("observacao"), v("alterado_por", 36),
+    ],
+    indices: [
+      ["ux_inscricao", "unique", ["evento_id", "usuario_id"]],
+      ["ix_insc_evento", "key", ["evento_id", "situacao"]],
+      ["ix_insc_usuario", "key", ["usuario_id", "situacao"]],
+      ["ix_insc_pagamento", "key", ["pagamento"]],
+      ["ix_insc_comprovante", "key", ["comprovante_file_id"]],
+    ],
+  },
   modelos_banner: {
     nome: "Modelos de banner",
     colunas: [v("nome", 80, { required: true }), t("config", { required: true })],
@@ -127,6 +159,8 @@ async function criarColuna(tableId, [tipo, key, o]) {
   if (tipo === "boolean") return db.createBooleanColumn({ ...base, xdefault: def });
   if (tipo === "integer") return db.createIntegerColumn({ ...base, min: o.min, max: o.max, xdefault: def });
   if (tipo === "enum") return db.createEnumColumn({ ...base, elements: o.elements, xdefault: def });
+  if (tipo === "float") return db.createFloatColumn({ ...base, min: o.min, max: o.max, xdefault: def });
+  if (tipo === "datetime") return db.createDatetimeColumn({ ...base, xdefault: def });
   throw new Error("tipo desconhecido " + tipo);
 }
 
@@ -185,6 +219,13 @@ async function main() {
     storage.createBucket({
       bucketId: BUCKET, name: "Mídia", permissions: [], fileSecurity: false,
       maximumFileSize: 10 * 1024 * 1024, allowedFileExtensions: ["png", "jpg", "jpeg", "webp", "svg"],
+    }),
+  );
+
+  await talvez("bucket comprovantes", () =>
+    storage.createBucket({
+      bucketId: "comprovantes", name: "Comprovantes de pagamento", permissions: [], fileSecurity: false,
+      maximumFileSize: 5 * 1024 * 1024, allowedFileExtensions: ["png", "jpg", "jpeg", "webp"],
     }),
   );
 

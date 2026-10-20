@@ -11,6 +11,7 @@ import { TipografiaForm } from "./TipografiaForm";
 import { getConfigIA, mascararChave } from "@/lib/ia";
 import { ListaEditavel } from "./ListaEditavel";
 import { TiposEvento, type TipoItem } from "./TiposEvento";
+import { TagsEvento, type TagItem } from "./TagsEvento";
 
 type Item = Record<string, unknown> & { $id: string };
 const limpo = (rows: object[]) => JSON.parse(JSON.stringify(rows)) as Item[];
@@ -27,7 +28,14 @@ export default async function Configuracoes({ searchParams }: PageProps<"/admin/
   const d = await getDadosInstituto();
   // Quantos eventos usam cada tipo (só na aba de tipos)
   const contagem: Record<string, number> = {};
-  if (atual === "tipos") for (const e of await listarEventos()) contagem[e.tipo_id] = (contagem[e.tipo_id] ?? 0) + 1;
+  // Quantos eventos usam cada tag (também na aba de tipos, que reúne tipos e tags)
+  const contagemTags: Record<string, number> = {};
+  if (atual === "tipos") {
+    for (const e of await listarEventos()) {
+      contagem[e.tipo_id] = (contagem[e.tipo_id] ?? 0) + 1;
+      for (const id of e.tags ?? []) contagemTags[id] = (contagemTags[id] ?? 0) + 1;
+    }
+  }
   const ia = atual === "chaves" ? await getConfigIA() : null;
   const secoes: { id: Secao; rotulo: string; Icone: typeof Building2; n?: number }[] = [
     { id: "instituto", rotulo: "Instituto", Icone: Building2 },
@@ -37,7 +45,7 @@ export default async function Configuracoes({ searchParams }: PageProps<"/admin/
     { id: "telefones", rotulo: "Telefones", Icone: Phone, n: d.telefones.length },
     { id: "redes", rotulo: "Redes sociais", Icone: Share2, n: d.redes.length },
     { id: "pix", rotulo: "Chaves Pix", Icone: CreditCard, n: d.pix.length },
-    { id: "tipos", rotulo: "Tipos de evento", Icone: Tags, n: d.tipos.length },
+    { id: "tipos", rotulo: "Tipos e tags", Icone: Tags, n: d.tipos.length + d.tags.length },
     { id: "chaves", rotulo: "Chaves API", Icone: KeyRound },
   ];
 
@@ -77,7 +85,12 @@ export default async function Configuracoes({ searchParams }: PageProps<"/admin/
           {atual === "redes" && <ListaEditavel tabela="redes" itens={limpo(d.redes)} />}
           {atual === "pix" && <ListaEditavel tabela="pix" itens={limpo(d.pix)} />}
           {atual === "chaves" && ia && <ChavesApiForm chaveMascarada={mascararChave(ia.chave)} prompt={ia.prompt} />}
-          {atual === "tipos" && <TiposEvento itens={limpo(d.tipos) as unknown as TipoItem[]} contagem={contagem} />}
+          {atual === "tipos" && (
+            <div className="space-y-6">
+              <TiposEvento itens={limpo(d.tipos) as unknown as TipoItem[]} contagem={contagem} />
+              <TagsEvento itens={limpo(d.tags) as unknown as TagItem[]} contagem={contagemTags} />
+            </div>
+          )}
         </div>
       </div>
     </>

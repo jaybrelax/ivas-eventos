@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
 import type { Perfil } from "@/lib/config";
-import { BarChart3, CalendarDays, Image as ImageIcon, LogOut, Menu as MenuIcone, Plus, Settings, Shield, Users, X } from "lucide-react";
+import { BarChart3, CalendarDays, Download, Image as ImageIcon, LogOut, Menu as MenuIcone, Plus, Receipt, Settings, Share, Shield, Users, UsersRound, X } from "lucide-react";
+import { useInstalar } from "@/components/useInstalar";
 
-const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users, shield: Shield };
+const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users, shield: Shield, receipt: Receipt, participantes: UsersRound };
 
 export type ItemMenu = { href: string; rotulo: string; icone: keyof typeof ICONES; /** contador ao lado (ex.: cadastros pendentes) */ aviso?: number };
 export type GrupoMenu = { titulo: string; itens: ItemMenu[] };
@@ -22,6 +23,8 @@ type Props = {
 export function Menu({ grupos, marca, usuario, sair }: Props) {
   const path = usePathname();
   const [aberto, setAberto] = useState(false);
+  const [dicaIos, setDicaIos] = useState(false);
+  const inst = useInstalar();
   useEffect(() => setAberto(false), [path]);
   useEffect(() => {
     if (!aberto) return;
@@ -76,6 +79,22 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
       </nav>
 
       <div className="relative p-3">
+        {inst.disponivel && (
+          <div className="mb-2">
+            <button
+              type="button"
+              onClick={() => (inst.nativo ? void inst.instalar() : setDicaIos((v) => !v))}
+              className="flex w-full items-center gap-3 rounded-xl border border-ouro-400/30 bg-ouro-400/10 px-3 py-2.5 text-sm font-medium text-ouro-200 transition hover:bg-ouro-400/20"
+            >
+              <Download size={18} className="text-ouro-400" /> Instalar app do painel
+            </button>
+            {dicaIos && !inst.nativo && (
+              <p className="mt-1.5 px-1 text-xs leading-relaxed text-mata-200/80">
+                Toque em <Share size={12} className="mx-0.5 inline -translate-y-px" aria-label="Compartilhar" /> no Safari e depois em <strong>Adicionar à Tela de Início</strong>.
+              </p>
+            )}
+          </div>
+        )}
         <div className={`flex items-center gap-1 rounded-2xl border p-1.5 transition ${path.startsWith("/admin/perfil") ? "border-ouro-400/40 bg-white/[0.08]" : "border-white/10 bg-white/[0.04]"}`}>
           <Link href="/admin/perfil" className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.06]" title="Meu perfil">
             <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={36} className="ring-white/20" />

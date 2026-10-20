@@ -1,27 +1,35 @@
 "use server";
 
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { ID } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
+import { LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
 import { salvarContato, validarTelefone } from "@/lib/usuarios";
-import type { Funcao, Sexo } from "@/lib/types";
+import type { Sexo } from "@/lib/types";
+import { ehUf } from "@/lib/perfil-extra";
 
-export type ResultadoCadastro = { ok?: boolean; erro?: string } | undefined;
+export type ResultadoCadastro = { erro?: string } | undefined;
+
+/** Só aceita um caminho interno (evita mandar o cadastro para outro site). */
+function destinoSeguro(next: unknown): string | null {
+  const n = String(next ?? "");
+  return n.startsWith("/") && !n.startsWith("//") ? n : null;
+}
 
 /**
- * Cadastro público. A conta nasce bloqueada e sem perfil de acesso: só entra no painel
- * depois que um Admin aprova e define a função e o perfil (Usuários › Cadastros pendentes).
+ * Cadastro público de participante: diferente do cadastro da equipe, a conta já nasce
+ * ativa (sem aprovação) e, ao concluir, a pessoa já entra direto na própria área.
  */
-export async function cadastrar(_: ResultadoCadastro, form: FormData): Promise<ResultadoCadastro> {
+export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData): Promise<ResultadoCadastro> {
   // Campo escondido que só robôs preenchem
-  if (String(form.get("site") ?? "")) return { ok: true };
+  if (String(form.get("site") ?? "")) return undefined;
 
   const nome = String(form.get("nome") ?? "").trim().replace(/\s+/g, " ").slice(0, 128);
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const senha = String(form.get("senha") ?? "");
   const confirmar = String(form.get("confirmar") ?? "");
   const sexo = String(form.get("sexo") ?? "") as Sexo;
-  const f = String(form.get("funcao") ?? "");
-  const funcao: Funcao | null = f === "mestre" || f === "guardiao" ? f : null;
 
   if (nome.split(" ").length < 2) return { erro: "Informe nome e sobrenome." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { erro: "Informe um e-mail válido." };
@@ -31,29 +39,37 @@ export async function cadastrar(_: ResultadoCadastro, form: FormData): Promise<R
   const tel = validarTelefone(String(form.get("telefone") ?? ""));
   if ("erro" in tel) return { erro: tel.erro };
   if (!tel.valor) return { erro: "Informe o telefone (WhatsApp)." };
-  const endereco = String(form.get("endereco") ?? "").trim().replace(/\s+/g, " ").slice(0, 255);
-  if (endereco.length < 8) return { erro: "Informe o endereço completo (rua, número, bairro e cidade)." };
+  if (!ehUf(String(form.get("estado") ?? ""))) return { erro: "Escolha o estado." };
+  if (!String(form.get("cidade") ?? "").trim()) return { erro: "Escolha a cidade." };
+  // Endereço, CPF e data de nascimento são opcionais aqui: dá para completar depois em "Meus dados".
 
-  const { users } = createAdminClient();
+  const { account, users } = createAdminClient();
   let userId: string | null = null;
   try {
     const u = await users.create({ userId: ID.unique(), email, password: senha, name: nome });
     userId = u.$id;
-    await users.updateStatus({ userId, status: false });
-    await users.updatePrefs({ userId, prefs: { telefone: tel.valor, sexo, endereco, situacao: "pendente", funcao_solicitada: funcao, funcao_ritual: "nenhuma" } });
-    // Foto de perfil (opcional): mesmo envio usado no painel, já reduzida no navegador
+    await users.updateLabels({ userId, labels: [LABEL_PARTICIPANTE] });
+    await users.updatePrefs({ userId, prefs: { funcao_ritual: "nenhuma" } });
     const r = await salvarContato(userId, form);
     if (r.erro) {
       await users.delete({ userId }).catch(() => {});
       return { erro: r.erro };
     }
+    // Conta já ativa: entra direto, sem precisar logar de novo.
+    const sessao = await account.createEmailPasswordSession({ email, password: senha });
+    (await cookies()).set(SESSION_COOKIE, sessao.secret, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      expires: new Date(sessao.expire),
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
-    if (msg.includes("already")) return { erro: "Já existe um cadastro com esse e-mail. Se ainda não foi aprovado, aguarde o contato da coordenação." };
-    // Não deixa uma conta pela metade (desbloqueada ou sem a marca de pendente)
+    if (msg.includes("already")) return { erro: "Já existe um cadastro com esse e-mail. Esqueceu a senha? Fale com a coordenação." };
     if (userId) await users.delete({ userId }).catch(() => {});
-    console.error("Cadastro:", msg);
+    console.error("Cadastro de participante:", msg);
     return { erro: "Não foi possível concluir o cadastro agora. Tente de novo em instantes." };
   }
-  return { ok: true };
+  redirect(destinoSeguro(form.get("next")) ?? "/minha-conta");
 }

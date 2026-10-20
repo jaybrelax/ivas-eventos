@@ -5,7 +5,7 @@ import { ArrowLeft, CalendarDays, Clock, Copy, ExternalLink, Image as ImageIcon,
 import type { Pessoa } from "@/lib/types";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
-import { getDadosInstituto, getEvento } from "@/lib/data";
+import { descricaoComTags, getDadosInstituto, getEvento } from "@/lib/data";
 import { listarEquipe } from "@/lib/usuarios";
 import { getConfigIA } from "@/lib/ia";
 import { dataPorExtenso, formatarIdRitual } from "@/lib/format";
@@ -16,6 +16,8 @@ import { EventoForm } from "../EventoForm";
 import { Guarnicao } from "../Guarnicao";
 import { dadosGuarnicao } from "../guarnicao-dados";
 import { temGuarnicao } from "@/lib/guarnicao";
+import { Participantes } from "../Participantes";
+import { dadosParticipantes } from "../participantes-dados";
 import { excluirEvento } from "../actions";
 
 // A geração de imagem por IA roda numa Server Action desta página e pode levar mais de um minuto
@@ -24,11 +26,12 @@ export const maxDuration = 180;
 export default async function EditarEvento({ params }: PageProps<"/admin/eventos/[id]">) {
   const u = await exigir();
   const { id } = await params;
-  const [evento, { tipos, enderecos, instituto }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
+  const [evento, { tipos, tags, enderecos, instituto }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
   if (!evento) notFound();
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const idRitual = formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano);
   const guarnicao = temGuarnicao(tipo) ? await dadosGuarnicao(evento, u, pode(u, PODE.editarEventos)) : null;
+  const participantes = await dadosParticipantes(evento, tipo, instituto.valor_contribuicao, pode(u, PODE.editarEventos));
   const voltar = (
     <Link href={`/admin/eventos?mes=${evento.data.slice(0, 7)}`} className="inline-flex items-center gap-1.5 hover:text-ouro-700">
       <ArrowLeft size={13} /> Agenda
@@ -81,11 +84,12 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
               ))}
             </dl>
             <EquipeDoEvento equipe={equipe} mestres={evento.mestres ?? []} />
-            {evento.descricao && <p className="text-[15px] leading-relaxed whitespace-pre-line text-stone-700">{evento.descricao}</p>}
+            {descricaoComTags(evento.descricao, evento.tags, tags) && <p className="text-[15px] leading-relaxed whitespace-pre-line text-stone-700">{descricaoComTags(evento.descricao, evento.tags, tags)}</p>}
             {tipo?.conta_como_ritual && <InfoRitual instituto={instituto} />}
           </div>
         </article>
         {guarnicao && <div className="mt-6 max-w-3xl"><Guarnicao dados={guarnicao} /></div>}
+        {participantes && <div className="mt-6 max-w-3xl"><Participantes dados={participantes} /></div>}
       </>
     );
   }
@@ -108,6 +112,7 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
       <EventoForm
         evento={evento}
         tipos={tipos}
+        tags={tags}
         enderecos={enderecos}
         equipe={equipe}
         podeNumerar={pode(u, PODE.editarNumeracao)}
@@ -115,6 +120,7 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
         podeConfigurar={pode(u, PODE.configurar)}
         iaPronta={!!(await getConfigIA()).chave}
         guarnicao={guarnicao && <Guarnicao dados={guarnicao} embutido />}
+        participantes={participantes && <Participantes dados={participantes} />}
       />
       {u.perfil === "admin" && (
         <form action={excluirEvento} className="xl:mr-[23.5rem]">

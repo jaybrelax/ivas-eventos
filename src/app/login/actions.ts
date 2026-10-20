@@ -5,14 +5,22 @@ import { redirect } from "next/navigation";
 import { AppwriteException, Query } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "@/lib/appwrite";
 import { SESSION_COOKIE } from "@/lib/config";
+import { perfilDosLabels } from "@/lib/usuarios";
+
+/** Só aceita um caminho interno (evita mandar o login para outro site). */
+function destinoSeguro(next: unknown): string | null {
+  const n = String(next ?? "");
+  return n.startsWith("/") && !n.startsWith("//") ? n : null;
+}
 
 export async function entrar(_: { erro?: string } | undefined, form: FormData) {
   const email = String(form.get("email") ?? "").trim();
   const senha = String(form.get("senha") ?? "");
   if (!email || !senha) return { erro: "Informe e-mail e senha." };
 
+  let destino: string;
   try {
-    const { account } = createAdminClient();
+    const { account, users } = createAdminClient();
     const sessao = await account.createEmailPasswordSession({ email, password: senha });
     (await cookies()).set(SESSION_COOKIE, sessao.secret, {
       httpOnly: true,
@@ -21,6 +29,10 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
       path: "/",
       expires: new Date(sessao.expire),
     });
+    // Equipe (admin/coordenador/normal) entra no painel; qualquer outra conta vai para a área do participante.
+    const conta = await users.get({ userId: sessao.userId });
+    const perfil = perfilDosLabels(conta.labels);
+    destino = destinoSeguro(form.get("next")) ?? (perfil ? "/admin/eventos" : "/minha-conta");
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     if (msg.includes("fetch failed") || msg.includes("ECONNREFUSED"))
@@ -35,7 +47,7 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
     }
     return { erro: "E-mail ou senha incorretos." };
   }
-  redirect("/admin/eventos");
+  redirect(destino);
 }
 
 export async function sair() {

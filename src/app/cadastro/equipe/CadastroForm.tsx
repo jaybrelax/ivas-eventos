@@ -8,8 +8,11 @@ import { Aviso, Carregando } from "@/components/ui";
 import { CampoGenero } from "@/components/CampoGenero";
 import { InputTelefone } from "@/components/InputTelefone";
 import { CampoFoto } from "@/components/CampoFoto";
+import { CampoEstadoCidade } from "@/components/CampoEstadoCidade";
+import { CamposSobreVoce } from "@/components/CamposSobreVoce";
 
-export function CadastroForm({ funcao }: { funcao: "mestre" | "guardiao" | null }) {
+/** `estadoPadrao`/`cidadePadrao`: os do Instituto (Configurações), já escolhidos no formulário. */
+export function CadastroForm({ funcao, estadoPadrao, cidadePadrao }: { funcao: "mestre" | "guardiao" | null; estadoPadrao?: string | null; cidadePadrao?: string | null }) {
   const [estado, acao, pendente] = useActionState(cadastrar, undefined);
   const [nome, setNome] = useState("");
 
@@ -59,7 +62,9 @@ export function CadastroForm({ funcao }: { funcao: "mestre" | "guardiao" | null 
         <label className="rotulo" htmlFor="endereco">Endereço</label>
         <input id="endereco" name="endereco" required minLength={8} maxLength={255} autoComplete="street-address" className="campo h-11" placeholder="Rua, número, bairro e cidade" />
       </div>
+      <CampoEstadoCidade id="cad" obrigatorio estadoInicial={estadoPadrao} cidadeInicial={cidadePadrao} />
       <CampoGenero id="cad-sexo" />
+      <CamposSobreVoce id="cad" />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="rotulo" htmlFor="senha">Senha</label>
@@ -75,6 +80,9 @@ export function CadastroForm({ funcao }: { funcao: "mestre" | "guardiao" | null 
       </button>
       <p className="text-center text-sm text-stone-500">
         Já tem acesso? <Link href="/login" className="font-medium text-mata-700 hover:underline">Entrar</Link>
+      </p>
+      <p className="text-center text-xs text-stone-400">
+        Só vai participar dos rituais? <Link href="/cadastro" className="font-medium text-stone-600 hover:underline">Cadastro de participante</Link>
       </p>
     </form>
   );

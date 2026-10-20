@@ -3,8 +3,10 @@ import { cache } from "react";
 import { ID, Query } from "node-appwrite";
 import { InputFile } from "node-appwrite/file";
 import { createAdminClient } from "./appwrite";
-import { BUCKET_ID, type Perfil } from "./config";
+import { BUCKET_ID, LABEL_PARTICIPANTE, type Perfil } from "./config";
 import { conferirImagem } from "./imagem";
+import { validarCpf } from "./cpf";
+import { ehExperiencia, ehUf, LIMITE_TEXTO_LONGO, type Experiencia } from "./perfil-extra";
 import type { Funcao, Pessoa, Sexo } from "./types";
 
 /** Função do usuário (Mestre, Guardião ou nenhuma), independente do perfil de acesso (um Admin pode ser Mestre). */
@@ -15,10 +17,22 @@ export type PrefsUsuario = {
   telefone?: string | null; foto_file_id?: string | null; funcao_ritual?: FuncaoRitual | null; sexo?: Sexo | null;
   /** Cadastro feito pela página pública, aguardando um Admin aprovar. */
   situacao?: "pendente" | null;
-  /** Função que a pessoa indicou ao se cadastrar (vem do link: /cadastro?funcao=guardiao). */
+  /** Função que a pessoa indicou ao se cadastrar (vem do link: /cadastro/equipe?funcao=guardiao). */
   funcao_solicitada?: Funcao | null;
-  /** Endereço informado no cadastro. */
+  /** Endereço informado no cadastro ou preenchido depois em "Meus dados". */
   endereco?: string | null;
+  /** CPF (opcional, preenchido depois em "Meus dados"), só dígitos. */
+  cpf?: string | null;
+  /** Data de nascimento (opcional, preenchido depois em "Meus dados"), AAAA-MM-DD. */
+  data_nascimento?: string | null;
+  /** Localização (sigla do estado e nome da cidade, como no IBGE) e profissão. */
+  estado?: string | null;
+  cidade?: string | null;
+  profissao?: string | null;
+  /** O que a pessoa conta sobre a caminhada com a medicina. */
+  experiencia_ayahuasca?: Experiencia | null;
+  motivacao?: string | null;
+  expectativas?: string | null;
 };
 
 const FUNCOES: FuncaoRitual[] = ["mestre", "guardiao", "nenhuma"];
@@ -35,11 +49,25 @@ export function prefsDe(prefs: unknown) {
     foto_file_id: p.foto_file_id || null,
     funcao_ritual: funcao,
     sexo: p.sexo && SEXOS.includes(p.sexo) ? p.sexo : null,
+    endereco: p.endereco || null,
+    cpf: p.cpf || null,
+    data_nascimento: p.data_nascimento || null,
+    estado: p.estado || null,
+    cidade: p.cidade || null,
+    profissao: p.profissao || null,
+    experiencia_ayahuasca: p.experiencia_ayahuasca && ehExperiencia(p.experiencia_ayahuasca) ? p.experiencia_ayahuasca : null,
+    motivacao: p.motivacao || null,
+    expectativas: p.expectativas || null,
   };
 }
 
 export function perfilDosLabels(labels: string[] = []): Perfil | null {
   return (["admin", "coordenador", "normal"] as const).find((p) => labels.includes(p)) ?? null;
+}
+
+/** Conta de participante (cadastro público, sem acesso ao painel). */
+export function ehParticipante(labels: string[] = []): boolean {
+  return labels.includes(LABEL_PARTICIPANTE);
 }
 
 /** Usuários que podem ser escalados: mestres e guardiões ativos, em ordem de nome. */
@@ -79,6 +107,40 @@ export const listarPendentes = cache(async (): Promise<Pendente[]> => {
     const p = prefsDe(u.prefs);
     const f = bruto.funcao_solicitada;
     return [{ id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone, sexo: p.sexo, funcaoSolicitada: f === "mestre" || f === "guardiao" ? f : null, endereco: bruto.endereco || null, foto: p.foto_file_id, criadoEm: u.$createdAt }];
+  });
+});
+
+/** Qualquer pessoa com conta ativa (participante ou equipe), para a lista de Participantes no painel. */
+export type PessoaConta = Participante & { perfil: Perfil | null; funcao: FuncaoRitual };
+
+export const listarTodasAsPessoas = cache(async (): Promise<PessoaConta[]> => {
+  const { users } = createAdminClient();
+  const res = await users.list({ queries: [Query.limit(500), Query.orderDesc("$createdAt")] });
+  return res.users.flatMap((u) => {
+    const bruto = (u.prefs ?? {}) as PrefsUsuario;
+    // Cadastros da equipe que ainda esperam aprovação ficam em Usuários › Cadastros pendentes
+    if (bruto.situacao === "pendente") return [];
+    const perfil = perfilDosLabels(u.labels);
+    if (!perfil && !ehParticipante(u.labels)) return [];
+    const p = prefsDe(u.prefs);
+    return [{
+      id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone, endereco: bruto.endereco || null,
+      sexo: p.sexo, foto: p.foto_file_id, criadoEm: u.$createdAt, perfil, funcao: p.funcao_ritual,
+    }];
+  });
+});
+
+/** Participante do site público: nome, contato e dados usados no cadastro. */
+export type Participante = { id: string; nome: string; email: string; telefone: string | null; endereco: string | null; sexo: Sexo | null; foto: string | null; criadoEm: string };
+
+export const listarParticipantes = cache(async (): Promise<Participante[]> => {
+  const { users } = createAdminClient();
+  const res = await users.list({ queries: [Query.limit(500), Query.orderDesc("$createdAt")] });
+  return res.users.flatMap((u) => {
+    if (!ehParticipante(u.labels)) return [];
+    const bruto = (u.prefs ?? {}) as PrefsUsuario;
+    const p = prefsDe(u.prefs);
+    return [{ id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone, endereco: bruto.endereco || null, sexo: p.sexo, foto: p.foto_file_id, criadoEm: u.$createdAt }];
   });
 });
 
@@ -126,9 +188,36 @@ export async function salvarContato(userId: string, form: FormData, podeFuncao =
     apagar = antiga;
   }
 
+  if (form.has("cpf")) {
+    const bruto = String(form.get("cpf") ?? "").replace(/\D/g, "");
+    if (bruto && !validarCpf(bruto)) return { erro: "CPF inválido. Confira os números." };
+  }
+  if (form.has("data_nascimento")) {
+    const bruto = String(form.get("data_nascimento") ?? "");
+    if (bruto && (!/^\d{4}-\d{2}-\d{2}$/.test(bruto) || bruto > new Date().toISOString().slice(0, 10)))
+      return { erro: "Data de nascimento inválida." };
+  }
+
   try {
     const extra: PrefsUsuario = {};
     if (form.has("endereco")) extra.endereco = String(form.get("endereco") ?? "").trim().replace(/\s+/g, " ").slice(0, 255) || null;
+    if (form.has("cpf")) extra.cpf = String(form.get("cpf") ?? "").replace(/\D/g, "") || null;
+    if (form.has("data_nascimento")) extra.data_nascimento = String(form.get("data_nascimento") ?? "") || null;
+    const linha = (k: string, max: number) => String(form.get(k) ?? "").trim().replace(/\s+/g, " ").slice(0, max) || null;
+    const texto = (k: string) => String(form.get(k) ?? "").trim().slice(0, LIMITE_TEXTO_LONGO) || null;
+    if (form.has("estado")) {
+      const uf = String(form.get("estado") ?? "");
+      extra.estado = ehUf(uf) ? uf : null;
+      if (!extra.estado) extra.cidade = null;
+    }
+    if (form.has("cidade") && extra.cidade !== null) extra.cidade = linha("cidade", 100);
+    if (form.has("profissao")) extra.profissao = linha("profissao", 100);
+    if (form.has("experiencia_ayahuasca")) {
+      const x = String(form.get("experiencia_ayahuasca") ?? "");
+      extra.experiencia_ayahuasca = ehExperiencia(x) ? x : null;
+    }
+    if (form.has("motivacao")) extra.motivacao = texto("motivacao");
+    if (form.has("expectativas")) extra.expectativas = texto("expectativas");
     if (form.has("sexo")) {
       const sx = String(form.get("sexo"));
       extra.sexo = SEXOS.includes(sx as Sexo) ? (sx as Sexo) : null;

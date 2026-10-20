@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { Flame, KeyRound, Mail, Phone, ShieldCheck, SquarePen, Trash2, User, UserPlus, X, type LucideIcon } from "lucide-react";
+import { Flame, KeyRound, Mail, MoreVertical, Phone, ShieldCheck, SquarePen, Trash2, User, UserPlus, X, type LucideIcon } from "lucide-react";
 import { criarUsuario, excluirUsuario, redefinirSenha, salvarDadosPessoais } from "./actions";
 import { PERFIS, type Perfil } from "@/lib/config";
 import { Aviso, BotaoEnviar, Carregando } from "@/components/ui";
@@ -23,6 +23,13 @@ type U = {
 };
 
 const FUNCAO_ROTULO = { mestre: "Mestre", guardiao: "Guardião", nenhuma: "" } as const;
+/** Cores das etiquetas: cada função e cada perfil com a sua (tons suaves). */
+const COR_FUNCAO = { mestre: "bg-mata-50 text-mata-700 ring-mata-200", guardiao: "bg-sky-50 text-sky-700 ring-sky-200", nenhuma: "" } as const;
+const COR_PERFIL: Record<Perfil, string> = {
+  admin: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  coordenador: "bg-orange-50 text-orange-700 ring-orange-200",
+  normal: "bg-stone-100 text-stone-600 ring-stone-200",
+};
 
 /** Rótulo de campo com ícone. */
 function Rot({ icone: Icone, htmlFor, children }: { icone: LucideIcon; htmlFor?: string; children: React.ReactNode }) {
@@ -99,70 +106,190 @@ export function FormNovoUsuario({ aoCriar }: { aoCriar?: (mensagem: string) => v
 export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
   const [msg, setMsg] = useState<{ ok?: string; erro?: string }>();
   const [pendente, iniciar] = useTransition();
-  const [trocandoSenha, setTrocandoSenha] = useState(false);
-  const [editando, setEditando] = useState(false);
-  const [senha, setSenha] = useState("");
+  const [modal, setModal] = useState<"editar" | "senha" | null>(null);
   const rodar = (fn: () => Promise<{ ok?: string; erro?: string }>) => iniciar(async () => setMsg(await fn()));
+  const perfil = PERFIS.find((p) => p.id === u.perfil)?.nome ?? "Sem perfil";
 
   return (
-    <li className="px-5 py-4 transition hover:bg-stone-50/60 sm:px-6">
-      <div className="flex flex-wrap items-center gap-4">
-        <Avatar nome={u.nome} foto={u.foto} perfil={u.perfil} tamanho={44} />
+    <li className="px-4 py-3.5 transition hover:bg-stone-50/60 sm:px-6">
+      <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+        <Avatar nome={u.nome} foto={u.foto} perfil={u.perfil} tamanho={44} className="shrink-0" />
         <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-1.5 font-semibold text-stone-900">
-            <span className="truncate">{u.nome}</span>
+          <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 leading-snug font-semibold text-stone-900">
+            <span className="break-words">{u.nome}</span>
             {u.sexo && (
-              <span title={GENERO_ROTULO[u.sexo]} className="inline-flex">
-                <IconeGenero genero={u.sexo} size={16} />
+              <span title={GENERO_ROTULO[u.sexo]} className="inline-flex shrink-0">
+                <IconeGenero genero={u.sexo} size={15} />
               </span>
             )}
             {souEu && <span className="chip bg-stone-100 text-stone-500">você</span>}
-            {u.funcaoRitual !== "nenhuma" && (
-              <span className="chip bg-mata-50 text-mata-700 ring-1 ring-mata-200 ring-inset">{FUNCAO_ROTULO[u.funcaoRitual]}</span>
-            )}
           </p>
-          <p className="flex flex-wrap items-center gap-x-3 text-sm text-stone-500">
+          <p className="mt-1 flex flex-wrap items-center gap-1.5">
+            {u.funcaoRitual !== "nenhuma" && (
+              <span className={`chip ring-1 ring-inset ${COR_FUNCAO[u.funcaoRitual]}`}>{FUNCAO_ROTULO[u.funcaoRitual]}</span>
+            )}
+            <span className={`chip ring-1 ring-inset ${u.perfil ? COR_PERFIL[u.perfil] : "bg-stone-100 text-stone-500 ring-stone-200"}`} title="Perfil de acesso ao painel">{perfil}</span>
+          </p>
+          <p className="mt-1 flex min-w-0 items-center gap-x-3 text-sm text-stone-500">
             <span className="truncate">{u.email}</span>
             {u.telefone && (
-              <a href={linkWhats(u.telefone)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-mata-700" title="Abrir no WhatsApp">
+              <a href={linkWhats(u.telefone)} target="_blank" rel="noreferrer" className="hidden shrink-0 items-center gap-1 hover:text-mata-700 sm:inline-flex" title="Abrir no WhatsApp">
                 <Phone size={13} />{mascararTelefone(u.telefone)}
               </a>
             )}
           </p>
         </div>
-        <span className="text-sm text-stone-500 italic" title="Perfil de acesso ao painel">
-          {PERFIS.find((p) => p.id === u.perfil)?.nome ?? "sem perfil"}
-        </span>
-        <div className="flex gap-1">
-          {pendente && <span className="grid h-10 w-6 place-items-center text-stone-400"><Carregando /></span>}
-          <button className="btn-icone" disabled={pendente} onClick={() => { setEditando((v) => !v); setTrocandoSenha(false); }} title="Editar usuário" aria-label="Editar dados">
-            <SquarePen size={17} />
-          </button>
-          <button className="btn-icone" disabled={pendente} onClick={() => { setTrocandoSenha((v) => !v); setEditando(false); }} title="Redefinir senha" aria-label="Redefinir senha">
-            <KeyRound size={17} />
-          </button>
+        <div className="flex shrink-0 items-center">
+          {pendente && <span className="grid h-9 w-6 place-items-center text-stone-400"><Carregando /></span>}
+          <MenuAcoes
+            nome={u.nome}
+            telefone={u.telefone}
+            disabled={pendente}
+            aoEditar={() => { setMsg(undefined); setModal("editar"); }}
+            aoSenha={() => { setMsg(undefined); setModal("senha"); }}
+          />
         </div>
       </div>
 
-      {editando && (
-        <PainelEdicao u={u} onFechar={() => setEditando(false)}>
-          <EditarDados u={u} souEu={souEu} aoSalvar={() => setEditando(false)} aoExcluir={() => { setEditando(false); rodar(() => excluirUsuario(u.id)); }} />
+      {modal === "editar" && (
+        <PainelEdicao u={u} onFechar={() => setModal(null)}>
+          <EditarDados u={u} souEu={souEu} aoSalvar={() => setModal(null)} aoExcluir={() => { setModal(null); rodar(() => excluirUsuario(u.id)); }} />
         </PainelEdicao>
       )}
-
-      {trocandoSenha && (
-        <form
-          className="mt-3 flex animate-surgir flex-wrap items-center gap-2 rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200 sm:ml-14"
-          onSubmit={(e) => {
-            e.preventDefault();
-            rodar(async () => {
-              const r = await redefinirSenha(u.id, senha);
-              if (r?.ok) { setTrocandoSenha(false); setSenha(""); }
-              return r;
-            });
+      {modal === "senha" && (
+        <ModalSenha
+          nome={u.nome}
+          fechar={() => setModal(null)}
+          salvar={async (senha) => {
+            const r = await redefinirSenha(u.id, senha);
+            if (r?.ok) {
+              setModal(null);
+              setMsg(r);
+            }
+            return r?.erro;
           }}
-        >
+        />
+      )}
+      {msg && <div className="mt-3 sm:ml-[3.75rem]"><Aviso tipo={msg.erro ? "erro" : "ok"}>{msg.erro ?? msg.ok}</Aviso></div>}
+    </li>
+  );
+}
+
+/** Menu de três pontinhos da linha. Vai para o body (portal) para não ser cortado pela lista. */
+function MenuAcoes({ nome, telefone, disabled, aoEditar, aoSenha }: {
+  nome: string; telefone: string | null; disabled: boolean; aoEditar: () => void; aoSenha: () => void;
+}) {
+  const botao = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
+
+  useEffect(() => {
+    if (!pos) return;
+    const fechar = () => setPos(null);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && fechar();
+    // Só fecha se a pessoa rolar de verdade: o toque no celular costuma mexer a página alguns pixels.
+    const inicio = window.scrollY;
+    const rolou = () => Math.abs(window.scrollY - inicio) > 40 && fechar();
+    window.addEventListener("scroll", rolou);
+    window.addEventListener("resize", fechar);
+    document.addEventListener("keydown", esc);
+    return () => {
+      window.removeEventListener("scroll", rolou);
+      window.removeEventListener("resize", fechar);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [pos]);
+
+  const abrir = () => {
+    const r = botao.current?.getBoundingClientRect();
+    if (r) setPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+  };
+  const escolher = (fn: () => void) => {
+    setPos(null);
+    fn();
+  };
+  const item = "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-stone-700 transition hover:bg-stone-50";
+
+  return (
+    <>
+      <button
+        ref={botao}
+        type="button"
+        disabled={disabled}
+        onClick={() => (pos ? setPos(null) : abrir())}
+        className="btn-icone h-9 w-9"
+        aria-label={`Ações de ${nome}`}
+        aria-haspopup="menu"
+        aria-expanded={!!pos}
+      >
+        <MoreVertical size={18} />
+      </button>
+      {pos && createPortal(
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setPos(null)} />
+          <div role="menu" style={{ top: pos.top, right: pos.right }} className="fixed z-50 w-52 animate-surgir rounded-xl border border-stone-200 bg-white p-1.5 shadow-elevado">
+            <button type="button" role="menuitem" onClick={() => escolher(aoEditar)} className={item}>
+              <SquarePen size={15} className="text-stone-400" /> Editar dados
+            </button>
+            <button type="button" role="menuitem" onClick={() => escolher(aoSenha)} className={item}>
+              <KeyRound size={15} className="text-stone-400" /> Redefinir senha
+            </button>
+            {telefone && (
+              <a href={linkWhats(telefone)} target="_blank" rel="noreferrer" role="menuitem" onClick={() => setPos(null)} className={item}>
+                <Phone size={15} className="text-stone-400" />
+                <span className="min-w-0">
+                  <span className="block">WhatsApp</span>
+                  <span className="block text-xs font-normal text-stone-400">{mascararTelefone(telefone)}</span>
+                </span>
+              </a>
+            )}
+          </div>
+        </>,
+        document.body,
+      )}
+    </>
+  );
+}
+
+/** Modal para definir uma nova senha para o usuário. */
+function ModalSenha({ nome, fechar, salvar }: { nome: string; fechar: () => void; salvar: (senha: string) => Promise<string | undefined> }) {
+  const [senha, setSenha] = useState("");
+  const [erro, setErro] = useState<string>();
+  const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && fechar();
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [fechar]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 grid place-items-center p-4" role="dialog" aria-modal="true" aria-label={`Redefinir senha de ${nome}`}>
+      <button type="button" aria-label="Fechar" className="absolute inset-0 bg-mata-950/50 backdrop-blur-sm" onClick={fechar} />
+      <form
+        className="cartao relative w-full max-w-sm animate-surgir space-y-4 shadow-elevado"
+        onSubmit={async (e) => {
+          e.preventDefault();
+          setEnviando(true);
+          const r = await salvar(senha);
+          setErro(r);
+          setEnviando(false);
+        }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-mata-50 text-mata-600"><KeyRound size={18} /></span>
+            <div className="min-w-0">
+              <h2 className="cartao-titulo">Redefinir senha</h2>
+              <p className="cartao-sub break-words">{nome}</p>
+            </div>
+          </div>
+          <button type="button" onClick={fechar} className="btn-icone h-9 w-9 shrink-0" aria-label="Fechar"><X size={18} /></button>
+        </div>
+        {erro && <Aviso>{erro}</Aviso>}
+        <div>
+          <label className="rotulo" htmlFor="nova-senha">Nova senha</label>
           <input
+            id="nova-senha"
             type="password"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
@@ -170,15 +297,20 @@ export function LinhaUsuario({ u, souEu }: { u: U; souEu: boolean }) {
             required
             autoFocus
             autoComplete="new-password"
-            placeholder={`Nova senha para ${u.nome.split(" ")[0]} (mín. 8)`}
-            className="campo max-w-xs flex-1"
+            placeholder="Mínimo 8 caracteres"
+            className="campo"
           />
-          <button className="btn-primario" disabled={pendente || senha.length < 8}>Salvar senha</button>
-          <button type="button" className="btn-icone" onClick={() => setTrocandoSenha(false)} aria-label="Cancelar"><X size={17} /></button>
-        </form>
-      )}
-      {msg && <div className="mt-3 sm:ml-14"><Aviso tipo={msg.erro ? "erro" : "ok"}>{msg.erro ?? msg.ok}</Aviso></div>}
-    </li>
+          <p className="ajuda">Passe a nova senha para a pessoa; ela já pode entrar com ela.</p>
+        </div>
+        <div className="flex justify-end gap-2">
+          <button type="button" className="btn-secundario" onClick={fechar}>Cancelar</button>
+          <button className="btn-primario" disabled={enviando || senha.length < 8}>
+            {enviando ? <><Carregando /> Salvando…</> : "Salvar senha"}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
   );
 }
 

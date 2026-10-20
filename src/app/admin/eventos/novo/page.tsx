@@ -12,7 +12,7 @@ export const maxDuration = 180;
 export default async function NovoEvento({ searchParams }: PageProps<"/admin/eventos/novo">) {
   const u = await exigir(PODE.editarEventos);
   const sp = await searchParams;
-  const [{ tipos, enderecos, instituto }, equipe, base] = await Promise.all([
+  const [{ tipos, tags, enderecos, instituto }, equipe, base] = await Promise.all([
     getDadosInstituto(),
     listarEquipe(),
     typeof sp.de === "string" ? getEvento(sp.de) : null,
@@ -24,6 +24,7 @@ export default async function NovoEvento({ searchParams }: PageProps<"/admin/eve
         endereco_livre: base.endereco_livre, descricao: base.descricao, mostrar_banner: base.mostrar_banner, destaque: base.destaque,
         mestres: base.mestres,
         vagas_guardioes: base.vagas_guardioes, vagas_guardias: base.vagas_guardias, candidaturas_abertas: base.candidaturas_abertas,
+        vagas_participantes: base.vagas_participantes, tags: base.tags,
       }
     : undefined;
   return (
@@ -33,7 +34,7 @@ export default async function NovoEvento({ searchParams }: PageProps<"/admin/eve
         titulo={base ? "Duplicar evento" : "Novo evento"}
         subtitulo={base ? `Copiando “${base.titulo}”. Escolha a nova data.` : "Preencha as informações e salve. Rituais recebem o número automaticamente."}
       />
-      <EventoForm evento={copia} tipos={tipos} enderecos={enderecos} equipe={equipe} podeNumerar={false} informacoes={instituto} podeConfigurar={pode(u, PODE.configurar)} iaPronta={!!(await getConfigIA()).chave} />
+      <EventoForm evento={copia} tipos={tipos} tags={tags} enderecos={enderecos} equipe={equipe} podeNumerar={false} informacoes={instituto} podeConfigurar={pode(u, PODE.configurar)} iaPronta={!!(await getConfigIA()).chave} />
       {/* espaço para a barra fixa de salvar */}
       <div className="h-20" />
     </>

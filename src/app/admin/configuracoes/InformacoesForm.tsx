@@ -33,6 +33,24 @@ export function InformacoesForm({ instituto }: { instituto: Instituto }) {
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
       {estado?.ok && <Aviso tipo="ok">{estado.ok}</Aviso>}
 
+      <div>
+        <label className="rotulo flex items-center gap-1.5" htmlFor="valor_contribuicao">
+          <HandCoins size={15} className="text-mata-600" /> Valor da contribuição (R$)
+        </label>
+        <input
+          id="valor_contribuicao"
+          name="valor_contribuicao"
+          type="number"
+          step="0.01"
+          min="0"
+          inputMode="decimal"
+          defaultValue={instituto.valor_contribuicao ?? ""}
+          placeholder="75,00"
+          className="campo h-11 max-w-48"
+        />
+        <p className="ajuda">Mesmo valor para todos os rituais. Usado no QR Pix da participação e nos relatórios de pagamento. Deixe em branco para não cobrar um valor fixo.</p>
+      </div>
+
       {CAMPOS.map(({ nome, rotulo, dica, Icone }) => (
         <div key={nome}>
           <label className="rotulo flex items-center gap-1.5" htmlFor={nome}>

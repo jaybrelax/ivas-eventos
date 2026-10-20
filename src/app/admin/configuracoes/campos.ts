@@ -77,6 +77,17 @@ export const CAMPOS = {
       { nome: "fechado_guardioes", rotulo: "Fechado para guardiões", tipo: "checkbox" },
     ],
   },
+  tags: {
+    titulo: "Tags de evento",
+    descricao: "O texto de cada tag complementa a descrição de todos os eventos que usam essa tag.",
+    campos: [
+      { nome: "nome", rotulo: "Nome", tipo: "text", obrigatorio: true, largura: "md" },
+      { nome: "cor", rotulo: "Cor", tipo: "color" },
+      { nome: "icone", rotulo: "Ícone", tipo: "text" },
+      { nome: "descricao", rotulo: "Texto da tag", tipo: "text" },
+      { nome: "ativo", rotulo: "Ativa", tipo: "checkbox" },
+    ],
+  },
 } satisfies Record<string, { titulo: string; descricao: string; campos: Campo[] }>;
 
 export type TabelaEditavel = keyof typeof CAMPOS;

@@ -3,7 +3,7 @@
 import { startTransition, useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { Check, Flame, Hash, Maximize2, Sparkles, SquarePen, X, ImagePlus, Megaphone, Shield, Star, Trash2, type LucideIcon } from "lucide-react";
+import { Check, Flame, Hash, Maximize2, Sparkles, SquarePen, X, ImagePlus, Megaphone, Shield, Star, Trash2, Users, type LucideIcon } from "lucide-react";
 import { IconeGenero } from "@/components/genero";
 import { IconeTipo } from "@/components/IconeTipo";
 import { InfoRitual } from "@/components/InfoRitual";
@@ -11,18 +11,22 @@ import { salvarEvento } from "./actions";
 import { gerarCapaComIA } from "./ia-actions";
 import { Aviso, Carregando } from "@/components/ui";
 import { useImagem } from "@/components/useImagem";
-import type { Endereco, Evento, Instituto, Pessoa, TipoEvento } from "@/lib/types";
+import type { Endereco, Evento, Instituto, Pessoa, TagEvento, TipoEvento } from "@/lib/types";
 import { EscolhaEquipe } from "./Equipe";
 import { formatarIdRitual } from "@/lib/format";
 
 type Props = {
   evento?: Partial<Evento> & { $id?: string };
   tipos: TipoEvento[];
+  /** Tags de evento: o texto de cada uma complementa a descrição do evento. */
+  tags?: TagEvento[];
   enderecos: Endereco[];
   equipe: Pessoa[];
   podeNumerar: boolean;
   /** Lista de guardiões do evento (incluir, retirar, espera), mostrada dentro do grupo Guarnição. */
   guarnicao?: React.ReactNode;
+  /** Lista de participantes (incluir, retirar, pagamento), mostrada dentro do grupo Participantes. */
+  participantes?: React.ReactNode;
   /** Textos fixos de Configurações › Informações, que aparecem na página de todo ritual. */
   informacoes?: Pick<Instituto, "info_rituais" | "info_contribuicao">;
   podeConfigurar?: boolean;
@@ -62,13 +66,14 @@ function Bloco({
   );
 }
 
-export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guarnicao, informacoes, podeConfigurar = false, iaPronta = false }: Props) {
+export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar, guarnicao, participantes, informacoes, podeConfigurar = false, iaPronta = false }: Props) {
   const [estado, acao, pendente] = useActionState(salvarEvento, undefined);
   const padrao = enderecos.find((e) => e.padrao) ?? enderecos[0];
   const [endSel, setEndSel] = useState<string>(
     evento?.endereco_livre ? "__livre" : (evento?.endereco_id ?? padrao?.$id ?? "__livre"),
   );
   const [tipoId, setTipoId] = useState(evento?.tipo_id ?? tipos[0]?.$id ?? "");
+  const [tagsSel, setTagsSel] = useState<string[]>(evento?.tags ?? []);
   const tipo = tipos.find((t) => t.$id === tipoId);
   const idRitual = formatarIdRitual(evento?.ritual_numero_geral ?? null, evento?.ritual_ano ?? null, evento?.ritual_numero_ano ?? null);
   const [destaque, setDestaque] = useState(evento?.destaque ?? false);
@@ -286,6 +291,42 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guar
             )}
           </Bloco>
 
+          {(tags?.length ?? 0) > 0 && (
+            <Bloco titulo="Tags do evento" sub="O texto de cada tag marcada é somado à descrição na página do evento.">
+              <div className="flex flex-wrap gap-2">
+                {tags!.filter((t) => t.ativo || tagsSel.includes(t.$id)).map((t) => {
+                  const on = tagsSel.includes(t.$id);
+                  const cor = t.cor || "#57534e";
+                  return (
+                    <label
+                      key={t.$id}
+                      className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition ${on ? "" : "border-stone-200 text-stone-600 hover:border-stone-300 hover:bg-stone-50"}`}
+                      style={on ? { borderColor: cor, background: `${cor}14`, color: cor } : undefined}
+                    >
+                      <input
+                        type="checkbox"
+                        name="tags"
+                        value={t.$id}
+                        checked={on}
+                        onChange={(e) => setTagsSel((atual) => (e.target.checked ? [...atual, t.$id] : atual.filter((x) => x !== t.$id)))}
+                        className="sr-only"
+                      />
+                      <IconeTipo nome={t.icone || "hash"} size={14} strokeWidth={on ? 2.6 : 2} />
+                      {t.nome}
+                      {!t.ativo && <span className="text-xs opacity-70">(inativa)</span>}
+                    </label>
+                  );
+                })}
+              </div>
+              {tags!.filter((t) => tagsSel.includes(t.$id) && t.ativo && t.descricao?.trim()).map((t) => (
+                <p key={t.$id} className="rounded-xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line text-stone-700 ring-1 ring-inset" style={{ background: `${t.cor || "#57534e"}0d`, ["--tw-ring-color" as string]: `${t.cor || "#57534e"}26` }}>
+                  <strong className="mb-0.5 block text-xs tracking-wide uppercase" style={{ color: t.cor || "#57534e" }}>{t.nome}</strong>
+                  {t.descricao}
+                </p>
+              ))}
+            </Bloco>
+          )}
+
           {tipo?.conta_como_ritual && (
             <Bloco titulo="Numeração" sub={podeNumerar ? "Automática ao salvar. Você pode ajustar se precisar." : "Gerada automaticamente ao salvar."}>
               <div className="flex items-center gap-2.5 rounded-xl bg-mata-50 px-3.5 py-2.5 text-sm text-mata-800 ring-1 ring-mata-100">
@@ -332,6 +373,28 @@ export function EventoForm({ evento, tipos, enderecos, equipe, podeNumerar, guar
                 <input type="checkbox" name="candidaturas_abertas" defaultChecked={evento?.candidaturas_abertas ?? true} className="interruptor mt-1.5" />
               </label>
               {guarnicao && <div className="border-t border-stone-100 pt-5">{guarnicao}</div>}
+            </Bloco>
+          )}
+
+          {tipo && tipo.aberto_publico && !tipo.fechado_guardioes && (
+            <Bloco titulo="Participantes" icone={Users} sub="Qualquer pessoa pode se inscrever pela página pública, por ordem de chegada.">
+              <div className="max-w-xs">
+                <label className="rotulo" htmlFor="vagas_participantes">Vagas de participantes</label>
+                <input id="vagas_participantes" name="vagas_participantes" type="number" min={0} max={1000} defaultValue={evento?.vagas_participantes ?? 30} className="campo" />
+              </div>
+              {tipo.conta_como_ritual ? (
+                <p className="text-xs text-stone-500">Segue a mesma configuração de candidaturas do grupo Guarnição acima.</p>
+              ) : (
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-stone-200 p-3.5 transition hover:border-stone-300">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-mata-50 text-mata-600"><Users size={18} /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-sm font-semibold text-stone-900">Aceitar inscrições</span>
+                    <span className="block text-xs text-stone-500">Desligue para fechar as inscrições deste evento. Quem já está inscrito continua.</span>
+                  </span>
+                  <input type="checkbox" name="candidaturas_abertas" defaultChecked={evento?.candidaturas_abertas ?? true} className="interruptor mt-1.5" />
+                </label>
+              )}
+              {participantes && <div className="border-t border-stone-100 pt-5">{participantes}</div>}
             </Bloco>
           )}
         </div>

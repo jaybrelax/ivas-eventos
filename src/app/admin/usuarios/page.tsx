@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
 import { PODE, type Perfil } from "@/lib/config";
 import { Titulo } from "@/components/Titulo";
-import { listarPendentes, perfilDosLabels, prefsDe } from "@/lib/usuarios";
+import { ehParticipante, listarPendentes, perfilDosLabels, prefsDe } from "@/lib/usuarios";
 import { Pendentes } from "./Pendentes";
 import { GestaoUsuarios } from "./GestaoUsuarios";
 import { todasCandidaturasAtivas } from "@/lib/guarnicao";
@@ -15,8 +15,8 @@ export default async function Usuarios() {
   const [lista, candidaturas, pendentes] = await Promise.all([users.list({ queries: [Query.limit(200), Query.orderAsc("name")] }), todasCandidaturasAtivas(), listarPendentes()]);
   const idsPendentes = new Set(pendentes.map((p) => p.id));
   const participacoes = await participacoesPorUsuario(candidaturas);
-  // Cadastros pendentes ficam na seção própria, fora da lista principal
-  const us = lista.users.filter((u) => !idsPendentes.has(u.$id)).map((u) => {
+  // Cadastros pendentes ficam na seção própria, fora da lista principal; participantes (público) têm a própria área
+  const us = lista.users.filter((u) => !idsPendentes.has(u.$id) && !ehParticipante(u.labels)).map((u) => {
     const p = prefsDe(u.prefs);
     return {
       id: u.$id,

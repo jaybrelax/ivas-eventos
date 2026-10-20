@@ -1,5 +1,7 @@
 export const DB_ID = "ivas";
 export const BUCKET_ID = "midia";
+/** Bucket privado dos comprovantes de pagamento: só é lido pela rota /api/comprovante/[id], com checagem de dono/equipe. */
+export const COMPROVANTES_BUCKET_ID = "comprovantes";
 export const INSTITUTO_ROW_ID = "principal";
 /** Linha à parte da tabela instituto com a chave da OpenAI e o prompt: não é lida junto dos dados públicos. */
 export const IA_ROW_ID = "ia";
@@ -12,12 +14,16 @@ export const TABLES = {
   redes: "redes_sociais",
   pix: "chaves_pix",
   tipos: "tipos_evento",
+  tags: "tags_evento",
   eventos: "eventos",
   modelos: "modelos_banner",
   candidaturas: "candidaturas",
+  inscricoes: "inscricoes",
 } as const;
 
 export type Perfil = "admin" | "coordenador" | "normal";
+/** Label de quem só participa dos rituais (cadastro público, sem acesso ao painel). */
+export const LABEL_PARTICIPANTE = "participante";
 
 export const PERFIS: { id: Perfil; nome: string; descricao: string }[] = [
   { id: "admin", nome: "Admin", descricao: "Tudo, incluindo configurações e usuários" },

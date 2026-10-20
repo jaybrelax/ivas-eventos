@@ -1,49 +1,56 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
-import { CadastroForm } from "./CadastroForm";
+import { FundoMarca } from "@/components/FundoMarca";
+import { ParticipanteForm } from "./ParticipanteForm";
 
-export const metadata: Metadata = { title: "Cadastro — Instituto IVAS", robots: { index: false } };
+const DESCRICAO = "Faça seu cadastro no Instituto IVAS para confirmar presença nos rituais e acompanhar seu histórico de participações.";
 
-/**
- * Cadastro de acesso ao painel. A função vem oculta no link (?funcao=mestre ou ?funcao=guardiao)
- * e fica como sugestão para o Admin, que aprova e define a função e o perfil de acesso.
- */
-export default async function CadastroPage({ searchParams }: PageProps<"/cadastro">) {
+export const metadata: Metadata = {
+  title: "Crie sua conta no Instituto IVAS",
+  description: DESCRICAO,
+  robots: { index: false },
+  openGraph: { title: "Crie sua conta no Instituto IVAS", description: DESCRICAO, url: "/cadastro", type: "website" },
+  twitter: { card: "summary_large_image", title: "Crie sua conta no Instituto IVAS", description: DESCRICAO },
+};
+
+/** Cadastro público para quem só vai participar dos rituais: confirmar presença, ver histórico e pagamentos. */
+export default async function CadastroParticipantePage({ searchParams }: PageProps<"/cadastro">) {
   const [sp, instituto] = await Promise.all([searchParams, getInstituto()]);
-  const f = typeof sp.funcao === "string" ? sp.funcao.toLowerCase() : "";
-  const funcao = f === "mestre" || f === "guardiao" ? f : null;
+  // Links antigos do cadastro da equipe (/cadastro?funcao=guardiao) seguem funcionando.
+  if (typeof sp.funcao === "string") redirect(`/cadastro/equipe?funcao=${encodeURIComponent(sp.funcao)}`);
+  const next = typeof sp.next === "string" ? sp.next : undefined;
 
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
       <section className="relative hidden overflow-hidden bg-mata-950 p-12 text-white lg:flex lg:flex-col">
-        <div aria-hidden className="absolute -top-32 -left-24 h-[28rem] w-[28rem] rounded-full bg-ouro-500/20 blur-3xl" />
-        <div aria-hidden className="absolute -right-32 -bottom-40 h-[32rem] w-[32rem] rounded-full bg-mata-500/30 blur-3xl" />
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-[0.07]"
-          style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "28px 28px" }}
-        />
+        <FundoMarca />
         <div className="relative mt-auto max-w-md">
-          <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-ouro-300 uppercase">Acesso ao painel</p>
-          <h1 className="font-display text-4xl leading-tight font-semibold text-white">Faça parte da organização dos trabalhos.</h1>
+          <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-ouro-300 uppercase">Participe dos rituais</p>
+          <h1 className="font-display text-4xl leading-tight font-semibold text-white">Confirme presença, acompanhe seu histórico e seus pagamentos.</h1>
           <p className="mt-4 text-[15px] leading-relaxed text-mata-200">
-            Preencha seus dados. Assim que a coordenação aprovar, você acessa a agenda e participa da guarnição.
+            Com o cadastro você confirma a vaga em cada ritual, tem historico de participação e vê os rituais de que já participou.
           </p>
         </div>
         <p className="relative mt-12 text-xs text-mata-400">{instituto.nome}</p>
       </section>
 
-      <section className="flex flex-col items-center justify-center bg-fundo px-5 py-12 lg:bg-white">
-        <div className="w-full max-w-md animate-surgir">
-          {/* Logo colorida, sem fundo, centralizada acima do formulário */}
-          <div className="mb-8 flex justify-center">
+      <section className="relative flex flex-col items-center justify-start bg-[#c3cdf6] px-5 pt-[max(61vw,34svh)] pb-8 lg:justify-center lg:bg-white lg:py-12">
+        {/* Celular: mesma arte do login, fixa ao fundo enquanto o formulário rola (a logo já faz parte da imagem) */}
+        <div aria-hidden className="fixed inset-0 bg-cover bg-top bg-no-repeat lg:hidden" style={{ backgroundImage: "url(/fundo_login_mobile.webp)" }} />
+        <div className="relative w-full max-w-md animate-surgir rounded-3xl bg-white/55 p-5 shadow-elevado ring-1 ring-white/70 backdrop-blur-md lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none">
+          <div className="mb-8 hidden justify-center lg:flex">
             <MarcaInstituto instituto={instituto} altura={64} fundoClaro />
           </div>
-          <h2 className="text-center text-2xl font-semibold tracking-tight text-stone-900">Criar cadastro</h2>
-          <p className="mt-1.5 mb-8 text-center text-sm text-stone-500">O acesso é liberado depois da aprovação da coordenação.</p>
-          <CadastroForm funcao={funcao} />
+          <h2 className="text-center text-2xl font-semibold tracking-tight text-stone-900 lg:text-3xl">Criar cadastro</h2>
+          <p className="mt-1 mb-5 text-center text-sm lg:mt-1.5 lg:mb-8 text-stone-500">Rápido: seu acesso já fica pronto para usar.</p>
+          <ParticipanteForm next={next} estadoPadrao={instituto.estado} cidadePadrao={instituto.cidade} />
         </div>
+        <p className="relative mt-5 text-center text-sm font-medium text-stone-600">
+          Já tem acesso? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold text-mata-700 underline-offset-2 hover:underline">Entrar</Link>
+        </p>
       </section>
     </main>
   );

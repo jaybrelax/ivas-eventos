@@ -1,21 +1,19 @@
 import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
+import { FundoMarca } from "@/components/FundoMarca";
 import { LoginForm } from "./LoginForm";
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const [sp, instituto] = await Promise.all([searchParams, getInstituto()]);
   const semPerfil = sp.erro === "sem-perfil";
+  const erroGoogle = sp.erro === "google";
+  const next = typeof sp.next === "string" ? sp.next : undefined;
+  const cadastroHref = (href: string) => (next ? `${href}?next=${encodeURIComponent(next)}` : href);
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
       {/* Lado da marca */}
       <section className="relative hidden overflow-hidden bg-mata-950 p-12 text-white lg:flex lg:flex-col">
-        <div aria-hidden className="absolute -top-32 -left-24 h-[28rem] w-[28rem] rounded-full bg-ouro-500/20 blur-3xl" />
-        <div aria-hidden className="absolute -right-32 -bottom-40 h-[32rem] w-[32rem] rounded-full bg-mata-500/30 blur-3xl" />
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-[0.07]"
-          style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "28px 28px" }}
-        />
+        <FundoMarca />
         <div className="relative">
           <MarcaInstituto instituto={instituto} altura={64} />
         </div>
@@ -30,18 +28,15 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       </section>
 
       {/* Formulário */}
-      <section className="flex flex-col items-center justify-center bg-fundo px-5 py-12 lg:bg-white">
-        <div className="w-full max-w-sm animate-surgir">
-          <div className="mb-8 lg:hidden">
-            <div className="inline-flex rounded-2xl bg-mata-950 p-4">
-              <MarcaInstituto instituto={instituto} altura={44} />
-            </div>
-          </div>
-          <h2 className="text-2xl font-semibold tracking-tight text-stone-900">Entrar</h2>
-          <p className="mt-1.5 mb-8 text-sm text-stone-500">Use o e-mail e a senha cadastrados pelo Admin.</p>
-          <LoginForm semPerfil={semPerfil} />
-          <p className="mt-6 text-center text-sm text-stone-500">
-            Ainda não tem acesso? <a href="/cadastro" className="font-medium text-mata-700 hover:underline">Criar cadastro</a>
+      <section className="relative flex flex-col items-center justify-start overflow-hidden bg-[#c3cdf6] px-5 pt-[max(61vw,34svh)] pb-6 lg:justify-center lg:bg-white lg:py-12">
+        {/* Celular: arte do IVAS no topo (a logo já faz parte da imagem); o formulário fica na parte clara */}
+        <div aria-hidden className="absolute inset-0 bg-cover bg-top bg-no-repeat lg:hidden" style={{ backgroundImage: "url(/fundo_login_mobile.webp)" }} />
+        <div className="relative w-full max-w-sm animate-surgir rounded-3xl bg-white/55 p-5 shadow-elevado ring-1 ring-white/70 backdrop-blur-md lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none">
+          <h2 className="text-center text-xl font-semibold tracking-tight text-stone-900 lg:text-left lg:text-2xl">Entrar</h2>
+          <p className="mt-1 mb-5 text-center text-sm lg:mb-8 lg:mt-1.5 text-stone-500 lg:text-left">Use o e-mail e a senha do seu cadastro.</p>
+          <LoginForm semPerfil={semPerfil} erroGoogle={erroGoogle} next={next} />
+          <p className="mt-4 text-center text-sm text-stone-500 lg:mt-6">
+            Quer participar dos rituais? <a href={cadastroHref("/cadastro")} className="font-medium text-mata-700 hover:underline">Criar cadastro</a>
           </p>
         </div>
       </section>

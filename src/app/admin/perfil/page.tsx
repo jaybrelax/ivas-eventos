@@ -11,13 +11,22 @@ export default async function MeuPerfil() {
   const participacoes = await participacoesComEventos(await participacoesDe(u.id));
   return (
     <>
-      <Titulo sobre="Conta" titulo="Meu perfil" subtitulo="Sua foto e seu telefone aparecem para a equipe no painel." />
+      <Titulo sobre="Conta" titulo="Meu perfil" subtitulo="Seus dados de cadastro. Use o botão Editar para corrigir." />
       <PerfilForm
         nome={u.nome}
         email={u.email}
         telefone={u.telefone}
         foto={u.foto}
         sexo={u.sexo}
+        endereco={u.endereco}
+        estado={u.estado}
+        cidade={u.cidade}
+        cpf={u.cpf}
+        dataNascimento={u.dataNascimento}
+        profissao={u.profissao}
+        experiencia={u.experiencia}
+        motivacao={u.motivacao}
+        expectativas={u.expectativas}
         funcao={{ mestre: "Mestre", guardiao: "Guardião", nenhuma: "Não escalado" }[u.funcaoRitual]}
         perfil={PERFIS.find((p) => p.id === u.perfil)?.nome ?? ""}
       />

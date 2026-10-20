@@ -3,6 +3,7 @@ import { ArrowUpRight, CalendarDays, Globe, Lock, MapPin, MessageCircle, Phone }
 import type { ReactNode } from "react";
 import type { Endereco, Instituto, Rede, Telefone } from "@/lib/types";
 import { MarcaInstituto } from "@/components/Marca";
+import { InstalarApp } from "@/components/InstalarApp";
 
 // Ícones de marca desenhados à mão (a biblioteca Lucide não traz logos de marcas)
 const svg = (children: ReactNode) => (
@@ -50,6 +51,7 @@ export function RodapePublico({
 
   return (
     <footer className="relative mt-20 overflow-hidden bg-mata-950 text-white/70">
+      <InstalarApp />
       {/* filete dourado e brilho suave no topo */}
       <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ouro-400/60 to-transparent" />
       <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 h-64 w-[44rem] -translate-x-1/2 rounded-full bg-mata-600/20 blur-3xl" />
@@ -86,7 +88,7 @@ export function RodapePublico({
           {/* Espaços */}
           <div className="lg:col-span-4">
             <h4 className="text-xs font-semibold tracking-[0.16em] text-ouro-300 uppercase">Nossos espaços</h4>
-            <ul className="mt-5 space-y-4">
+            <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 lg:block lg:space-y-4">
               {enderecos.map((e) => (
                 <li key={e.$id} className="flex gap-3">
                   <MapPin size={16} className="mt-0.5 shrink-0 text-ouro-300/80" />
@@ -141,9 +143,13 @@ export function RodapePublico({
           <p className="hidden items-center gap-1.5 md:flex">
             Amor, Consciência e Verdade <span className="text-ouro-400">✦</span>
           </p>
-          <Link href="/login" className="inline-flex items-center gap-1.5 transition hover:text-ouro-300">
-            <Lock size={12} /> Área restrita
-          </Link>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <Link href="/privacidade" className="transition hover:text-ouro-300">Privacidade</Link>
+            <Link href="/termos" className="transition hover:text-ouro-300">Termos de uso</Link>
+            <Link href="/login" className="inline-flex items-center gap-1.5 transition hover:text-ouro-300">
+              <Lock size={12} /> Área restrita
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

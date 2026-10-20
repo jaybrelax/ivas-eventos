@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { ID } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
-import { apagarFotoDe, salvarContato, validarTelefone } from "@/lib/usuarios";
+import { apagarFotoDe, ehParticipante, salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Perfil } from "@/lib/config";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
@@ -113,6 +113,29 @@ export async function aprovarCadastro(userId: string, funcao: "mestre" | "guardi
   }
   revalidatePath("/admin", "layout");
   return { ok: "Cadastro aprovado. A pessoa já pode entrar." };
+}
+
+/**
+ * Transforma um participante (cadastro público) em membro da equipe: ganha perfil de acesso ao painel
+ * e, se for o caso, a função de Mestre ou Guardião. Inscrições e pagamentos continuam ligados à mesma conta.
+ */
+export async function converterParticipante(userId: string, funcao: "mestre" | "guardiao" | "nenhuma", perfil: Perfil) {
+  await exigir(["admin"]);
+  if (!PERFIS_VALIDOS.includes(perfil)) return { erro: "Perfil inválido." };
+  if (!["mestre", "guardiao", "nenhuma"].includes(funcao)) return { erro: "Função inválida." };
+  const { users } = createAdminClient();
+  try {
+    const conta = await users.get({ userId });
+    if (!ehParticipante(conta.labels)) return { erro: "Essa conta não é mais um participante." };
+    const prefs = (await users.getPrefs({ userId })) as Record<string, unknown>;
+    await users.updatePrefs({ userId, prefs: { ...prefs, funcao_ritual: funcao } });
+    await users.updateLabels({ userId, labels: [perfil] });
+  } catch (e) {
+    console.error("Converter participante:", e instanceof Error ? e.message : e);
+    return { erro: "Não foi possível converter agora. Tente de novo." };
+  }
+  revalidatePath("/admin", "layout");
+  return { ok: "Agora essa pessoa faz parte da equipe." };
 }
 
 /** Recusa um cadastro pendente: apaga a conta (só contas ainda pendentes). */

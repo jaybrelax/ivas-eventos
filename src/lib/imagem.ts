@@ -14,6 +14,7 @@ export const LIMITES_IMAGEM = {
   foto: { lado: 600, maxBytes: 2 * MB },
   // O formulário do Instituto pode mandar as duas logos juntas: 2 × 1,5 MB.
   logo: { lado: 1200, maxBytes: 1.5 * MB },
+  comprovante: { lado: 1600, maxBytes: 3 * MB },
 } as const;
 
 export type UsoImagem = keyof typeof LIMITES_IMAGEM;

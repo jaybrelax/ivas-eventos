@@ -3,12 +3,19 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSessionClient } from "./appwrite";
 import type { Perfil } from "./config";
-import { prefsDe, type FuncaoRitual } from "./usuarios";
+import { ehParticipante, prefsDe, type FuncaoRitual } from "./usuarios";
 import type { Sexo } from "./types";
+import type { Experiencia } from "./perfil-extra";
 
 export type Usuario = {
   id: string; nome: string; email: string; perfil: Perfil | null; telefone: string | null; foto: string | null;
-  funcaoRitual: FuncaoRitual; sexo: Sexo | null;
+  funcaoRitual: FuncaoRitual; sexo: Sexo | null; endereco: string | null;
+  /** CPF e data de nascimento são opcionais, preenchidos depois em "Meus dados". */
+  cpf: string | null; dataNascimento: string | null;
+  estado: string | null; cidade: string | null; profissao: string | null;
+  experiencia: Experiencia | null; motivacao: string | null; expectativas: string | null;
+  /** "equipe": tem perfil de painel (admin/coordenador/normal). "participante": só cadastro público. */
+  tipo: "equipe" | "participante" | null;
 };
 
 function perfilDe(labels: string[]): Perfil | null {
@@ -27,20 +34,34 @@ export const getUsuario = cache(async (): Promise<Usuario | null> => {
     const p = prefsDe(u.prefs);
     return {
       id: u.$id, nome: u.name || u.email, email: u.email, perfil,
-      telefone: p.telefone, foto: p.foto_file_id, funcaoRitual: p.funcao_ritual, sexo: p.sexo,
+      telefone: p.telefone, foto: p.foto_file_id, funcaoRitual: p.funcao_ritual, sexo: p.sexo, endereco: p.endereco,
+      cpf: p.cpf, dataNascimento: p.data_nascimento,
+      estado: p.estado, cidade: p.cidade, profissao: p.profissao,
+      experiencia: p.experiencia_ayahuasca, motivacao: p.motivacao, expectativas: p.expectativas,
+      tipo: perfil ? "equipe" : ehParticipante(u.labels ?? []) ? "participante" : null,
     };
   } catch {
     return null;
   }
 });
 
-/** Garante login e, se informado, um dos perfis. */
+/** Garante login com perfil de equipe (painel) e, se informado, um dos perfis. Participante é mandado para a própria área. */
 export async function exigir(perfis?: Perfil[]): Promise<Usuario & { perfil: Perfil }> {
   const u = await getUsuario();
   if (!u) redirect("/login");
-  if (!u.perfil) redirect("/login?erro=sem-perfil");
+  if (!u.perfil) {
+    if (u.tipo === "participante") redirect("/minha-conta");
+    redirect("/login?erro=sem-perfil");
+  }
   if (perfis && !perfis.includes(u.perfil)) redirect("/admin/eventos?erro=sem-permissao");
   return u as Usuario & { perfil: Perfil };
+}
+
+/** Garante só uma sessão válida (equipe ou participante) — páginas públicas que exigem login, como Minha conta. */
+export async function exigirSessao(next?: string): Promise<Usuario> {
+  const u = await getUsuario();
+  if (!u) redirect(`/login${next ? `?next=${encodeURIComponent(next)}` : ""}`);
+  return u;
 }
 
 export function pode(u: { perfil: Perfil | null } | null, perfis: Perfil[]) {

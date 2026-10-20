@@ -4,7 +4,7 @@ import { Query } from "node-appwrite";
 import { createAdminClient } from "./appwrite";
 import { DB_ID, INSTITUTO_ROW_ID, TABLES } from "./config";
 import type {
-  ChavePix, DadosInstituto, Endereco, Evento, Instituto, ModeloBanner, Rede, Telefone, TipoEvento,
+  ChavePix, DadosInstituto, Endereco, Evento, Instituto, ModeloBanner, Rede, TagEvento, Telefone, TipoEvento,
 } from "./types";
 
 export const INSTITUTO_PADRAO: Instituto = {
@@ -17,6 +17,9 @@ export const INSTITUTO_PADRAO: Instituto = {
   fonte_titulo: "Cinzel",
   fonte_texto: "Montserrat",
   ritual_numero_inicial: 500,
+  valor_contribuicao: null,
+  estado: null,
+  cidade: null,
   info_rituais: null,
   info_contribuicao: null,
   fonte_publica_titulo: null,
@@ -53,16 +56,35 @@ export async function listarTipos(apenasAtivos = false) {
   return listar<TipoEvento>(TABLES.tipos, q);
 }
 
+export async function listarTags(apenasAtivas = false) {
+  const q = [Query.orderAsc("ordem"), Query.orderAsc("nome")];
+  if (apenasAtivas) q.push(Query.equal("ativo", true));
+  return listar<TagEvento>(TABLES.tags, q);
+}
+
+/**
+ * Descrição completa do evento: a descrição própria e, depois, o texto de cada tag aplicada
+ * (na ordem das tags). A tag complementa: vale mesmo quando o evento já tem descrição.
+ */
+export function descricaoComTags(descricao: string | null | undefined, ids: string[] | null | undefined, tags: Pick<TagEvento, "$id" | "descricao" | "ativo">[]): string {
+  const textos = (ids ?? [])
+    .map((id) => tags.find((t) => t.$id === id))
+    .filter((t) => t && t.ativo && t.descricao?.trim())
+    .map((t) => t!.descricao!.trim());
+  return [descricao?.trim(), ...textos].filter(Boolean).join("\n\n");
+}
+
 export const getDadosInstituto = cache(async (): Promise<DadosInstituto> => {
-  const [instituto, enderecos, telefones, redes, pix, tipos] = await Promise.all([
+  const [instituto, enderecos, telefones, redes, pix, tipos, tags] = await Promise.all([
     getInstituto(),
     listar<Endereco>(TABLES.enderecos, [Query.orderDesc("padrao"), Query.orderAsc("apelido")]),
     listar<Telefone>(TABLES.telefones, [Query.orderDesc("padrao")]),
     listar<Rede>(TABLES.redes),
     listar<ChavePix>(TABLES.pix, [Query.orderDesc("padrao")]),
     listarTipos(),
+    listarTags(),
   ]);
-  return { instituto, enderecos, telefones, redes, pix, tipos };
+  return { instituto, enderecos, telefones, redes, pix, tipos, tags };
 });
 
 export type FiltroEventos = {

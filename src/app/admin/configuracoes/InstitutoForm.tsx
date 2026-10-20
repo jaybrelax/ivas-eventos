@@ -6,6 +6,7 @@ import { salvarInstituto } from "./actions";
 import { FONTES } from "./campos";
 import { Aviso, BotaoEnviar } from "@/components/ui";
 import { useImagem } from "@/components/useImagem";
+import { CampoEstadoCidade } from "@/components/CampoEstadoCidade";
 import type { Instituto } from "@/lib/types";
 
 function Logo({ rotulo, dica, nome, fileId, fundo }: { rotulo: string; dica: string; nome: string; fileId: string | null; fundo: string }) {
@@ -86,6 +87,11 @@ export function InstitutoForm({ instituto }: { instituto: Instituto }) {
           <label className="rotulo" htmlFor="nome_curto">Nome curto</label>
           <input id="nome_curto" name="nome_curto" defaultValue={instituto.nome_curto} className="campo" />
         </div>
+      </div>
+
+      <div>
+        <CampoEstadoCidade id="inst" estadoInicial={instituto.estado} cidadeInicial={instituto.cidade} />
+        <p className="ajuda">Já vêm escolhidos nos formulários de cadastro; a pessoa pode trocar se for de outro lugar.</p>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
