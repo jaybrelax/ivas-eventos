@@ -1,23 +1,19 @@
+import { urlImagem } from "@/lib/links";
 import Link from "next/link";
-import { CalendarDays, CalendarRange, ChevronLeft, ChevronRight, Clock, Flame, List, MapPin, Plus, Shield, Sparkles, Star, Users, Hash } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, List, MapPin, Plus, Shield, Star, Users } from "lucide-react";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
-import { ultimoNumeroRitual } from "@/lib/ritual";
 import { listarEquipe } from "@/lib/usuarios";
 import { candidaturasDosEventos, vagasDe } from "@/lib/guarnicao";
 import { IconeGenero } from "@/components/genero";
 import { formatarIdRitual, hoje, limitesMes, nomeMes, partesData, somarMes } from "@/lib/format";
-import { BadgeDestaque, BadgeRitual, BadgeTipo, Titulo, Vazio } from "@/components/Titulo";
+import { BadgeDestaque, BadgeTipo, Titulo, Vazio } from "@/components/Titulo";
 import { Aviso } from "@/components/ui";
 import type { Endereco, Evento, Pessoa, TipoEvento } from "@/lib/types";
 import { Filtros } from "./Filtros";
 
 const um = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
-
-function diasAte(de: string, ate: string) {
-  return Math.round((Date.parse(`${ate}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / 86_400_000);
-}
 
 export default async function Agenda({ searchParams }: PageProps<"/admin/eventos">) {
   const u = await exigir();
@@ -28,15 +24,14 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
   const tipo = um(sp.tipo) || "";
   const destaque = um(sp.destaque) === "1";
   const { inicio, fim } = limitesMes(mes);
-  const ano = Number(mes.slice(0, 4));
+  const filtrando = !!tipo || destaque;
 
-  const [{ tipos, enderecos }, equipe, eventos, doAno, futuros, ultimoRitual] = await Promise.all([
+  const [{ tipos, enderecos }, equipe, eventos, todosDoMes] = await Promise.all([
     getDadosInstituto(),
     listarEquipe(),
     listarEventos({ inicio, fim, tipos: tipo ? [tipo] : undefined, apenasDestaque: destaque }),
-    listarEventos({ inicio: `${ano}-01-01`, fim: `${ano}-12-31` }),
-    listarEventos({ inicio: hj }),
-    ultimoNumeroRitual(),
+    // Contagem do mês sem filtros (só busca de novo quando há filtro ativo)
+    filtrando ? listarEventos({ inicio, fim }) : null,
   ]);
   const tipoPorId = new Map(tipos.map((t) => [t.$id, t]));
   const endPorId = new Map(enderecos.map((e) => [e.$id, e]));
@@ -51,9 +46,12 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
       return [e.$id, { m: conf.filter((c) => c.sexo === "masculino").length, f: conf.filter((c) => c.sexo === "feminino").length, vm: v.masculino, vf: v.feminino }];
     }),
   );
-  const rituaisAno = doAno.filter((e) => e.ritual_numero_geral).length;
-  const doMes = doAno.filter((e) => e.data.startsWith(mes));
-  const proximo = futuros[0];
+  const totalDoMes = (todosDoMes ?? eventos).length;
+  const contagemMes = (
+    <span className="text-xs font-medium text-stone-500">
+      <span className="font-semibold text-mata-700 tabular-nums">{totalDoMes}</span> {totalDoMes === 1 ? "evento" : "eventos"} no mês
+    </span>
+  );
   const podeEditar = pode(u, PODE.editarEventos);
 
   const link = (extra: Record<string, string>) => {
@@ -65,12 +63,6 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
   // Já aconteceram: do mais recente para o mais antigo (a lista vem em ordem crescente).
   const passados = eventos.filter((e) => e.data < hj).reverse();
 
-  const kpis = [
-    { rotulo: `Eventos em ${p.mesNome}`, valor: doMes.length, Icone: CalendarRange, cor: "text-mata-600 bg-mata-50" },
-    { rotulo: `Rituais em ${ano}`, valor: rituaisAno, Icone: Flame, cor: "text-orange-600 bg-orange-50" },
-    // Número do último ritual cadastrado (não a contagem de registros): dá a noção do total já feito
-    { rotulo: "Rituais ao todo", valor: ultimoRitual ?? "—", Icone: Hash, cor: "text-ouro-600 bg-ouro-50" },
-  ];
 
   return (
     <>
@@ -85,35 +77,20 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
       {um(sp.ok) === "excluido" && <div className="mb-5"><Aviso tipo="ok">Evento excluído.</Aviso></div>}
       {um(sp.erro) === "sem-permissao" && <div className="mb-5"><Aviso tipo="info">Seu perfil não tem acesso a essa página.</Aviso></div>}
 
-      {/* Indicadores */}
-      <div className="mb-6 grid grid-cols-3 gap-2.5 sm:gap-3 xl:grid-cols-4">
-        {kpis.map(({ rotulo, valor, Icone, cor }) => (
-          <div key={rotulo} className="cartao flex flex-col items-start gap-2.5 p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-5">
-            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl sm:h-11 sm:w-11 ${cor}`}><Icone size={18} /></span>
-            <div className="min-w-0">
-              <p className="text-xs leading-tight text-stone-500 first-letter:uppercase sm:text-[13px]">{rotulo}</p>
-              <p className="text-2xl font-semibold tracking-tight text-stone-900 tabular-nums">{valor}</p>
-            </div>
-          </div>
-        ))}
-        <ProximoEvento evento={proximo} tipo={proximo ? tipoPorId.get(proximo.tipo_id) : undefined} hj={hj} />
-      </div>
-
-      {/* Barra de navegação e filtros */}
-      <div className="cartao mb-5 flex flex-wrap items-center gap-3 p-3 sm:p-3">
-        <div className="flex items-center gap-1">
+      {/* Uma barra só: filtros · mês · lista/calendário. No celular o mês ocupa a linha de cima. */}
+      <div className="cartao mb-5 flex flex-wrap items-center justify-between gap-2 p-2.5 sm:flex-nowrap sm:p-3">
+        <div className="order-2 sm:order-1">
+          <Filtros tipos={tipos} />
+        </div>
+        <div className="order-1 flex w-full items-center justify-between gap-1 border-b border-stone-100 pb-2 sm:order-2 sm:w-auto sm:justify-center sm:border-0 sm:pb-0">
           <Link href={link({ mes: somarMes(mes, -1) })} className="btn-icone" aria-label="Mês anterior"><ChevronLeft size={18} /></Link>
           <span className="min-w-36 text-center text-base font-semibold tracking-tight text-stone-900 capitalize">{p.mesNome} {p.ano}</span>
           <Link href={link({ mes: somarMes(mes, 1) })} className="btn-icone" aria-label="Próximo mês"><ChevronRight size={18} /></Link>
-          {mes !== hj.slice(0, 7) && <Link href={link({ mes: hj.slice(0, 7) })} className="btn-secundario ml-1 h-8 px-3 text-xs">Hoje</Link>}
+          {mes !== hj.slice(0, 7) && <Link href={link({ mes: hj.slice(0, 7) })} className="btn-secundario h-8 px-3 text-xs">Hoje</Link>}
         </div>
-        {/* Filtros junto da troca de vista, à direita */}
-        <div className="ml-auto flex items-center gap-2">
-          <Filtros tipos={tipos} />
-          <div className="segmentado">
-            <Link href={link({ vista: "lista" })} data-ativo={vista === "lista"}><List size={15} /> Lista</Link>
-            <Link href={link({ vista: "calendario" })} data-ativo={vista === "calendario"}><CalendarDays size={15} /> Calendário</Link>
-          </div>
+        <div className="segmentado order-3">
+          <Link href={link({ vista: "lista" })} data-ativo={vista === "lista"}><List size={15} /> Lista</Link>
+          <Link href={link({ vista: "calendario" })} data-ativo={vista === "calendario"}><CalendarDays size={15} /> Calendário</Link>
         </div>
       </div>
 
@@ -121,12 +98,12 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
         eventos.length ? (
           <div className="space-y-8">
             {proximos.length > 0 && (
-              <Secao titulo={passados.length ? "Próximos" : undefined} total={proximos.length}>
+              <Secao titulo={passados.length ? "Próximos" : undefined} total={proximos.length} direita={contagemMes}>
                 {proximos.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} end={e.endereco_id ? endPorId.get(e.endereco_id) : undefined} hj={hj} pessoas={pessoaPorId} guarnicao={guarnicaoPorId.get(e.$id)} />)}
               </Secao>
             )}
             {passados.length > 0 && (
-              <Secao titulo={proximos.length ? "Já aconteceram" : undefined} total={passados.length}>
+              <Secao titulo={proximos.length ? "Já aconteceram" : undefined} total={passados.length} direita={proximos.length ? undefined : contagemMes}>
                 {passados.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} end={e.endereco_id ? endPorId.get(e.endereco_id) : undefined} hj={hj} pessoas={pessoaPorId} guarnicao={guarnicaoPorId.get(e.$id)} passado />)}
               </Secao>
             )}
@@ -140,51 +117,30 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
           />
         )
       ) : (
-        <Calendario mes={mes} eventos={eventos} tipoPorId={tipoPorId} hj={hj} />
+        <>
+          <div className="mb-3 flex justify-end">{contagemMes}</div>
+          <Calendario mes={mes} eventos={eventos} tipoPorId={tipoPorId} hj={hj} />
+        </>
       )}
     </>
   );
 }
 
-function ProximoEvento({ evento, tipo, hj }: { evento?: Evento; tipo?: TipoEvento; hj: string }) {
-  if (!evento)
-    return (
-      <div className="cartao col-span-3 flex items-center gap-4 p-4 sm:p-5 xl:col-span-1">
-        <span className="grid h-11 w-11 place-items-center rounded-xl bg-stone-100 text-stone-500"><Sparkles size={20} /></span>
-        <div>
-          <p className="text-[13px] text-stone-500">Próximo evento</p>
-          <p className="text-sm font-medium text-stone-700">Nada agendado</p>
-        </div>
-      </div>
-    );
-  const n = diasAte(hj, evento.data);
-  const quando = n === 0 ? "Hoje" : n === 1 ? "Amanhã" : `Em ${n} dias`;
-  return (
-    <Link
-      href={`/admin/eventos/${evento.$id}`}
-      className="group relative col-span-3 flex items-center gap-4 overflow-hidden rounded-2xl xl:col-span-1 bg-gradient-to-br from-mata-800 to-mata-950 p-4 text-white shadow-elevado transition hover:-translate-y-0.5 sm:p-5"
-    >
-      <div aria-hidden className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-ouro-400/20 blur-2xl" />
-      <span className="relative grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10 text-ouro-300 ring-1 ring-white/15"><Clock size={20} /></span>
-      <div className="relative min-w-0">
-        <p className="text-[13px] text-mata-200">Próximo · <span className="font-semibold text-ouro-300">{quando}</span></p>
-        <p className="truncate font-semibold">{evento.titulo}</p>
-        <p className="truncate text-xs text-mata-300">{tipo?.nome} · {evento.hora_inicio}</p>
-      </div>
-    </Link>
-  );
-}
-
-function Secao({ titulo, total, children }: { titulo?: string; total: number; children: React.ReactNode }) {
+function Secao({ titulo, total, direita, children }: { titulo?: string; total: number; direita?: React.ReactNode; children: React.ReactNode }) {
   return (
     <section>
-      {titulo && (
-        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-stone-500">
-          {titulo}
-          <span className="rounded-full bg-stone-200/70 px-2 py-0.5 text-xs text-stone-600 tabular-nums">{total}</span>
-        </h2>
+      {(titulo || direita) && (
+        <div className="mb-3 flex items-center justify-between gap-3">
+          {titulo ? (
+            <h2 className="flex items-center gap-2 text-sm font-semibold text-stone-500">
+              {titulo}
+              <span className="rounded-full bg-stone-200/70 px-2 py-0.5 text-xs text-stone-600 tabular-nums">{total}</span>
+            </h2>
+          ) : <span />}
+          {direita}
+        </div>
       )}
-      <div className="grid gap-3">{children}</div>
+      <div className="grid gap-2">{children}</div>
     </section>
   );
 }
@@ -204,37 +160,33 @@ function CartaoEvento({ e, t, end, hj, passado, pessoas, guarnicao }: { e: Event
   return (
     <Link
       href={`/admin/eventos/${e.$id}`}
-      className={`group relative flex items-stretch gap-4 overflow-hidden rounded-2xl border bg-white p-3 shadow-cartao transition hover:-translate-y-px hover:shadow-elevado sm:p-4 ${
+      className={`group relative flex items-stretch overflow-hidden rounded-xl border bg-white shadow-cartao transition hover:-translate-y-px hover:shadow-elevado ${
         e.destaque ? "border-ouro-300 ring-1 ring-ouro-200" : "border-stone-200/80 hover:border-stone-300"
       } ${passado ? "opacity-70 hover:opacity-100" : ""}`}
     >
-      {e.destaque && <div aria-hidden className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-ouro-300 to-ouro-600" />}
-
-      {/* Data */}
-      <div className="relative isolate flex aspect-[1/0.92] w-[5.25rem] shrink-0 flex-col items-center justify-center overflow-hidden rounded-xl text-center sm:w-24" style={{ background: `${cor}12`, color: cor }}>
-        {/* Celular: a capa desfocada no fundo do bloco (no desktop ela aparece ao lado) */}
+      {/* Coluna da data: a capa preenche a altura toda e a data fica num quadro de vidro */}
+      <div
+        className="relative isolate grid w-28 shrink-0 place-items-center overflow-hidden sm:w-36"
+        style={{ background: `linear-gradient(135deg, ${cor}, color-mix(in oklab, ${cor} 55%, #000))` }}
+      >
         {e.capa_file_id && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={`/api/arquivo/${e.capa_file_id}`} alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full scale-110 object-cover opacity-30 blur-[3px] sm:hidden" />
+          <img src={urlImagem(e.capa_file_id, 320)} loading="lazy" decoding="async" alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
         )}
-        {e.destaque && <Star size={13} className="mb-0.5 fill-ouro-400 text-ouro-500 sm:hidden" aria-label="Destaque" />}
-        <span className="text-xs font-semibold tracking-wider uppercase sm:text-[13px]">{d.mesCurto}</span>
-        <span className="text-4xl leading-none font-bold tabular-nums sm:text-[2.6rem]">{d.dia}</span>
-        <span className="mt-1 text-[11px] font-medium capitalize opacity-80 sm:text-xs">{d.diaSemana.slice(0, 3)}</span>
+        <div aria-hidden className="absolute inset-0 -z-10 bg-black/15" />
+        <div className="my-3 flex w-[4.5rem] flex-col items-center rounded-xl bg-white/20 px-2 py-2 text-center text-white shadow-[0_8px_24px_-8px_rgb(0_0_0/0.5)] ring-1 ring-white/35 backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_6px_rgb(0_0_0/0.45)] sm:w-20">
+          <span className="text-[11px] font-bold tracking-[0.18em] uppercase">{d.mesCurto}</span>
+          <span className="text-[2.1rem] leading-none font-black tabular-nums sm:text-[2.4rem]">{d.dia}</span>
+          <span className="mt-0.5 text-[10px] font-medium capitalize opacity-90 sm:text-[11px]">{d.diaSemana.slice(0, 3)}</span>
+        </div>
       </div>
 
-      {/* Capa */}
-      {e.capa_file_id && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={`/api/arquivo/${e.capa_file_id}`} alt="" className="hidden w-32 shrink-0 rounded-xl object-cover ring-1 ring-stone-200 sm:block" />
-      )}
-
       {/* Conteúdo */}
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 p-3 sm:p-4">
         <div className="flex flex-wrap items-center gap-2">
           {ehHoje && <span className="chip bg-mata-700 text-white">Hoje</span>}
           <h3 className="truncate text-[17px] leading-snug font-semibold text-stone-900 transition group-hover:text-mata-700 sm:text-xl">{e.titulo}</h3>
-          {e.destaque && <Star size={15} className="hidden shrink-0 fill-ouro-400 text-ouro-500 sm:block" aria-label="Destaque" />}
+          {e.destaque && <Star size={15} className="shrink-0 fill-ouro-400 text-ouro-500 md:hidden" aria-label="Destaque" />}
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-stone-500">
           <span className="inline-flex items-center gap-1.5"><Clock size={14} />{e.hora_inicio}</span>
@@ -248,18 +200,19 @@ function CartaoEvento({ e, t, end, hj, passado, pessoas, guarnicao }: { e: Event
             </span>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 md:hidden">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:hidden">
           {t && <BadgeTipo nome={t.nome} cor={t.cor} icone={t.icone} />}
-          {idR && <BadgeRitual id={idR} />}
+          {idR && <span className="font-mono text-[11px] font-medium tracking-tight text-mata-700">{idR}</span>}
         </div>
       </div>
 
-      <div className="hidden shrink-0 flex-col items-end justify-center gap-1.5 md:flex">
+      <div className="hidden shrink-0 flex-col items-end justify-center gap-1.5 py-4 md:flex">
         {t && <BadgeTipo nome={t.nome} cor={t.cor} icone={t.icone} />}
-        {idR && <BadgeRitual id={idR} />}
         {e.destaque && <BadgeDestaque />}
+        {/* Número do ritual sem fundo, abaixo do destaque */}
+        {idR && <span className="pr-1 font-mono text-[11px] font-medium tracking-tight text-mata-700">{idR}</span>}
       </div>
-      <ChevronRight size={18} className="hidden shrink-0 self-center text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-stone-500 sm:block" />
+      <ChevronRight size={18} className="mr-3 hidden shrink-0 self-center text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-stone-500 sm:block" />
     </Link>
   );
 }

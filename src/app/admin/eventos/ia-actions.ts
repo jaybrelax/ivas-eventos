@@ -1,6 +1,6 @@
 "use server";
 
-import sharp from "sharp";
+import { prepararImagem } from "@/lib/imagem-servidor";
 import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { listarTipos } from "@/lib/data";
@@ -65,10 +65,7 @@ export async function gerarCapaComIA(entrada: { titulo: string; descricao: strin
   try {
     const b64 = (JSON.parse(corpo) as { data?: { b64_json?: string }[] }).data?.[0]?.b64_json;
     if (!b64) throw new Error("sem imagem na resposta");
-    const otimizada = await sharp(Buffer.from(b64, "base64"))
-      .resize(1600, 1600, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 82 })
-      .toBuffer();
+    const { bytes: otimizada } = await prepararImagem(Buffer.from(b64, "base64"), "capa-ia.png", "capa");
     return { ok: true, base64: otimizada.toString("base64"), tipo: "image/webp", nome: "capa-ia.webp" };
   } catch (e) {
     console.error("OpenAI (resposta):", e instanceof Error ? e.message : e);

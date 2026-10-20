@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigirSessao } from "@/lib/auth";
 import { salvarContato } from "@/lib/usuarios";
+import { comParticiparAberto } from "@/lib/links";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
 
@@ -35,8 +36,7 @@ export async function salvarMeusDados(_: Resultado, form: FormData): Promise<Res
   revalidatePath("/minha-conta/dados");
 
   // Veio direto do cadastro pelo Google, completando os dados: segue para onde a pessoa ia antes.
-  const next = destinoSeguro(form.get("next"));
-  if (next) redirect(next);
-
-  return { ok: "Dados salvos." };
+  // Nos demais casos, salvou com sucesso → volta para Minhas inscrições.
+  const destino = destinoSeguro(form.get("next"));
+  redirect(destino ? comParticiparAberto(destino) : "/minha-conta?aba=proximos");
 }

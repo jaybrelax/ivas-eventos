@@ -1,5 +1,5 @@
 import "server-only";
-import { candidaturasDoEvento, inicioDe, prazoCancelamento, vagasDe } from "@/lib/guarnicao";
+import { candidaturasDoEvento, inicioDe, prazoCancelamento, regrasGuarnicao, vagasDe } from "@/lib/guarnicao";
 import { mapaUsuarios } from "@/lib/usuarios";
 import type { Evento, Sexo } from "@/lib/types";
 import type { DadosGuarnicao, PessoaGuarnicao } from "./Guarnicao";
@@ -18,7 +18,7 @@ export async function dadosGuarnicao(
   eu: { id: string; funcaoRitual: string; sexo: Sexo | null },
   gerenciar: boolean,
 ): Promise<DadosGuarnicao> {
-  const [candidaturas, usuarios] = await Promise.all([candidaturasDoEvento(evento.$id), mapaUsuarios()]);
+  const [candidaturas, usuarios, { horas }] = await Promise.all([candidaturasDoEvento(evento.$id), mapaUsuarios(), regrasGuarnicao()]);
   const pessoa = (id: string): PessoaGuarnicao => {
     const u = usuarios.get(id);
     return { id, nome: u?.nome ?? "Usuário removido", foto: u?.foto ?? null };
@@ -35,8 +35,8 @@ export async function dadosGuarnicao(
     vagas: vagasDe(evento),
     abertas: evento.candidaturas_abertas !== false,
     jaComecou: inicioDe(evento).getTime() <= agora,
-    prazoPassou: prazoCancelamento(evento).getTime() < agora,
-    prazoTexto: quando(prazoCancelamento(evento)),
+    prazoPassou: prazoCancelamento(evento, horas).getTime() < agora,
+    prazoTexto: quando(prazoCancelamento(evento, horas)),
     confirmados,
     espera,
     eu: {

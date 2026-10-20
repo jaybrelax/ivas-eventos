@@ -1,3 +1,4 @@
+import { urlImagem } from "@/lib/links";
 import type { Perfil } from "@/lib/config";
 
 const COR_PERFIL: Record<Perfil, string> = {
@@ -17,7 +18,7 @@ export function Avatar({ nome, foto, perfil, tamanho = 40, className = "" }: { n
   if (foto)
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={`/api/arquivo/${foto}`} alt={nome} style={estilo} className={`shrink-0 rounded-full object-cover ring-2 ring-white/70 ${className}`} />
+      <img src={urlImagem(foto, tamanho > 80 ? 320 : 160)} alt={nome} style={estilo} decoding="async" className={`shrink-0 rounded-full object-cover ring-2 ring-white/70 ${className}`} />
     );
   return (
     <span style={estilo} className={`grid shrink-0 place-items-center rounded-full bg-gradient-to-br font-bold ${perfil ? COR_PERFIL[perfil] : "from-stone-200 to-stone-300 text-stone-600"} ${className}`}>

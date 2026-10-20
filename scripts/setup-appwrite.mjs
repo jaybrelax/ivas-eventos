@@ -57,11 +57,13 @@ const TABELAS = {
       f("valor_contribuicao", { min: 0 }),
       // Estado (sigla) e cidade do Instituto: vêm já escolhidos nos formulários de cadastro
       v("estado", 2), v("cidade", 100),
+      // App da Guarnição: prazo para o guardião cancelar e limite de participações por mês (0 = sem limite)
+      i("guarnicao_horas_cancelamento", { xdefault: 4, min: 0, max: 72 }), i("guarnicao_limite_mes", { xdefault: 2, min: 0, max: 31 }),
     ],
   },
   enderecos: {
     nome: "Endereços",
-    colunas: [v("apelido", 60, { required: true }), v("endereco", 255, { required: true }), v("cidade", 80), v("link_maps", 500), b("padrao")],
+    colunas: [v("apelido", 60, { required: true }), v("endereco", 255, { required: true }), v("cidade", 80), v("link_maps", 500), v("foto_file_id", 64), b("padrao")],
   },
   telefones: {
     nome: "Telefones",

@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { ID, Query } from "node-appwrite";
-import { InputFile } from "node-appwrite/file";
+import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { createAdminClient } from "./appwrite";
 import { BUCKET_ID, LABEL_PARTICIPANTE, type Perfil } from "./config";
 import { conferirImagem } from "./imagem";
@@ -175,7 +175,7 @@ export async function salvarContato(userId: string, form: FormData, podeFuncao =
     if (invalida) return { erro: invalida };
     try {
       const novo = await storage.createFile({
-        bucketId: BUCKET_ID, fileId: ID.unique(), file: InputFile.fromBuffer(Buffer.from(await arquivo.arrayBuffer()), arquivo.name),
+        bucketId: BUCKET_ID, fileId: ID.unique(), file: (await arquivoOtimizado(arquivo, arquivo.name, "foto")).input,
       });
       foto = novo.$id;
       apagar = antiga;

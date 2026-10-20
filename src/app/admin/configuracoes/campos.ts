@@ -1,7 +1,7 @@
 export type Campo = {
   nome: string;
   rotulo: string;
-  tipo: "text" | "checkbox" | "select" | "color" | "number" | "telefone";
+  tipo: "text" | "checkbox" | "select" | "color" | "number" | "telefone" | "foto";
   obrigatorio?: boolean;
   opcoes?: { valor: string; rotulo: string }[];
   dica?: string;
@@ -17,6 +17,7 @@ export const CAMPOS = {
       { nome: "endereco", rotulo: "Endereço completo", tipo: "text", obrigatorio: true, largura: "lg" },
       { nome: "cidade", rotulo: "Cidade/UF", tipo: "text", largura: "sm" },
       { nome: "link_maps", rotulo: "Link do Google Maps", tipo: "text", largura: "md" },
+      { nome: "foto_file_id", rotulo: "Foto", tipo: "foto", dica: "Aparece na página do evento" },
       { nome: "padrao", rotulo: "Padrão", tipo: "checkbox" },
     ],
   },

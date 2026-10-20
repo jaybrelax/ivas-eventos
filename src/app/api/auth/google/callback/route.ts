@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 import { ID, Query } from "node-appwrite";
-import { InputFile } from "node-appwrite/file";
+import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { createAdminClient } from "@/lib/appwrite";
 import { BUCKET_ID, LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
 import { ehParticipante, perfilDosLabels } from "@/lib/usuarios";
@@ -19,7 +19,7 @@ async function baixarFotoGoogle(storage: ReturnType<typeof createAdminClient>["s
     if (!tipo.startsWith("image/")) return null;
     const buf = Buffer.from(await r.arrayBuffer());
     if (buf.byteLength > 2 * 1024 * 1024) return null; // mesmo limite de "foto" em src/lib/imagem.ts
-    const arquivo = await storage.createFile({ bucketId: BUCKET_ID, fileId: ID.unique(), file: InputFile.fromBuffer(buf, "google.jpg") });
+    const arquivo = await storage.createFile({ bucketId: BUCKET_ID, fileId: ID.unique(), file: (await arquivoOtimizado(buf, "google.jpg", "foto")).input });
     return arquivo.$id;
   } catch (e) {
     console.error("Foto do Google:", e instanceof Error ? e.message : e);

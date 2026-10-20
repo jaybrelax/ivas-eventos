@@ -1,5 +1,5 @@
 import { TipografiaPublica } from "@/components/publico/TipografiaPublica";
-import { urlPublicaEvento } from "@/lib/links";
+import { srcsetImagem, urlImagem, urlPublicaEvento } from "@/lib/links";
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
@@ -10,7 +10,6 @@ import {
   Compass,
   Flame,
   MapPin,
-  Sparkles,
   Star,
 } from "lucide-react";
 import { descricaoComTags, getDadosInstituto, listarEventos } from "@/lib/data";
@@ -19,6 +18,14 @@ import { IconeTipo } from "@/components/IconeTipo";
 import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
 import { RodapePublico } from "@/components/publico/RodapePublico";
 import { Paginacao } from "@/components/publico/Paginacao";
+
+// Filtros do topo: pílulas de vidro; a ativa fica branca e o número vira um selo
+const FILTRO = "inline-flex h-10 items-center gap-2 rounded-full pr-1.5 pl-4 text-[13px] font-semibold transition duration-200 active:scale-[0.97]";
+const FILTRO_ATIVO = "bg-white text-mata-900 shadow-[0_10px_28px_-10px_rgb(255_255_255/0.6)]";
+const FILTRO_INATIVO = "bg-white/[0.07] text-white/85 ring-1 ring-white/15 ring-inset backdrop-blur-md hover:bg-white/[0.14] hover:text-white hover:ring-white/30";
+const CONTADOR = "grid h-7 min-w-7 place-items-center rounded-full px-2 text-[11px] font-bold tabular-nums";
+const CONTADOR_ATIVO = "bg-mata-700 text-white";
+const CONTADOR_INATIVO = "bg-white/10 text-white/80";
 
 /** Quantos eventos aparecem por página na agenda. */
 const POR_PAGINA = 12;
@@ -80,7 +87,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900 selection:bg-ouro-200 selection:text-mata-950">
       <TipografiaPublica instituto={instituto} />
-      <CabecalhoPublico instituto={instituto} />
+      <CabecalhoPublico instituto={instituto} mostrarAgenda={false} />
 
       {/* Hero da Agenda */}
       <section className="relative overflow-hidden bg-gradient-to-b from-mata-950 via-mata-900 to-stone-900 py-12 text-white sm:py-16">
@@ -91,7 +98,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
 
         <div className="relative z-10 mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-ouro-400/30 bg-ouro-400/10 px-3.5 py-1 text-xs font-semibold text-ouro-300">
-            <Sparkles size={13} />
+            <Clock size={13} />
             Programação Oficial
           </span>
 
@@ -107,13 +114,11 @@ export default async function AgendaPublica({ searchParams }: Props) {
           <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
             <Link
               href="/eventos"
-              className={`rounded-xl px-4 py-2 text-xs font-semibold transition ${
-                !tipoFiltro
-                  ? "bg-gradient-to-r from-ouro-400 to-ouro-600 text-mata-950 shadow-md"
-                  : "border border-white/10 bg-white/5 text-stone-300 hover:bg-white/10"
-              }`}
+              className={`${FILTRO} ${!tipoFiltro ? FILTRO_ATIVO : FILTRO_INATIVO}`}
             >
-              Todos os Encontros ({eventosFuturos.length})
+              <CalendarDays size={14} className="shrink-0" />
+              Todos os encontros
+              <span className={`${CONTADOR} ${!tipoFiltro ? CONTADOR_ATIVO : CONTADOR_INATIVO}`}>{eventosFuturos.length}</span>
             </Link>
 
             {tipos.map((t) => {
@@ -125,13 +130,11 @@ export default async function AgendaPublica({ searchParams }: Props) {
                 <Link
                   key={t.$id}
                   href={`/eventos?tipo=${t.$id}`}
-                  className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
-                    ativo
-                      ? "bg-white text-stone-900 shadow-md"
-                      : "border border-white/10 bg-white/5 text-stone-300 hover:bg-white/10"
-                  }`}
+                  className={`${FILTRO} ${ativo ? FILTRO_ATIVO : FILTRO_INATIVO}`}
                 >
-                  {t.nome} ({cont})
+                  <IconeTipo nome={t.icone} size={14} className="shrink-0" />
+                  {t.nome}
+                  <span className={`${CONTADOR} ${ativo ? CONTADOR_ATIVO : CONTADOR_INATIVO}`}>{cont}</span>
                 </Link>
               );
             })}
@@ -150,7 +153,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
           </div>
         ) : (
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {eventosDaPagina.map((e) => {
+            {eventosDaPagina.map((e, i) => {
               const tipo = tipoPorId.get(e.tipo_id);
               const end = endPorId.get(e.endereco_id ?? "");
               const d = partesData(e.data);
@@ -167,7 +170,13 @@ export default async function AgendaPublica({ searchParams }: Props) {
                     {e.capa_file_id ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
-                        src={`/api/arquivo/${e.capa_file_id}`}
+                        src={urlImagem(e.capa_file_id, 640)}
+                        srcSet={srcsetImagem(e.capa_file_id)}
+                        sizes="(min-width: 1024px) 400px, (min-width: 640px) 50vw, 100vw"
+                        width={640}
+                        height={400}
+                        loading={i < 3 ? "eager" : "lazy"}
+                        decoding="async"
                         alt={e.titulo}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
@@ -185,11 +194,11 @@ export default async function AgendaPublica({ searchParams }: Props) {
                     {/* Data em vidro fosco, sem contorno: dia, mês (3 letras) e ano, no canto superior esquerdo */}
                     <time
                       dateTime={e.data}
-                      className="absolute top-3.5 left-3.5 flex min-w-[3.4rem] flex-col items-center overflow-hidden rounded-[0.4rem] rounded-tl-[1.15rem] bg-gradient-to-b from-white/30 via-white/15 to-black/20 px-3 py-2 text-center text-white shadow-[0_12px_32px_-8px_rgb(0_0_0/0.5)] backdrop-blur-md backdrop-saturate-[1.8]"
+                      className="absolute top-3.5 left-3.5 flex min-w-[3.4rem] flex-col items-center overflow-hidden rounded-[0.4rem] rounded-tl-[1.15rem] bg-gradient-to-b from-white/30 via-white/15 to-black/20 px-3 py-2 text-center text-white shadow-[0_12px_32px_-8px_rgb(0_0_0/0.5)] backdrop-blur-sm backdrop-saturate-[1.8]"
                     >
                       {/* Reflexo de luz suave no topo */}
                       <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/25 to-transparent" />
-                      <span className="relative font-sans text-[1.85rem] leading-[0.95] font-extrabold tracking-tight tabular-nums [text-shadow:0_2px_12px_rgb(0_0_0/0.55)]">{d.dia}</span>
+                      <span className="relative font-sans text-[1.85rem] leading-[0.95] font-black tracking-tight tabular-nums [text-shadow:0_2px_12px_rgb(0_0_0/0.55)]">{d.dia}</span>
                       <span className="relative mt-0.5 text-[0.7rem] leading-none font-bold tracking-[0.24em] [text-shadow:0_1px_6px_rgb(0_0_0/0.55)]">{d.mesCurto}</span>
                       <span className="relative mt-0.5 text-[0.6rem] leading-none font-medium tracking-[0.16em] text-white/75 tabular-nums [text-shadow:0_1px_4px_rgb(0_0_0/0.5)]">{d.ano}</span>
                     </time>
@@ -199,6 +208,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
                       <span className="absolute bottom-3.5 left-3.5 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 text-xs font-semibold text-white ring-1 ring-white/35 ring-inset backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_2px_rgb(0_0_0/0.35)]">
                         <IconeTipo nome={tipo.icone} size={13} strokeWidth={2.4} className="drop-shadow-[0_1px_1px_rgb(0_0_0/0.3)]" />
                         {tipo.nome}
+                        {tipo.conta_como_ritual && e.ritual_numero_geral ? ` N° ${e.ritual_numero_geral}` : ""}
                       </span>
                     )}
 
@@ -241,7 +251,10 @@ export default async function AgendaPublica({ searchParams }: Props) {
                     {/* Rodapé do Card com Local e Botão */}
                     <div className="mt-6 flex items-center justify-between border-t border-stone-100 pt-4 text-xs">
                       <span className="inline-flex items-center gap-1.5 text-stone-500 min-w-0 truncate">
-                        <MapPin size={14} className="shrink-0 fill-current text-[#ee4b2b]" />
+                        <svg width={14} height={14} viewBox="0 0 24 24" aria-hidden className="shrink-0 text-[#ee4b2b]">
+                          <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" fill="currentColor" />
+                          <circle cx="12" cy="10" r="3" fill="#fff" />
+                        </svg>
                         <span className="truncate">{end ? end.apelido : e.endereco_livre || "Londrina - PR"}</span>
                       </span>
 

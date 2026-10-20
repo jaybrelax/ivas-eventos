@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
 import { FundoMarca } from "@/components/FundoMarca";
+import { urlImagem } from "@/lib/links";
 import { ParticipanteForm } from "./ParticipanteForm";
 
 const DESCRICAO = "Faça seu cadastro no Instituto IVAS para confirmar presença nos rituais e acompanhar seu histórico de participações.";
@@ -37,7 +38,7 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
         <p className="relative mt-12 text-xs text-mata-400">{instituto.nome}</p>
       </section>
 
-      <section className="relative flex flex-col items-center justify-start bg-[#c3cdf6] px-5 pt-[max(61vw,34svh)] pb-8 lg:justify-center lg:bg-white lg:py-12">
+      <section className="relative flex flex-col items-center justify-start bg-[#c3cdf6] px-5 pt-[max(61vw,34svh)] pb-8 max-lg:has-[[data-etapa=escolha]]:pt-[max(92vw,50svh)] lg:justify-center lg:bg-white lg:py-12">
         {/* Celular: mesma arte do login, fixa ao fundo enquanto o formulário rola (a logo já faz parte da imagem) */}
         <div aria-hidden className="fixed inset-0 bg-cover bg-top bg-no-repeat lg:hidden" style={{ backgroundImage: "url(/fundo_login_mobile.webp)" }} />
         <div className="relative w-full max-w-md animate-surgir rounded-3xl bg-white/55 p-5 shadow-elevado ring-1 ring-white/70 backdrop-blur-md lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none">
@@ -51,6 +52,11 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
         <p className="relative mt-5 text-center text-sm font-medium text-stone-600">
           Já tem acesso? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold text-mata-700 underline-offset-2 hover:underline">Entrar</Link>
         </p>
+        {/* Celular: a logo do Instituto, pequena, fechando a página */}
+        {instituto.logo_file_id && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={urlImagem(instituto.logo_file_id, 320)} alt={instituto.nome} width={100} className="relative mt-6 h-auto w-[100px] lg:hidden" />
+        )}
       </section>
     </main>
   );

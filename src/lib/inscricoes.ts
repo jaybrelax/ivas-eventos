@@ -69,6 +69,7 @@ export type ItemInscricao = {
   inscricaoId: string;
   eventoId: string;
   titulo: string;
+  capa: string | null;
   data: string;
   hora: string;
   ritualNumero: number | null;
@@ -98,6 +99,7 @@ export async function inscricoesComEventos(usuarioId: string): Promise<ItemInscr
         inscricaoId: i.$id,
         eventoId: e.$id,
         titulo: e.titulo,
+        capa: e.capa_file_id,
         data: e.data,
         hora: e.hora_inicio,
         ritualNumero: tipo?.conta_como_ritual ? e.ritual_numero_geral : null,

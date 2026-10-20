@@ -6,7 +6,8 @@ import { getUsuario } from "@/lib/auth";
 import { sair } from "@/app/login/actions";
 import { MenuUsuario } from "./MenuUsuario";
 
-export async function CabecalhoPublico({ instituto }: { instituto: Instituto }) {
+/** `mostrarAgenda`: false na própria agenda (o botão seria redundante lá). */
+export async function CabecalhoPublico({ instituto, mostrarAgenda = true }: { instituto: Instituto; mostrarAgenda?: boolean }) {
   const u = await getUsuario();
   return (
     <header className="sticky top-0 z-40 border-b border-stone-200/80 bg-white/90 shadow-2xs backdrop-blur-md transition-all">
@@ -23,6 +24,7 @@ export async function CabecalhoPublico({ instituto }: { instituto: Instituto }) 
             <MenuUsuario nome={u.nome} foto={u.foto} sair={sair} />
           ) : (
             <>
+              {mostrarAgenda && (
               <Link
                 href="/eventos"
                 aria-label="Agenda de Rituais"
@@ -32,11 +34,12 @@ export async function CabecalhoPublico({ instituto }: { instituto: Instituto }) 
                 <span className="sm:hidden">Agenda</span>
                 <span className="hidden sm:inline">Agenda de Rituais</span>
               </Link>
+              )}
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-ouro-400 to-ouro-600 px-3.5 py-2 text-xs font-bold text-mata-950 shadow-sm transition hover:brightness-105 active:scale-[0.98] sm:text-sm"
+                className="group inline-flex items-center gap-2 rounded-xl border-[1.5px] border-mata-600 bg-white px-3.5 py-2 text-xs font-bold text-mata-700 shadow-[0_6px_18px_-10px_rgb(85_52_127/0.8)] transition hover:border-mata-700 hover:bg-mata-700 hover:text-white active:scale-[0.98] sm:text-sm"
               >
-                <LogIn size={15} /> Entrar
+                <LogIn size={15} className="transition-transform group-hover:translate-x-0.5" /> Entrar
               </Link>
             </>
           )}

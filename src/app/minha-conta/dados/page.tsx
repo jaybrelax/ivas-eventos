@@ -5,6 +5,7 @@ import { exigirSessao } from "@/lib/auth";
 import { getDadosInstituto } from "@/lib/data";
 import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
 import { RodapePublico } from "@/components/publico/RodapePublico";
+import { ProximoRitualCard } from "@/components/publico/ProximoRitualCard";
 import { MeusDadosForm } from "../MeusDadosForm";
 
 export const metadata: Metadata = { title: "Meus dados" };
@@ -13,6 +14,8 @@ export default async function MeusDadosPage({ searchParams }: PageProps<"/minha-
   const u = await exigirSessao("/minha-conta/dados");
   const sp = await searchParams;
   const completar = sp?.completar === "1";
+  // Acabou de se cadastrar (sem vir de um evento): mostra o próximo ritual enquanto completa os dados
+  const bemvindo = sp?.bemvindo === "1" || (completar && !(typeof sp?.next === "string"));
   const next = typeof sp?.next === "string" ? sp.next : null;
   const { instituto, enderecos, telefones, redes } = await getDadosInstituto();
 
@@ -27,6 +30,8 @@ export default async function MeusDadosPage({ searchParams }: PageProps<"/minha-
           <p className="text-xs font-semibold tracking-[0.14em] text-ouro-600 uppercase">Minha conta</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">Meus dados</h1>
         </header>
+
+        {bemvindo && <ProximoRitualCard usuarioId={u.id} />}
 
         <div className="cartao">
           <MeusDadosForm

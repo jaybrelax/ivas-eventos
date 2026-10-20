@@ -6,10 +6,16 @@ export function proxy(request: NextRequest) {
   // O endereço principal é público: leva à agenda (src/app/page.tsx)
   if (request.nextUrl.pathname === "/") return NextResponse.next();
   const temSessao = request.cookies.has("ivas-session");
-  if (!temSessao) return NextResponse.redirect(new URL("/login", request.url));
+  if (!temSessao) {
+    // Volta para a página pedida depois de entrar (ex.: o app da Guarnição instalado na tela inicial)
+    const login = new URL("/login", request.url);
+    const destino = request.nextUrl.pathname + request.nextUrl.search;
+    if (destino !== "/") login.searchParams.set("next", destino);
+    return NextResponse.redirect(login);
+  }
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/((?!login|cadastro|_next|favicon.ico|icon|apple-icon|api/arquivo|api/og|api/auth|evento|ritual|privacidade|termos|fundo_login|manifest.webmanifest|admin-app.webmanifest|sw.js|offline).*)"],
+  matcher: ["/((?!login|cadastro|_next|favicon.ico|icon|apple-icon|api/arquivo|api/og|api/auth|evento|ritual|privacidade|termos|fundo_login|manifest.webmanifest|admin-app.webmanifest|guarnicao-app.webmanifest|sw.js|offline).*)"],
 };

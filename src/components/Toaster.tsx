@@ -1,18 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, X } from "lucide-react";
+import { AlertCircle, CircleCheck, X } from "lucide-react";
 
-type Item = { id: number; texto: string };
+type Item = { id: number; texto: string; tipo: "erro" | "ok" };
 
 let contador = 0;
 let itens: Item[] = [];
 const ouvintes = new Set<() => void>();
 const emitir = () => ouvintes.forEach((f) => f());
 
-/** Mostra uma mensagem rápida no topo da tela (some sozinha). */
-export function toast(texto: string) {
-  const item = { id: ++contador, texto };
+/** Mostra uma mensagem rápida no topo da tela (some sozinha). `ok` = confirmação em verde. */
+export function toast(texto: string, tipo: "erro" | "ok" = "erro") {
+  const item: Item = { id: ++contador, texto, tipo };
   itens = [...itens.slice(-2), item];
   emitir();
   setTimeout(() => {
@@ -86,8 +86,14 @@ export function Toaster() {
   return (
     <div className="pointer-events-none fixed inset-x-0 top-3 z-[100] flex flex-col items-center gap-2 px-3" aria-live="assertive">
       {lista.map((i) => (
-        <div key={i.id} role="alert" className="pointer-events-auto flex max-w-md animate-surgir items-start gap-2.5 rounded-2xl border border-red-200 bg-white px-4 py-3 text-sm font-medium text-red-800 shadow-elevado">
-          <AlertCircle size={18} className="mt-px shrink-0 text-red-600" />
+        <div
+          key={i.id}
+          role={i.tipo === "erro" ? "alert" : "status"}
+          className={`pointer-events-auto flex max-w-md animate-surgir items-start gap-2.5 rounded-2xl border bg-white px-4 py-3 text-sm font-medium shadow-elevado ${
+            i.tipo === "erro" ? "border-red-200 text-red-800" : "border-emerald-200 text-emerald-800"
+          }`}
+        >
+          {i.tipo === "erro" ? <AlertCircle size={18} className="mt-px shrink-0 text-red-600" /> : <CircleCheck size={18} className="mt-px shrink-0 text-emerald-600" />}
           <span className="min-w-0">{i.texto}</span>
           <button
             type="button"
@@ -96,7 +102,7 @@ export function Toaster() {
               itens = itens.filter((x) => x.id !== i.id);
               emitir();
             }}
-            className="-mr-1 grid h-6 w-6 shrink-0 place-items-center rounded-full text-red-400 hover:bg-red-50 hover:text-red-700"
+            className="-mr-1 grid h-6 w-6 shrink-0 place-items-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-700"
           >
             <X size={14} />
           </button>

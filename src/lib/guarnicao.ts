@@ -2,7 +2,7 @@ import "server-only";
 import { ID, Query } from "node-appwrite";
 import { createAdminClient } from "./appwrite";
 import { DB_ID, TABLES } from "./config";
-import { listar } from "./data";
+import { getInstituto, listar, listarEventos } from "./data";
 import type { Candidatura, Evento, Sexo, TipoEvento } from "./types";
 
 /**
@@ -27,8 +27,27 @@ export function inicioDe(e: Pick<Evento, "data" | "hora_inicio">) {
   return new Date(`${e.data}T${e.hora_inicio}:00-03:00`);
 }
 
-export function prazoCancelamento(e: Pick<Evento, "data" | "hora_inicio">) {
-  return new Date(inicioDe(e).getTime() - HORAS_LIMITE_CANCELAMENTO * 3_600_000);
+export function prazoCancelamento(e: Pick<Evento, "data" | "hora_inicio">, horas = HORAS_LIMITE_CANCELAMENTO) {
+  return new Date(inicioDe(e).getTime() - horas * 3_600_000);
+}
+
+/** Regras da guarnição definidas pela coordenação (Configurações do app da Guarnição). */
+export async function regrasGuarnicao() {
+  const i = await getInstituto();
+  const horas = i.guarnicao_horas_cancelamento ?? HORAS_LIMITE_CANCELAMENTO;
+  const limiteMes = i.guarnicao_limite_mes ?? 2;
+  return { horas: Math.max(0, horas), limiteMes: Math.max(0, limiteMes) };
+}
+
+const MESES_NOME = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+/** Quantas participações ativas (confirmadas ou na espera) a pessoa já tem em rituais do mês `AAAA-MM`. */
+async function participacoesNoMes(usuarioId: string, mes: string, exceto: string) {
+  const minhas = (await participacoesDe(usuarioId)).filter((c) => c.evento_id !== exceto);
+  if (!minhas.length) return 0;
+  const eventos = await listarEventos({ ids: [...new Set(minhas.map((c) => c.evento_id))] });
+  const doMes = new Set(eventos.filter((e) => e.data.startsWith(mes)).map((e) => e.$id));
+  return minhas.filter((c) => doMes.has(c.evento_id)).length;
 }
 
 /** A guarnição vale para tipos que contam como ritual. */
@@ -137,6 +156,16 @@ export async function candidatar(
   if (!usuario.sexo) return { erro: "Informe seu gênero em Meu perfil para se candidatar." };
   if (evento.candidaturas_abertas === false) return { erro: "As candidaturas deste evento estão fechadas." };
   if (inicioDe(evento).getTime() <= Date.now()) return { erro: "Este evento já começou." };
+  // Limite de participações por mês (a coordenação pode escalar além do limite, pelo app ou pelo painel)
+  const { limiteMes } = await regrasGuarnicao();
+  if (limiteMes > 0) {
+    const mes = evento.data.slice(0, 7);
+    const ja = await participacoesNoMes(usuario.id, mes, evento.$id);
+    if (ja >= limiteMes) {
+      const nome = MESES_NOME[Number(mes.slice(5)) - 1];
+      return { erro: `Você já tem ${ja} ${ja === 1 ? "participação" : "participações"} em ${nome}, o limite do mês. Fale com a coordenação se precisar.` };
+    }
+  }
   const r = await entrarNaFila(evento.$id, usuario.id, usuario.sexo, usuario.id);
   if (r.jaEstava) return { erro: "Você já está inscrito neste evento." };
   await reorganizar(evento, usuario.id);
@@ -148,8 +177,9 @@ export async function candidatar(
 
 /** O próprio guardião cancela (até 4 h antes do início). */
 export async function cancelar(evento: Evento, usuarioId: string): Promise<Resultado> {
-  if (Date.now() > prazoCancelamento(evento).getTime()) {
-    return { erro: `O cancelamento só é possível até ${HORAS_LIMITE_CANCELAMENTO} horas antes do início. Fale com a coordenação.` };
+  const { horas } = await regrasGuarnicao();
+  if (Date.now() > prazoCancelamento(evento, horas).getTime()) {
+    return { erro: `O cancelamento só é possível até ${horas} ${horas === 1 ? "hora" : "horas"} antes do início. Fale com a coordenação.` };
   }
   const saiu = await sairDaFila(evento.$id, usuarioId, "cancelada", usuarioId);
   if (!saiu) return { erro: "Você não está inscrito neste evento." };
@@ -173,4 +203,22 @@ export async function removerGuardiao(evento: Evento, usuarioId: string, porId: 
   if (!saiu) return { erro: "Essa pessoa não está neste evento." };
   await reorganizar(evento, porId);
   return { ok: "Guardião retirado." };
+}
+
+/** Coordenador ajusta as vagas e/ou abre e fecha as candidaturas; a fila se reorganiza na hora. */
+export async function ajustarGuarnicao(
+  evento: Evento,
+  mudar: { masculino?: number; feminino?: number; abertas?: boolean },
+  porId: string,
+): Promise<Resultado> {
+  const { tablesDB } = createAdminClient();
+  const limitar = (n: number) => Math.max(0, Math.min(50, Math.round(n)));
+  const dados: Record<string, unknown> = {};
+  if (mudar.masculino !== undefined) dados.vagas_guardioes = limitar(mudar.masculino);
+  if (mudar.feminino !== undefined) dados.vagas_guardias = limitar(mudar.feminino);
+  if (mudar.abertas !== undefined) dados.candidaturas_abertas = mudar.abertas;
+  if (!Object.keys(dados).length) return { ok: "Nada a mudar." };
+  await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: dados });
+  await reorganizar({ ...evento, ...dados } as Evento, porId);
+  return { ok: mudar.abertas !== undefined ? (mudar.abertas ? "Candidaturas abertas." : "Candidaturas fechadas.") : "Vagas atualizadas." };
 }

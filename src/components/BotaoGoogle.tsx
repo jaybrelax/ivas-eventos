@@ -19,7 +19,7 @@ export function BotaoGoogle({ next, texto = "Continuar com Google", recomendado 
   return (
     <div className="relative">
       {botao}
-      <span className="pointer-events-none absolute -top-2 right-4 rounded-full bg-emerald-600 px-2 py-px text-[9px] leading-tight font-bold tracking-wide text-white uppercase shadow-sm ring-2 ring-white">
+      <span className="pointer-events-none absolute -top-2 right-4 rounded-full bg-emerald-600 px-2 py-px text-[9px] leading-tight font-bold tracking-wide text-white uppercase shadow-sm">
         Recomendado
       </span>
     </div>

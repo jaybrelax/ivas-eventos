@@ -43,3 +43,6 @@ next-env.d.ts
 
 # pacote antigo do código-fonte
 *.tgz
+
+# cópias dos originais feitas pelo scripts/otimizar-imagens.mjs
+/backup-imagens/

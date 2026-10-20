@@ -10,7 +10,7 @@ const MB = 1024 * 1024;
 
 /** Lado maior (px) e tamanho máximo do arquivo já reduzido, por uso. */
 export const LIMITES_IMAGEM = {
-  capa: { lado: 2000, maxBytes: 3.5 * MB },
+  capa: { lado: 1600, maxBytes: 3.5 * MB },
   foto: { lado: 600, maxBytes: 2 * MB },
   // O formulário do Instituto pode mandar as duas logos juntas: 2 × 1,5 MB.
   logo: { lado: 1200, maxBytes: 1.5 * MB },
@@ -65,7 +65,8 @@ export async function otimizarImagem(arquivo: File, uso: UsoImagem): Promise<Fil
   try {
     const escala = Math.min(1, lado / Math.max(bmp.width, bmp.height));
     // Já pequena e leve: manda como está.
-    if (escala === 1 && arquivo.size <= maxBytes && RASTER.includes(arquivo.type)) return arquivo;
+    // Só WEBP já pequeno passa direto; PNG e JPEG são sempre convertidos (bem mais leves em WEBP).
+    if (escala === 1 && arquivo.size <= maxBytes && arquivo.type === "image/webp") return arquivo;
 
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(bmp.width * escala);
@@ -80,7 +81,7 @@ export async function otimizarImagem(arquivo: File, uso: UsoImagem): Promise<Fil
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
 
-    for (const q of [0.86, 0.78, 0.68, 0.56]) {
+    for (const q of [0.82, 0.74, 0.66, 0.56]) {
       let blob = await paraBlob(canvas, "image/webp", q);
       if (blob.type !== "image/webp") blob = await paraBlob(canvas, uso === "logo" ? "image/png" : "image/jpeg", q);
       if (blob.size <= maxBytes) {

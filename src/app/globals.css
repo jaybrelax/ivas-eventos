@@ -30,6 +30,19 @@
   --animate-gaveta: gaveta 0.25s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   /* Só opacidade: transform no contêiner da página quebraria elementos "fixed" lá dentro */
   --animate-aparecer: aparecer 0.3s ease-out both;
+  /* App da Guarnição: a tela nova entra deslizando da direita */
+  --animate-tela: tela 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+
+  --animate-folha: folha 0.34s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+
+  @keyframes folha {
+    from { transform: translateY(100%); }
+    to { transform: none; }
+  }
+  @keyframes tela {
+    from { opacity: 0; transform: translateX(14px); }
+    to { opacity: 1; transform: none; }
+  }
 
   @keyframes surgir {
     from { opacity: 0; transform: translateY(6px); }
@@ -79,6 +92,42 @@ body {
 @utility campo {
   @apply h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-900 shadow-[0_1px_2px_rgb(0_0_0/0.04)] outline-none transition placeholder:text-stone-400 hover:border-stone-300 focus:border-mata-400 focus:ring-4 focus:ring-mata-100 disabled:bg-stone-100 disabled:text-stone-500;
 }
+/*
+ * Selo de confirmação (estilo Lottie, só SVG + CSS): o halo acende, a roseta entra girando com mola,
+ * o anel interno e o check são desenhados, uma explosão de partículas sai do centro e depois
+ * ficam o brilho passando, faíscas piscando e uma flutuação suave.
+ */
+.selo [class*="selo-"] { transform-box: view-box; transform-origin: 60px 60px; }
+@keyframes selo-halo { 0% { transform: scale(0.2); opacity: 0; } 50% { opacity: 0.9; } 100% { transform: scale(1); opacity: 0.55; } }
+@keyframes selo-roseta { 0% { transform: rotate(-140deg) scale(0); } 65% { transform: rotate(12deg) scale(1.08); } 82% { transform: rotate(-4deg) scale(0.97); } 100% { transform: rotate(0) scale(1); } }
+@keyframes selo-desenho { to { stroke-dashoffset: 0; } }
+@keyframes selo-check-pop { 0%, 60% { transform: scale(1); } 80% { transform: scale(1.18); } 100% { transform: scale(1); } }
+@keyframes selo-particula { 0% { transform: rotate(var(--a)) translateY(-34px) scale(0.4); opacity: 0; } 12% { opacity: 1; } 70% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(1); opacity: 0; } }
+@keyframes selo-confete { 0% { transform: rotate(var(--a)) translateY(-36px) rotate(0) scale(0.3); opacity: 0; } 15% { opacity: 1; } 70% { opacity: 1; } 100% { transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) rotate(220deg) scale(1); opacity: 0; } }
+@keyframes selo-onda { 0% { transform: scale(0.75); opacity: 0.6; } 100% { transform: scale(1.45); opacity: 0; } }
+@keyframes selo-brilho { 0%, 55% { transform: translateX(-90px) rotate(25deg); } 85%, 100% { transform: translateX(90px) rotate(25deg); } }
+@keyframes selo-faisca { 0%, 100% { transform: scale(0); opacity: 0; } 50% { transform: scale(1); opacity: 1; } }
+@keyframes selo-flutua { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.selo-halo { animation: selo-halo 0.9s ease-out both; }
+.selo-onda { animation: selo-onda 1.1s 0.55s ease-out both; }
+.selo-flutua { animation: selo-flutua 3.2s 1.6s ease-in-out infinite; }
+.selo-roseta { animation: selo-roseta 0.85s 0.05s cubic-bezier(0.3, 1.3, 0.5, 1) both; }
+.selo-anel-int { stroke-dasharray: 220; stroke-dashoffset: 220; animation: selo-desenho 0.6s 0.4s ease-out forwards; }
+.selo-check { stroke-dasharray: 48; stroke-dashoffset: 48; animation: selo-desenho 0.42s 0.75s cubic-bezier(0.6, 0, 0.3, 1) forwards; }
+.selo-check-g { animation: selo-check-pop 1.25s ease-out both; }
+.selo-particula { opacity: 0; animation: selo-particula 0.8s 0.85s cubic-bezier(0.1, 0.7, 0.3, 1) both; }
+.selo-confete { opacity: 0; animation: selo-confete 1.1s 0.85s cubic-bezier(0.1, 0.7, 0.3, 1) both; }
+.selo-brilho { animation: selo-brilho 3.4s 1.4s ease-in-out infinite; }
+.selo-faisca { opacity: 0; animation: selo-faisca 1.6s ease-in-out infinite; }
+
+/* App da Guarnição: chips de filtro (toque grande) */
+.chip-app {
+  @apply inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-[13px] font-semibold text-stone-600 shadow-2xs ring-1 ring-stone-200 transition active:scale-95;
+}
+.chip-app-on {
+  @apply bg-[#1c1040] text-white ring-[#1c1040];
+}
+
 /* Campo com problema (obrigatório vazio, valor inválido): borda vermelha */
 .campo.campo[aria-invalid="true"] {
   @apply border-red-500 bg-red-50/40 hover:border-red-500 focus:border-red-500 focus:ring-red-100;
@@ -167,4 +216,152 @@ select.campo {
 
 @utility esqueleto {
   @apply animate-pulse rounded-lg bg-stone-200/70;
+}
+
+/* ───────── App da Guarnição: cores do escudo ─────────
+ * Violeta/índigo no lugar do verde (as classes emerald-* viram violeta só dentro do app);
+ * o laranja do escudo fica nos avisos de vaga (amber). O fundo profundo é #1c1040.
+ */
+.app-guarnicao {
+  --color-emerald-50: #f4f0ff;
+  --color-emerald-100: #e7defe;
+  --color-emerald-200: #cfc0fb;
+  --color-emerald-300: #b09cf6;
+  --color-emerald-400: #9171ee;
+  --color-emerald-500: #7a52e3;
+  --color-emerald-600: #6a3fd6;
+  --color-emerald-700: #5630b4;
+  --color-emerald-800: #43258d;
+  --color-emerald-900: #301b66;
+  /* Tema claro: o fundo geral puxa levemente para o violeta (nada de branco puro); os cartões continuam brancos */
+  --color-stone-50: #f3f0fa;
+  --color-stone-100: #ebe6f5;
+  --color-stone-200: #ddd6ec;
+  /* Azul vira o índigo do escudo (ícone ♂, indicadores) */
+  --color-sky-50: #eef0ff;
+  --color-sky-600: #4f46e5;
+  --color-sky-700: #4338ca;
+  --color-sky-800: #3730a3;
+  --color-amber-50: #fff4e8;
+  --color-amber-100: #ffe5c7;
+  --color-amber-500: #f97316;
+  --color-amber-600: #ea6a0c;
+  --color-amber-700: #c2570a;
+  --color-amber-800: #9a4509;
+  --color-amber-900: #6e3208;
+}
+
+/* Menu inferior (dock): superfície sólida com sombra para ter presença */
+/* Claro: roxo-profundo do escudo; escuro: o violeta do item selecionado. O item ativo inverte o contraste. */
+.dock-app { background-image: linear-gradient(135deg, #2f1d6b 0%, #1c1040 100%); box-shadow: 0 14px 32px -10px rgb(28 16 64 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.12); }
+.tema-escuro .dock-app { background-image: linear-gradient(135deg, #7a52e3 0%, #5630b4 100%); box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.18); }
+
+/* Coluna da data dos cartões de ritual: clara no tema claro, roxo-profundo no escuro */
+.coluna-data { background-color: #d5c6fb; color: var(--color-emerald-900); }
+.coluna-data .data-mes { color: var(--color-emerald-900); }
+.coluna-data .data-sem { color: var(--color-emerald-700); }
+.tema-escuro .coluna-data { background-color: #2b1b63; color: #fff; }
+.tema-escuro .coluna-data .data-mes { color: #fff; }
+.tema-escuro .coluna-data .data-sem { color: var(--color-emerald-300); }
+
+/* ───────── App da Guarnição: tema escuro ─────────
+ * Aplicado pela classe no <html> e no contêiner do app (cookie "ivas-guarnicao-tema"):
+ * .tema-escuro = sempre escuro; .tema-auto = segue o sistema. A escala "stone" é invertida
+ * (fundos viram escuros e textos claros) e as superfícies brancas e os tons claros ganham
+ * versões noturnas. Botões coloridos, fotos e textos em branco continuam iguais.
+ */
+.tema-escuro {
+  color-scheme: dark;
+  --color-stone-50: #0e0a1a;
+  --color-stone-100: #151022;
+  --color-stone-200: #261d3a;
+  --color-stone-300: #3a2d55;
+  --color-stone-400: #8a7fa8;
+  --color-stone-500: #a79dc0;
+  --color-stone-600: #c3bbd6;
+  --color-stone-700: #d9d3e6;
+  --color-stone-800: #e9e5f1;
+  --color-stone-900: #f4f1f9;
+  --color-stone-950: #fcfbfe;
+  --shadow-cartao: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px -10px rgb(0 0 0 / 0.6);
+  --shadow-elevado: 0 2px 4px rgb(0 0 0 / 0.4), 0 18px 40px -16px rgb(0 0 0 / 0.7);
+}
+.tema-escuro .bg-white, .tema-escuro .campo, .tema-escuro .chip-app:not(.chip-app-on) { background-color: #1a1428; }
+.tema-escuro .bg-white\/95 { background-color: rgb(26 20 40 / 0.95); }
+.tema-escuro .bg-white\/90 { background-color: rgb(26 20 40 / 0.9); }
+.tema-escuro .bg-white\/85 { background-color: rgb(21 16 34 / 0.85); }
+.tema-escuro .bg-white\/60 { background-color: rgb(26 20 40 / 0.6); }
+.tema-escuro .ring-white\/70 { --tw-ring-color: rgb(255 255 255 / 0.08); }
+.tema-escuro .bg-emerald-50, .tema-escuro .bg-emerald-50\/70 { background-color: rgb(122 82 227 / 0.16); }
+.tema-escuro .bg-emerald-100 { background-color: rgb(122 82 227 / 0.26); }
+.tema-escuro .bg-amber-50 { background-color: rgb(249 115 22 / 0.15); }
+.tema-escuro .bg-amber-100 { background-color: rgb(249 115 22 / 0.24); }
+.tema-escuro .bg-red-50 { background-color: rgb(239 68 68 / 0.14); }
+.tema-escuro .bg-sky-50 { background-color: rgb(99 102 241 / 0.18); }
+.tema-escuro .bg-mata-50 { background-color: rgb(139 92 246 / 0.14); }
+.tema-escuro .bg-ouro-100 { background-color: rgb(224 176 74 / 0.18); }
+.tema-escuro .text-emerald-700, .tema-escuro .text-emerald-800, .tema-escuro .text-emerald-900 { color: #cbbcff; }
+.tema-escuro .text-amber-700, .tema-escuro .text-amber-800, .tema-escuro .text-amber-900 { color: #fdba74; }
+.tema-escuro .text-red-700 { color: #fca5a5; }
+.tema-escuro .text-sky-700, .tema-escuro .text-sky-800 { color: #a5b4fc; }
+.tema-escuro .text-mata-700 { color: #c4b5fd; }
+.tema-escuro .text-ouro-700 { color: #f0c25a; }
+.tema-escuro .ring-emerald-200, .tema-escuro .ring-emerald-300 { --tw-ring-color: rgb(145 113 238 / 0.45); }
+.tema-escuro .ring-amber-200 { --tw-ring-color: rgb(251 146 60 / 0.35); }
+.tema-escuro .border-emerald-300, .tema-escuro .border-emerald-400 { border-color: rgb(145 113 238 / 0.6); }
+/* O chip ativo e o botão "vidro" escuro precisam continuar contrastando */
+.tema-escuro .chip-app-on { background-color: #7a52e3; color: #fff; --tw-ring-color: #7a52e3; }
+
+/* Automático: o mesmo tema escuro quando o celular está no modo escuro */
+@media (prefers-color-scheme: dark) {
+.tema-auto .dock-app { background-image: linear-gradient(135deg, #7a52e3 0%, #5630b4 100%); box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.18); }
+.tema-auto .coluna-data { background-color: #2b1b63; color: #fff; }
+.tema-auto .coluna-data .data-mes { color: #fff; }
+.tema-auto .coluna-data .data-sem { color: var(--color-emerald-300); }
+.tema-auto {
+  color-scheme: dark;
+  --color-stone-50: #0e0a1a;
+  --color-stone-100: #151022;
+  --color-stone-200: #261d3a;
+  --color-stone-300: #3a2d55;
+  --color-stone-400: #8a7fa8;
+  --color-stone-500: #a79dc0;
+  --color-stone-600: #c3bbd6;
+  --color-stone-700: #d9d3e6;
+  --color-stone-800: #e9e5f1;
+  --color-stone-900: #f4f1f9;
+  --color-stone-950: #fcfbfe;
+  --shadow-cartao: 0 1px 2px rgb(0 0 0 / 0.4), 0 6px 18px -10px rgb(0 0 0 / 0.6);
+  --shadow-elevado: 0 2px 4px rgb(0 0 0 / 0.4), 0 18px 40px -16px rgb(0 0 0 / 0.7);
+}
+.tema-auto .bg-white, .tema-auto .campo, .tema-auto .chip-app:not(.chip-app-on) { background-color: #1a1428; }
+.tema-auto .bg-white\/95 { background-color: rgb(26 20 40 / 0.95); }
+.tema-auto .bg-white\/90 { background-color: rgb(26 20 40 / 0.9); }
+.tema-auto .bg-white\/85 { background-color: rgb(21 16 34 / 0.85); }
+.tema-auto .bg-white\/60 { background-color: rgb(26 20 40 / 0.6); }
+.tema-auto .ring-white\/70 { --tw-ring-color: rgb(255 255 255 / 0.08); }
+.tema-auto .bg-emerald-50, .tema-auto .bg-emerald-50\/70 { background-color: rgb(122 82 227 / 0.16); }
+.tema-auto .bg-emerald-100 { background-color: rgb(122 82 227 / 0.26); }
+.tema-auto .bg-amber-50 { background-color: rgb(249 115 22 / 0.15); }
+.tema-auto .bg-amber-100 { background-color: rgb(249 115 22 / 0.24); }
+.tema-auto .bg-red-50 { background-color: rgb(239 68 68 / 0.14); }
+.tema-auto .bg-sky-50 { background-color: rgb(99 102 241 / 0.18); }
+.tema-auto .bg-mata-50 { background-color: rgb(139 92 246 / 0.14); }
+.tema-auto .bg-ouro-100 { background-color: rgb(224 176 74 / 0.18); }
+.tema-auto .text-emerald-700, .tema-auto .text-emerald-800, .tema-auto .text-emerald-900 { color: #cbbcff; }
+.tema-auto .text-amber-700, .tema-auto .text-amber-800, .tema-auto .text-amber-900 { color: #fdba74; }
+.tema-auto .text-red-700 { color: #fca5a5; }
+.tema-auto .text-sky-700, .tema-auto .text-sky-800 { color: #a5b4fc; }
+.tema-auto .text-mata-700 { color: #c4b5fd; }
+.tema-auto .text-ouro-700 { color: #f0c25a; }
+.tema-auto .ring-emerald-200, .tema-auto .ring-emerald-300 { --tw-ring-color: rgb(145 113 238 / 0.45); }
+.tema-auto .ring-amber-200 { --tw-ring-color: rgb(251 146 60 / 0.35); }
+.tema-auto .border-emerald-300, .tema-auto .border-emerald-400 { border-color: rgb(145 113 238 / 0.6); }
+/* O chip ativo e o botão "vidro" escuro precisam continuar contrastando */
+.tema-auto .chip-app-on { background-color: #7a52e3; color: #fff; --tw-ring-color: #7a52e3; }
+}
+/* Fundo atrás do app (ao puxar a tela além do fim) também escuro */
+html.tema-escuro, html.tema-escuro body { background-color: #151022; }
+@media (prefers-color-scheme: dark) {
+  html.tema-auto, html.tema-auto body { background-color: #151022; }
 }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, CalendarDays, Clock, Flame, Info, MapPin, Navigation, Star } from "lucide-react";
 import { descricaoComTags, getDadosInstituto, listarEventos } from "@/lib/data";
-import { urlPublicaEvento } from "@/lib/links";
+import { srcsetImagem, urlImagem, urlPublicaEvento } from "@/lib/links";
 import { listarEquipe } from "@/lib/usuarios";
 import { getUsuario } from "@/lib/auth";
 import {
@@ -96,7 +96,7 @@ function TituloSecao({ sobre, titulo, icone: Icone }: { sobre: string; titulo: s
 }
 
 /** Página pública de um evento. Usada por /ritual/[numero] e /evento/[id]. */
-export async function PaginaEvento({ evento }: { evento: Evento }) {
+export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPagamento = false }: { evento: Evento; abrirParticipacao?: boolean; abrirPagamento?: boolean }) {
   const [{ tipos, tags, enderecos, telefones, redes, pix, instituto }, equipe] = await Promise.all([getDadosInstituto(), listarEquipe()]);
 
   const hj = hoje();
@@ -116,7 +116,9 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
   const d = partesData(evento.data);
   const dataExtenso = dataPorExtenso(evento.data);
   const telWhatsapp = telefones.find((t) => t.whatsapp && t.padrao) ?? telefones.find((t) => t.whatsapp);
-  const capa = evento.capa_file_id ? `/api/arquivo/${evento.capa_file_id}` : null;
+  const capa = evento.capa_file_id ? urlImagem(evento.capa_file_id, 960) : null;
+  // Fundo desfocado: uma versão pequena basta (o desfoque esconde os detalhes)
+  const capaFundo = evento.capa_file_id ? urlImagem(evento.capa_file_id, 320) : null;
   const local = end ? end.apelido : evento.endereco_livre || "Londrina - PR";
   const endereco = end ? [end.endereco, end.cidade].filter(Boolean).join(" — ") : null;
   // Inscrição de participantes (público geral): vagas, se o próprio usuário já está inscrito, se pode cancelar
@@ -155,12 +157,16 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
   const urlAtual = urlPublicaEvento(evento, tipo);
   const participar = {
     eventoId: evento.$id,
+    abrirAoCarregar: abrirParticipacao || abrirPagamento,
+    abrirNoComprovante: abrirPagamento,
     ehRitual: ritual,
     chavePix: ritual ? (pix.find((c) => c.padrao) ?? pix[0] ?? null) : null,
     tituloEvento: evento.titulo,
     dataEvento: dataExtenso,
     horaEvento: evento.hora_inicio,
     localEvento: end ? `${end.apelido} — ${end.endereco}` : evento.endereco_livre,
+    fotoLocal: end?.foto_file_id ?? null,
+    capaEvento: evento.capa_file_id ?? null,
     telefoneWhatsapp: telWhatsapp?.numero,
     logado: !!usuario,
     urlAtual,
@@ -187,7 +193,7 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
         style={evento.cor_capa ? { background: `linear-gradient(135deg, ${evento.cor_capa} 0%, color-mix(in oklab, ${evento.cor_capa} 45%, #000) 55%, #050307 100%)` } : undefined}
       >
         {/* Fundo: a própria capa desfocada sobre o degradê, com parallax ao rolar */}
-        {capa && <FundoParallax src={capa} />}
+        {capaFundo && <FundoParallax src={capaFundo} />}
         <div aria-hidden className="pointer-events-none absolute -top-40 right-[-10%] -z-10 h-[34rem] w-[34rem] rounded-full bg-ouro-500/10 blur-3xl" />
 
         <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6 sm:pt-12 sm:pb-16 lg:px-8 lg:pt-16 lg:pb-20">
@@ -198,7 +204,7 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
               <div className="aspect-square overflow-hidden rounded-[1.75rem] bg-mata-900 shadow-[0_30px_80px_-24px_rgba(0,0,0,0.75)] ring-1 ring-white/15">
                 {capa ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={capa} alt={evento.titulo} className="h-full w-full object-cover" />
+                  <img src={capa} srcSet={srcsetImagem(evento.capa_file_id!, [640, 960, 1600])} sizes="(min-width: 1024px) 560px, 100vw" fetchPriority="high" decoding="async" alt={evento.titulo} className="h-full w-full object-cover" />
                 ) : (
                   <div className="relative flex h-full w-full flex-col items-center justify-center gap-5 bg-[radial-gradient(circle_at_50%_35%,var(--color-mata-700),var(--color-mata-950)_70%)] p-8 text-center">
                     <div aria-hidden className="absolute inset-6 rounded-[1.25rem] border border-ouro-300/20" />
@@ -335,8 +341,16 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
                   <p className="flex items-center gap-2 text-[11px] font-semibold tracking-[0.16em] text-ouro-600 uppercase">
                     <MapPin size={15} className="shrink-0 text-mata-600" /> Localização
                   </p>
-                  <p className="mt-2 font-semibold text-stone-900">{local}</p>
-                  {endereco && <p className="text-sm leading-snug text-stone-600">{endereco}</p>}
+                  <div className="mt-2 flex items-center gap-3">
+                    {end?.foto_file_id && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={urlImagem(end.foto_file_id, 160)} loading="lazy" decoding="async" width={64} height={64} alt={`Foto de ${local}`} className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-stone-200" />
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-semibold text-stone-900">{local}</p>
+                      {endereco && <p className="text-sm leading-snug text-stone-600">{endereco}</p>}
+                    </div>
+                  </div>
                 </div>
                 {end?.link_maps && (
                   <a
@@ -345,7 +359,7 @@ export async function PaginaEvento({ evento }: { evento: Evento }) {
                     rel="noopener noreferrer"
                     className="flex h-10 items-center justify-center gap-2 rounded-xl bg-stone-100 text-sm font-semibold text-stone-800 transition hover:bg-stone-200/80"
                   >
-                    <Navigation size={15} className="text-mata-600" /> Como chegar
+                    <Navigation size={15} className="text-mata-600" /> Abrir no Google Maps
                   </a>
                 )}
               </div>

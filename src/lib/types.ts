@@ -10,6 +10,10 @@ export type Instituto = {
   ritual_numero_inicial: number;
   /** Contribuição sugerida aos participantes, igual para todos os rituais. */
   valor_contribuicao: number | null;
+  /** Guarnição: horas antes do início em que o guardião ainda pode cancelar (padrão 4). */
+  guarnicao_horas_cancelamento?: number | null;
+  /** Guarnição: quantas participações cada guardião pode ter por mês (padrão 2; 0 = sem limite). */
+  guarnicao_limite_mes?: number | null;
   /** Estado (sigla) e cidade do Instituto: já vêm escolhidos nos formulários de cadastro. */
   estado: string | null;
   cidade: string | null;
@@ -23,7 +27,7 @@ export type Instituto = {
   fonte_publica_texto: string | null;
 };
 
-export type Endereco = { $id: string; apelido: string; endereco: string; cidade: string; link_maps: string | null; padrao: boolean };
+export type Endereco = { $id: string; apelido: string; endereco: string; cidade: string; link_maps: string | null; foto_file_id: string | null; padrao: boolean };
 export type Telefone = { $id: string; rotulo: string; numero: string; whatsapp: boolean; padrao: boolean };
 export type Rede = { $id: string; rede: string; usuario: string; url: string | null };
 export type TipoPix = "cpf" | "cnpj" | "email" | "telefone" | "aleatoria";

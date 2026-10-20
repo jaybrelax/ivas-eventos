@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { ID } from "node-appwrite";
-import { InputFile } from "node-appwrite/file";
+import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigirSessao } from "@/lib/auth";
 import { COMPROVANTES_BUCKET_ID } from "@/lib/config";
@@ -56,7 +56,7 @@ export async function informarPagamentoAction(eventoId: string, inscricaoId: str
     try {
       const { storage } = createAdminClient();
       const novo = await storage.createFile({
-        bucketId: COMPROVANTES_BUCKET_ID, fileId: ID.unique(), file: InputFile.fromBuffer(Buffer.from(await arquivo.arrayBuffer()), arquivo.name),
+        bucketId: COMPROVANTES_BUCKET_ID, fileId: ID.unique(), file: (await arquivoOtimizado(arquivo, arquivo.name, "comprovante")).input,
       });
       comprovanteFileId = novo.$id;
     } catch (e) {

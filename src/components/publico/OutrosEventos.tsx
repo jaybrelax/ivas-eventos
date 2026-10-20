@@ -1,3 +1,4 @@
+import { srcsetImagem, urlImagem } from "@/lib/links";
 import Link from "next/link";
 import { ArrowRight, Calendar, Clock, MapPin } from "lucide-react";
 import type { Endereco, Evento, TipoEvento } from "@/lib/types";
@@ -55,7 +56,13 @@ export function OutrosEventos({
                 {e.capa_file_id ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`/api/arquivo/${e.capa_file_id}`}
+                    src={urlImagem(e.capa_file_id, 640)}
+                    srcSet={srcsetImagem(e.capa_file_id)}
+                    sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+                    width={640}
+                    height={360}
+                    loading="lazy"
+                    decoding="async"
                     alt={e.titulo}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />

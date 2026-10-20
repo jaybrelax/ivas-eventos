@@ -1,19 +1,61 @@
 "use client";
 
 import { startTransition, useActionState, useId, useState, useTransition } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { ImagePlus, Plus, Trash2 } from "lucide-react";
 import { excluirItem, salvarItem, type Resultado } from "./actions";
 import { CAMPOS, type Campo, type TabelaEditavel } from "./campos";
 import { Aviso } from "@/components/ui";
 import { InputTelefone } from "@/components/InputTelefone";
 import { BotaoConfirmar } from "@/components/Confirmar";
+import { useImagem } from "@/components/useImagem";
 
 type Item = Record<string, unknown> & { $id: string };
 
 const LARG = { sm: "sm:w-36", md: "sm:w-56", lg: "sm:flex-1 sm:min-w-64" };
 
+/** Miniatura quadrada clicável para enviar/trocar a foto; o arquivo segue no formulário e o servidor guarda no Storage. */
+function EntradaFoto({ c, fileId }: { c: Campo; fileId: string | null }) {
+  const { local, erro, otimizando, escolher } = useImagem("foto");
+  const [remover, setRemover] = useState(false);
+  const preview = local ?? (fileId && !remover ? `/api/arquivo/${fileId}` : null);
+  return (
+    <div className="w-full sm:w-auto">
+      <span className="rotulo">{c.rotulo}</span>
+      <div className="flex items-center gap-2">
+        <label className="group relative grid h-[4.5rem] w-[4.5rem] shrink-0 cursor-pointer place-items-center overflow-hidden rounded-xl border-2 border-dashed border-stone-200 bg-stone-50 transition hover:border-mata-300" title="Enviar foto">
+          {preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt={c.rotulo} className="h-full w-full object-cover" />
+          ) : (
+            <ImagePlus size={20} className="text-stone-400" />
+          )}
+          <input
+            type="file"
+            name={c.nome}
+            accept="image/png,image/jpeg,image/webp"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              escolher(e.currentTarget, f);
+              if (f) setRemover(false);
+            }}
+          />
+        </label>
+        {fileId && !local && (
+          <button type="button" onClick={() => setRemover((r) => !r)} className={`text-xs ${remover ? "font-semibold text-red-700" : "text-stone-500 hover:text-red-700"}`}>
+            {remover ? "Remover · desfazer" : "Remover"}
+          </button>
+        )}
+      </div>
+      {remover && <input type="hidden" name={`remover_${c.nome}`} value="on" />}
+      {erro ? <p className="ajuda text-red-700">{erro}</p> : otimizando ? <p className="ajuda">Otimizando…</p> : null}
+    </div>
+  );
+}
+
 function Entrada({ c, valor }: { c: Campo; valor: unknown }) {
   const id = useId();
+  if (c.tipo === "foto") return <EntradaFoto c={c} fileId={valor ? String(valor) : null} />;
   if (c.tipo === "checkbox")
     return (
       <label className="flex h-10 cursor-pointer items-center gap-2 self-end rounded-xl px-1 text-sm whitespace-nowrap text-stone-700">

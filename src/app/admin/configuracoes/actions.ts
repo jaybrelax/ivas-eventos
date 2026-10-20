@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
-import { InputFile } from "node-appwrite/file";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
 import { ehUf } from "@/lib/perfil-extra";
@@ -12,6 +11,7 @@ import { FONTES_TEXTO, FONTES_TITULO, fonteValida } from "@/lib/tipografia";
 import { getInstituto, listarTags, listarTipos } from "@/lib/data";
 import { slugify } from "@/lib/format";
 import { conferirImagem } from "@/lib/imagem";
+import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { CAMPOS, type Campo, type TabelaEditavel } from "./campos";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
@@ -54,8 +54,8 @@ export async function salvarInstituto(_: Resultado, form: FormData): Promise<Res
       const remover = form.get(`remover_${campo}`) === "on";
       const antigo = atual[campo];
       if (arquivo instanceof File && arquivo.size > 0) {
-        const buf = Buffer.from(await arquivo.arrayBuffer());
-        const novo = await storage.createFile({ bucketId: BUCKET_ID, fileId: ID.unique(), file: InputFile.fromBuffer(buf, arquivo.name) });
+        const { input } = await arquivoOtimizado(arquivo, arquivo.name, "logo");
+        const novo = await storage.createFile({ bucketId: BUCKET_ID, fileId: ID.unique(), file: input });
         dados[campo] = novo.$id;
         if (antigo) await storage.deleteFile({ bucketId: BUCKET_ID, fileId: antigo }).catch(() => {});
       } else if (remover && antigo) {
@@ -139,9 +139,37 @@ export async function salvarItem(tabela: TabelaEditavel, _: Resultado, form: For
   const def = CAMPOS[tabela];
   const id = String(form.get("$id") ?? "");
   const dados: Record<string, unknown> = {};
+  const { tablesDB: bd, storage } = createAdminClient();
+  // Foto (ex.: do endereço): sobe o arquivo novo, troca/remove o antigo e guarda só o id do arquivo.
+  let fotoAntiga: string | null = null;
+  let fotoNova: string | null = null;
 
   for (const c of def.campos as Campo[]) {
     const bruto = form.get(c.nome);
+    if (c.tipo === "foto") {
+      const arquivo = bruto instanceof File && bruto.size > 0 ? bruto : null;
+      const remover = form.get(`remover_${c.nome}`) === "on";
+      if (!arquivo && !remover) continue;
+      if (arquivo) {
+        const invalida = conferirImagem(arquivo, "foto");
+        if (invalida) return { erro: invalida };
+      }
+      if (id) {
+        const atual = await bd.getRow({ databaseId: DB_ID, tableId: TABLES[tabela], rowId: id }).catch(() => null);
+        fotoAntiga = (atual?.[c.nome] as string | null | undefined) ?? null;
+      }
+      if (arquivo) {
+        try {
+          const { input } = await arquivoOtimizado(arquivo, arquivo.name, "foto");
+          fotoNova = (await storage.createFile({ bucketId: BUCKET_ID, fileId: ID.unique(), file: input })).$id;
+        } catch (e) {
+          console.error(e);
+          return { erro: "Não foi possível enviar a foto." };
+        }
+        dados[c.nome] = fotoNova;
+      } else dados[c.nome] = null;
+      continue;
+    }
     if (c.tipo === "checkbox") dados[c.nome] = bruto === "on";
     else if (c.tipo === "number") dados[c.nome] = Number(bruto) || 0;
     else {
@@ -185,8 +213,10 @@ export async function salvarItem(tabela: TabelaEditavel, _: Resultado, form: For
     else await tablesDB.createRow({ databaseId: DB_ID, tableId, rowId: ID.unique(), data: dados });
   } catch (e) {
     console.error(e);
+    if (fotoNova) await storage.deleteFile({ bucketId: BUCKET_ID, fileId: fotoNova }).catch(() => {});
     return { erro: "Não foi possível salvar." };
   }
+  if (fotoAntiga) await storage.deleteFile({ bucketId: BUCKET_ID, fileId: fotoAntiga }).catch(() => {});
   revalidatePath("/admin/configuracoes");
   return { ok: "Salvo." };
 }
@@ -203,6 +233,11 @@ export async function excluirItem(tabela: TabelaEditavel, id: string): Promise<R
     const usados = await tablesDB.listRows({ databaseId: DB_ID, tableId: TABLES.eventos, queries: [Query.equal(campoRef, id), Query.limit(1)] });
     if (usados.rows.length)
       return { erro: tabela === "tipos" ? "Há eventos com esse tipo. Desative-o em vez de excluir." : "Há eventos usando esse endereço." };
+  }
+  if (tabela === "enderecos") {
+    const linha = await tablesDB.getRow({ databaseId: DB_ID, tableId: TABLES.enderecos, rowId: id }).catch(() => null);
+    const foto = linha?.foto_file_id as string | null | undefined;
+    if (foto) await createAdminClient().storage.deleteFile({ bucketId: BUCKET_ID, fileId: foto }).catch(() => {});
   }
   await tablesDB.deleteRow({ databaseId: DB_ID, tableId: TABLES[tabela], rowId: id });
   revalidatePath("/admin/configuracoes");

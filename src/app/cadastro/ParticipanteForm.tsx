@@ -24,7 +24,7 @@ export function ParticipanteForm({
 
   if (etapa === "escolha")
     return (
-      <div className="space-y-3.5">
+      <div data-etapa="escolha" className="space-y-3.5">
         <BotaoGoogle next={next} texto="Criar cadastro com o Google" recomendado />
         <div className="flex items-center gap-3 text-base font-medium text-stone-500">
           <span className="h-px flex-1 bg-stone-300" /> ou <span className="h-px flex-1 bg-stone-300" />
@@ -68,7 +68,7 @@ export function ParticipanteForm({
       <input type="text" name="site" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-0 w-0 opacity-0" />
 
       <div hidden={etapa !== "dados"} className="space-y-4">
-        <p className="text-xs font-semibold tracking-wider text-stone-400 uppercase">Etapa 1 de 3</p>
+        <p className="text-xs font-semibold tracking-wider text-mata-700 uppercase">Etapa 1 de 3</p>
         <div>
           <label className="rotulo" htmlFor="nome">Nome completo</label>
           <input id="nome" name="nome" autoComplete="name" maxLength={128} value={nome} onChange={(e) => setNome(e.target.value)} className="campo h-11" placeholder="Seu nome e sobrenome" />
@@ -86,10 +86,10 @@ export function ParticipanteForm({
 
       <div hidden={etapa !== "sobre"} className="space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold tracking-wider text-stone-400 uppercase">Etapa 2 de 3</p>
-          <button type="button" onClick={() => { setEtapa("dados"); }} className="inline-flex items-center gap-1 text-xs font-medium text-stone-500 hover:text-stone-800">
+          <button type="button" onClick={() => { setEtapa("dados"); }} className="-ml-1 inline-flex items-center gap-1 text-xs font-medium text-stone-500 hover:text-stone-800">
             <ChevronLeft size={14} /> Voltar
           </button>
+          <p className="text-xs font-semibold tracking-wider text-mata-700 uppercase">Etapa 2 de 3</p>
         </div>
         <CampoEstadoCidade id="cad" obrigatorio estadoInicial={estadoPadrao} cidadeInicial={cidadePadrao} />
         <CamposSobreVoce id="cad" />
@@ -98,10 +98,10 @@ export function ParticipanteForm({
 
       <div hidden={etapa !== "perfil"} className="space-y-4">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold tracking-wider text-stone-400 uppercase">Etapa 3 de 3</p>
-          <button type="button" onClick={() => { setEtapa("sobre"); }} className="inline-flex items-center gap-1 text-xs font-medium text-stone-500 hover:text-stone-800">
+          <button type="button" onClick={() => { setEtapa("sobre"); }} className="-ml-1 inline-flex items-center gap-1 text-xs font-medium text-stone-500 hover:text-stone-800">
             <ChevronLeft size={14} /> Voltar
           </button>
+          <p className="text-xs font-semibold tracking-wider text-mata-700 uppercase">Etapa 3 de 3</p>
         </div>
         <div className="flex justify-center pb-1">
           <CampoFoto nome={nome} tamanho={88} />
@@ -120,6 +120,11 @@ export function ParticipanteForm({
         <button type="submit" className="btn-primario h-11 w-full" disabled={pendente}>
           {pendente ? <><Carregando /> Criando conta…</> : <>Criar cadastro <ArrowRight size={17} /></>}
         </button>
+        <p className="text-center text-xs leading-relaxed text-stone-500">
+          Ao continuar, você concorda com os{" "}
+          <a href="/termos" target="_blank" className="font-medium text-mata-700 underline-offset-2 hover:underline">Termos de uso</a> e a{" "}
+          <a href="/privacidade" target="_blank" className="font-medium text-mata-700 underline-offset-2 hover:underline">Política de privacidade</a>.
+        </p>
       </div>
     </form>
   );

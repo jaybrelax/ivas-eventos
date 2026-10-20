@@ -4,13 +4,13 @@ import { corDaCapa } from "@/lib/cor";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ID } from "node-appwrite";
-import { InputFile } from "node-appwrite/file";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigir, pode } from "@/lib/auth";
 import { BUCKET_ID, DB_ID, PODE, TABLES } from "@/lib/config";
 import { getEvento, listarTags, listarTipos } from "@/lib/data";
 import { conferirImagem } from "@/lib/imagem";
+import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { listarEquipe } from "@/lib/usuarios";
 import type { Pessoa } from "@/lib/types";
 import { comNumeracao, isConflito } from "@/lib/ritual";
@@ -104,8 +104,8 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     const invalida = conferirImagem(capa, "capa");
     if (invalida) return { erro: invalida };
     try {
-      const bytes = Buffer.from(await capa.arrayBuffer());
-      const novo = await storage.createFile({ bucketId: BUCKET_ID, fileId: ID.unique(), file: InputFile.fromBuffer(bytes, capa.name) });
+      const { input, bytes } = await arquivoOtimizado(capa, capa.name, "capa");
+      const novo = await storage.createFile({ bucketId: BUCKET_ID, fileId: ID.unique(), file: input });
       capaNova = novo.$id;
       // A cor predominante vira o degradê do topo da página pública
       Object.assign(dados, { capa_file_id: capaNova, cor_capa: await corDaCapa(bytes) });

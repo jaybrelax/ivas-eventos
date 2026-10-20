@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CalendarCheck, History, Receipt } from "lucide-react";
 import { exigirSessao } from "@/lib/auth";
+import { urlImagem } from "@/lib/links";
 import { getDadosInstituto } from "@/lib/data";
 import { dataCurta, dataPorExtenso, formatarIdRitual } from "@/lib/format";
 import { inscricoesComEventos, type ItemInscricao } from "@/lib/inscricoes";
 import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
 import { RodapePublico } from "@/components/publico/RodapePublico";
+import { ProximoRitualCard } from "@/components/publico/ProximoRitualCard";
 import { BotaoComprovante } from "./BotaoComprovante";
 
 export const metadata: Metadata = { title: "Minha conta" };
@@ -73,6 +75,8 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
           ))}
         </nav>
 
+        {aba === "proximos" && <ProximoRitualCard usuarioId={u.id} />}
+
         {aba === "proximos" && (
           <Lista
             vazio="Você ainda não confirmou participação em nenhum ritual futuro."
@@ -89,7 +93,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               <div className="cartao !p-4">
-                <p className="text-xs font-medium text-stone-500">Total pago</p>
+                <p className="text-xs font-medium text-stone-500">Total contribuído</p>
                 <p className="mt-1 text-xl font-semibold text-emerald-700">{formatoReal(totalPago)}</p>
               </div>
               <div className="cartao !p-4">
@@ -113,11 +117,19 @@ function Lista({ itens, vazio, mostrarPagamento }: { itens: ItemInscricao[]; vaz
       {itens.map((i) => (
         <li key={i.inscricaoId} className="cartao !p-4">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <Link href={i.url} className="font-semibold text-stone-900 hover:text-mata-700 hover:underline">
-                {i.ritualNumero ? `${formatarIdRitual(i.ritualNumero, null, null)} — ` : ""}{i.titulo}
+            <div className="flex min-w-0 items-center gap-3">
+              <Link href={i.url} className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-mata-900 ring-1 ring-stone-200" aria-hidden tabIndex={-1}>
+                {i.capa && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={urlImagem(i.capa, 160)} width={64} height={64} loading="lazy" decoding="async" alt="" className="h-full w-full object-cover" />
+                )}
               </Link>
-              <p className="mt-0.5 text-sm text-stone-500">{dataPorExtenso(i.data)} · {dataCurta(i.data)} às {i.hora}</p>
+              <div className="min-w-0">
+                <Link href={i.url} className="font-semibold text-stone-900 hover:text-mata-700 hover:underline">
+                  {i.ritualNumero ? `Ritual ${formatarIdRitual(i.ritualNumero, null, null)}: ` : ""}{i.titulo}
+                </Link>
+                <p className="mt-0.5 text-sm text-stone-500">{dataPorExtenso(i.data)} · {dataCurta(i.data)} às {i.hora}</p>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-1.5">
               <span className={`chip ${SITUACAO[i.situacao].cor}`}>{SITUACAO[i.situacao].rotulo}</span>
@@ -128,10 +140,15 @@ function Lista({ itens, vazio, mostrarPagamento }: { itens: ItemInscricao[]; vaz
           </div>
           {mostrarPagamento && i.temContribuicao && (
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-500">
-              {i.valor != null && <span>Valor: {formatoReal(i.valor)}</span>}
+              {i.valor != null && <span>Contribuição: {formatoReal(i.valor)}</span>}
               {i.comprovante && <BotaoComprovante id={i.comprovante} />}
               {i.pagamento === "pendente" && (
-                <Link href={i.url} className="font-medium text-mata-700 hover:underline">Avisar pagamento →</Link>
+                <Link
+                  href={`${i.url}?pagar=1`}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98]"
+                >
+                  <Receipt size={16} /> Avisar pagamento
+                </Link>
               )}
             </div>
           )}

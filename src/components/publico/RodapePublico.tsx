@@ -3,7 +3,7 @@ import { ArrowUpRight, CalendarDays, Globe, Lock, MapPin, MessageCircle, Phone }
 import type { ReactNode } from "react";
 import type { Endereco, Instituto, Rede, Telefone } from "@/lib/types";
 import { MarcaInstituto } from "@/components/Marca";
-import { InstalarApp } from "@/components/InstalarApp";
+import { AvisoCookies } from "./AvisoCookies";
 
 // Ícones de marca desenhados à mão (a biblioteca Lucide não traz logos de marcas)
 const svg = (children: ReactNode) => (
@@ -51,7 +51,7 @@ export function RodapePublico({
 
   return (
     <footer className="relative mt-20 overflow-hidden bg-mata-950 text-white/70">
-      <InstalarApp />
+      <AvisoCookies />
       {/* filete dourado e brilho suave no topo */}
       <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ouro-400/60 to-transparent" />
       <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 h-64 w-[44rem] -translate-x-1/2 rounded-full bg-mata-600/20 blur-3xl" />

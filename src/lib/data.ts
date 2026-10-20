@@ -18,6 +18,8 @@ export const INSTITUTO_PADRAO: Instituto = {
   fonte_texto: "Montserrat",
   ritual_numero_inicial: 500,
   valor_contribuicao: null,
+  guarnicao_horas_cancelamento: 4,
+  guarnicao_limite_mes: 2,
   estado: null,
   cidade: null,
   info_rituais: null,

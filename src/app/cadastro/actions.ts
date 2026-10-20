@@ -8,6 +8,7 @@ import { LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
 import { salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Sexo } from "@/lib/types";
 import { ehUf } from "@/lib/perfil-extra";
+import { comParticiparAberto } from "@/lib/links";
 
 export type ResultadoCadastro = { erro?: string } | undefined;
 
@@ -71,5 +72,8 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
     console.error("Cadastro de participante:", msg);
     return { erro: "Não foi possível concluir o cadastro agora. Tente de novo em instantes." };
   }
-  redirect(destinoSeguro(form.get("next")) ?? "/minha-conta");
+  // Veio de uma página de evento: volta para ela, já com a janela de confirmação aberta.
+  // Cadastro direto: completa os dados e depois vê o próximo ritual em Minhas inscrições.
+  const destino = destinoSeguro(form.get("next"));
+  redirect(destino ? comParticiparAberto(destino) : "/minha-conta/dados?bemvindo=1");
 }
