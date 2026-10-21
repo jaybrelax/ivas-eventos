@@ -26,7 +26,7 @@ export function RenumerarProximos({ eventoId, numero }: { eventoId: string; nume
     });
 
   return (
-    <details className="group cartao xl:mr-[23.5rem]">
+    <details className="group cartao">
       <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-stone-800 select-none">
         <Hash size={16} className="text-mata-700" /> Renumerar os próximos rituais
         <span className="ml-auto text-xs font-normal text-stone-500 group-open:hidden">Recalcular a partir do Nº {numero}…</span>

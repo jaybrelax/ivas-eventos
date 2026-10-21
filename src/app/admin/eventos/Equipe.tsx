@@ -87,7 +87,8 @@ export function EscolhaEquipe({ funcao, equipe, inicial }: { funcao: Funcao; equ
                           ) : (
                             <Avatar nome={p.nome} foto={p.foto} tamanho={24} className="ring-0" />
                           )}
-                          {p.nome}
+                          <span className="sm:hidden">{p.nome.split(" ")[0]}</span>
+                          <span className="hidden sm:inline">{p.nome}</span>
                         </button>
                       );
                     })}

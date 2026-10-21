@@ -1,7 +1,9 @@
 import { urlPublicaEvento } from "@/lib/links";
+import { SITE_URL } from "@/lib/site";
+import { CopiarLinkPublico } from "../CopiarLinkPublico";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, Clock, Copy, ExternalLink, Image as ImageIcon, MapPin, TriangleAlert } from "lucide-react";
+import { ArrowLeft, CalendarDays, Clock, ExternalLink, Image as ImageIcon, MapPin, TriangleAlert } from "lucide-react";
 import type { Pessoa } from "@/lib/types";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
@@ -44,7 +46,7 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
         <ExternalLink size={16} /> Ver público
       </Link>
       <Link href={`/admin/banners?evento=${evento.$id}`} className="btn-secundario"><ImageIcon size={16} /> Banner</Link>
-      {pode(u, PODE.editarEventos) && <Link href={`/admin/eventos/novo?de=${evento.$id}`} className="btn-secundario"><Copy size={16} /> Duplicar</Link>}
+      {pode(u, PODE.editarEventos) && <CopiarLinkPublico url={`${SITE_URL}${urlPublicaEvento(evento, tipo)}`} />}
     </>
   );
 
@@ -122,10 +124,8 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
         iaPronta={!!(await getConfigIA()).chave}
         guarnicao={guarnicao && <Guarnicao dados={guarnicao} embutido />}
         participantes={participantes && <Participantes dados={participantes} />}
+        renumerar={evento.ritual_numero_geral && pode(u, PODE.editarNumeracao) ? <RenumerarProximos eventoId={evento.$id} numero={evento.ritual_numero_geral} /> : undefined}
       />
-      {tipo?.conta_como_ritual && evento.ritual_numero_geral && pode(u, PODE.editarNumeracao) && (
-        <RenumerarProximos eventoId={evento.$id} numero={evento.ritual_numero_geral} />
-      )}
       {u.perfil === "admin" && (
         <form action={excluirEvento} className="xl:mr-[23.5rem]">
           <input type="hidden" name="id" value={evento.$id} />
@@ -171,7 +171,11 @@ function EquipeDoEvento({ equipe, mestres }: { equipe: Pessoa[]; mestres: string
                       <IconeGenero genero={sx} size={13} />
                       {GENERO_ROTULO[sx]}
                     </p>
-                    <p className="text-sm font-medium text-stone-900">{nomes.map((p) => p.nome).join(", ")}</p>
+                    <p className="text-sm font-medium text-stone-900">
+                      {nomes.map((p, i) => (
+                        <span key={p.$id}>{i > 0 && ", "}<span className="sm:hidden">{p.nome.split(" ")[0]}</span><span className="hidden sm:inline">{p.nome}</span></span>
+                      ))}
+                    </p>
                   </div>
                 );
               })}

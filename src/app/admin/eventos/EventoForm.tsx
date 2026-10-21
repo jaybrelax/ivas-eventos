@@ -3,7 +3,7 @@
 import { startTransition, useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { Check, Flame, Hash, Maximize2, Sparkles, SquarePen, X, ImagePlus, Megaphone, Shield, Star, Trash2, Users, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, Flame, Hash, Maximize2, Sparkles, SquarePen, X, ImagePlus, Megaphone, Shield, Star, Trash2, Users, type LucideIcon } from "lucide-react";
 import { IconeGenero } from "@/components/genero";
 import { IconeTipo } from "@/components/IconeTipo";
 import { InfoRitual } from "@/components/InfoRitual";
@@ -32,6 +32,8 @@ type Props = {
   podeConfigurar?: boolean;
   /** Há chave da OpenAI cadastrada: libera o botão “Gerar com IA” da capa. */
   iaPronta?: boolean;
+  /** Bloco de renumeração dos próximos rituais, exibido logo abaixo do grupo Numeração. */
+  renumerar?: React.ReactNode;
 };
 
 function Bloco({
@@ -66,7 +68,49 @@ function Bloco({
   );
 }
 
-export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar, guarnicao, participantes, informacoes, podeConfigurar = false, iaPronta = false }: Props) {
+/**
+ * Grupo que se recolhe (cascata): o cabeçalho fica sempre à vista e o conteúdo abre e fecha.
+ * Os campos dentro continuam no formulário e são enviados mesmo com o grupo fechado (só ficam escondidos).
+ * `visivel` fica fora da parte recolhida, para campos que precisam estar sempre à mostra.
+ */
+function BlocoRecolhivel({
+  titulo,
+  sub,
+  icone: Icone,
+  visivel,
+  children,
+}: {
+  titulo: string;
+  sub?: string;
+  icone: LucideIcon;
+  visivel?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <section className="cartao">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        className="flex w-full cursor-pointer items-start gap-3 text-left select-none"
+      >
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-mata-50 text-mata-600"><Icone size={19} /></span>
+        <span className="min-w-0 flex-1">
+          <span className="cartao-titulo block">{titulo}</span>
+          {sub && <span className="cartao-sub block">{sub}</span>}
+        </span>
+        <ChevronDown size={18} className={`mt-2.5 shrink-0 text-stone-400 transition ${aberto ? "rotate-180" : ""}`} />
+      </button>
+      {/* Sempre à vista, mesmo com o grupo fechado */}
+      {visivel && <div className="mt-5">{visivel}</div>}
+      {/* Fechado só esconde: os campos continuam no formulário e são enviados */}
+      <div className={`mt-5 space-y-5 ${aberto ? "" : "hidden"}`}>{children}</div>
+    </section>
+  );
+}
+
+export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar, guarnicao, participantes, informacoes, podeConfigurar = false, iaPronta = false, renumerar }: Props) {
   const [estado, acao, pendente] = useActionState(salvarEvento, undefined);
   const padrao = enderecos.find((e) => e.padrao) ?? enderecos[0];
   const [endSel, setEndSel] = useState<string>(
@@ -328,6 +372,7 @@ export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar
           )}
 
           {tipo?.conta_como_ritual && (
+            <>
             <Bloco titulo="Numeração" sub={podeNumerar ? "Automática ao salvar. Você pode ajustar se precisar." : "Gerada automaticamente ao salvar."}>
               <div className="flex items-center gap-2.5 rounded-xl bg-mata-50 px-3.5 py-2.5 text-sm text-mata-800 ring-1 ring-mata-100">
                 <Hash size={16} className="shrink-0" />
@@ -346,6 +391,8 @@ export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar
                 </div>
               )}
             </Bloco>
+            {renumerar}
+            </>
           )}
 
           <Bloco titulo="Mestres" sub="Quem conduz o ritual. Toque nos nomes para escolher." icone={Flame} destaque>
@@ -353,7 +400,7 @@ export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar
           </Bloco>
 
           {tipo?.conta_como_ritual && (
-            <Bloco titulo="Guarnição" icone={Shield} sub="Os guardiões se candidatam na página do evento, por ordem de chegada. Defina quantas vagas há para cada gênero.">
+            <BlocoRecolhivel titulo="Guarnição" icone={Shield} sub="Os guardiões se candidatam na página do evento, por ordem de chegada. Defina quantas vagas há para cada gênero.">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
                   <label className="rotulo flex items-center gap-1.5" htmlFor="vagas_guardioes"><IconeGenero genero="masculino" size={14} /> Vagas de guardiões</label>
@@ -373,15 +420,21 @@ export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar
                 <input type="checkbox" name="candidaturas_abertas" defaultChecked={evento?.candidaturas_abertas ?? true} className="interruptor mt-1.5" />
               </label>
               {guarnicao && <div className="border-t border-stone-100 pt-5">{guarnicao}</div>}
-            </Bloco>
+            </BlocoRecolhivel>
           )}
 
           {tipo && tipo.aberto_publico && !tipo.fechado_guardioes && (
-            <Bloco titulo="Participantes" icone={Users} sub="Qualquer pessoa pode se inscrever pela página pública, por ordem de chegada.">
-              <div className="max-w-xs">
-                <label className="rotulo" htmlFor="vagas_participantes">Vagas de participantes</label>
-                <input id="vagas_participantes" name="vagas_participantes" type="number" min={0} max={1000} defaultValue={evento?.vagas_participantes ?? 30} className="campo" />
-              </div>
+            <BlocoRecolhivel
+              titulo="Participantes"
+              icone={Users}
+              sub="Qualquer pessoa pode se inscrever pela página pública, por ordem de chegada."
+              visivel={
+                <div className="max-w-xs">
+                  <label className="rotulo" htmlFor="vagas_participantes">Vagas de participantes</label>
+                  <input id="vagas_participantes" name="vagas_participantes" type="number" min={0} max={1000} defaultValue={evento?.vagas_participantes ?? 30} className="campo" />
+                </div>
+              }
+            >
               {tipo.conta_como_ritual ? (
                 <p className="text-xs text-stone-500">Segue a mesma configuração de candidaturas do grupo Guarnição acima.</p>
               ) : (
@@ -395,7 +448,7 @@ export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar
                 </label>
               )}
               {participantes && <div className="border-t border-stone-100 pt-5">{participantes}</div>}
-            </Bloco>
+            </BlocoRecolhivel>
           )}
         </div>
 
