@@ -5,6 +5,7 @@ import { DB_ID, TABLES } from "./config";
 import { after } from "next/server";
 import { getInstituto, listar, listarEventos } from "./data";
 import { enviarPush } from "./push";
+import { concordar } from "./genero";
 import { sinalizarMudanca } from "./tempo-real";
 import { mapaUsuarios } from "./usuarios";
 import type { Candidatura, Evento, Sexo, TipoEvento } from "./types";
@@ -224,12 +225,12 @@ export async function candidatar(
     }
   }
   const r = await entrarNaFila(evento.$id, usuario.id, usuario.sexo, usuario.id);
-  if (r.jaEstava) return { erro: "Você já está inscrito neste evento." };
+  if (r.jaEstava) return { erro: `Você já está ${concordar(usuario.sexo, "inscrito", "inscrita")} neste evento.` };
   await reorganizar(evento, usuario.id);
   const minha = await candidaturaDe(evento.$id, usuario.id);
   return minha?.situacao === "confirmada"
     ? { ok: "Candidatura confirmada. Você está na guarnição deste evento." }
-    : { ok: "As vagas estão preenchidas: você entrou na lista de espera e será chamado se alguém sair." };
+    : { ok: `As vagas estão preenchidas: você entrou na lista de espera e será ${concordar(usuario.sexo, "chamado", "chamada")} se alguém sair.` };
 }
 
 /** O próprio guardião cancela (até 4 h antes do início). */
@@ -239,7 +240,7 @@ export async function cancelar(evento: Evento, usuarioId: string): Promise<Resul
     return { erro: `O cancelamento só é possível até ${horas} ${horas === 1 ? "hora" : "horas"} antes do início. Fale com a coordenação.` };
   }
   const saiu = await sairDaFila(evento.$id, usuarioId, "cancelada", usuarioId);
-  if (!saiu) return { erro: "Você não está inscrito neste evento." };
+  if (!saiu) return { erro: "Você não tem candidatura neste evento." };
   await reorganizar(evento, usuarioId, true);
   return { ok: "Participação cancelada." };
 }

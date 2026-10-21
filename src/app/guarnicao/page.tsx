@@ -3,6 +3,7 @@ import { CalendarClock, CalendarX2, Clock, History, Hourglass, MapPin, ShieldChe
 import { contextoGuarnicao, rituaisComVagas, type RitualGuarnicao } from "@/lib/guarnicao-app";
 import { participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
 import { partesData } from "@/lib/format";
+import { concordar } from "@/lib/genero";
 import { urlImagem } from "@/lib/links";
 import { IconeGenero } from "@/components/genero";
 import { Avatar } from "@/components/Avatar";
@@ -159,7 +160,7 @@ function CartaoRitual({ meuId, r, visao, sexo, vagaPraMim, passado = false, limi
         {/* Situação para quem está vendo */}
         {visao === "guardiao" ? (
           r.minha === "confirmada" ? (
-            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f8566b] px-2.5 py-1 text-xs font-bold text-[#1c1040] shadow-sm"><ShieldCheck size={14} /> Você está escalado(a)</p>
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f8566b] px-2.5 py-1 text-xs font-bold text-[#1c1040] shadow-sm"><ShieldCheck size={14} /> Você está {concordar(sexo, "escalado", "escalada")}</p>
           ) : r.minha === "espera" ? (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800"><Hourglass size={14} /> Você está na espera</p>
           ) : limite ? (

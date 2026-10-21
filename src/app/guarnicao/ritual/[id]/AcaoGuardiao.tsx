@@ -3,6 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Hourglass, ShieldCheck, ShieldPlus } from "lucide-react";
+import { concordar } from "@/lib/genero";
+import type { Sexo } from "@/lib/types";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import { cancelarGuarnicao, candidatarGuarnicao } from "../../actions";
@@ -11,6 +13,7 @@ import { Folha } from "../../Folha";
 type Props = {
   eventoId: string;
   situacao: "confirmada" | "espera" | null;
+  sexo: Sexo | null;
   posicaoEspera: number | null;
   /** Motivo de não poder se candidatar (null = pode). */
   bloqueio: string | null;
@@ -22,7 +25,7 @@ type Props = {
 const vibrar = () => (navigator as Navigator & { vibrate?: (p: number) => boolean }).vibrate?.(15);
 
 /** Barra fixa acima das abas com a ação principal do guardião: candidatar-se ou cancelar. */
-export function AcaoGuardiao({ eventoId, situacao, posicaoEspera, bloqueio, prazoPassou, prazoTexto, temVaga }: Props) {
+export function AcaoGuardiao({ eventoId, situacao, posicaoEspera, bloqueio, prazoPassou, prazoTexto, temVaga, sexo }: Props) {
   const [pendente, iniciar] = useTransition();
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
   const [montado, setMontado] = useState(false);
@@ -52,7 +55,7 @@ export function AcaoGuardiao({ eventoId, situacao, posicaoEspera, bloqueio, praz
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-stone-900">
-                  {situacao === "confirmada" ? "Você está escalado(a)" : `Na espera${posicaoEspera ? ` · ${posicaoEspera}º da fila` : ""}`}
+                  {situacao === "confirmada" ? `Você está ${concordar(sexo, "escalado", "escalada")}` : `Na espera${posicaoEspera ? ` · ${posicaoEspera}º da fila` : ""}`}
                 </p>
                 <p className="text-xs text-stone-500">{prazoPassou ? "Prazo para cancelar encerrado" : `Pode cancelar até ${prazoTexto}`}</p>
               </div>

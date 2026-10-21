@@ -175,6 +175,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
           prazoPassou={g.prazoPassou}
           prazoTexto={g.prazoTexto}
           temVaga={temVaga}
+          sexo={sexo}
         />
       )}
     </div>

@@ -4,6 +4,7 @@ import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { candidaturasDosEventos, inicioDe, participacoesDe } from "@/lib/guarnicao";
 import { listarEventos } from "@/lib/data";
 import { formatarIdRitual, partesData } from "@/lib/format";
+import { concordar } from "@/lib/genero";
 import { urlImagem } from "@/lib/links";
 import type { Evento } from "@/lib/types";
 import { CabecalhoApp, Vazio } from "../ui";
@@ -48,7 +49,7 @@ export default async function EscalasGuarnicao() {
                   <li key={c.$id}>
                     <Item e={e}>
                       {c.situacao === "confirmada" ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><ShieldCheck size={13} /> Escalado(a)</span>
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><ShieldCheck size={13} /> {concordar(c.sexo, "Escalado", "Escalada")}</span>
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700"><Hourglass size={13} /> Na espera · {posicao(e.$id)}º da fila</span>
                       )}
