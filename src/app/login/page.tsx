@@ -1,7 +1,20 @@
+import type { Metadata } from "next";
 import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
 import { FundoMarca } from "@/components/FundoMarca";
 import { LoginForm } from "./LoginForm";
+
+/** Link do app da Guarnição (que exige login): a prévia de compartilhamento mostra a capa do app. */
+export async function generateMetadata({ searchParams }: PageProps<"/login">): Promise<Metadata> {
+  const next = (await searchParams).next;
+  if (typeof next !== "string" || !next.startsWith("/guarnicao")) return {};
+  return {
+    title: "App Guarnição IVAS",
+    description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas, estatísticas e histórico.",
+    openGraph: { type: "website", siteName: "Guarnição IVAS", title: "App Guarnição IVAS", description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas, estatísticas e histórico.", locale: "pt_BR", images: [{ url: "/icons/capa-guarnicao.jpg", width: 1200, height: 630, alt: "App Guarnição IVAS" }] },
+    twitter: { card: "summary_large_image", title: "App Guarnição IVAS", description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas, estatísticas e histórico.", images: ["/icons/capa-guarnicao.jpg"] },
+  };
+}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const [sp, instituto] = await Promise.all([searchParams, getInstituto()]);

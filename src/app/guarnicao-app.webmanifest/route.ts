@@ -4,7 +4,7 @@ export function GET() {
   const manifesto = {
     id: "/guarnicao",
     name: "IVAS Guarnição",
-    short_name: "Guarnição",
+    short_name: "Guarnição IVAS",
     description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas e histórico.",
     lang: "pt-BR",
     dir: "ltr",

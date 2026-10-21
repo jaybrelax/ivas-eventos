@@ -9,10 +9,14 @@ import { Abertura, AvisoOffline, PuxarAtualizar } from "./nativo";
 
 // App da Guarnição: PWA à parte, com manifesto, nome e cor próprios
 export const metadata: Metadata = {
-  title: { default: "Guarnição", template: "%s · Guarnição IVAS" },
+  title: { default: "App Guarnição IVAS", template: "%s · Guarnição IVAS" },
+  description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas, estatísticas e histórico.",
+  // Imagem de compartilhamento do link (WhatsApp, Instagram, etc.)
+  openGraph: { type: "website", siteName: "Guarnição IVAS", title: "App Guarnição IVAS", description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas, estatísticas e histórico.", locale: "pt_BR", images: [{ url: "/icons/capa-guarnicao.jpg", width: 1200, height: 630, alt: "App Guarnição IVAS" }] },
+  twitter: { card: "summary_large_image", title: "App Guarnição IVAS", description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas, estatísticas e histórico.", images: ["/icons/capa-guarnicao.jpg"] },
   manifest: "/guarnicao-app.webmanifest",
   applicationName: "IVAS Guarnição",
-  appleWebApp: { capable: true, title: "Guarnição", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Guarnição IVAS", statusBarStyle: "black-translucent" },
   icons: { apple: "/icons/guarnicao-maskable-192.png" },
 };
 export const viewport: Viewport = { themeColor: "#1c1040", viewportFit: "cover" };
