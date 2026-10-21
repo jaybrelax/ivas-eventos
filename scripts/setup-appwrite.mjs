@@ -2,7 +2,7 @@
 // Uso:  npm run setup        (lê o arquivo .env.local)
 // Pode rodar quantas vezes quiser: o que já existe é pulado.
 
-import { Client, ID, Query, Storage, TablesDB, Users, AppwriteException } from "node-appwrite";
+import { Client, ID, Permission, Query, Role, Storage, TablesDB, Users, AppwriteException } from "node-appwrite";
 
 const { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME } = process.env;
 if (!APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !APPWRITE_API_KEY) {
@@ -128,6 +128,14 @@ const TABELAS = {
       ["ix_cand_usuario", "key", ["usuario_id", "situacao"]],
     ],
   },
+  // Tempo real do app da Guarnição: uma linha por evento, atualizada a cada mudança de escala.
+  // Não guarda nada pessoal (só "qual evento mudou e quando") e por isso é legível por qualquer cliente:
+  // o app aberto escuta a tabela pelo Realtime e recarrega a tela.
+  sinais: {
+    nome: "Sinais de atualização",
+    leituraPublica: true,
+    colunas: [v("momento", 40, { required: true })],
+  },
   // Notificações push do app da Guarnição: um registro por aparelho inscrito
   push_inscricoes: {
     nome: "Inscrições de notificação",
@@ -219,7 +227,7 @@ async function main() {
 
   for (const [tableId, def] of Object.entries(TABELAS)) {
     console.log(`Tabela ${tableId}`);
-    await talvez(`tabela ${tableId}`, () => db.createTable({ databaseId: DB, tableId, name: def.nome, permissions: [], rowSecurity: false }));
+    await talvez(`tabela ${tableId}`, () => db.createTable({ databaseId: DB, tableId, name: def.nome, permissions: def.leituraPublica ? [Permission.read(Role.any())] : [], rowSecurity: false }));
     await removerObsoletos(tableId);
     for (const col of def.colunas) await talvez(`coluna ${col[1]}`, () => criarColuna(tableId, col));
     await esperarColunas(tableId);

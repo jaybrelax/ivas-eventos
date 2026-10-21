@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { classeTema, contextoGuarnicao, temaGuarnicao } from "@/lib/guarnicao-app";
+import { DB_ID, TABLES } from "@/lib/config";
 import { TemaNoDocumento } from "./TemaNoDocumento";
+import { TempoReal } from "./TempoReal";
 import { AbasGuarnicao } from "./AbasGuarnicao";
 import { Transicao } from "./Transicao";
 import { Abertura, AvisoOffline, PuxarAtualizar } from "./nativo";
@@ -49,6 +51,9 @@ export default async function GuarnicaoLayout({ children }: LayoutProps<"/guarni
       {/* overflow-x-clip: a tela nova entra deslizando pela lateral; sem cortar, a página fica mais larga que o celular por um instante e o navegador a encolhe (o menu fixo "pula") */}
       <div className="mx-auto min-h-dvh max-w-xl overflow-x-clip bg-stone-50 pb-[calc(7.25rem+env(safe-area-inset-bottom))] shadow-[0_0_60px_-20px_rgb(0_0_0/0.25)]">
         <AvisoOffline />
+        {process.env.APPWRITE_ENDPOINT && process.env.APPWRITE_PROJECT_ID && (
+          <TempoReal endpoint={process.env.APPWRITE_ENDPOINT} projeto={process.env.APPWRITE_PROJECT_ID} canal={`tablesdb.${DB_ID}.tables.${TABLES.sinais}.rows`} />
+        )}
         <PuxarAtualizar>
           <Transicao>{children}</Transicao>
         </PuxarAtualizar>

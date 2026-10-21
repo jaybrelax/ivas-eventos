@@ -5,6 +5,7 @@ import { DB_ID, TABLES } from "./config";
 import { after } from "next/server";
 import { getInstituto, listar, listarEventos } from "./data";
 import { enviarPush } from "./push";
+import { sinalizarMudanca } from "./tempo-real";
 import { mapaUsuarios } from "./usuarios";
 import type { Candidatura, Evento, Sexo, TipoEvento } from "./types";
 
@@ -136,6 +137,7 @@ export async function reorganizar(evento: Evento, alteradoPor: string | null, av
   if (atuais.length !== confirmados.length || atuais.some((id, i) => id !== confirmados[i])) {
     await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: { guardioes: confirmados } });
   }
+  await sinalizarMudanca(evento.$id); // quem está com o app aberto vê a mudança na hora (antes de renderizar a resposta)
   avisarMudancas(evento, promovidos, avisarVaga ? livres : null, new Set(ativas.map((c) => c.usuario_id)));
 }
 
