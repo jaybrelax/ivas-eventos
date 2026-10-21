@@ -1,20 +1,7 @@
-import type { Metadata } from "next";
 import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
 import { FundoMarca } from "@/components/FundoMarca";
 import { LoginForm } from "./LoginForm";
-
-/** Link do app da Guarnição (que exige login): a prévia de compartilhamento mostra a capa do app. */
-export async function generateMetadata({ searchParams }: PageProps<"/login">): Promise<Metadata> {
-  const next = (await searchParams).next;
-  if (typeof next !== "string" || !next.startsWith("/guarnicao")) return {};
-  return {
-    title: "App Guarnição IVAS",
-    description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas, estatísticas e histórico.",
-    openGraph: { type: "website", siteName: "Guarnição IVAS", title: "App Guarnição IVAS", description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas, estatísticas e histórico.", locale: "pt_BR", images: [{ url: "/icons/capa-guarnicao.jpg", width: 1200, height: 630, alt: "App Guarnição IVAS" }] },
-    twitter: { card: "summary_large_image", title: "App Guarnição IVAS", description: "Escala dos guardiões nos rituais do Instituto IVAS: vagas, candidaturas, estatísticas e histórico.", images: ["/icons/capa-guarnicao.jpg"] },
-  };
-}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const [sp, instituto] = await Promise.all([searchParams, getInstituto()]);
@@ -46,7 +33,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <div aria-hidden className="absolute inset-x-0 -top-[14vw] bottom-0 bg-cover bg-top bg-no-repeat lg:hidden" style={{ backgroundImage: "url(/fundo_login_mobile.webp)" }} />
         <div className="relative w-full max-w-sm animate-surgir rounded-3xl bg-white/55 p-5 shadow-elevado ring-1 ring-white/70 backdrop-blur-md lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none">
           <h2 className="text-center text-xl font-semibold tracking-tight text-stone-900 lg:text-left lg:text-2xl">Entrar</h2>
-          <p className="mt-1 mb-5 text-center text-sm lg:mb-8 lg:mt-1.5 text-stone-500 lg:text-left">{next?.startsWith("/guarnicao") ? "Acesse o app da Guarnição com o e-mail e a senha do seu cadastro." : "Use o e-mail e a senha do seu cadastro."}</p>
+          <p className="mt-1 mb-5 text-center text-sm lg:mb-8 lg:mt-1.5 text-stone-500 lg:text-left">Use o e-mail e a senha do seu cadastro.</p>
           <LoginForm semPerfil={semPerfil} erroGoogle={erroGoogle} next={next} />
           <p className="mt-4 text-center text-sm text-stone-500 lg:mt-6">
             Quer participar dos rituais? <a href={cadastroHref("/cadastro")} className="font-medium text-mata-700 hover:underline">Criar cadastro</a>

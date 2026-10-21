@@ -62,5 +62,7 @@ export async function sair(voltarPara?: unknown) {
   } catch {}
   (await cookies()).delete(SESSION_COOKIE);
   const destino = typeof voltarPara === "string" ? destinoSeguro(voltarPara) : null;
+  // Do app da Guarnição volta para o login do próprio app
+  if (destino?.startsWith("/guarnicao")) redirect("/login-guarnicao");
   redirect(destino ? `/login?next=${encodeURIComponent(destino)}` : "/login");
 }

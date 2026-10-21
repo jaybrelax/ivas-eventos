@@ -43,7 +43,7 @@ export function visoesDe(u: Pick<Usuario, "perfil" | "funcaoRitual">): VisaoGuar
 /** Sessão + visões do app. Sem login vai para o login (voltando para cá); sem acesso devolve `null`. */
 export async function contextoGuarnicao(next = "/guarnicao"): Promise<ContextoGuarnicao | null> {
   const u = await getUsuario();
-  if (!u) redirect(`/login?next=${encodeURIComponent(next)}`);
+  if (!u) redirect(`/login-guarnicao?next=${encodeURIComponent(next)}`);
   const visoes = visoesDe(u);
   if (!visoes.length) return null;
   const salva = (await cookies()).get(COOKIE_VISAO)?.value as VisaoGuarnicao | undefined;

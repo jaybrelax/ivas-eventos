@@ -70,13 +70,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(falha);
   }
   if (estado.state !== stateRecebido) return NextResponse.redirect(falha); // possível CSRF
+  // Quem veio do app da Guarnição volta para o login do app se algo falhar
+  const base = estado.next?.startsWith("/guarnicao") ? "/login-guarnicao" : "/login";
+  const falhaApp = new URL(`${base}?erro=google`, req.url);
 
   try {
     const redirectUri = `${req.nextUrl.origin}/api/auth/google/callback`;
     const { access_token } = await trocarCodigo(code, redirectUri);
     const perfil = await buscarPerfil(access_token);
     if (!perfil.email || !perfil.email_verified) {
-      return NextResponse.redirect(new URL("/login?erro=google-email", req.url));
+      return NextResponse.redirect(new URL(`${base}?erro=google-email`, req.url));
     }
 
     const { users, storage } = createAdminClient();
@@ -117,6 +120,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(new URL(destino, req.url));
   } catch (e) {
     console.error("OAuth Google (retorno):", e instanceof Error ? e.message : e);
-    return NextResponse.redirect(falha);
+    return NextResponse.redirect(falhaApp);
   }
 }
