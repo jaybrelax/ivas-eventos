@@ -15,6 +15,7 @@ import { listarEquipe } from "@/lib/usuarios";
 import type { Pessoa } from "@/lib/types";
 import { comNumeracao, isConflito } from "@/lib/ritual";
 import { VAGAS_PADRAO, reorganizar } from "@/lib/guarnicao";
+import { aplicarRenumeracao, planejarRenumeracao } from "@/lib/renumerar";
 
 const esquema = z.object({
   titulo: z.string().trim().min(1, "Informe o título").max(80, "Título com no máximo 80 caracteres"),
@@ -180,3 +181,25 @@ export async function excluirEvento(form: FormData) {
   revalidatePath("/admin/eventos");
   redirect("/admin/eventos?ok=excluido");
 }
+
+/** Prévia da renumeração dos rituais seguintes a este (não grava nada). */
+export async function previaRenumeracao(eventoId: string) {
+  await exigir(PODE.editarNumeracao);
+  return planejarRenumeracao(eventoId);
+}
+
+/** Renumera os rituais seguintes a este, em ordem de data (recalcula na hora, sem confiar na prévia do navegador). */
+export async function renumerarProximos(eventoId: string): Promise<{ erro: string } | { ok: string }> {
+  await exigir(PODE.editarNumeracao);
+  const plano = await planejarRenumeracao(eventoId);
+  if (!plano.ok) return { erro: plano.erro };
+  try {
+    const n = await aplicarRenumeracao(plano);
+    revalidatePath("/", "layout");
+    return { ok: n ? `${n} ${n === 1 ? "ritual renumerado" : "rituais renumerados"}.` : "A numeração já estava na ordem." };
+  } catch (e) {
+    console.error(e);
+    return { erro: "Não foi possível renumerar. Confira a lista de eventos e tente de novo." };
+  }
+}
+

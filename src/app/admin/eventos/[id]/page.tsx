@@ -17,6 +17,7 @@ import { Guarnicao } from "../Guarnicao";
 import { dadosGuarnicao } from "../guarnicao-dados";
 import { temGuarnicao } from "@/lib/guarnicao";
 import { Participantes } from "../Participantes";
+import { RenumerarProximos } from "../RenumerarProximos";
 import { dadosParticipantes } from "../participantes-dados";
 import { excluirEvento } from "../actions";
 
@@ -122,6 +123,9 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
         guarnicao={guarnicao && <Guarnicao dados={guarnicao} embutido />}
         participantes={participantes && <Participantes dados={participantes} />}
       />
+      {tipo?.conta_como_ritual && evento.ritual_numero_geral && pode(u, PODE.editarNumeracao) && (
+        <RenumerarProximos eventoId={evento.$id} numero={evento.ritual_numero_geral} />
+      )}
       {u.perfil === "admin" && (
         <form action={excluirEvento} className="xl:mr-[23.5rem]">
           <input type="hidden" name="id" value={evento.$id} />
