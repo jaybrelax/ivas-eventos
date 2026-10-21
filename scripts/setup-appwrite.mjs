@@ -128,6 +128,18 @@ const TABELAS = {
       ["ix_cand_usuario", "key", ["usuario_id", "situacao"]],
     ],
   },
+  // Notificações push do app da Guarnição: um registro por aparelho inscrito
+  push_inscricoes: {
+    nome: "Inscrições de notificação",
+    colunas: [
+      v("usuario_id", 36, { required: true }), v("chave", 64, { required: true }),
+      v("endpoint", 1000, { required: true }), v("p256dh", 255, { required: true }), v("auth", 100, { required: true }),
+    ],
+    indices: [
+      ["ux_push_chave", "unique", ["chave"]],
+      ["ix_push_usuario", "key", ["usuario_id"]],
+    ],
+  },
   // Inscrições de participantes (público geral) nos rituais/eventos
   inscricoes: {
     nome: "Inscrições de participantes",

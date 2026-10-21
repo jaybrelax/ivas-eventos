@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { ChevronRight, UsersRound } from "lucide-react";
+import { UsersRound } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { diasDesde, rankingGuarnicao } from "@/lib/guarnicao-estatisticas";
-import { Avatar } from "@/components/Avatar";
-import { IconeGenero } from "@/components/genero";
 import { CabecalhoApp, Vazio } from "../ui";
+import { ListaGuardioes } from "./ListaGuardioes";
 
 export const metadata = { title: "Guardiões" };
 
@@ -29,24 +28,7 @@ export default async function GuardioesGuarnicao({ searchParams }: PageProps<"/g
       {lista.length === 0 ? (
         <Vazio icone={<UsersRound size={26} />} titulo="Ninguém aqui ainda" texto="Pessoas com a função Guardião no cadastro aparecem nesta lista." />
       ) : (
-        <ul className="mx-4 divide-y divide-stone-100 overflow-hidden rounded-3xl bg-white shadow-cartao ring-1 ring-stone-200/70">
-          {lista.map((p) => (
-            <li key={p.id}>
-              <Link href={`/guarnicao/guardioes/${p.id}`} className="flex items-center gap-3 px-4 py-3 active:bg-stone-50">
-                <Avatar nome={p.nome} foto={p.foto} tamanho={44} />
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1 truncate text-sm font-semibold text-stone-900">{p.nome} {p.sexo && <IconeGenero genero={p.sexo} size={12} />}</span>
-                  <span className="block text-xs text-stone-500">{p.ultimo ? `Último há ${diasDesde(p.ultimo)} dias` : "Ainda não serviu"}</span>
-                </span>
-                <span className="text-right">
-                  <span className="block text-lg leading-none font-bold text-stone-900 tabular-nums">{p.total}</span>
-                  <span className="text-[10px] text-stone-400">rituais</span>
-                </span>
-                <ChevronRight size={16} className="text-stone-300" />
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <ListaGuardioes pessoas={lista.map((p) => ({ id: p.id, nome: p.nome, foto: p.foto, sexo: p.sexo, total: p.total, ultimoTexto: p.ultimo ? `Último há ${diasDesde(p.ultimo)} dias` : "Ainda não serviu" }))} />
       )}
     </>
   );

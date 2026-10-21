@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
+import { UserRound } from "lucide-react";
 import type { Usuario } from "@/lib/auth";
 
 /**
@@ -39,5 +40,30 @@ export function Vazio({ icone, titulo, texto }: { icone: ReactNode; titulo: stri
       <p className="mt-4 text-lg font-semibold text-stone-900">{titulo}</p>
       <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-stone-500">{texto}</p>
     </div>
+  );
+}
+
+/**
+ * Círculo de vaga livre. Com `destaque` (vaga que o guardião pode ocupar) ganha ondas que se expandem,
+ * um aro tracejado girando e um leve pulsar; sem destaque, é só o círculo discreto com o ícone.
+ */
+export function VagaLivre({ destaque = false, tamanho = 36, texto }: { destaque?: boolean; tamanho?: number; texto?: string }) {
+  const lado = { width: tamanho, height: tamanho };
+  const conteudo = texto ? <span className="text-[10px] font-bold">{texto}</span> : <UserRound size={Math.round(tamanho * 0.45)} strokeWidth={2.2} />;
+  if (!destaque)
+    return (
+      <span title="Vaga livre" style={lado} className="grid shrink-0 place-items-center rounded-full border-2 border-dashed border-stone-300 bg-stone-50 text-stone-300">
+        {conteudo}
+      </span>
+    );
+  return (
+    <span title="Vaga livre para você" style={lado} className="relative grid shrink-0 place-items-center">
+      <span aria-hidden className="absolute inset-0 animate-vaga-onda rounded-full border-2 border-emerald-400" />
+      <span aria-hidden className="absolute inset-0 animate-vaga-onda rounded-full border-2 border-emerald-400 [animation-delay:1.2s]" />
+      <span aria-hidden className="absolute inset-0 animate-vaga-giro rounded-full border-2 border-dashed border-emerald-500" />
+      <span className="relative grid animate-vaga-respira place-items-center rounded-full bg-emerald-100 text-emerald-700 shadow-[0_0_14px_-2px_rgb(122_82_227/0.55)]" style={{ width: tamanho - 8, height: tamanho - 8 }}>
+        {conteudo}
+      </span>
+    </span>
   );
 }

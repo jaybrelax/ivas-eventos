@@ -5,6 +5,7 @@ import { classeTema, contextoGuarnicao, temaGuarnicao } from "@/lib/guarnicao-ap
 import { TemaNoDocumento } from "./TemaNoDocumento";
 import { AbasGuarnicao } from "./AbasGuarnicao";
 import { Transicao } from "./Transicao";
+import { Abertura, AvisoOffline, PuxarAtualizar } from "./nativo";
 
 // App da Guarnição: PWA à parte, com manifesto, nome e cor próprios
 export const metadata: Metadata = {
@@ -42,9 +43,13 @@ export default async function GuarnicaoLayout({ children }: LayoutProps<"/guarni
     <div className={`app-guarnicao ${classe} min-h-dvh bg-stone-100 text-stone-900 [-webkit-tap-highlight-color:transparent]`}>
       <TemaNoDocumento classe={classe} />
       <div className="mx-auto min-h-dvh max-w-xl bg-stone-50 pb-[calc(7.25rem+env(safe-area-inset-bottom))] shadow-[0_0_60px_-20px_rgb(0_0_0/0.25)]">
-        <Transicao>{children}</Transicao>
+        <AvisoOffline />
+        <PuxarAtualizar>
+          <Transicao>{children}</Transicao>
+        </PuxarAtualizar>
       </div>
       <AbasGuarnicao visao={ctx.visao} />
+      <Abertura />
     </div>
   );
 }

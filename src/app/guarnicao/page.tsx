@@ -1,12 +1,13 @@
 import Link from "next/link";
-import { CalendarClock, CalendarX2, Clock, History, Hourglass, MapPin, ShieldCheck, Sparkles, UserRound, UserRoundPen } from "lucide-react";
+import { CalendarClock, CalendarX2, Clock, History, Hourglass, MapPin, ShieldCheck, Sparkles, UserRoundPen } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas, type RitualGuarnicao } from "@/lib/guarnicao-app";
+import { participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
 import { partesData } from "@/lib/format";
 import { urlImagem } from "@/lib/links";
 import { IconeGenero } from "@/components/genero";
 import { Avatar } from "@/components/Avatar";
 import type { Sexo } from "@/lib/types";
-import { CabecalhoApp, Vazio } from "./ui";
+import { CabecalhoApp, Vazio, VagaLivre } from "./ui";
 
 export const metadata = { title: "Rituais" };
 
@@ -18,9 +19,15 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   const soComVaga = sp.filtro === "vaga";
   // Só a coordenação alterna para os rituais que já aconteceram
   const anteriores = visao === "coordenador" && sp.periodo === "anteriores";
-  const rituais = await rituaisComVagas(u.id, 120, anteriores);
+  const [rituais, { limiteMes }, porMes] = await Promise.all([
+    rituaisComVagas(u.id, 120, anteriores),
+    regrasGuarnicao(),
+    visao === "guardiao" ? participacoesPorMes(u.id) : Promise.resolve(new Map<string, number>()),
+  ]);
   const sexo = u.sexo;
-  const temVagaPraMim = (r: RitualGuarnicao) => !!sexo && r.aberto && !r.minha && r.vagas[sexo] - r.confirmados[sexo] > 0;
+  // Já atingiu o limite de participações no mês deste ritual (avisa no card, antes de tentar)
+  const noLimite = (r: RitualGuarnicao) => limiteMes > 0 && !r.minha && (porMes.get(r.evento.data.slice(0, 7)) ?? 0) >= limiteMes;
+  const temVagaPraMim = (r: RitualGuarnicao) => !!sexo && r.aberto && !r.minha && r.vagas[sexo] - r.confirmados[sexo] > 0 && !noLimite(r);
   const lista = visao === "guardiao" && soComVaga ? rituais.filter(temVagaPraMim) : rituais;
   const comVaga = rituais.filter(temVagaPraMim).length;
 
@@ -62,7 +69,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
         <ul className="space-y-3 px-4">
           {lista.map((r) => (
             <li key={r.evento.$id}>
-              <CartaoRitual r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={anteriores} />
+              <CartaoRitual r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={anteriores} limite={noLimite(r) && r.aberto ? limiteMes : null} />
             </li>
           ))}
         </ul>
@@ -71,7 +78,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   );
 }
 
-function CartaoRitual({ r, visao, sexo, vagaPraMim, passado = false }: { r: RitualGuarnicao; visao: "coordenador" | "guardiao"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean }) {
+function CartaoRitual({ r, visao, sexo, vagaPraMim, passado = false, limite = null }: { r: RitualGuarnicao; visao: "coordenador" | "guardiao"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
   const e = r.evento;
   const d = partesData(e.data);
   const faltam = (s: Sexo) => Math.max(0, r.vagas[s] - r.confirmados[s]);
@@ -124,13 +131,8 @@ function CartaoRitual({ r, visao, sexo, vagaPraMim, passado = false }: { r: Ritu
                     return p ? (
                       <Avatar key={p.id} nome={p.nome} foto={p.foto} tamanho={36} className="ring-2 ring-emerald-500/80" />
                     ) : (
-                      <span
-                        key={`v${i}`}
-                        title="Vaga livre"
-                        className={`grid h-9 w-9 place-items-center rounded-full border-2 border-dashed ${meu && r.aberto ? "border-emerald-400 bg-emerald-50 text-emerald-400" : "border-stone-300 bg-stone-50 text-stone-300"}`}
-                      >
-                        <UserRound size={16} strokeWidth={2} />
-                      </span>
+                      // O guardião só ocupa uma vaga por ritual: só a primeira livre do gênero dele recebe o destaque
+                    <VagaLivre key={`v${i}`} destaque={meu && vagaPraMim && i === r.escalados[s].length} />
                     );
                   })}
                   {r.vagas[s] === 0 && <span className="text-[11px] text-stone-400">sem vagas</span>}
@@ -151,6 +153,8 @@ function CartaoRitual({ r, visao, sexo, vagaPraMim, passado = false }: { r: Ritu
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800"><ShieldCheck size={14} /> Você está escalado(a)</p>
           ) : r.minha === "espera" ? (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800"><Hourglass size={14} /> Você está na espera</p>
+          ) : limite ? (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600"><CalendarClock size={13} /> Limite do mês atingido ({limite}/{limite})</p>
           ) : vagaPraMim ? (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white"><Sparkles size={13} /> Vaga para você</p>
           ) : !r.aberto ? (

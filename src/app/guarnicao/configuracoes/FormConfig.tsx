@@ -5,6 +5,7 @@ import { CalendarRange, Clock, Minus, Plus } from "lucide-react";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import { salvarConfigGuarnicao } from "../actions";
+import { vibrar } from "../nativo";
 
 /** Ajuste com botões − e + (toque grande, como num app nativo). */
 function Passo({ valor, min, max, aoMudar, rotulo }: { valor: number; min: number; max: number; aoMudar: (v: number) => void; rotulo: string }) {
@@ -64,7 +65,10 @@ export function FormConfig({ horasInicial, limiteInicial }: { horasInicial: numb
           iniciar(async () => {
             const r = await salvarConfigGuarnicao({ horas, limiteMes: limite });
             if (r.erro) toast(r.erro);
-            else if (r.ok) toast(r.ok, "ok");
+            else if (r.ok) {
+              vibrar();
+              toast(r.ok, "ok");
+            }
           })
         }
         className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-base font-bold text-white shadow-md transition active:scale-[0.98] disabled:bg-stone-300 disabled:text-stone-600 disabled:shadow-none"

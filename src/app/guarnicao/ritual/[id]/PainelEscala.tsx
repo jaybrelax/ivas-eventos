@@ -8,6 +8,7 @@ import { toast } from "@/components/Toaster";
 import type { Sexo } from "@/lib/types";
 import { ajustarVagas, colocarGuardiao, retirarGuardiao } from "../../actions";
 import { Folha } from "../../Folha";
+import { vibrar } from "../../nativo";
 
 type Pessoa = { id: string; nome: string; foto: string | null };
 
@@ -33,7 +34,10 @@ export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, di
     iniciar(async () => {
       const r = await fn();
       if (r.erro) toast(r.erro);
-      else if (r.ok && !silencioso) toast(r.ok, "ok");
+      else {
+        vibrar();
+        if (r.ok && !silencioso) toast(r.ok, "ok");
+      }
     });
 
   const opcoes = useMemo(() => {

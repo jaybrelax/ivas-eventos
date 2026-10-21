@@ -5,10 +5,11 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { COOKIE_TEMA, COOKIE_VISAO, contextoGuarnicao, type TemaGuarnicao, type VisaoGuarnicao } from "@/lib/guarnicao-app";
 import { getEvento, listarTipos } from "@/lib/data";
-import { adicionarGuardiao, ajustarGuarnicao, cancelar, candidatar, removerGuardiao, type Resultado } from "@/lib/guarnicao";
+import { adicionarGuardiao, ajustarGuarnicao, cancelar, candidatar, removerGuardiao, temGuarnicao, type Resultado } from "@/lib/guarnicao";
 import { createAdminClient } from "@/lib/appwrite";
 import { DB_ID, INSTITUTO_ROW_ID, TABLES } from "@/lib/config";
 import { mapaUsuarios, salvarContato } from "@/lib/usuarios";
+import { enviarPush, removerInscricao, salvarInscricao } from "@/lib/push";
 
 /** Alterna entre a visão de coordenador e a de guardião (para quem tem as duas). */
 export async function trocarVisao(visao: VisaoGuarnicao) {
@@ -66,8 +67,8 @@ export async function cancelarGuarnicao(eventoId: string): Promise<Resultado> {
 export async function colocarGuardiao(eventoId: string, usuarioId: string): Promise<Resultado> {
   const u = await coordenador();
   if (!u) return { erro: "Só a coordenação pode escalar." };
-  const [{ evento }, usuarios] = await Promise.all([ritual(eventoId), mapaUsuarios()]);
-  if (!evento) return { erro: "Ritual não encontrado." };
+  const [{ evento, tipo }, usuarios] = await Promise.all([ritual(eventoId), mapaUsuarios()]);
+  if (!evento || !temGuarnicao(tipo)) return { erro: "Ritual não encontrado." };
   const alvo = usuarios.get(usuarioId);
   if (!alvo || alvo.funcao !== "guardiao") return { erro: "Escolha uma pessoa com a função Guardião." };
   const r = await adicionarGuardiao(evento, { id: alvo.id, sexo: alvo.sexo }, u.id);
@@ -78,8 +79,8 @@ export async function colocarGuardiao(eventoId: string, usuarioId: string): Prom
 export async function retirarGuardiao(eventoId: string, usuarioId: string): Promise<Resultado> {
   const u = await coordenador();
   if (!u) return { erro: "Só a coordenação pode escalar." };
-  const { evento } = await ritual(eventoId);
-  if (!evento) return { erro: "Ritual não encontrado." };
+  const { evento, tipo } = await ritual(eventoId);
+  if (!evento || !temGuarnicao(tipo)) return { erro: "Ritual não encontrado." };
   const r = await removerGuardiao(evento, usuarioId, u.id);
   revalidar(eventoId);
   return r;
@@ -88,8 +89,8 @@ export async function retirarGuardiao(eventoId: string, usuarioId: string): Prom
 export async function ajustarVagas(eventoId: string, mudar: { masculino?: number; feminino?: number; abertas?: boolean }): Promise<Resultado> {
   const u = await coordenador();
   if (!u) return { erro: "Só a coordenação pode mudar as vagas." };
-  const { evento } = await ritual(eventoId);
-  if (!evento) return { erro: "Ritual não encontrado." };
+  const { evento, tipo } = await ritual(eventoId);
+  if (!evento || !temGuarnicao(tipo)) return { erro: "Ritual não encontrado." };
   const r = await ajustarGuarnicao(evento, mudar, u.id);
   revalidar(eventoId);
   return r;
@@ -129,4 +130,33 @@ export async function trocarFotoGuarnicao(form: FormData): Promise<Resultado> {
   if (r.erro) return { erro: r.erro };
   revalidatePath("/guarnicao", "layout");
   return { ok: foto instanceof File && foto.size > 0 ? "Foto atualizada." : "Foto removida." };
+}
+
+/** Liga as notificações neste aparelho (guarda a inscrição de push do navegador). */
+export async function ativarNotificacoes(sub: { endpoint: string; keys: { p256dh: string; auth: string } }): Promise<Resultado> {
+  const ctx = await contextoGuarnicao();
+  if (!ctx) return { erro: "Sem acesso." };
+  if (!sub?.endpoint?.startsWith("https://") || !sub.keys?.p256dh || !sub.keys?.auth) return { erro: "Inscrição inválida." };
+  try {
+    await salvarInscricao(ctx.u.id, sub);
+  } catch (e) {
+    console.error(e);
+    return { erro: "Não foi possível ativar as notificações." };
+  }
+  return { ok: "Notificações ativadas neste aparelho." };
+}
+
+export async function desativarNotificacoes(endpoint: string): Promise<Resultado> {
+  const ctx = await contextoGuarnicao();
+  if (!ctx) return { erro: "Sem acesso." };
+  await removerInscricao(endpoint, ctx.u.id);
+  return { ok: "Notificações desativadas neste aparelho." };
+}
+
+/** Manda um aviso de teste só para quem pediu (confirma que o aparelho recebe). */
+export async function testarNotificacao(): Promise<Resultado> {
+  const ctx = await contextoGuarnicao();
+  if (!ctx) return { erro: "Sem acesso." };
+  const n = await enviarPush([ctx.u.id], { titulo: "Notificações ativadas", corpo: "Você vai receber avisos de vagas, escalas e lembretes dos rituais.", url: "/guarnicao" });
+  return n ? { ok: "Aviso de teste enviado." } : { erro: "Nenhum aparelho inscrito recebeu o aviso." };
 }

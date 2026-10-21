@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Clock, Crown, MapPin } from "lucide-react";
+import { CalendarPlus, ChevronLeft, Clock, Crown, History, MapPin } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
-import { getDadosInstituto, getEvento } from "@/lib/data";
-import { temGuarnicao } from "@/lib/guarnicao";
-import { listarEquipe } from "@/lib/usuarios";
+import { getDadosInstituto, getEvento, listar } from "@/lib/data";
+import { TABLES } from "@/lib/config";
+import { Query } from "node-appwrite";
+import type { Candidatura } from "@/lib/types";
+import { participacoesPorMes, regrasGuarnicao, temGuarnicao } from "@/lib/guarnicao";
+import { listarEquipe, mapaUsuarios } from "@/lib/usuarios";
 import { dataPorExtenso } from "@/lib/format";
 import { urlImagem } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
@@ -12,6 +15,7 @@ import { IconeGenero } from "@/components/genero";
 import { dadosGuarnicao } from "@/app/admin/eventos/guarnicao-dados";
 import type { Sexo } from "@/lib/types";
 import { AcaoGuardiao } from "./AcaoGuardiao";
+import { VagaLivre } from "../../ui";
 import { PainelEscala } from "./PainelEscala";
 
 export const metadata = { title: "Ritual" };
@@ -26,17 +30,25 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
 
   const coord = visao === "coordenador";
   const g = await dadosGuarnicao(evento, { id: u.id, funcaoRitual: u.funcaoRitual, sexo: u.sexo }, coord);
+  // Coordenação: tudo o que mudou na guarnição deste ritual (quem entrou, saiu, foi retirado e por quem)
+  const [historico, usuarios] = coord
+    ? await Promise.all([listar<Candidatura>(TABLES.candidaturas, [Query.equal("evento_id", evento.$id)]), mapaUsuarios()])
+    : [[] as Candidatura[], new Map()];
   const end = evento.endereco_id ? enderecos.find((e) => e.$id === evento.endereco_id) : undefined;
   const mestres = (evento.mestres ?? []).map((m) => equipe.find((p) => p.$id === m)).filter(Boolean);
   const sexo = u.sexo;
   const temVaga = !!sexo && g.vagas[sexo] - g.confirmados[sexo].length > 0;
+  const [{ limiteMes }, porMes] = await Promise.all([regrasGuarnicao(), participacoesPorMes(u.id)]);
+  const usadasNoMes = porMes.get(evento.data.slice(0, 7)) ?? 0;
   const bloqueio = !sexo
     ? "Informe seu gênero no Perfil"
     : g.jaComecou
       ? "Este ritual já começou"
       : !g.abertas
         ? "Candidaturas fechadas"
-        : null;
+        : !g.eu.situacao && limiteMes > 0 && usadasNoMes >= limiteMes
+          ? `Limite do mês atingido (${usadasNoMes}/${limiteMes})`
+          : null;
 
   return (
     <div className={coord ? "pb-6" : "pb-32"}>
@@ -44,7 +56,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
       <div className="relative -mb-px h-64 overflow-hidden bg-stone-50">
         {evento.capa_file_id && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={urlImagem(evento.capa_file_id, 960)} alt="" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover" />
+          <img src={urlImagem(evento.capa_file_id, 960)} alt="" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover opacity-80" />
         )}
         <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-stone-50 from-0% to-transparent to-50%" />
         <Link href="/guarnicao" aria-label="Voltar" className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 grid h-10 w-10 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md active:scale-90">
@@ -86,6 +98,15 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
         </div>
       </section>
 
+      {/* Guardião escalado: levar o ritual para a agenda do celular */}
+      {!coord && g.eu.situacao === "confirmada" && (
+        <div className="mt-4 px-5">
+          <a href={`/guarnicao/ritual/${evento.$id}/agenda`} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-emerald-700 shadow-cartao ring-1 ring-stone-200/70 active:scale-[0.98]">
+            <CalendarPlus size={17} /> Adicionar à minha agenda
+          </a>
+        </div>
+      )}
+
       {/* Guarnição */}
       <section className="mt-5 px-5">
         <h2 className="mb-3 text-lg font-semibold text-stone-900">Guarnição do ritual{evento.ritual_numero_geral ? ` Nº ${evento.ritual_numero_geral}` : ""}</h2>
@@ -109,7 +130,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
                   ))}
                   {Array.from({ length: Math.max(0, g.vagas[s] - g.confirmados[s].length) }).map((_, i) => (
                     <div key={`v${i}`} className="flex w-14 flex-col items-center gap-1 text-center">
-                      <span className="grid h-12 w-12 place-items-center rounded-full border-2 border-dashed border-emerald-300 text-[10px] font-semibold text-emerald-700">vaga</span>
+                      <VagaLivre tamanho={48} texto="vaga" destaque={s === sexo && temVaga && !bloqueio && i === 0} />
                       <span className="text-[11px] text-stone-400">livre</span>
                     </div>
                   ))}
@@ -120,6 +141,30 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
           </div>
         )}
       </section>
+
+      {coord && historico.length > 0 && (
+        <section className="mt-5 px-5">
+          <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-stone-900"><History size={18} className="text-emerald-700" /> Histórico de alterações</h2>
+          <ol className="space-y-0.5 rounded-3xl bg-white p-3 shadow-cartao ring-1 ring-stone-200/70">
+            {[...historico].sort((a, b) => b.$updatedAt.localeCompare(a.$updatedAt)).slice(0, 30).map((c) => {
+              const pessoa = usuarios.get(c.usuario_id)?.nome ?? "Guardião";
+              const por = c.alterado_por && c.alterado_por !== c.usuario_id ? usuarios.get(c.alterado_por)?.nome?.split(" ")[0] : null;
+              const acao = { confirmada: "confirmado(a)", espera: "na lista de espera", cancelada: "cancelou", removida: "retirado(a)" }[c.situacao];
+              const quando = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(c.$updatedAt)).replace(",", " às");
+              return (
+                <li key={c.$id} className="flex items-start gap-3 rounded-2xl px-2 py-2">
+                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${c.situacao === "confirmada" ? "bg-emerald-500" : c.situacao === "espera" ? "bg-amber-500" : "bg-stone-400"}`} />
+                  <span className="min-w-0 flex-1 text-sm text-stone-700">
+                    <strong className="font-semibold text-stone-900">{pessoa.split(" ")[0]}</strong> {acao}
+                    {por && <span className="text-stone-500"> · por {por}</span>}
+                  </span>
+                  <span className="shrink-0 text-xs text-stone-400 tabular-nums">{quando}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </section>
+      )}
 
       {!coord && (
         <AcaoGuardiao

@@ -17,5 +17,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!login|cadastro|_next|favicon.ico|icon|apple-icon|api/arquivo|api/og|api/auth|evento|ritual|privacidade|termos|fundo_login|manifest.webmanifest|admin-app.webmanifest|guarnicao-app.webmanifest|sw.js|offline).*)"],
+  matcher: ["/((?!login|cadastro|_next|favicon.ico|icon|apple-icon|api/arquivo|api/og|api/auth|api/cron|evento|ritual|privacidade|termos|fundo_login|manifest.webmanifest|admin-app.webmanifest|guarnicao-app.webmanifest|sw.js|offline).*)"],
 };

@@ -67,7 +67,7 @@ export function AcaoGuardiao({ eventoId, situacao, posicaoEspera, bloqueio, praz
               type="button"
               disabled={!!bloqueio || pendente}
               onClick={() => rodar(() => candidatarGuarnicao(eventoId))}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-base font-bold text-white shadow-md transition active:scale-[0.98] disabled:bg-stone-300 disabled:text-stone-600 disabled:shadow-none"
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-br from-[#e0b04a] to-[#b8862a] text-base font-bold text-[#1c1040] shadow-[0_8px_20px_-8px_rgb(184_134_42/0.7)] transition active:scale-[0.98] disabled:bg-none disabled:bg-stone-300 disabled:text-stone-600 disabled:shadow-none"
             >
               {pendente ? <><Carregando /> Enviando…</> : bloqueio ? bloqueio : <><ShieldPlus size={20} /> {temVaga ? "Quero servir neste ritual" : "Entrar na lista de espera"}</>}
             </button>

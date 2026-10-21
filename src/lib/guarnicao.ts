@@ -2,7 +2,10 @@ import "server-only";
 import { ID, Query } from "node-appwrite";
 import { createAdminClient } from "./appwrite";
 import { DB_ID, TABLES } from "./config";
+import { after } from "next/server";
 import { getInstituto, listar, listarEventos } from "./data";
+import { enviarPush } from "./push";
+import { mapaUsuarios } from "./usuarios";
 import type { Candidatura, Evento, Sexo, TipoEvento } from "./types";
 
 /**
@@ -40,6 +43,20 @@ export async function regrasGuarnicao() {
 }
 
 const MESES_NOME = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+
+/** Participações ativas (confirmadas ou na espera) da pessoa por mês `AAAA-MM` — para avisar do limite antes da candidatura. */
+export async function participacoesPorMes(usuarioId: string): Promise<Map<string, number>> {
+  const minhas = await participacoesDe(usuarioId);
+  const mapa = new Map<string, number>();
+  if (!minhas.length) return mapa;
+  const eventos = await listarEventos({ ids: [...new Set(minhas.map((c) => c.evento_id))] });
+  const mesDe = new Map(eventos.map((e) => [e.$id, e.data.slice(0, 7)]));
+  for (const c of minhas) {
+    const m = mesDe.get(c.evento_id);
+    if (m) mapa.set(m, (mapa.get(m) ?? 0) + 1);
+  }
+  return mapa;
+}
 
 /** Quantas participações ativas (confirmadas ou na espera) a pessoa já tem em rituais do mês `AAAA-MM`. */
 async function participacoesNoMes(usuarioId: string, mes: string, exceto: string) {
@@ -95,11 +112,13 @@ export async function todasCandidaturasAtivas() {
  * Roda depois de qualquer mudança (candidatura, cancelamento, ajuste de limite), o que também
  * resolve duas pessoas disputando a última vaga ao mesmo tempo.
  */
-export async function reorganizar(evento: Evento, alteradoPor: string | null) {
+export async function reorganizar(evento: Evento, alteradoPor: string | null, avisarVaga = false) {
   const { tablesDB } = createAdminClient();
   const vagas = vagasDe(evento);
   const ativas = await candidaturasDoEvento(evento.$id);
   const confirmados: string[] = [];
+  const promovidos: string[] = [];
+  const livres: Record<Sexo, number> = { masculino: 0, feminino: 0 };
   for (const sexo of ["masculino", "feminino"] as const) {
     const fila = ativas.filter((c) => c.sexo === sexo).sort((a, b) => a.ordem - b.ordem);
     for (const [i, c] of fila.entries()) {
@@ -107,13 +126,49 @@ export async function reorganizar(evento: Evento, alteradoPor: string | null) {
       if (deveSer === "confirmada") confirmados.push(c.usuario_id);
       if (c.situacao !== deveSer) {
         await tablesDB.updateRow({ ...base, rowId: c.$id, data: { situacao: deveSer, alterado_por: alteradoPor } });
+        // Saiu da espera porque alguém liberou a vaga: avisa a pessoa
+        if (deveSer === "confirmada" && c.usuario_id !== alteradoPor) promovidos.push(c.usuario_id);
       }
     }
+    livres[sexo] = Math.max(0, vagas[sexo] - fila.length);
   }
   const atuais = evento.guardioes ?? [];
   if (atuais.length !== confirmados.length || atuais.some((id, i) => id !== confirmados[i])) {
     await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: { guardioes: confirmados } });
   }
+  avisarMudancas(evento, promovidos, avisarVaga ? livres : null, new Set(ativas.map((c) => c.usuario_id)));
+}
+
+const DIAS_SEMANA = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+function quandoCurto(e: Pick<Evento, "data" | "hora_inicio">) {
+  const [a, m, d] = e.data.split("-").map(Number);
+  return `${DIAS_SEMANA[new Date(Date.UTC(a, m - 1, d)).getUTCDay()]}, ${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")} às ${e.hora_inicio}`;
+}
+
+/** Notificações (depois da resposta, sem atrasar a tela): quem saiu da espera e, se abriu vaga, os guardiões do gênero. */
+function avisarMudancas(evento: Evento, promovidos: string[], livres: Record<Sexo, number> | null, jaNoEvento: Set<string>) {
+  const aberto = evento.candidaturas_abertas !== false && inicioDe(evento).getTime() > Date.now();
+  if (!aberto || (!promovidos.length && !(livres && (livres.masculino || livres.feminino)))) return;
+  const nome = evento.ritual_numero_geral ? `Ritual Nº ${evento.ritual_numero_geral}` : evento.titulo;
+  const url = `/guarnicao/ritual/${evento.$id}`;
+  after(async () => {
+    if (promovidos.length) {
+      await enviarPush(promovidos, { titulo: "Você entrou na guarnição!", corpo: `Abriu vaga no ${nome} (${quandoCurto(evento)}) e você saiu da lista de espera.`, url, tag: `promovido-${evento.$id}` });
+    }
+    if (livres && (livres.masculino || livres.feminino)) {
+      const usuarios = await mapaUsuarios();
+      for (const sexo of ["masculino", "feminino"] as const) {
+        if (!livres[sexo]) continue;
+        const alvo = [...usuarios.values()].filter((u) => u.ativo && u.funcao === "guardiao" && u.sexo === sexo && !jaNoEvento.has(u.id)).map((u) => u.id);
+        await enviarPush(alvo, {
+          titulo: `Abriu vaga para ${sexo === "masculino" ? "guardião" : "guardiã"}`,
+          corpo: `${nome} · ${quandoCurto(evento)}. Toque para se candidatar.`,
+          url,
+          tag: `vaga-${evento.$id}-${sexo}`,
+        });
+      }
+    }
+  });
 }
 
 async function candidaturaDe(eventoId: string, usuarioId: string) {
@@ -183,7 +238,7 @@ export async function cancelar(evento: Evento, usuarioId: string): Promise<Resul
   }
   const saiu = await sairDaFila(evento.$id, usuarioId, "cancelada", usuarioId);
   if (!saiu) return { erro: "Você não está inscrito neste evento." };
-  await reorganizar(evento, usuarioId);
+  await reorganizar(evento, usuarioId, true);
   return { ok: "Participação cancelada." };
 }
 
@@ -201,7 +256,7 @@ export async function adicionarGuardiao(evento: Evento, usuario: { id: string; s
 export async function removerGuardiao(evento: Evento, usuarioId: string, porId: string): Promise<Resultado> {
   const saiu = await sairDaFila(evento.$id, usuarioId, "removida", porId);
   if (!saiu) return { erro: "Essa pessoa não está neste evento." };
-  await reorganizar(evento, porId);
+  await reorganizar(evento, porId, true);
   return { ok: "Guardião retirado." };
 }
 
@@ -212,13 +267,25 @@ export async function ajustarGuarnicao(
   porId: string,
 ): Promise<Resultado> {
   const { tablesDB } = createAdminClient();
-  const limitar = (n: number) => Math.max(0, Math.min(50, Math.round(n)));
+  // Valores vindos do navegador: só números de 0 a 50 e verdadeiro/falso
+  const numero = (n: unknown) => (typeof n === "number" && Number.isFinite(n) ? Math.max(0, Math.min(50, Math.round(n))) : null);
   const dados: Record<string, unknown> = {};
-  if (mudar.masculino !== undefined) dados.vagas_guardioes = limitar(mudar.masculino);
-  if (mudar.feminino !== undefined) dados.vagas_guardias = limitar(mudar.feminino);
-  if (mudar.abertas !== undefined) dados.candidaturas_abertas = mudar.abertas;
+  if (mudar.masculino !== undefined) {
+    const n = numero(mudar.masculino);
+    if (n === null) return { erro: "Quantidade de vagas inválida." };
+    dados.vagas_guardioes = n;
+  }
+  if (mudar.feminino !== undefined) {
+    const n = numero(mudar.feminino);
+    if (n === null) return { erro: "Quantidade de vagas inválida." };
+    dados.vagas_guardias = n;
+  }
+  if (mudar.abertas !== undefined) dados.candidaturas_abertas = mudar.abertas === true;
   if (!Object.keys(dados).length) return { ok: "Nada a mudar." };
   await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: dados });
-  await reorganizar({ ...evento, ...dados } as Evento, porId);
+  // Só avisa de vaga nova quando a coordenação aumenta as vagas ou reabre as candidaturas
+  const aumentou =
+    (mudar.masculino ?? 0) > (evento.vagas_guardioes ?? VAGAS_PADRAO) || (mudar.feminino ?? 0) > (evento.vagas_guardias ?? VAGAS_PADRAO) || (mudar.abertas === true && evento.candidaturas_abertas === false);
+  await reorganizar({ ...evento, ...dados } as Evento, porId, aumentou);
   return { ok: mudar.abertas !== undefined ? (mudar.abertas ? "Candidaturas abertas." : "Candidaturas fechadas.") : "Vagas atualizadas." };
 }

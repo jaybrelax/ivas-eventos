@@ -19,6 +19,7 @@ export const TABLES = {
   modelos: "modelos_banner",
   candidaturas: "candidaturas",
   inscricoes: "inscricoes",
+  push: "push_inscricoes",
 } as const;
 
 export type Perfil = "admin" | "coordenador" | "normal";
