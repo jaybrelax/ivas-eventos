@@ -42,7 +42,8 @@ export default async function GuarnicaoLayout({ children }: LayoutProps<"/guarni
   return (
     <div className={`app-guarnicao ${classe} min-h-dvh bg-stone-100 text-stone-900 [-webkit-tap-highlight-color:transparent]`}>
       <TemaNoDocumento classe={classe} />
-      <div className="mx-auto min-h-dvh max-w-xl bg-stone-50 pb-[calc(7.25rem+env(safe-area-inset-bottom))] shadow-[0_0_60px_-20px_rgb(0_0_0/0.25)]">
+      {/* overflow-x-clip: a tela nova entra deslizando pela lateral; sem cortar, a página fica mais larga que o celular por um instante e o navegador a encolhe (o menu fixo "pula") */}
+      <div className="mx-auto min-h-dvh max-w-xl overflow-x-clip bg-stone-50 pb-[calc(7.25rem+env(safe-area-inset-bottom))] shadow-[0_0_60px_-20px_rgb(0_0_0/0.25)]">
         <AvisoOffline />
         <PuxarAtualizar>
           <Transicao>{children}</Transicao>

@@ -269,8 +269,9 @@ select.campo {
 
 /* Menu inferior (dock): superfície sólida com sombra para ter presença */
 /* Claro: roxo-profundo do escudo; escuro: o violeta do item selecionado. O item ativo inverte o contraste. */
-.dock-app { background-image: linear-gradient(135deg, #2f1d6b 0%, #1c1040 100%); box-shadow: 0 14px 32px -10px rgb(28 16 64 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.12); }
-.tema-escuro .dock-app { background-image: linear-gradient(135deg, #7a52e3 0%, #5630b4 100%); box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.18); }
+/* Menu inferior em vidro (glassmorphism): roxo-profundo translúcido com fundo desfocado */
+.dock-app { background-image: linear-gradient(135deg, rgb(38 22 90 / 0.78) 0%, rgb(20 11 48 / 0.82) 100%); box-shadow: 0 14px 32px -10px rgb(20 11 48 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.22), inset 0 0 0 1px rgb(255 255 255 / 0.1); }
+.tema-escuro .dock-app { background-image: linear-gradient(135deg, rgb(96 58 200 / 0.72) 0%, rgb(52 28 120 / 0.8) 100%); box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.22), inset 0 0 0 1px rgb(255 255 255 / 0.1); }
 
 /* Coluna da data dos cartões de ritual: clara no tema claro, roxo-profundo no escuro */
 .coluna-data { background-color: #d5c6fb; color: var(--color-emerald-900); }
@@ -330,7 +331,7 @@ select.campo {
 
 /* Automático: o mesmo tema escuro quando o celular está no modo escuro */
 @media (prefers-color-scheme: dark) {
-.tema-auto .dock-app { background-image: linear-gradient(135deg, #7a52e3 0%, #5630b4 100%); box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.18); }
+.tema-auto .dock-app { background-image: linear-gradient(135deg, rgb(96 58 200 / 0.72) 0%, rgb(52 28 120 / 0.8) 100%); box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.22), inset 0 0 0 1px rgb(255 255 255 / 0.1); }
 .tema-auto .coluna-data { background-color: #2b1b63; color: #fff; }
 .tema-auto .coluna-data .data-mes { color: #fff; }
 .tema-auto .coluna-data .data-sem { color: var(--color-emerald-300); }

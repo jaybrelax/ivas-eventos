@@ -33,7 +33,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         <div aria-hidden className="absolute inset-x-0 -top-[14vw] bottom-0 bg-cover bg-top bg-no-repeat lg:hidden" style={{ backgroundImage: "url(/fundo_login_mobile.webp)" }} />
         <div className="relative w-full max-w-sm animate-surgir rounded-3xl bg-white/55 p-5 shadow-elevado ring-1 ring-white/70 backdrop-blur-md lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none">
           <h2 className="text-center text-xl font-semibold tracking-tight text-stone-900 lg:text-left lg:text-2xl">Entrar</h2>
-          <p className="mt-1 mb-5 text-center text-sm lg:mb-8 lg:mt-1.5 text-stone-500 lg:text-left">Use o e-mail e a senha do seu cadastro.</p>
+          <p className="mt-1 mb-5 text-center text-sm lg:mb-8 lg:mt-1.5 text-stone-500 lg:text-left">{next?.startsWith("/guarnicao") ? "Acesse o app da Guarnição com o e-mail e a senha do seu cadastro." : "Use o e-mail e a senha do seu cadastro."}</p>
           <LoginForm semPerfil={semPerfil} erroGoogle={erroGoogle} next={next} />
           <p className="mt-4 text-center text-sm text-stone-500 lg:mt-6">
             Quer participar dos rituais? <a href={cadastroHref("/cadastro")} className="font-medium text-mata-700 hover:underline">Criar cadastro</a>

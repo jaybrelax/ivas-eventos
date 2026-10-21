@@ -7,7 +7,7 @@ import { urlImagem } from "@/lib/links";
 import { IconeGenero } from "@/components/genero";
 import { Avatar } from "@/components/Avatar";
 import type { Sexo } from "@/lib/types";
-import { CabecalhoApp, Vazio, VagaLivre } from "./ui";
+import { AvatarEscalado, CabecalhoApp, Vazio, VagaLivre } from "./ui";
 
 export const metadata = { title: "Rituais" };
 
@@ -69,7 +69,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
         <ul className="space-y-3 px-4">
           {lista.map((r) => (
             <li key={r.evento.$id}>
-              <CartaoRitual r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={anteriores} limite={noLimite(r) && r.aberto ? limiteMes : null} />
+              <CartaoRitual meuId={u.id} r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={anteriores} limite={noLimite(r) && r.aberto ? limiteMes : null} />
             </li>
           ))}
         </ul>
@@ -78,7 +78,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   );
 }
 
-function CartaoRitual({ r, visao, sexo, vagaPraMim, passado = false, limite = null }: { r: RitualGuarnicao; visao: "coordenador" | "guardiao"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
+function CartaoRitual({ meuId, r, visao, sexo, vagaPraMim, passado = false, limite = null }: { meuId: string; r: RitualGuarnicao; visao: "coordenador" | "guardiao"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
   const e = r.evento;
   const d = partesData(e.data);
   const faltam = (s: Sexo) => Math.max(0, r.vagas[s] - r.confirmados[s]);
@@ -87,7 +87,10 @@ function CartaoRitual({ r, visao, sexo, vagaPraMim, passado = false, limite = nu
   return (
     <Link
       href={`/guarnicao/ritual/${e.$id}`}
-      className="flex overflow-hidden rounded-3xl bg-white shadow-cartao ring-1 ring-stone-200/70 transition active:scale-[0.985]"
+      className={`flex overflow-hidden rounded-3xl bg-white shadow-cartao transition active:scale-[0.985] ${
+        // Guardião escalado neste ritual: borda coral-rosada (entre o laranja e o rosa do escudo)
+        visao === "guardiao" && r.minha === "confirmada" ? "ring-2 ring-[#f8566b]" : "ring-1 ring-stone-200/70"
+      }`}
     >
       {/* Coluna da esquerda: data em cima; embaixo a capa com o número do ritual sobre um degradê */}
       <div className="coluna-data flex w-[6.5rem] shrink-0 flex-col">
@@ -129,7 +132,13 @@ function CartaoRitual({ r, visao, sexo, vagaPraMim, passado = false, limite = nu
                   {Array.from({ length: r.vagas[s] }).map((_, i) => {
                     const p = r.escalados[s][i];
                     return p ? (
-                      <Avatar key={p.id} nome={p.nome} foto={p.foto} tamanho={36} className="ring-2 ring-emerald-500/80" />
+                      visao === "guardiao" && p.id === meuId ? (
+                        <AvatarEscalado key={p.id} tamanho={36}>
+                          <Avatar nome={p.nome} foto={p.foto} tamanho={36} className="ring-2 ring-[#f8566b]" />
+                        </AvatarEscalado>
+                      ) : (
+                        <Avatar key={p.id} nome={p.nome} foto={p.foto} tamanho={36} className="ring-2 ring-emerald-500/80" />
+                      )
                     ) : (
                       // O guardião só ocupa uma vaga por ritual: só a primeira livre do gênero dele recebe o destaque
                     <VagaLivre key={`v${i}`} destaque={meu && vagaPraMim && i === r.escalados[s].length} />
@@ -150,7 +159,7 @@ function CartaoRitual({ r, visao, sexo, vagaPraMim, passado = false, limite = nu
         {/* Situação para quem está vendo */}
         {visao === "guardiao" ? (
           r.minha === "confirmada" ? (
-            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800"><ShieldCheck size={14} /> Você está escalado(a)</p>
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f8566b] px-2.5 py-1 text-xs font-bold text-[#1c1040] shadow-sm"><ShieldCheck size={14} /> Você está escalado(a)</p>
           ) : r.minha === "espera" ? (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800"><Hourglass size={14} /> Você está na espera</p>
           ) : limite ? (

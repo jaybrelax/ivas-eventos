@@ -50,11 +50,17 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
   redirect(destino);
 }
 
-export async function sair() {
+/**
+ * Sai da conta. `voltarPara` (caminho interno, ex.: "/guarnicao") faz o login seguinte voltar para esse app
+ * em vez do painel; sem ele, vai para o login normal. Como também serve de `action` de formulário,
+ * qualquer valor que não seja um caminho interno (ex.: o FormData) é ignorado.
+ */
+export async function sair(voltarPara?: unknown) {
   const s = await createSessionClient();
   try {
     await s?.account.deleteSession({ sessionId: "current" });
   } catch {}
   (await cookies()).delete(SESSION_COOKIE);
-  redirect("/login");
+  const destino = typeof voltarPara === "string" ? destinoSeguro(voltarPara) : null;
+  redirect(destino ? `/login?next=${encodeURIComponent(destino)}` : "/login");
 }

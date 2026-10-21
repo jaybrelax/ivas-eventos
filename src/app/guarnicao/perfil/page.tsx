@@ -69,7 +69,7 @@ export default async function PerfilGuarnicao() {
         />
       </section>
 
-      <BotaoSair sair={sair} />
+      <BotaoSair sair={sair.bind(null, "/guarnicao")} />
     </>
   );
 }

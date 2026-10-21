@@ -67,3 +67,20 @@ export function VagaLivre({ destaque = false, tamanho = 36, texto }: { destaque?
     </span>
   );
 }
+
+/**
+ * Avatar do guardião escalado: ondas que se expandem e um aro tracejado girando ao redor da foto,
+ * no coral-rosado que marca "você está escalado" (entre o laranja e o rosa do escudo).
+ */
+export const CORAL = "#f8566b";
+export function AvatarEscalado({ tamanho = 36, children }: { tamanho?: number; children: ReactNode }) {
+  const cor = { borderColor: CORAL };
+  return (
+    <span className="relative inline-grid shrink-0 place-items-center" style={{ width: tamanho, height: tamanho }}>
+      <span aria-hidden className="absolute inset-0 animate-vaga-onda rounded-full border-2" style={cor} />
+      <span aria-hidden className="absolute inset-0 animate-vaga-onda rounded-full border-2 [animation-delay:1.2s]" style={cor} />
+      <span aria-hidden className="absolute -inset-[3px] animate-vaga-giro rounded-full border-2 border-dashed" style={cor} />
+      <span className="relative z-10 grid place-items-center rounded-full">{children}</span>
+    </span>
+  );
+}

@@ -2,7 +2,9 @@
 export default function Carregando() {
   const bloco = "animate-pulse rounded-2xl bg-stone-200/80";
   return (
-    <div aria-busy="true" aria-label="Carregando">
+    // Altura limitada à da tela (menos o menu): se o esqueleto passar disso, a página vira rolável por um instante
+    // e o menu fixo "pula" de lugar a cada troca de aba.
+    <div aria-busy="true" aria-label="Carregando" className="h-[calc(100dvh-7.25rem-env(safe-area-inset-bottom))] overflow-hidden">
       <div className="flex items-end justify-between px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4">
         <div className="flex items-end gap-2.5">
           <div className={`${bloco} h-[38px] w-[38px] rounded-xl`} />
