@@ -11,6 +11,7 @@ import { CampoFoto } from "@/components/CampoFoto";
 import { BotaoGoogle } from "@/components/BotaoGoogle";
 import { CampoEstadoCidade } from "@/components/CampoEstadoCidade";
 import { CamposSobreVoce } from "@/components/CamposSobreVoce";
+import { InputCPF } from "@/components/InputCPF";
 
 type Etapa = "escolha" | "dados" | "sobre" | "perfil";
 
@@ -68,6 +69,9 @@ export function ParticipanteForm({
           const f = new FormData(alvo);
           if (!String(f.get("estado") ?? "")) return avisarCampo(alvo, "estado", "Escolha o estado.");
           if (!String(f.get("cidade") ?? "").trim()) return avisarCampo(alvo, "cidade", "Escolha a cidade.");
+          if (String(f.get("endereco") ?? "").trim().length < 8) return avisarCampo(alvo, "endereco", "Informe o endereço completo (rua, número, bairro e cidade).");
+          if (String(f.get("cpf") ?? "").replace(/\D/g, "").length !== 11) return avisarCampo(alvo, "cpf", "Informe o CPF completo.");
+          if (!String(f.get("data_nascimento") ?? "")) return avisarCampo(alvo, "data_nascimento", "Informe a data de nascimento.");
           setEtapa("perfil");
           return;
         }
@@ -110,6 +114,20 @@ export function ParticipanteForm({
           <p className="text-xs font-semibold tracking-wider text-mata-700 uppercase">Etapa 2 de 3</p>
         </div>
         <CampoEstadoCidade id="cad" obrigatorio estadoInicial={estadoPadrao} cidadeInicial={cidadePadrao} />
+        <div>
+          <label className="rotulo" htmlFor="endereco">Endereço</label>
+          <input id="endereco" name="endereco" required minLength={8} maxLength={255} autoComplete="street-address" className="campo h-11" placeholder="Rua, número, bairro e cidade" />
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="rotulo" htmlFor="data_nascimento">Data de nascimento</label>
+            <input id="data_nascimento" name="data_nascimento" type="date" required max={new Date().toISOString().slice(0, 10)} className="campo h-11" />
+          </div>
+          <div>
+            <label className="rotulo" htmlFor="cpf">CPF</label>
+            <InputCPF id="cpf" name="cpf" required className="campo h-11" />
+          </div>
+        </div>
         <CamposSobreVoce id="cad" />
         <button type="submit" className="btn-primario h-11 w-full">Continuar <ArrowRight size={17} /></button>
       </div>

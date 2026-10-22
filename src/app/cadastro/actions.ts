@@ -10,6 +10,7 @@ import { salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Sexo } from "@/lib/types";
 import { ehUf } from "@/lib/perfil-extra";
 import { comParticiparAberto } from "@/lib/links";
+import { conferirDadosObrigatorios } from "./dados-obrigatorios";
 
 export type ResultadoCadastro = { erro?: string } | undefined;
 
@@ -45,7 +46,8 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   if (!tel.valor) return { erro: "Informe o telefone (WhatsApp)." };
   if (!ehUf(String(form.get("estado") ?? ""))) return { erro: "Escolha o estado." };
   if (!String(form.get("cidade") ?? "").trim()) return { erro: "Escolha a cidade." };
-  // Endereço, CPF e data de nascimento são opcionais aqui: dá para completar depois em "Meus dados".
+  const faltando = conferirDadosObrigatorios(form);
+  if (faltando) return { erro: faltando };
 
   const { account, users } = createAdminClient();
   let userId: string | null = null;
@@ -98,6 +100,8 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
   if (!tel.valor) return { erro: "Informe o telefone (WhatsApp)." };
   if (!ehUf(String(form.get("estado") ?? ""))) return { erro: "Escolha o estado." };
   if (!String(form.get("cidade") ?? "").trim()) return { erro: "Escolha a cidade." };
+  const faltando = conferirDadosObrigatorios(form);
+  if (faltando) return { erro: faltando };
 
   const r = await salvarContato(u.id, form);
   if (r.erro) return { erro: r.erro };

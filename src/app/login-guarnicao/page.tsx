@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { getUsuario } from "@/lib/auth";
 import { LoginForm } from "../login/LoginForm";
 
 const TITULO = "App Guarnição IVAS";
@@ -28,6 +30,8 @@ export default async function LoginGuarnicao({ searchParams }: PageProps<"/login
   // Volta para a tela do app que a pessoa queria abrir (sempre dentro de /guarnicao)
   const next = typeof sp.next === "string" && sp.next.startsWith("/guarnicao") ? sp.next : "/guarnicao";
   const erroGoogle = sp.erro === "google" || sp.erro === "google-email";
+  // Já logado (ex.: acabou de concluir o cadastro): segue direto para o app, sem pedir a senha de novo
+  if (await getUsuario()) redirect(next);
 
   return (
     <main className="app-guarnicao relative isolate flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#1c1040] px-5 py-10 text-white">
