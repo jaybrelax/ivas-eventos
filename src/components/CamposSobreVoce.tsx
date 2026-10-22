@@ -20,10 +20,10 @@ export function CamposSobreVoce({
             {EXPERIENCIAS.map((e) => <option key={e.valor} value={e.valor}>{e.rotulo}</option>)}
           </select>
         </CampoMD>
-        <CampoMD id={`${id}-motivacao`} rotulo="Motivação para participar" icone={Heart}>
+        <CampoMD id={`${id}-motivacao`} rotulo="Motivação para participar" icone={Heart} topo>
           <textarea id={`${id}-motivacao`} name="motivacao" rows={3} maxLength={LIMITE_TEXTO_LONGO} defaultValue={motivacao ?? ""} className="campo-md-area" />
         </CampoMD>
-        <CampoMD id={`${id}-expectativas`} rotulo="Expectativas" icone={Sparkles}>
+        <CampoMD id={`${id}-expectativas`} rotulo="Expectativas" icone={Sparkles} topo>
           <textarea id={`${id}-expectativas`} name="expectativas" rows={3} maxLength={LIMITE_TEXTO_LONGO} defaultValue={expectativas ?? ""} className="campo-md-area" />
         </CampoMD>
       </>
