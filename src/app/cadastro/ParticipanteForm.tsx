@@ -1,11 +1,12 @@
 "use client";
 
 import { startTransition, useActionState, useState } from "react";
-import { ArrowRight, ChevronLeft } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronLeft, IdCard, Lock, LockKeyhole, Mail, MapPin, MessageCircle, UserRound } from "lucide-react";
 import { cadastrarParticipante, completarCadastroGoogle } from "./actions";
 import { Aviso, Carregando } from "@/components/ui";
 import { avisarCampo } from "@/components/Toaster";
 import { CampoGenero } from "@/components/CampoGenero";
+import { CampoMD } from "@/components/CampoMD";
 import { InputTelefone } from "@/components/InputTelefone";
 import { CampoFoto } from "@/components/CampoFoto";
 import { BotaoGoogle } from "@/components/BotaoGoogle";
@@ -18,7 +19,7 @@ type Etapa = "escolha" | "dados" | "sobre" | "perfil";
 /**
  * Cadastro de participante: a conta já nasce ativa e, ao enviar, a pessoa já entra direto.
  * `completar`: voltou do botão "Continuar com Google" (a conta já existe e já está logada) — continua
- * na própria tela para completar telefone, estado/cidade e gênero, sem e-mail nem senha.
+ * na própria tela para completar os dados que faltam, sem e-mail nem senha.
  */
 export function ParticipanteForm({
   next, guardiao, completar, nomeInicial, fotoInicial, estadoPadrao, cidadePadrao,
@@ -54,14 +55,15 @@ export function ParticipanteForm({
         e.preventDefault();
         const alvo = e.currentTarget;
         if (etapa === "dados") {
-          const telOk = String(new FormData(alvo).get("telefone") ?? "").trim();
+          const f = new FormData(alvo);
           if (!completar) {
-            const nomeOk = String(new FormData(alvo).get("nome") ?? "").trim();
-            const emailOk = String(new FormData(alvo).get("email") ?? "").trim();
+            const nomeOk = String(f.get("nome") ?? "").trim();
+            const emailOk = String(f.get("email") ?? "").trim();
             if (nomeOk.split(" ").filter(Boolean).length < 2) return avisarCampo(alvo, "nome", "Informe nome e sobrenome.");
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOk)) return avisarCampo(alvo, "email", "Informe um e-mail válido.");
           }
-          if (!telOk) return avisarCampo(alvo, "telefone", "Informe o WhatsApp.");
+          if (!String(f.get("telefone") ?? "").trim()) return avisarCampo(alvo, "telefone", "Informe o WhatsApp.");
+          if (String(f.get("cpf") ?? "").replace(/\D/g, "").length !== 11) return avisarCampo(alvo, "cpf", "Informe o CPF completo.");
           setEtapa("sobre");
           return;
         }
@@ -70,7 +72,6 @@ export function ParticipanteForm({
           if (!String(f.get("estado") ?? "")) return avisarCampo(alvo, "estado", "Escolha o estado.");
           if (!String(f.get("cidade") ?? "").trim()) return avisarCampo(alvo, "cidade", "Escolha a cidade.");
           if (String(f.get("endereco") ?? "").trim().length < 8) return avisarCampo(alvo, "endereco", "Informe o endereço completo (rua, número, bairro e cidade).");
-          if (String(f.get("cpf") ?? "").replace(/\D/g, "").length !== 11) return avisarCampo(alvo, "cpf", "Informe o CPF completo.");
           if (!String(f.get("data_nascimento") ?? "")) return avisarCampo(alvo, "data_nascimento", "Informe a data de nascimento.");
           setEtapa("perfil");
           return;
@@ -85,24 +86,25 @@ export function ParticipanteForm({
       {guardiao && <input type="hidden" name="guardiao" value="1" />}
       <input type="text" name="site" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-0 w-0 opacity-0" />
 
+      {/* Sem `required` nos campos: as etapas escondidas travariam o envio da etapa atual; a conferência é feita acima e no servidor */}
       <div hidden={etapa !== "dados"} className="space-y-4">
         <p className="text-xs font-semibold tracking-wider text-mata-700 uppercase">Etapa 1 de 3</p>
         {!completar && (
           <>
-            <div>
-              <label className="rotulo" htmlFor="nome">Nome completo</label>
-              <input id="nome" name="nome" autoComplete="name" maxLength={128} value={nome} onChange={(e) => setNome(e.target.value)} className="campo h-11" placeholder="Seu nome e sobrenome" />
-            </div>
-            <div>
-              <label className="rotulo" htmlFor="email">E-mail</label>
-              <input id="email" name="email" type="email" autoComplete="email" className="campo h-11" placeholder="voce@exemplo.com" />
-            </div>
+            <CampoMD id="nome" rotulo="Nome completo" icone={UserRound}>
+              <input id="nome" name="nome" autoComplete="name" maxLength={128} value={nome} onChange={(e) => setNome(e.target.value)} className="campo-md" placeholder="Seu nome e sobrenome" />
+            </CampoMD>
+            <CampoMD id="email" rotulo="E-mail" icone={Mail}>
+              <input id="email" name="email" type="email" autoComplete="email" className="campo-md" placeholder="voce@exemplo.com" />
+            </CampoMD>
           </>
         )}
-        <div>
-          <label className="rotulo" htmlFor="telefone">WhatsApp</label>
-          <InputTelefone id="telefone" name="telefone" className="campo h-11" />
-        </div>
+        <CampoMD id="telefone" rotulo="WhatsApp" icone={MessageCircle}>
+          <InputTelefone id="telefone" name="telefone" className="campo-md" />
+        </CampoMD>
+        <CampoMD id="cpf" rotulo="CPF" icone={IdCard}>
+          <InputCPF id="cpf" name="cpf" className="campo-md" />
+        </CampoMD>
         <button type="submit" className="btn-primario h-11 w-full">Continuar <ArrowRight size={17} /></button>
       </div>
 
@@ -113,22 +115,14 @@ export function ParticipanteForm({
           </button>
           <p className="text-xs font-semibold tracking-wider text-mata-700 uppercase">Etapa 2 de 3</p>
         </div>
-        <CampoEstadoCidade id="cad" obrigatorio estadoInicial={estadoPadrao} cidadeInicial={cidadePadrao} />
-        <div>
-          <label className="rotulo" htmlFor="endereco">Endereço</label>
-          <input id="endereco" name="endereco" maxLength={255} autoComplete="street-address" className="campo h-11" placeholder="Rua, número, bairro e cidade" />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="rotulo" htmlFor="data_nascimento">Data de nascimento</label>
-            <input id="data_nascimento" name="data_nascimento" type="date" max={new Date().toISOString().slice(0, 10)} className="campo h-11" />
-          </div>
-          <div>
-            <label className="rotulo" htmlFor="cpf">CPF</label>
-            <InputCPF id="cpf" name="cpf" className="campo h-11" />
-          </div>
-        </div>
-        <CamposSobreVoce id="cad" />
+        <CampoEstadoCidade id="cad" obrigatorio moderno estadoInicial={estadoPadrao} cidadeInicial={cidadePadrao} />
+        <CampoMD id="endereco" rotulo="Endereço" icone={MapPin}>
+          <input id="endereco" name="endereco" maxLength={255} autoComplete="street-address" className="campo-md" placeholder="Rua, número, bairro e cidade" />
+        </CampoMD>
+        <CampoMD id="data_nascimento" rotulo="Data de nascimento" icone={CalendarDays}>
+          <input id="data_nascimento" name="data_nascimento" type="date" max={new Date().toISOString().slice(0, 10)} className="campo-md" />
+        </CampoMD>
+        <CamposSobreVoce id="cad" moderno />
         <button type="submit" className="btn-primario h-11 w-full">Continuar <ArrowRight size={17} /></button>
       </div>
 
@@ -145,14 +139,12 @@ export function ParticipanteForm({
         <CampoGenero id="cad-sexo" />
         {!completar && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="rotulo" htmlFor="senha">Senha</label>
-              <input id="senha" name="senha" type="password" autoComplete="new-password" className="campo h-11" placeholder="Mínimo 8 caracteres" />
-            </div>
-            <div>
-              <label className="rotulo" htmlFor="confirmar">Confirmar senha</label>
-              <input id="confirmar" name="confirmar" type="password" autoComplete="new-password" className="campo h-11" placeholder="Repita a senha" />
-            </div>
+            <CampoMD id="senha" rotulo="Senha" icone={Lock}>
+              <input id="senha" name="senha" type="password" autoComplete="new-password" className="campo-md" placeholder="Mínimo 8 caracteres" />
+            </CampoMD>
+            <CampoMD id="confirmar" rotulo="Confirmar senha" icone={LockKeyhole}>
+              <input id="confirmar" name="confirmar" type="password" autoComplete="new-password" className="campo-md" placeholder="Repita a senha" />
+            </CampoMD>
           </div>
         )}
         <button type="submit" className="btn-primario h-11 w-full" disabled={pendente}>

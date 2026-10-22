@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Building2, MapPinned } from "lucide-react";
 import { UFS } from "@/lib/perfil-extra";
+import { CampoMD } from "./CampoMD";
 
 /** Cidades por estado, buscadas na API pública do IBGE (guardadas por estado durante a visita). */
 const cache = new Map<string, string[]>();
@@ -21,8 +23,8 @@ async function cidadesDe(uf: string): Promise<string[]> {
  * Se a lista do IBGE não carregar, a cidade vira um campo de texto livre.
  */
 export function CampoEstadoCidade({
-  id, estadoInicial, cidadeInicial, obrigatorio = false,
-}: { id: string; estadoInicial?: string | null; cidadeInicial?: string | null; obrigatorio?: boolean }) {
+  id, estadoInicial, cidadeInicial, obrigatorio = false, moderno = false,
+}: { id: string; estadoInicial?: string | null; cidadeInicial?: string | null; obrigatorio?: boolean; moderno?: boolean }) {
   const [uf, setUf] = useState(estadoInicial ?? "");
   const [cidade, setCidade] = useState(cidadeInicial ?? "");
   const [cidades, setCidades] = useState<string[] | null>(null);
@@ -49,6 +51,37 @@ export function CampoEstadoCidade({
   const marca = obrigatorio ? <span className="text-red-600"> *</span> : null;
   // Cidade gravada antes que não esteja na lista (grafia antiga, digitada à mão): mantém como opção.
   const opcoes = cidades && cidade && !cidades.includes(cidade) ? [cidade, ...cidades] : cidades;
+
+  if (moderno)
+    return (
+      <div className="grid gap-4 sm:grid-cols-2">
+        <CampoMD id={`${id}-estado`} rotulo="Estado" icone={MapPinned} obrigatorio={obrigatorio}>
+          <select
+            id={`${id}-estado`}
+            name="estado"
+            value={uf}
+            onChange={(e) => {
+              setUf(e.target.value);
+              setCidade("");
+            }}
+            className="campo-md"
+          >
+            <option value="">Selecione</option>
+            {UFS.map((u) => <option key={u.uf} value={u.uf}>{u.nome}</option>)}
+          </select>
+        </CampoMD>
+        <CampoMD id={`${id}-cidade`} rotulo="Cidade" icone={Building2} obrigatorio={obrigatorio}>
+          {falhou ? (
+            <input id={`${id}-cidade`} name="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} maxLength={100} className="campo-md" placeholder="Digite a cidade" />
+          ) : (
+            <select id={`${id}-cidade`} name="cidade" value={cidade} onChange={(e) => setCidade(e.target.value)} disabled={!uf || carregando} className="campo-md">
+              <option value="">{!uf ? "Selecione o estado" : carregando ? "Carregando cidades…" : "Selecione"}</option>
+              {opcoes?.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+        </CampoMD>
+      </div>
+    );
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">

@@ -156,6 +156,13 @@ select.campo {
   @apply cursor-pointer appearance-none bg-[length:16px] bg-[right_0.6rem_center] bg-no-repeat pr-9;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2378716c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
+/* Campos no estilo Material (ver components/CampoMD): sem moldura própria, a moldura é do grupo. */
+@utility campo-md {
+  @apply block h-8 w-full border-0 bg-transparent p-0 text-[15px] text-stone-900 outline-none placeholder:text-stone-400 focus-visible:outline-none! disabled:text-stone-500;
+}
+@utility campo-md-area {
+  @apply block min-h-14 w-full resize-none border-0 bg-transparent p-0 pt-0.5 text-[15px] text-stone-900 outline-none placeholder:text-stone-400 focus-visible:outline-none!;
+}
 @utility rotulo {
   @apply mb-1.5 block text-[13px] font-medium text-stone-700;
 }
