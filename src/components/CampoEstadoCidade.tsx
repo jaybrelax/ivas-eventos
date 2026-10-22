@@ -23,8 +23,8 @@ async function cidadesDe(uf: string): Promise<string[]> {
  * Se a lista do IBGE não carregar, a cidade vira um campo de texto livre.
  */
 export function CampoEstadoCidade({
-  id, estadoInicial, cidadeInicial, obrigatorio = false, moderno = false,
-}: { id: string; estadoInicial?: string | null; cidadeInicial?: string | null; obrigatorio?: boolean; moderno?: boolean }) {
+  id, estadoInicial, cidadeInicial, obrigatorio = false, moderno = false, emLinha = false,
+}: { id: string; estadoInicial?: string | null; cidadeInicial?: string | null; obrigatorio?: boolean; moderno?: boolean; /** Sempre lado a lado, também no celular. */ emLinha?: boolean }) {
   const [uf, setUf] = useState(estadoInicial ?? "");
   const [cidade, setCidade] = useState(cidadeInicial ?? "");
   const [cidades, setCidades] = useState<string[] | null>(null);
@@ -84,7 +84,7 @@ export function CampoEstadoCidade({
     );
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className={`grid gap-4 ${emLinha ? "grid-cols-2" : "sm:grid-cols-2"}`}>
       <div>
         <label className="rotulo" htmlFor={`${id}-estado`}>Estado{marca}</label>
         <select

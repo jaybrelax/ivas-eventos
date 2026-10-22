@@ -63,7 +63,7 @@ export default async function PerfilGuarnicao() {
         <h2 className="mb-4 text-base font-semibold text-stone-900">Meus dados</h2>
         <MeusDadosForm
           nome={u.nome} email={u.email} telefone={u.telefone} endereco={u.endereco} sexo={u.sexo} foto={u.foto}
-          cpf={u.cpf} dataNascimento={u.dataNascimento} next="/guarnicao/perfil" semFoto
+          cpf={u.cpf} dataNascimento={u.dataNascimento} next="/guarnicao/perfil" semFoto compacto
           estado={u.estado ?? instituto.estado} cidade={u.estado ? u.cidade : instituto.cidade}
           profissao={u.profissao} experiencia={u.experiencia} motivacao={u.motivacao} expectativas={u.expectativas}
         />

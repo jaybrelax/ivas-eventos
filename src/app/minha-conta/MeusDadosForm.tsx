@@ -11,9 +11,11 @@ import type { Experiencia } from "@/lib/perfil-extra";
 import { Aviso, Carregando } from "@/components/ui";
 import type { Genero } from "@/components/genero";
 import { salvarMeusDados } from "./actions";
+import { Cascata } from "@/components/Cascata";
+import { Sparkles } from "lucide-react";
 
 export function MeusDadosForm({
-  nome, email, telefone, endereco, sexo, foto, cpf, dataNascimento, estado, cidade, profissao, experiencia, motivacao, expectativas, completar, guardiao, next, semFoto,
+  nome, email, telefone, endereco, sexo, foto, cpf, dataNascimento, estado, cidade, profissao, experiencia, motivacao, expectativas, completar, guardiao, next, semFoto, compacto = false,
 }: {
   nome: string; email: string; telefone: string | null; endereco: string | null; sexo: Genero | null; foto: string | null;
   cpf: string | null; dataNascimento: string | null;
@@ -25,6 +27,8 @@ export function MeusDadosForm({
   guardiao?: boolean;
   /** Sem o campo de foto (o app da Guarnição troca a foto pelo menu do cartão do perfil). */
   semFoto?: boolean;
+  /** App da Guarnição: data e CPF lado a lado, estado e cidade lado a lado, e o bloco "Sobre você" em cascata. */
+  compacto?: boolean;
   next?: string | null;
 }) {
   const [resultado, acao, pendente] = useActionState(salvarMeusDados, undefined);
@@ -64,7 +68,7 @@ export function MeusDadosForm({
         <label className="rotulo" htmlFor="endereco">Endereço</label>
         <input id="endereco" name="endereco" maxLength={255} autoComplete="street-address" defaultValue={endereco ?? ""} className="campo h-11" placeholder="Rua, número, bairro e cidade" />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className={`grid gap-4 ${compacto ? "grid-cols-2" : "sm:grid-cols-2"}`}>
         <div>
           <label className="rotulo" htmlFor="data_nascimento">Data de nascimento</label>
           <input id="data_nascimento" name="data_nascimento" type="date" max={new Date().toISOString().slice(0, 10)} defaultValue={dataNascimento ?? ""} className="campo h-11" />
@@ -74,9 +78,15 @@ export function MeusDadosForm({
           <InputCPF id="cpf" name="cpf" defaultValue={cpf} className="campo h-11" />
         </div>
       </div>
-      <CampoEstadoCidade id="conta" estadoInicial={estado} cidadeInicial={cidade} />
+      <CampoEstadoCidade id="conta" estadoInicial={estado} cidadeInicial={cidade} emLinha={compacto} />
       <CampoGenero id="conta-sexo" inicial={sexo} />
-      <CamposSobreVoce id="conta" profissao={profissao} experiencia={experiencia} motivacao={motivacao} expectativas={expectativas} />
+      {compacto ? (
+        <Cascata titulo="Sobre você" icone={Sparkles}>
+          <CamposSobreVoce id="conta" profissao={profissao} experiencia={experiencia} motivacao={motivacao} expectativas={expectativas} />
+        </Cascata>
+      ) : (
+        <CamposSobreVoce id="conta" profissao={profissao} experiencia={experiencia} motivacao={motivacao} expectativas={expectativas} />
+      )}
 
       <button type="submit" className="btn-primario h-11 w-full" disabled={pendente}>
         {pendente ? <><Carregando /> Salvando…</> : "Salvar dados"}
