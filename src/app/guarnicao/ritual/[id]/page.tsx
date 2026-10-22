@@ -62,6 +62,12 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
         <Link href="/guarnicao" aria-label="Voltar" className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 grid h-10 w-10 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md active:scale-90">
           <ChevronLeft size={22} />
         </Link>
+        {/* Guardião escalado: levar o ritual para a agenda do celular (ícone, canto superior direito da capa) */}
+        {!coord && g.eu.situacao === "confirmada" && (
+          <a href={`/guarnicao/ritual/${evento.$id}/agenda`} aria-label="Adicionar à minha agenda" title="Adicionar à minha agenda" className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 grid h-10 w-10 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md active:scale-90">
+            <CalendarPlus size={19} />
+          </a>
+        )}
         {/* Sobe o título para ficar acima do card que flutua sobre a capa */}
         <div className="absolute inset-x-0 bottom-12 px-5 pt-5 pb-3 text-stone-950">
           <h1 className="text-xl leading-tight font-bold">{evento.titulo}</h1>
@@ -97,15 +103,6 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
           )}
         </div>
       </section>
-
-      {/* Guardião escalado: levar o ritual para a agenda do celular */}
-      {!coord && g.eu.situacao === "confirmada" && (
-        <div className="mt-4 px-5">
-          <a href={`/guarnicao/ritual/${evento.$id}/agenda`} className="inline-flex h-11 items-center gap-2 rounded-2xl bg-white px-4 text-sm font-semibold text-emerald-700 shadow-cartao ring-1 ring-stone-200/70 active:scale-[0.98]">
-            <CalendarPlus size={17} /> Adicionar à minha agenda
-          </a>
-        </div>
-      )}
 
       {/* Guarnição */}
       <section className="mt-5 px-5">
