@@ -108,7 +108,9 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
 
   if (guardiao) {
     const { users } = createAdminClient();
-    await users.updatePrefs({ userId: u.id, prefs: { funcao_ritual: "guardiao" } });
+    // updatePrefs substitui tudo: mescla com o que o formulário acabou de salvar (gênero, telefone, endereço…)
+    const atuais = await users.getPrefs({ userId: u.id });
+    await users.updatePrefs({ userId: u.id, prefs: { ...atuais, funcao_ritual: "guardiao" } });
     redirect("/login-guarnicao?next=%2Fguarnicao");
   }
   const destino = destinoSeguro(form.get("next"));

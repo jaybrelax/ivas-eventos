@@ -34,7 +34,9 @@ export async function salvarMeusDados(_: Resultado, form: FormData): Promise<Res
 
   // Concluindo o cadastro pelo Google com o link de divulgação para guardiões: vira guardião agora
   if (form.get("guardiao") === "1") {
-    await users.updatePrefs({ userId: u.id, prefs: { funcao_ritual: "guardiao" } });
+    // updatePrefs substitui tudo: mescla com o que o formulário acabou de salvar
+    const atuais = await users.getPrefs({ userId: u.id });
+    await users.updatePrefs({ userId: u.id, prefs: { ...atuais, funcao_ritual: "guardiao" } });
     revalidatePath("/minha-conta");
     revalidatePath("/minha-conta/dados");
     redirect("/login-guarnicao?next=%2Fguarnicao");

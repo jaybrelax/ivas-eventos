@@ -13,6 +13,7 @@ import { BotaoGoogle } from "@/components/BotaoGoogle";
 import { CampoEstadoCidade } from "@/components/CampoEstadoCidade";
 import { CamposSobreVoce } from "@/components/CamposSobreVoce";
 import { InputCPF } from "@/components/InputCPF";
+import { validarCpf } from "@/lib/cpf";
 
 type Etapa = "escolha" | "dados" | "sobre" | "perfil";
 
@@ -63,7 +64,9 @@ export function ParticipanteForm({
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOk)) return avisarCampo(alvo, "email", "Informe um e-mail válido.");
           }
           if (!String(f.get("telefone") ?? "").trim()) return avisarCampo(alvo, "telefone", "Informe o WhatsApp.");
-          if (String(f.get("cpf") ?? "").replace(/\D/g, "").length !== 11) return avisarCampo(alvo, "cpf", "Informe o CPF completo.");
+          const cpfOk = String(f.get("cpf") ?? "").replace(/\D/g, "");
+          if (cpfOk.length !== 11) return avisarCampo(alvo, "cpf", "Informe o CPF completo.");
+          if (!validarCpf(cpfOk)) return avisarCampo(alvo, "cpf", "CPF inválido. Confira os números.");
           setEtapa("sobre");
           return;
         }
