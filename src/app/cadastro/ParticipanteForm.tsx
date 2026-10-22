@@ -116,16 +116,16 @@ export function ParticipanteForm({
         <CampoEstadoCidade id="cad" obrigatorio estadoInicial={estadoPadrao} cidadeInicial={cidadePadrao} />
         <div>
           <label className="rotulo" htmlFor="endereco">Endereço</label>
-          <input id="endereco" name="endereco" required minLength={8} maxLength={255} autoComplete="street-address" className="campo h-11" placeholder="Rua, número, bairro e cidade" />
+          <input id="endereco" name="endereco" maxLength={255} autoComplete="street-address" className="campo h-11" placeholder="Rua, número, bairro e cidade" />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="rotulo" htmlFor="data_nascimento">Data de nascimento</label>
-            <input id="data_nascimento" name="data_nascimento" type="date" required max={new Date().toISOString().slice(0, 10)} className="campo h-11" />
+            <input id="data_nascimento" name="data_nascimento" type="date" max={new Date().toISOString().slice(0, 10)} className="campo h-11" />
           </div>
           <div>
             <label className="rotulo" htmlFor="cpf">CPF</label>
-            <InputCPF id="cpf" name="cpf" required className="campo h-11" />
+            <InputCPF id="cpf" name="cpf" className="campo h-11" />
           </div>
         </div>
         <CamposSobreVoce id="cad" />
