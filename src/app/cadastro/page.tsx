@@ -7,6 +7,7 @@ import { MarcaInstituto } from "@/components/Marca";
 import { FundoMarca } from "@/components/FundoMarca";
 import { urlImagem } from "@/lib/links";
 import { ParticipanteForm } from "./ParticipanteForm";
+import { SemBannerInstalar } from "@/components/SemBannerInstalar";
 
 const DESCRICAO = "Faça seu cadastro no Instituto IVAS para confirmar presença nos rituais e acompanhar seu histórico de participações.";
 
@@ -33,6 +34,7 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
 
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
+      <SemBannerInstalar />
       <section className="relative hidden overflow-hidden bg-mata-950 p-12 text-white lg:flex lg:flex-col">
         <FundoMarca />
         <div className="relative mt-auto max-w-md">

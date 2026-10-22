@@ -1,14 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Download, Share } from "lucide-react";
 import { useInstalar } from "@/components/useInstalar";
+import { CHAVE_PRIMEIRO_ACESSO } from "../MarcarPrimeiroAcesso";
 
 /** "Instalar o app" no perfil: botão nativo no Android/Chrome, passo a passo no iPhone. */
 export function InstalarGuarnicao() {
   const { disponivel, nativo, instalar } = useInstalar();
   const [dica, setDica] = useState(false);
-  if (!disponivel) return null;
+  // Só aparece a partir do segundo acesso: no primeiro, o app ainda está sendo conhecido
+  const [jaAcessou, setJaAcessou] = useState(false);
+  useEffect(() => {
+    try {
+      setJaAcessou(localStorage.getItem(CHAVE_PRIMEIRO_ACESSO) === "1");
+    } catch {}
+  }, []);
+  if (!disponivel || !jaAcessou) return null;
   return (
     <section className="mx-4 mt-4 rounded-3xl bg-gradient-to-br from-[#1c1040] to-emerald-800 p-5 text-white shadow-cartao">
       <p className="font-semibold">Instale o app da Guarnição</p>
