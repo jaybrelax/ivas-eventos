@@ -43,7 +43,7 @@ export default async function PerfilGuarnicao() {
               <form key={v} action={trocarVisao.bind(null, v)}>
                 <button
                   type="submit"
-                  className={`h-11 w-full rounded-2xl text-sm font-semibold transition active:scale-[0.98] ${v === visao ? "bg-[#1c1040] text-white" : "bg-stone-100 text-stone-700"}`}
+                  className={`h-11 w-full rounded-2xl text-sm font-semibold transition active:scale-[0.98] ${v === visao ? "bg-emerald-600 text-white" : "bg-stone-100 text-stone-700"}`}
                 >
                   {v === "coordenador" ? "Coordenador" : "Guardião"}
                 </button>

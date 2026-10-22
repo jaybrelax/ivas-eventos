@@ -12,7 +12,16 @@ import { Aviso, Carregando } from "@/components/ui";
 import type { Genero } from "@/components/genero";
 import { salvarMeusDados } from "./actions";
 import { Cascata } from "@/components/Cascata";
-import { Sparkles } from "lucide-react";
+import { Star } from "lucide-react";
+
+function CampoEndereco({ endereco }: { endereco: string | null }) {
+  return (
+    <div>
+      <label className="rotulo" htmlFor="endereco">Endereço</label>
+      <input id="endereco" name="endereco" maxLength={255} autoComplete="street-address" defaultValue={endereco ?? ""} className="campo h-11" placeholder="Rua, número, bairro e cidade" />
+    </div>
+  );
+}
 
 export function MeusDadosForm({
   nome, email, telefone, endereco, sexo, foto, cpf, dataNascimento, estado, cidade, profissao, experiencia, motivacao, expectativas, completar, guardiao, next, semFoto, compacto = false,
@@ -64,10 +73,7 @@ export function MeusDadosForm({
         <label className="rotulo" htmlFor="telefone">WhatsApp</label>
         <InputTelefone id="telefone" name="telefone" defaultValue={telefone} className="campo h-11" />
       </div>
-      <div>
-        <label className="rotulo" htmlFor="endereco">Endereço</label>
-        <input id="endereco" name="endereco" maxLength={255} autoComplete="street-address" defaultValue={endereco ?? ""} className="campo h-11" placeholder="Rua, número, bairro e cidade" />
-      </div>
+      {!compacto && <CampoEndereco endereco={endereco} />}
       <div className={`grid gap-4 ${compacto ? "grid-cols-2" : "sm:grid-cols-2"}`}>
         <div>
           <label className="rotulo" htmlFor="data_nascimento">Data de nascimento</label>
@@ -78,10 +84,11 @@ export function MeusDadosForm({
           <InputCPF id="cpf" name="cpf" defaultValue={cpf} className="campo h-11" />
         </div>
       </div>
+      {compacto && <CampoEndereco endereco={endereco} />}
       <CampoEstadoCidade id="conta" estadoInicial={estado} cidadeInicial={cidade} emLinha={compacto} />
       <CampoGenero id="conta-sexo" inicial={sexo} />
       {compacto ? (
-        <Cascata titulo="Sobre você" icone={Sparkles}>
+        <Cascata titulo="Sobre você" icone={Star}>
           <CamposSobreVoce id="conta" profissao={profissao} experiencia={experiencia} motivacao={motivacao} expectativas={expectativas} />
         </Cascata>
       ) : (
