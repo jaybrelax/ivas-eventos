@@ -31,6 +31,8 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   const senha = String(form.get("senha") ?? "");
   const confirmar = String(form.get("confirmar") ?? "");
   const sexo = String(form.get("sexo") ?? "") as Sexo;
+  // Link da divulgação para guardiões (/cadastro?guardiao): o cadastro já nasce como guardião
+  const guardiao = form.get("guardiao") === "1";
 
   if (nome.split(" ").length < 2) return { erro: "Informe nome e sobrenome." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { erro: "Informe um e-mail válido." };
@@ -50,7 +52,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
     const u = await users.create({ userId: ID.unique(), email, password: senha, name: nome });
     userId = u.$id;
     await users.updateLabels({ userId, labels: [LABEL_PARTICIPANTE] });
-    await users.updatePrefs({ userId, prefs: { funcao_ritual: "nenhuma" } });
+    await users.updatePrefs({ userId, prefs: { funcao_ritual: guardiao ? "guardiao" : "nenhuma" } });
     const r = await salvarContato(userId, form);
     if (r.erro) {
       await users.delete({ userId }).catch(() => {});
@@ -74,6 +76,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   }
   // Veio de uma página de evento: volta para ela, já com a janela de confirmação aberta.
   // Cadastro direto: completa os dados e depois vê o próximo ritual em Minhas inscrições.
+  if (guardiao) redirect("/login-guarnicao?next=%2Fguarnicao");
   const destino = destinoSeguro(form.get("next"));
   redirect(destino ? comParticiparAberto(destino) : "/minha-conta/dados?bemvindo=1");
 }

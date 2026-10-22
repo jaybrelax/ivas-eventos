@@ -13,7 +13,7 @@ import type { Genero } from "@/components/genero";
 import { salvarMeusDados } from "./actions";
 
 export function MeusDadosForm({
-  nome, email, telefone, endereco, sexo, foto, cpf, dataNascimento, estado, cidade, profissao, experiencia, motivacao, expectativas, completar, next, semFoto,
+  nome, email, telefone, endereco, sexo, foto, cpf, dataNascimento, estado, cidade, profissao, experiencia, motivacao, expectativas, completar, guardiao, next, semFoto,
 }: {
   nome: string; email: string; telefone: string | null; endereco: string | null; sexo: Genero | null; foto: string | null;
   cpf: string | null; dataNascimento: string | null;
@@ -21,6 +21,8 @@ export function MeusDadosForm({
   experiencia: Experiencia | null; motivacao: string | null; expectativas: string | null;
   /** Veio direto do cadastro pelo Google: pede pra completar o que não veio de lá (WhatsApp, CPF, endereço, nascimento). */
   completar?: boolean;
+  /** Veio do cadastro com o link de divulgação para guardiões: ao salvar, vira guardião e segue para o login do app. */
+  guardiao?: boolean;
   /** Sem o campo de foto (o app da Guarnição troca a foto pelo menu do cartão do perfil). */
   semFoto?: boolean;
   next?: string | null;
@@ -41,6 +43,7 @@ export function MeusDadosForm({
       )}
       {resultado && <Aviso tipo={resultado.erro ? "erro" : "ok"}>{resultado.erro ?? resultado.ok}</Aviso>}
       {next && <input type="hidden" name="next" value={next} />}
+      {completar && guardiao && <input type="hidden" name="guardiao" value="1" />}
 
       {!semFoto && <CampoFoto nome={nome} fotoAtual={foto} />}
 

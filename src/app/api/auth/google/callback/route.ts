@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
   jar.delete("google_oauth_state");
 
   if (!code || !stateRecebido || !bruto) return NextResponse.redirect(falha);
-  let estado: { state: string; next: string | null };
+  let estado: { state: string; next: string | null; guardiao?: boolean };
   try {
     estado = JSON.parse(bruto);
   } catch {
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
       userId = novo.$id;
       await users.updateLabels({ userId, labels: [LABEL_PARTICIPANTE] });
       const fotoId = perfil.picture ? await baixarFotoGoogle(storage, perfil.picture) : null;
-      await users.updatePrefs({ userId, prefs: { funcao_ritual: "nenhuma", foto_file_id: fotoId } });
+      await users.updatePrefs({ userId, prefs: { funcao_ritual: estado.guardiao ? "guardiao" : "nenhuma", foto_file_id: fotoId } });
     }
 
     const contaAtual = await users.get({ userId });
@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
 
     // Conta nova pelo Google: WhatsApp, CPF, endereço e nascimento não vêm de lá, então completa o cadastro antes de seguir.
     const destino = contaNova
-      ? `/minha-conta/dados?completar=1${estado.next ? `&next=${encodeURIComponent(estado.next)}` : ""}`
+      ? `/minha-conta/dados?completar=1${estado.guardiao ? "&guardiao=1" : ""}${estado.next ? `&next=${encodeURIComponent(estado.next)}` : ""}`
       : (estado.next ?? (perfilAcesso ? "/admin/eventos" : "/minha-conta"));
     return NextResponse.redirect(new URL(destino, req.url));
   } catch (e) {

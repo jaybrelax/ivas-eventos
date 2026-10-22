@@ -16,8 +16,8 @@ type Etapa = "escolha" | "dados" | "sobre" | "perfil";
 
 /** Cadastro de participante: a conta já nasce ativa e, ao enviar, a pessoa já entra direto. */
 export function ParticipanteForm({
-  next, estadoPadrao, cidadePadrao,
-}: { next?: string; estadoPadrao?: string | null; cidadePadrao?: string | null }) {
+  next, guardiao, estadoPadrao, cidadePadrao,
+}: { next?: string; guardiao?: boolean; estadoPadrao?: string | null; cidadePadrao?: string | null }) {
   const [estado, acao, pendente] = useActionState(cadastrarParticipante, undefined);
   const [etapa, setEtapa] = useState<Etapa>("escolha");
   const [nome, setNome] = useState("");
@@ -25,7 +25,7 @@ export function ParticipanteForm({
   if (etapa === "escolha")
     return (
       <div data-etapa="escolha" className="space-y-3.5">
-        <BotaoGoogle next={next} texto="Criar cadastro com o Google" recomendado />
+        <BotaoGoogle next={next} guardiao={guardiao} texto="Criar cadastro com o Google" recomendado />
         <div className="flex items-center gap-3 text-base font-medium text-stone-500">
           <span className="h-px flex-1 bg-stone-300" /> ou <span className="h-px flex-1 bg-stone-300" />
         </div>
@@ -65,6 +65,7 @@ export function ParticipanteForm({
     >
       {estado?.erro && <Aviso>{estado.erro}</Aviso>}
       {next && <input type="hidden" name="next" value={next} />}
+      {guardiao && <input type="hidden" name="guardiao" value="1" />}
       <input type="text" name="site" tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-0 w-0 opacity-0" />
 
       <div hidden={etapa !== "dados"} className="space-y-4">

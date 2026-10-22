@@ -19,10 +19,11 @@ export async function GET(req: NextRequest) {
   }
 
   const next = destinoSeguro(req.nextUrl.searchParams.get("next"));
+  const guardiao = req.nextUrl.searchParams.get("guardiao") === "1";
   const redirectUri = `${req.nextUrl.origin}/api/auth/google/callback`;
   const state = randomBytes(16).toString("hex");
 
-  (await cookies()).set("google_oauth_state", JSON.stringify({ state, next }), {
+  (await cookies()).set("google_oauth_state", JSON.stringify({ state, next, guardiao }), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

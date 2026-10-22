@@ -1,6 +1,9 @@
 /** Link para o fluxo de login/cadastro com um clique pelo Google (ver src/app/api/auth/google). */
-export function BotaoGoogle({ next, texto = "Continuar com Google", recomendado = false }: { next?: string; texto?: string; recomendado?: boolean }) {
-  const href = `/api/auth/google${next ? `?next=${encodeURIComponent(next)}` : ""}`;
+export function BotaoGoogle({ next, guardiao, texto = "Continuar com Google", recomendado = false }: { next?: string; guardiao?: boolean; texto?: string; recomendado?: boolean }) {
+  const params = new URLSearchParams();
+  if (next) params.set("next", next);
+  if (guardiao) params.set("guardiao", "1");
+  const href = `/api/auth/google${params.size ? `?${params}` : ""}`;
   const botao = (
     <a
       href={href}

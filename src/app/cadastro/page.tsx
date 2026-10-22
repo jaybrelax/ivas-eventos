@@ -23,6 +23,8 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
   // Links antigos do cadastro da equipe (/cadastro?funcao=guardiao) seguem funcionando.
   if (typeof sp.funcao === "string") redirect(`/cadastro/equipe?funcao=${encodeURIComponent(sp.funcao)}`);
   const next = typeof sp.next === "string" ? sp.next : undefined;
+  // Link da divulgação para guardiões (?guardiao): o cadastro já nasce com a função e volta para o login do app
+  const guardiao = "guardiao" in sp;
 
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
@@ -47,7 +49,7 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
           </div>
           <h2 className="text-center text-2xl font-semibold tracking-tight text-stone-900 lg:text-3xl">Criar cadastro</h2>
           <p className="mt-1 mb-5 text-center text-sm lg:mt-1.5 lg:mb-8 text-stone-500">Rápido: seu acesso já fica pronto para usar.</p>
-          <ParticipanteForm next={next} estadoPadrao={instituto.estado} cidadePadrao={instituto.cidade} />
+          <ParticipanteForm next={next} guardiao={guardiao} estadoPadrao={instituto.estado} cidadePadrao={instituto.cidade} />
         </div>
         <p className="relative mt-5 text-center text-sm font-medium text-stone-600">
           Já tem acesso? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold text-mata-700 underline-offset-2 hover:underline">Entrar</Link>

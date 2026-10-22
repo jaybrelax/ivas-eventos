@@ -17,6 +17,8 @@ export default async function MeusDadosPage({ searchParams }: PageProps<"/minha-
   // Acabou de se cadastrar (sem vir de um evento): mostra o próximo ritual enquanto completa os dados
   const bemvindo = sp?.bemvindo === "1" || (completar && !(typeof sp?.next === "string"));
   const next = typeof sp?.next === "string" ? sp.next : null;
+  // Veio do cadastro com o link de divulgação para guardiões (?guardiao=1): ao completar os dados, vira guardião
+  const guardiao = completar && sp?.guardiao === "1";
   const { instituto, enderecos, telefones, redes } = await getDadosInstituto();
 
   return (
@@ -36,7 +38,7 @@ export default async function MeusDadosPage({ searchParams }: PageProps<"/minha-
         <div className="cartao">
           <MeusDadosForm
             nome={u.nome} email={u.email} telefone={u.telefone} endereco={u.endereco} sexo={u.sexo} foto={u.foto}
-            cpf={u.cpf} dataNascimento={u.dataNascimento} completar={completar} next={next}
+            cpf={u.cpf} dataNascimento={u.dataNascimento} completar={completar} guardiao={guardiao} next={next}
             estado={u.estado ?? (completar ? instituto.estado : null)}
             cidade={u.estado ? u.cidade : completar ? instituto.cidade : null}
             profissao={u.profissao}
