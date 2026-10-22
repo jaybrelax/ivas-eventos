@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getInstituto } from "@/lib/data";
+import { getUsuario } from "@/lib/auth";
 import { MarcaInstituto } from "@/components/Marca";
 import { FundoMarca } from "@/components/FundoMarca";
 import { urlImagem } from "@/lib/links";
@@ -25,6 +26,10 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
   const next = typeof sp.next === "string" ? sp.next : undefined;
   // Link da divulgação para guardiões (?guardiao): o cadastro já nasce com a função e volta para o login do app
   const guardiao = "guardiao" in sp;
+  // Voltou do Google (conta nova, já logada): continua aqui mesmo para completar telefone, estado/cidade e gênero
+  const completar = sp.completar === "1";
+  const usuario = completar ? await getUsuario() : null;
+  if (completar && !usuario) redirect(`/login?next=${encodeURIComponent("/cadastro?completar=1")}`);
 
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
@@ -47,9 +52,19 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
           <div className="mb-8 hidden justify-center lg:flex">
             <MarcaInstituto instituto={instituto} altura={64} fundoClaro />
           </div>
-          <h2 className="text-center text-2xl font-semibold tracking-tight text-stone-900 lg:text-3xl">Criar cadastro</h2>
-          <p className="mt-1 mb-5 text-center text-sm lg:mt-1.5 lg:mb-8 text-stone-500">Rápido: seu acesso já fica pronto para usar.</p>
-          <ParticipanteForm next={next} guardiao={guardiao} estadoPadrao={instituto.estado} cidadePadrao={instituto.cidade} />
+          <h2 className="text-center text-2xl font-semibold tracking-tight text-stone-900 lg:text-3xl">{completar ? "Só mais um pouco" : "Criar cadastro"}</h2>
+          <p className="mt-1 mb-5 text-center text-sm lg:mt-1.5 lg:mb-8 text-stone-500">
+            {completar ? "Falta pouco: complete seus dados para terminar o cadastro." : "Rápido: seu acesso já fica pronto para usar."}
+          </p>
+          <ParticipanteForm
+            next={next}
+            guardiao={guardiao}
+            completar={completar}
+            nomeInicial={usuario?.nome}
+            fotoInicial={usuario?.foto}
+            estadoPadrao={instituto.estado}
+            cidadePadrao={instituto.cidade}
+          />
         </div>
         <p className="relative mt-5 text-center text-sm font-medium text-stone-600">
           Já tem acesso? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold text-mata-700 underline-offset-2 hover:underline">Entrar</Link>

@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
   jar.delete("google_oauth_state");
 
   if (!code || !stateRecebido || !bruto) return NextResponse.redirect(falha);
-  let estado: { state: string; next: string | null; guardiao?: boolean };
+  let estado: { state: string; next: string | null; guardiao?: boolean; origem?: "cadastro" | null };
   try {
     estado = JSON.parse(bruto);
   } catch {
@@ -114,8 +114,10 @@ export async function GET(req: NextRequest) {
     });
 
     // Conta nova pelo Google: WhatsApp, CPF, endereço e nascimento não vêm de lá, então completa o cadastro antes de seguir.
+    // Quem clicou em "Criar cadastro com o Google" na própria tela de cadastro continua ali para completar os dados.
+    const telaCompletar = estado.origem === "cadastro" ? "/cadastro" : "/minha-conta/dados";
     const destino = contaNova
-      ? `/minha-conta/dados?completar=1${estado.guardiao ? "&guardiao=1" : ""}${estado.next ? `&next=${encodeURIComponent(estado.next)}` : ""}`
+      ? `${telaCompletar}?completar=1${estado.guardiao ? "&guardiao=1" : ""}${estado.next ? `&next=${encodeURIComponent(estado.next)}` : ""}`
       : (estado.next ?? (perfilAcesso ? "/admin/eventos" : "/minha-conta"));
     return NextResponse.redirect(new URL(destino, req.url));
   } catch (e) {

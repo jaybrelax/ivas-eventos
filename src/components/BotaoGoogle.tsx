@@ -1,8 +1,9 @@
 /** Link para o fluxo de login/cadastro com um clique pelo Google (ver src/app/api/auth/google). */
-export function BotaoGoogle({ next, guardiao, texto = "Continuar com Google", recomendado = false }: { next?: string; guardiao?: boolean; texto?: string; recomendado?: boolean }) {
+export function BotaoGoogle({ next, guardiao, origem, texto = "Continuar com Google", recomendado = false }: { next?: string; guardiao?: boolean; /** "cadastro": ao criar conta, volta para a própria tela de cadastro completar os dados (em vez de "Meus dados"). */ origem?: "cadastro"; texto?: string; recomendado?: boolean }) {
   const params = new URLSearchParams();
   if (next) params.set("next", next);
   if (guardiao) params.set("guardiao", "1");
+  if (origem) params.set("origem", origem);
   const href = `/api/auth/google${params.size ? `?${params}` : ""}`;
   const botao = (
     <a

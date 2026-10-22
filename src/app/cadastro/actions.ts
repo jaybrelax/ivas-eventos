@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ID } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
 import { LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
+import { exigirSessao } from "@/lib/auth";
 import { salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Sexo } from "@/lib/types";
 import { ehUf } from "@/lib/perfil-extra";
@@ -79,4 +80,33 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   if (guardiao) redirect("/login-guarnicao?next=%2Fguarnicao");
   const destino = destinoSeguro(form.get("next"));
   redirect(destino ? comParticiparAberto(destino) : "/minha-conta/dados?bemvindo=1");
+}
+
+/**
+ * Conclui o cadastro de quem entrou pelo botão do Google (a conta já existe e já está logada:
+ * falta telefone, estado/cidade e gênero). Continua na própria tela de cadastro, sem página à parte.
+ */
+export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormData): Promise<ResultadoCadastro> {
+  const u = await exigirSessao();
+  const sexo = String(form.get("sexo") ?? "") as Sexo;
+  // Link da divulgação para guardiões (/cadastro?guardiao): o cadastro já nasce como guardião
+  const guardiao = form.get("guardiao") === "1";
+
+  if (sexo !== "masculino" && sexo !== "feminino") return { erro: "Escolha o gênero." };
+  const tel = validarTelefone(String(form.get("telefone") ?? ""));
+  if ("erro" in tel) return { erro: tel.erro };
+  if (!tel.valor) return { erro: "Informe o telefone (WhatsApp)." };
+  if (!ehUf(String(form.get("estado") ?? ""))) return { erro: "Escolha o estado." };
+  if (!String(form.get("cidade") ?? "").trim()) return { erro: "Escolha a cidade." };
+
+  const r = await salvarContato(u.id, form);
+  if (r.erro) return { erro: r.erro };
+
+  if (guardiao) {
+    const { users } = createAdminClient();
+    await users.updatePrefs({ userId: u.id, prefs: { funcao_ritual: "guardiao" } });
+    redirect("/login-guarnicao?next=%2Fguarnicao");
+  }
+  const destino = destinoSeguro(form.get("next"));
+  redirect(destino ? comParticiparAberto(destino) : "/minha-conta?aba=proximos");
 }
