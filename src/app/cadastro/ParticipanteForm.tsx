@@ -67,6 +67,7 @@ export function ParticipanteForm({
           const cpfOk = String(f.get("cpf") ?? "").replace(/\D/g, "");
           if (cpfOk.length !== 11) return avisarCampo(alvo, "cpf", "Informe o CPF completo.");
           if (!validarCpf(cpfOk)) return avisarCampo(alvo, "cpf", "CPF inválido. Confira os números.");
+          if (!String(f.get("sexo") ?? "")) return avisarCampo(alvo, "sexo", "Escolha o gênero.");
           setEtapa("sobre");
           return;
         }
@@ -108,6 +109,7 @@ export function ParticipanteForm({
         <CampoMD id="cpf" rotulo="CPF" icone={IdCard}>
           <InputCPF id="cpf" name="cpf" className="campo-md" />
         </CampoMD>
+        <CampoGenero id="cad-sexo" />
         <button type="submit" className="btn-primario h-11 w-full">Continuar <ArrowRight size={17} /></button>
       </div>
 
@@ -139,7 +141,6 @@ export function ParticipanteForm({
         <div className="flex justify-center pb-1">
           <CampoFoto nome={nome} fotoAtual={fotoInicial} tamanho={88} />
         </div>
-        <CampoGenero id="cad-sexo" />
         {!completar && (
           <div className="grid gap-4 sm:grid-cols-2">
             <CampoMD id="senha" rotulo="Senha" icone={Lock}>
