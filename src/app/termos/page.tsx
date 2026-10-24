@@ -38,7 +38,7 @@ export default async function Termos() {
         <h2>3. Contribuição</h2>
         <ul>
           <li>A participação nos rituais tem uma contribuição, informada na página de cada encontro.</li>
-          <li>Ao pagar, você pode avisar pelo site e anexar o comprovante. A inscrição fica com o pagamento “informado” até a coordenação confirmar.</li>
+          <li>Ao contribuir, você pode avisar pelo site e anexar o comprovante, ou avisar que vai contribuir na hora, no dia do ritual. Com o comprovante, a contribuição fica “informada” até a coordenação confirmar.</li>
           <li>Casos de isenção ou devolução são combinados diretamente com a coordenação.</li>
         </ul>
       </section>

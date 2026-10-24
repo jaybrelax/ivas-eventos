@@ -22,6 +22,7 @@ const PAGAMENTO: Record<ItemInscricao["pagamento"], { rotulo: string; cor: strin
   informado: { rotulo: "Informado", cor: "bg-amber-50 text-amber-700" },
   pago: { rotulo: "Pago", cor: "bg-emerald-50 text-emerald-700" },
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
+  na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
 };
 
 const SITUACAO: Record<ItemInscricao["situacao"], { rotulo: string; cor: string }> = {
@@ -46,7 +47,7 @@ export default async function FichaParticipante({ params }: PageProps<"/admin/pa
   const historico = itens.filter((i) => i.passado && i.situacao === "confirmada");
   const comContribuicao = itens.filter((i) => i.temContribuicao);
   const totalPago = comContribuicao.filter((i) => i.pagamento === "pago").reduce((s, i) => s + (i.valor ?? 0), 0);
-  const emAberto = comContribuicao.filter((i) => i.pagamento === "pendente" || i.pagamento === "informado").length;
+  const emAberto = comContribuicao.filter((i) => i.pagamento === "pendente" || i.pagamento === "informado" || i.pagamento === "na_hora").length;
 
   const dados: [string, string | null][] = [
     ["E-mail", conta.email],

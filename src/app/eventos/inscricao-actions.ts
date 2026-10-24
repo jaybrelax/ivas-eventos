@@ -8,7 +8,7 @@ import { exigirSessao } from "@/lib/auth";
 import { COMPROVANTES_BUCKET_ID } from "@/lib/config";
 import { getEvento, listarTipos } from "@/lib/data";
 import { conferirImagem } from "@/lib/imagem";
-import { cancelarInscricao, informarPagamento, inscrever, type Resultado } from "@/lib/inscricoes";
+import { cancelarInscricao, contribuirNaHora, informarPagamento, inscrever, type Resultado } from "@/lib/inscricoes";
 
 async function contexto(eventoId: string) {
   const [evento, tipos] = await Promise.all([getEvento(eventoId), listarTipos()]);
@@ -42,7 +42,7 @@ export async function cancelarInscricaoAction(eventoId: string): Promise<Resulta
   return r;
 }
 
-/** Avisa que já pagou (comprovante opcional, reduzido no navegador antes do envio). */
+/** Avisa que já contribuiu (comprovante opcional, reduzido no navegador antes do envio). */
 export async function informarPagamentoAction(eventoId: string, inscricaoId: string, form: FormData): Promise<Resultado> {
   const u = await exigirSessao(`/eventos/${eventoId}`);
   const valorBruto = form.get("valor");
@@ -66,6 +66,14 @@ export async function informarPagamentoAction(eventoId: string, inscricaoId: str
   }
 
   const r = await informarPagamento(inscricaoId, u.id, valor, comprovanteFileId);
+  revalidar(eventoId);
+  return r;
+}
+
+/** "Vou contribuir na hora": avisa que a contribuição será feita no dia do ritual (ou desfaz o aviso). */
+export async function contribuirNaHoraAction(eventoId: string, inscricaoId: string, desfazer = false): Promise<Resultado> {
+  const u = await exigirSessao(`/eventos/${eventoId}`);
+  const r = await contribuirNaHora(inscricaoId, u.id, desfazer);
   revalidar(eventoId);
   return r;
 }

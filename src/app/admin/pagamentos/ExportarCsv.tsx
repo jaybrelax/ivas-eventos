@@ -5,7 +5,7 @@ import { dataCurta } from "@/lib/format";
 import type { ItemPagamento } from "@/lib/pagamentos";
 
 const PAGAMENTO_ROTULO: Record<ItemPagamento["pagamento"], string> = {
-  pendente: "Pendente", informado: "Informado", pago: "Pago", isento: "Isento",
+  pendente: "Pendente", informado: "Informado", pago: "Pago", isento: "Isento", na_hora: "Na hora",
 };
 
 function csvCampo(v: string) {

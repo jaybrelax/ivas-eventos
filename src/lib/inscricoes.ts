@@ -197,17 +197,33 @@ export async function removerParticipante(evento: Evento, usuarioId: string, por
   return { ok: "Participante retirado." };
 }
 
-/** O próprio participante avisa que pagou (comprovante opcional); fica aguardando confirmação da coordenação. */
+/** O próprio participante avisa que contribuiu (comprovante opcional); fica aguardando confirmação da coordenação. */
 export async function informarPagamento(inscricaoId: string, usuarioId: string, valor: number | null, comprovanteFileId: string | null): Promise<Resultado> {
   const { tablesDB } = createAdminClient();
   const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
   if (!row || row.usuario_id !== usuarioId) return { erro: "Inscrição não encontrada." };
-  if (row.pagamento === "pago") return { erro: "Este pagamento já foi confirmado." };
+  if (row.pagamento === "pago") return { erro: "Esta contribuição já foi confirmada." };
   await tablesDB.updateRow({
     ...base, rowId: inscricaoId,
     data: { pagamento: "informado", valor, informado_em: new Date().toISOString(), comprovante_file_id: comprovanteFileId, alterado_por: usuarioId },
   });
-  return { ok: "Pagamento informado! A coordenação vai confirmar em breve." };
+  return { ok: "Contribuição informada! A coordenação vai confirmar em breve." };
+}
+
+/** O participante avisa que vai contribuir no dia do ritual (ou desfaz o aviso e volta a "pendente"). */
+export async function contribuirNaHora(inscricaoId: string, usuarioId: string, desfazer = false): Promise<Resultado> {
+  const { tablesDB } = createAdminClient();
+  const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
+  if (!row || row.usuario_id !== usuarioId) return { erro: "Inscrição não encontrada." };
+  // Só muda enquanto a contribuição não foi informada, confirmada ou isentada
+  if (desfazer) {
+    if (row.pagamento !== "na_hora") return { erro: "Nada a desfazer." };
+    await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: { pagamento: "pendente", alterado_por: usuarioId } });
+    return { ok: "Combinado, a escolha foi desfeita." };
+  }
+  if (row.pagamento !== "pendente" && row.pagamento !== "na_hora") return { erro: "A contribuição desta inscrição já foi resolvida." };
+  await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: { pagamento: "na_hora", alterado_por: usuarioId } });
+  return { ok: "Combinado! Você contribui na hora, no dia do ritual." };
 }
 
 /** Coordenador confirma, isenta ou reabre um pagamento. */

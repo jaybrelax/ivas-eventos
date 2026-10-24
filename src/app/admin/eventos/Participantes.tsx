@@ -36,6 +36,7 @@ const PAGAMENTO: Record<SituacaoPagamento, { rotulo: string; cor: string }> = {
   informado: { rotulo: "Informado", cor: "bg-amber-50 text-amber-700" },
   pago: { rotulo: "Pago", cor: "bg-emerald-50 text-emerald-700" },
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
+  na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
 };
 
 /**

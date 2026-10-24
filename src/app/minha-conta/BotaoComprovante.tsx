@@ -22,7 +22,7 @@ export function BotaoComprovante({ id }: { id: string }) {
       </button>
 
       {aberto && createPortal(
-        <div role="dialog" aria-modal="true" aria-label="Comprovante de pagamento" className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAberto(false)}>
+        <div role="dialog" aria-modal="true" aria-label="Comprovante de contribuição" className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={() => setAberto(false)}>
           <div className="fixed inset-0 bg-stone-950/85 backdrop-blur-sm" />
           <button
             type="button"
@@ -35,7 +35,7 @@ export function BotaoComprovante({ id }: { id: string }) {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/api/comprovante/${id}`}
-            alt="Comprovante de pagamento"
+            alt="Comprovante de contribuição"
             className="relative z-10 max-h-[90dvh] max-w-[92vw] rounded-xl object-contain shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           />

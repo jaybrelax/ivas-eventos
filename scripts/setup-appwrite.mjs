@@ -155,7 +155,7 @@ const TABELAS = {
       v("evento_id", 36, { required: true }), v("usuario_id", 36, { required: true }),
       en("situacao", ["confirmada", "espera", "cancelada"], "espera"),
       i("ordem", { min: 0 }),
-      en("pagamento", ["pendente", "informado", "pago", "isento"], "pendente"),
+      en("pagamento", ["pendente", "informado", "pago", "isento", "na_hora"], "pendente"),
       f("valor", { min: 0 }), dt("informado_em"), dt("pago_em"),
       v("comprovante_file_id", 36), t("observacao"), v("alterado_por", 36),
     ],
@@ -184,6 +184,19 @@ async function criarColuna(tableId, [tipo, key, o]) {
   if (tipo === "float") return db.createFloatColumn({ ...base, min: o.min, max: o.max, xdefault: def });
   if (tipo === "datetime") return db.createDatetimeColumn({ ...base, xdefault: def });
   throw new Error("tipo desconhecido " + tipo);
+}
+
+/** Colunas enum que já existem ganham os valores novos da definição (só acrescenta, nunca remove). */
+async function sincronizarEnums(tableId, def) {
+  const { columns } = await db.listColumns({ databaseId: DB, tableId });
+  for (const [tipo, key, o] of def.colunas) {
+    if (tipo !== "enum") continue;
+    const atual = columns.find((c) => c.key === key);
+    const falta = atual?.elements ? o.elements.filter((e) => !atual.elements.includes(e)) : [];
+    if (!falta.length) continue;
+    await db.updateEnumColumn({ databaseId: DB, tableId, key, elements: [...atual.elements, ...falta], required: !!o.required, xdefault: o.required ? undefined : o.xdefault });
+    console.log(`  ✓ enum ${key}: + ${falta.join(", ")}`);
+  }
 }
 
 async function esperarColunas(tableId) {
@@ -230,6 +243,8 @@ async function main() {
     await talvez(`tabela ${tableId}`, () => db.createTable({ databaseId: DB, tableId, name: def.nome, permissions: def.leituraPublica ? [Permission.read(Role.any())] : [], rowSecurity: false }));
     await removerObsoletos(tableId);
     for (const col of def.colunas) await talvez(`coluna ${col[1]}`, () => criarColuna(tableId, col));
+    await esperarColunas(tableId);
+    await sincronizarEnums(tableId, def);
     await esperarColunas(tableId);
     for (const [key, type, columns] of def.indices ?? []) {
       await talvez(`índice ${key}`, () => db.createIndex({ databaseId: DB, tableId, key, type, columns }));

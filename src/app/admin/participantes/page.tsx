@@ -36,7 +36,7 @@ export default async function Participantes({ searchParams }: PageProps<"/admin/
     if (data < hj) {
       if (i.situacao === "confirmada") r.participou++;
     } else r.proximos++;
-    if (i.pagamento === "pendente" || i.pagamento === "informado") r.pendentes++;
+    if (i.pagamento === "pendente" || i.pagamento === "informado" || i.pagamento === "na_hora") r.pendentes++;
     if (i.pagamento === "pago") r.pago += i.valor ?? 0;
     resumo.set(i.usuario_id, r);
   }

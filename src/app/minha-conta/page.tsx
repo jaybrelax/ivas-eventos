@@ -15,9 +15,10 @@ export const metadata: Metadata = { title: "Minha conta" };
 
 const PAGAMENTO: Record<ItemInscricao["pagamento"], { rotulo: string; cor: string }> = {
   pendente: { rotulo: "Pendente", cor: "bg-stone-100 text-stone-600" },
-  informado: { rotulo: "Informado", cor: "bg-amber-50 text-amber-700" },
-  pago: { rotulo: "Pago", cor: "bg-emerald-50 text-emerald-700" },
+  informado: { rotulo: "Informada", cor: "bg-amber-50 text-amber-700" },
+  pago: { rotulo: "Contribuiu", cor: "bg-emerald-50 text-emerald-700" },
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
+  na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
 };
 
 const SITUACAO: Record<ItemInscricao["situacao"], { rotulo: string; cor: string }> = {
@@ -31,7 +32,7 @@ const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency"
 const ABAS = [
   { chave: "proximos", rotulo: "Próximos", Icone: CalendarCheck },
   { chave: "historico", rotulo: "Histórico", Icone: History },
-  { chave: "pagamentos", rotulo: "Pagamentos", Icone: Receipt },
+  { chave: "pagamentos", rotulo: "Contribuições", Icone: Receipt },
 ] as const;
 type Aba = (typeof ABAS)[number]["chave"];
 
@@ -50,7 +51,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
   const historico = itens.filter((i) => i.passado && i.situacao === "confirmada");
   const pagamentos = itens.filter((i) => i.temContribuicao);
   const totalPago = pagamentos.filter((i) => i.pagamento === "pago").reduce((s, i) => s + (i.valor ?? 0), 0);
-  const totalPendente = pagamentos.filter((i) => i.pagamento === "pendente" || i.pagamento === "informado").length;
+  const totalPendente = pagamentos.filter((i) => i.pagamento === "pendente" || i.pagamento === "informado" || i.pagamento === "na_hora").length;
 
   return (
     <div className="min-h-screen bg-fundo text-stone-900">
@@ -101,7 +102,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
                 <p className="mt-1 text-xl font-semibold text-amber-700">{totalPendente}</p>
               </div>
             </div>
-            <Lista vazio="Nenhum pagamento registrado ainda." itens={pagamentos} mostrarPagamento />
+            <Lista vazio="Nenhuma contribuição registrada ainda." itens={pagamentos} mostrarPagamento />
           </div>
         )}
       </main>
@@ -147,7 +148,7 @@ function Lista({ itens, vazio, mostrarPagamento }: { itens: ItemInscricao[]; vaz
                   href={`${i.url}?pagar=1`}
                   className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98]"
                 >
-                  <Receipt size={16} /> Avisar pagamento
+                  <Receipt size={16} /> Avisar contribuição
                 </Link>
               )}
             </div>

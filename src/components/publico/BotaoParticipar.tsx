@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import {
   ArrowRight, Calendar, CalendarCheck, Check, CheckCircle2, Clock3, Hourglass,
-  ImagePlus, MessageCircle, Receipt, ShieldCheck, Ticket, Upload, X,
+  ImagePlus, MessageCircle, QrCode, Receipt, ShieldCheck, Ticket, Upload, X,
 } from "lucide-react";
 import { CartaoPix } from "./CartaoPix";
-import { confirmarParticipacaoAction, informarPagamentoAction } from "@/app/eventos/inscricao-actions";
+import { confirmarParticipacaoAction, contribuirNaHoraAction, informarPagamentoAction } from "@/app/eventos/inscricao-actions";
 import type { ChavePix, SituacaoPagamento } from "@/lib/types";
 import { useImagem } from "@/components/useImagem";
 import { BotaoGoogle } from "@/components/BotaoGoogle";
@@ -25,7 +25,7 @@ type Props = {
   eventoId: string;
   /** Abre a janela de participação ao carregar (quem acabou de se cadastrar vindo desta página). */
   abrirAoCarregar?: boolean;
-  /** Abre já na etapa de anexar o comprovante do pagamento (link "Avisar pagamento" de Minhas inscrições). */
+  /** Abre já na etapa de anexar o comprovante da contribuição (link "Avisar contribuição" de Minhas inscrições). */
   abrirNoComprovante?: boolean;
   tituloEvento: string;
   dataEvento: string; // Ex: "Sábado, 17 de Outubro"
@@ -33,7 +33,7 @@ type Props = {
   localEvento?: string | null;
   /** Foto do local (cadastrada no endereço): miniatura à esquerda do card do evento. */
   fotoLocal?: string | null;
-  /** Capa do evento: miniatura do card enquanto a pessoa ainda não concluiu (confirmar e avisar o pagamento). */
+  /** Capa do evento: miniatura do card enquanto a pessoa ainda não concluiu (confirmar e avisar a contribuição). */
   capaEvento?: string | null;
   telefoneWhatsapp?: string | null;
   /** Chave Pix mostrada na janela, para quem quer contribuir logo. */
@@ -84,7 +84,7 @@ export function BotaoParticipar({
   valorContribuicao,
 }: Props) {
   const [aberto, setAberto] = useState(false);
-  // Etapa de anexar o comprovante (vem do Pix → "Confirmar pagamento" ou do link "Avisar pagamento")
+  // Etapa de anexar o comprovante (vem de "Já fiz a contribuição" ou do link "Avisar contribuição")
   const [pagando, setPagando] = useState(false);
   const fechar = () => { setAberto(false); setPagando(false); };
 
@@ -126,9 +126,9 @@ export function BotaoParticipar({
       : minhaInscricao?.situacao === "espera"
         ? "Você está na lista de espera"
         : ehRitual ? "Participar do Ritual" : "Participar do encontro";
-  // Miniatura do card: a capa do evento nas primeiras etapas; o local só no fim (confirmado e com o pagamento avisado/resolvido).
-  const exigePagamento = ehRitual && !!valorContribuicao && valorContribuicao > 0;
-  const concluiu = !!minhaInscricao && (!exigePagamento || minhaInscricao.pagamento !== "pendente");
+  // Miniatura do card: a capa do evento nas primeiras etapas; o local só no fim (confirmado e com a contribuição avisada/resolvida).
+  const exigeContribuicao = ehRitual && !!valorContribuicao && valorContribuicao > 0;
+  const concluiu = !!minhaInscricao && (!exigeContribuicao || minhaInscricao.pagamento !== "pendente");
   const miniatura = concluiu && fotoLocal
     ? { id: fotoLocal, alt: "Foto do local" }
     : capaEvento ? { id: capaEvento, alt: "Capa do evento" } : null;
@@ -166,9 +166,9 @@ export function BotaoParticipar({
               </div>
             </div>
 
-            {logado && minhaInscricao && (pagando && minhaInscricao.pagamento === "pendente" ? (
+            {logado && minhaInscricao && (pagando && (minhaInscricao.pagamento === "pendente" || minhaInscricao.pagamento === "na_hora") ? (
               <p className="mt-5 rounded-xl bg-emerald-50/70 px-3.5 py-2.5 text-[13px] leading-snug text-emerald-900 ring-1 ring-emerald-200/70">
-                <strong>Quase lá!</strong> Anexe o comprovante do Pix e toque em <strong>Confirmar pagamento</strong>.
+                <strong>Quase lá!</strong> Anexe o comprovante do Pix e toque em <strong>Confirmar contribuição</strong>.
               </p>
             ) : (
               <StatusInscricao inscricao={minhaInscricao} />
@@ -210,6 +210,7 @@ export function BotaoParticipar({
                   vagasLivres={vagasLivres}
                   chavePix={chavePix}
                   linkWhatsApp={linkWhatsApp}
+                  exigeContribuicao={exigeContribuicao}
                 />
               )}
             </div>
@@ -231,7 +232,7 @@ export function BotaoParticipar({
 function SemSessao({ next, linkWhatsApp }: { next: string; linkWhatsApp: string }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-stone-600">Entre com sua conta ou crie um cadastro rápido para confirmar presença, ver seu histórico e avisar quando pagar a contribuição.</p>
+      <p className="text-sm text-stone-600">Entre com sua conta ou crie um cadastro rápido para confirmar presença, ver seu histórico e avisar quando fizer a contribuição.</p>
       <BotaoGoogle next={decodeURIComponent(next)} />
       <div className="flex flex-col gap-2">
         <a href={`/cadastro?next=${next}`} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98]">
@@ -247,9 +248,9 @@ function SemSessao({ next, linkWhatsApp }: { next: string; linkWhatsApp: string 
 }
 
 function SemInscricao({
-  eventoId, podeInscrever, motivoBloqueio, vagasLivres, chavePix, linkWhatsApp,
+  eventoId, podeInscrever, motivoBloqueio, vagasLivres, chavePix, linkWhatsApp, exigeContribuicao,
 }: {
-  eventoId: string; podeInscrever: boolean; motivoBloqueio?: string | null; vagasLivres: number; chavePix?: ChavePix | null; linkWhatsApp: string;
+  eventoId: string; podeInscrever: boolean; motivoBloqueio?: string | null; vagasLivres: number; chavePix?: ChavePix | null; linkWhatsApp: string; exigeContribuicao: boolean;
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -290,8 +291,11 @@ function SemInscricao({
           iniciar(async () => {
             const r = await confirmarParticipacaoAction(eventoId);
             setMsg(r);
-            // Confirmou: segue para Minhas inscrições (lá dá para avisar o pagamento)
-            if (r.ok) router.push("/minha-conta?aba=proximos");
+            // Confirmou: com contribuição, continua aqui para escolher como contribuir; sem, segue para Minhas inscrições
+            if (r.ok) {
+              if (exigeContribuicao) router.refresh();
+              else router.push("/minha-conta?aba=proximos");
+            }
           })
         }
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-70"
@@ -427,14 +431,16 @@ function Inscrito({
 function PagamentoBloco({
   eventoId, inscricaoId, pagamento, valorContribuicao, chavePix, abrirForm, setAbrirForm,
 }: { eventoId: string; inscricaoId: string; pagamento: SituacaoPagamento; valorContribuicao: number; chavePix?: ChavePix | null; abrirForm: boolean; setAbrirForm: (v: boolean) => void }) {
+  const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [msg, setMsg] = useState<{ ok?: string; erro?: string }>();
+  const [mostrarPix, setMostrarPix] = useState(false);
   const { local, erro: erroFoto, otimizando, escolher } = useImagem("comprovante");
 
   if (pagamento === "pago")
     return (
       <div className="flex items-center gap-2.5 rounded-xl bg-emerald-50 px-3.5 py-3 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">
-        <CheckCircle2 size={18} /> Pagamento confirmado — obrigado pela contribuição!
+        <CheckCircle2 size={18} /> Contribuição confirmada — obrigado pela contribuição!
       </div>
     );
   if (pagamento === "isento")
@@ -447,7 +453,7 @@ function PagamentoBloco({
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2.5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm font-medium text-amber-800 ring-1 ring-amber-200">
-          <Hourglass size={18} className="shrink-0" /> Pagamento informado — aguardando confirmação da coordenação.
+          <Hourglass size={18} className="shrink-0" /> Contribuição informada — aguardando confirmação da coordenação.
         </div>
         <a href="/minha-conta?aba=proximos" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98]">
           <Ticket size={18} /> Ver minhas inscrições
@@ -455,6 +461,7 @@ function PagamentoBloco({
       </div>
     );
 
+  const naHora = pagamento === "na_hora";
   const cabecalho = (
     <p className="flex items-center justify-between text-sm font-semibold text-stone-800">
       <span className="flex items-center gap-1.5"><Receipt size={15} className="text-ouro-600" /> Contribuição</span>
@@ -462,23 +469,59 @@ function PagamentoBloco({
     </p>
   );
 
-  // Passo 1: pagar pelo Pix e tocar em "Confirmar pagamento"
-  if (!abrirForm)
+  // Escolha: contribuir agora (Pix), já fiz a contribuição (anexa o comprovante) ou vou contribuir na hora
+  if (!abrirForm) {
+    const opcao = "flex min-h-14 w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition active:scale-[0.99] disabled:opacity-60";
     return (
       <div className="space-y-3 rounded-2xl border border-ouro-200/80 bg-gradient-to-br from-ouro-50/60 to-white p-4">
         {cabecalho}
-        {chavePix && <CartaoPix chave={chavePix} />}
-        <button
-          type="button"
-          onClick={() => setAbrirForm(true)}
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98]"
-        >
-          <Check size={17} strokeWidth={2.6} /> Confirmar pagamento
-        </button>
+        <p className="text-xs text-stone-500">Escolha como prefere contribuir:</p>
+
+        <div className="space-y-2">
+          <button type="button" onClick={() => setMostrarPix((v) => !v)} aria-expanded={mostrarPix} className={`${opcao} ${mostrarPix ? "border-emerald-500 bg-emerald-50/70" : "border-stone-200 bg-white hover:border-stone-300"}`}>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><QrCode size={18} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-stone-900">Contribuir agora</span>
+              <span className="block text-xs text-stone-500">Veja a chave Pix para contribuir</span>
+            </span>
+          </button>
+          {mostrarPix && (chavePix ? <CartaoPix chave={chavePix} /> : <p className="rounded-xl bg-stone-50 px-3.5 py-2.5 text-xs text-stone-600 ring-1 ring-stone-200">A chave Pix ainda não foi cadastrada. Fale com a coordenação.</p>)}
+
+          <button type="button" onClick={() => setAbrirForm(true)} className={`${opcao} border-stone-200 bg-white hover:border-stone-300`}>
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><Check size={18} strokeWidth={2.6} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-stone-900">Já fiz a contribuição</span>
+              <span className="block text-xs text-stone-500">Anexe o comprovante para a coordenação confirmar</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            disabled={pendente}
+            onClick={() =>
+              iniciar(async () => {
+                const r = await contribuirNaHoraAction(eventoId, inscricaoId, naHora);
+                setMsg(r);
+                if (r.ok) router.refresh();
+              })
+            }
+            aria-pressed={naHora}
+            className={`${opcao} ${naHora ? "border-emerald-500 bg-emerald-50/70" : "border-stone-200 bg-white hover:border-stone-300"}`}
+          >
+            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${naHora ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700"}`}>{naHora ? <Check size={18} strokeWidth={2.6} /> : <Clock3 size={18} />}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-stone-900">Vou contribuir na hora</span>
+              <span className="block text-xs text-stone-500">{naHora ? "Combinado! Você contribui no dia do ritual. Toque para desfazer." : "Contribuo no dia do ritual"}</span>
+            </span>
+          </button>
+        </div>
+
+        {msg?.erro && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-200">{msg.erro}</p>}
       </div>
     );
+  }
 
-  // Passo 2: o Pix some; o destaque é anexar o comprovante. Cancelar e enviar ficam fora do cartão.
+  // Já fiz a contribuição: anexar o comprovante. Cancelar e enviar ficam fora do cartão.
   return (
     <form
       className="space-y-3"
@@ -519,7 +562,7 @@ function PagamentoBloco({
       <div className="flex gap-2">
         <button type="button" className="btn-secundario flex-1" onClick={() => setAbrirForm(false)}>Cancelar</button>
         <button type="submit" disabled={pendente || otimizando || !local} className="btn-primario flex-1">
-          {pendente ? <><Upload size={15} className="animate-pulse" /> Enviando…</> : "Confirmar pagamento"}
+          {pendente ? <><Upload size={15} className="animate-pulse" /> Enviando…</> : "Confirmar contribuição"}
         </button>
       </div>
     </form>

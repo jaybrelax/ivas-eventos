@@ -83,7 +83,8 @@ export type Evento = {
 export type SituacaoCandidatura = "confirmada" | "espera" | "cancelada" | "removida";
 
 export type SituacaoInscricao = "confirmada" | "espera" | "cancelada";
-export type SituacaoPagamento = "pendente" | "informado" | "pago" | "isento";
+/** na_hora: o participante avisou que vai contribuir no dia do ritual. */
+export type SituacaoPagamento = "pendente" | "informado" | "pago" | "isento" | "na_hora";
 
 /** Inscrição de um participante (público geral) num evento. */
 export type Inscricao = {

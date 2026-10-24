@@ -10,6 +10,7 @@ const SITUACOES = [
   { valor: "informado", rotulo: "Informado" },
   { valor: "pago", rotulo: "Pago" },
   { valor: "isento", rotulo: "Isento" },
+  { valor: "na_hora", rotulo: "Na hora" },
 ];
 
 export function FiltrosPagamentos({ eventos }: { eventos: { id: string; titulo: string }[] }) {

@@ -22,7 +22,7 @@ export default async function Privacidade() {
           <li><strong>Dados de cadastro:</strong> nome, e-mail, foto de perfil, WhatsApp, gênero, endereço, CPF e data de nascimento. Endereço, CPF e data de nascimento são opcionais.</li>
           <li><strong>Login com o Google:</strong> se você escolher entrar com o Google, recebemos apenas seu nome, e-mail e foto de perfil. Não temos acesso à sua senha do Google nem a outros dados da sua conta.</li>
           <li><strong>Participação:</strong> os rituais e encontros em que você se inscreveu, a situação da inscrição (confirmada, lista de espera, cancelada) e o histórico de participações.</li>
-          <li><strong>Pagamentos:</strong> a situação da sua contribuição (pendente, informada, paga ou isenta), o valor e o comprovante que você enviar.</li>
+          <li><strong>Contribuições:</strong> a situação da sua contribuição (pendente, informada, feita, isenta ou para fazer na hora), o valor e o comprovante que você enviar.</li>
         </ul>
       </section>
 
@@ -42,7 +42,7 @@ export default async function Privacidade() {
         <h2>3. Quem tem acesso</h2>
         <p>
           Seus dados são vistos apenas pela coordenação do Instituto (administradores e coordenadores), na medida do necessário para organizar
-          os rituais e os pagamentos. Os comprovantes de pagamento ficam em área privada, acessível somente a você e à coordenação.
+          os rituais e as contribuições. Os comprovantes de contribuição ficam em área privada, acessível somente a você e à coordenação.
         </p>
         <p>
           Para funcionar, o site usa serviços de hospedagem e armazenamento de terceiros (Vercel e Appwrite), que guardam os dados em nosso
@@ -60,7 +60,7 @@ export default async function Privacidade() {
       <section className="space-y-2">
         <h2>5. Por quanto tempo guardamos</h2>
         <p>
-          Guardamos seus dados enquanto sua conta estiver ativa. O histórico de participações e pagamentos pode ser mantido pelo tempo
+          Guardamos seus dados enquanto sua conta estiver ativa. O histórico de participações e contribuições pode ser mantido pelo tempo
           necessário para a organização do Instituto e o cumprimento de obrigações legais. Se você pedir a exclusão da conta, apagamos ou
           tornamos anônimos os seus dados, exceto o que precisarmos manter por lei.
         </p>
