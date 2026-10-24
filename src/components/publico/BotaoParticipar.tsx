@@ -29,6 +29,8 @@ type Props = {
   abrirNoComprovante?: boolean;
   tituloEvento: string;
   dataEvento: string; // Ex: "Sábado, 17 de Outubro"
+  /** Data do card do modal, compacta: "Sábado, 17/10/2026". */
+  dataCompacta?: string;
   horaEvento: string; // Ex: "19:00"
   localEvento?: string | null;
   /** Foto do local (cadastrada no endereço): miniatura à esquerda do card do evento. */
@@ -63,6 +65,7 @@ const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency"
 export function BotaoParticipar({
   tituloEvento,
   dataEvento,
+  dataCompacta,
   horaEvento,
   localEvento,
   fotoLocal,
@@ -183,7 +186,7 @@ export function BotaoParticipar({
                 <p className="font-semibold text-stone-900">{tituloEvento}</p>
                 <p className="mt-1 flex items-center gap-1.5 text-xs text-stone-600">
                   <Calendar size={13} className="text-mata-600" />
-                  <span>{dataEvento} às {horaEvento}</span>
+                  <span>{dataCompacta ?? dataEvento} às {horaEvento}</span>
                 </p>
                 {localEvento && <p className="mt-1 text-xs text-stone-500">📍 {localEvento}</p>}
               </div>
@@ -233,7 +236,7 @@ function SemSessao({ next, linkWhatsApp }: { next: string; linkWhatsApp: string 
   return (
     <div className="space-y-3">
       <p className="text-sm text-stone-600">Entre com sua conta ou crie um cadastro rápido para confirmar presença, ver seu histórico e avisar quando fizer a contribuição.</p>
-      <BotaoGoogle next={decodeURIComponent(next)} />
+      <BotaoGoogle next={decodeURIComponent(next)} destaque recomendado />
       <div className="flex flex-col gap-2">
         <a href={`/cadastro?next=${next}`} className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98]">
           <CalendarCheck size={18} /> Criar cadastro e confirmar

@@ -9,7 +9,7 @@ import {
   aceitaParticipantes, HORAS_LIMITE_CANCELAMENTO, inicioDe, inscricoesDoEvento,
   prazoCancelamento, vagasParticipantesDe,
 } from "@/lib/inscricoes";
-import { dataPorExtenso, hoje, partesData } from "@/lib/format";
+import { dataCurta, dataPorExtenso, hoje, partesData } from "@/lib/format";
 import type { Evento, Pessoa } from "@/lib/types";
 import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
@@ -163,8 +163,10 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
     chavePix: ritual ? (pix.find((c) => c.padrao) ?? pix[0] ?? null) : null,
     tituloEvento: evento.titulo,
     dataEvento: dataExtenso,
+    // Card do modal: "Quarta, 28/10/2026" (dia da semana sem "-feira")
+    dataCompacta: `${d.diaSemana.split("-")[0].replace(/^./, (c) => c.toUpperCase())}, ${dataCurta(evento.data)}`,
     horaEvento: evento.hora_inicio,
-    localEvento: end ? `${end.apelido} — ${end.endereco}` : evento.endereco_livre,
+    localEvento: end ? end.apelido : evento.endereco_livre,
     fotoLocal: end?.foto_file_id ?? null,
     capaEvento: evento.capa_file_id ?? null,
     telefoneWhatsapp: telWhatsapp?.numero,

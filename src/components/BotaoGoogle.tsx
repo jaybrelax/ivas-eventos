@@ -1,5 +1,5 @@
 /** Link para o fluxo de login/cadastro com um clique pelo Google (ver src/app/api/auth/google). */
-export function BotaoGoogle({ next, guardiao, origem, texto = "Continuar com Google", recomendado = false }: { next?: string; guardiao?: boolean; /** "cadastro": ao criar conta, volta para a própria tela de cadastro completar os dados (em vez de "Meus dados"). */ origem?: "cadastro"; texto?: string; recomendado?: boolean }) {
+export function BotaoGoogle({ next, guardiao, origem, texto = "Continuar com Google", recomendado = false, destaque = false }: { next?: string; guardiao?: boolean; /** "cadastro": ao criar conta, volta para a própria tela de cadastro completar os dados (em vez de "Meus dados"). */ origem?: "cadastro"; texto?: string; recomendado?: boolean; /** Botão maior, com moldura e halo, para ser a ação principal da tela. */ destaque?: boolean }) {
   const params = new URLSearchParams();
   if (next) params.set("next", next);
   if (guardiao) params.set("guardiao", "1");
@@ -8,7 +8,11 @@ export function BotaoGoogle({ next, guardiao, origem, texto = "Continuar com Goo
   const botao = (
     <a
       href={href}
-      className="inline-flex h-11 w-full items-center justify-center gap-2.5 rounded-xl border border-stone-200 bg-white px-4 text-sm font-semibold text-stone-700 shadow-2xs transition hover:border-stone-300 hover:bg-stone-50 active:scale-[0.98]"
+      className={`inline-flex w-full items-center justify-center gap-2.5 rounded-xl bg-white px-4 text-stone-700 transition active:scale-[0.98] ${
+        destaque
+          ? "h-13 border-2 border-emerald-500 text-[15px] font-bold text-stone-900 shadow-md ring-4 ring-emerald-100 hover:bg-emerald-50/50"
+          : "h-11 border border-stone-200 text-sm font-semibold shadow-2xs hover:border-stone-300 hover:bg-stone-50"
+      }`}
     >
       <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden className="shrink-0">
         <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34.1 5.8 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z" />
