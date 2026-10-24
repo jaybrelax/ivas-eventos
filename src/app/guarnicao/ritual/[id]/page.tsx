@@ -29,7 +29,10 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
   if (!evento || !temGuarnicao(tipo)) notFound();
 
   const coord = visao === "coordenador";
-  const g = await dadosGuarnicao(evento, { id: u.id, funcaoRitual: u.funcaoRitual, sexo: u.sexo }, coord);
+  // Mestre só escala nos rituais em que é um dos mestres; nos outros vê a guarnição sem poder mudar nada
+  const mestreDoRitual = visao === "mestre" && (evento.mestres ?? []).includes(u.id);
+  const podeEscalar = coord || mestreDoRitual;
+  const g = await dadosGuarnicao(evento, { id: u.id, funcaoRitual: u.funcaoRitual, sexo: u.sexo }, podeEscalar);
   // Coordenação: tudo o que mudou na guarnição deste ritual (quem entrou, saiu, foi retirado e por quem)
   const [historico, usuarios] = coord
     ? await Promise.all([listar<Candidatura>(TABLES.candidaturas, [Query.equal("evento_id", evento.$id)]), mapaUsuarios()])
@@ -51,7 +54,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
           : null;
 
   return (
-    <div className={coord ? "pb-6" : "pb-32"}>
+    <div className={visao === "guardiao" ? "pb-32" : "pb-6"}>
       {/* Capa */}
       <div className="relative -mb-px h-64 overflow-hidden bg-stone-50">
         {evento.capa_file_id && (
@@ -63,7 +66,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
           <ChevronLeft size={22} />
         </Link>
         {/* Guardião escalado: levar o ritual para a agenda do celular (ícone, canto superior direito da capa) */}
-        {!coord && g.eu.situacao === "confirmada" && (
+        {visao === "guardiao" && g.eu.situacao === "confirmada" && (
           <a href={`/guarnicao/ritual/${evento.$id}/agenda`} aria-label="Adicionar à minha agenda" title="Adicionar à minha agenda" className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 grid h-10 w-10 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md active:scale-90">
             <CalendarPlus size={19} />
           </a>
@@ -107,8 +110,8 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
       {/* Guarnição */}
       <section className="mt-5 px-5">
         <h2 className="mb-3 text-lg font-semibold text-stone-900">Guarnição do ritual{evento.ritual_numero_geral ? ` Nº ${evento.ritual_numero_geral}` : ""}</h2>
-        {coord ? (
-          <PainelEscala eventoId={evento.$id} vagas={g.vagas} abertas={g.abertas} confirmados={g.confirmados} espera={g.espera} disponiveis={g.disponiveis} />
+        {podeEscalar ? (
+          <PainelEscala eventoId={evento.$id} vagas={g.vagas} abertas={g.abertas} confirmados={g.confirmados} espera={g.espera} disponiveis={g.disponiveis} somenteEscala={!coord} />
         ) : (
           // Com até 2 vagas por gênero, os dois cartões ficam lado a lado
           <div className={`grid gap-3 ${g.vagas.masculino <= 2 && g.vagas.feminino <= 2 ? "grid-cols-2" : ""}`}>
@@ -163,7 +166,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
         </section>
       )}
 
-      {!coord && (
+      {visao === "guardiao" && (
         <AcaoGuardiao
           eventoId={evento.$id}
           situacao={g.eu.situacao}

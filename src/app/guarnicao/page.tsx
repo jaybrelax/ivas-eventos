@@ -34,7 +34,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
 
   return (
     <>
-      <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : undefined} saudacao={`Olá, ${u.nome.split(" ")[0]}`} titulo="Rituais" />
+      <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : visao === "mestre" ? "Mestre" : undefined} saudacao={`Olá, ${u.nome.split(" ")[0]}`} titulo="Rituais" />
 
       {visao === "guardiao" && !sexo && (
         <Link href="/guarnicao/perfil" className="mx-5 mb-3 flex items-center gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
@@ -79,7 +79,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   );
 }
 
-function CartaoRitual({ meuId, r, visao, sexo, vagaPraMim, passado = false, limite = null }: { meuId: string; r: RitualGuarnicao; visao: "coordenador" | "guardiao"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
+function CartaoRitual({ meuId, r, visao, sexo, vagaPraMim, passado = false, limite = null }: { meuId: string; r: RitualGuarnicao; visao: "coordenador" | "guardiao" | "mestre"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
   const e = r.evento;
   const d = partesData(e.data);
   const faltam = (s: Sexo) => Math.max(0, r.vagas[s] - r.confirmados[s]);

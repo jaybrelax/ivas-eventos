@@ -29,7 +29,7 @@ export default async function PerfilGuarnicao() {
           <p className="truncate text-lg font-semibold text-stone-900">{u.nome}</p>
           <p className="truncate text-sm text-stone-500">{u.email}</p>
           <p className="mt-1 text-xs font-semibold text-emerald-700">
-            {[u.funcaoRitual === "guardiao" ? (u.sexo === "feminino" ? "Guardiã" : "Guardião") : null, perfil].filter(Boolean).join(" · ")}
+            {[u.funcaoRitual === "guardiao" ? (u.sexo === "feminino" ? "Guardiã" : "Guardião") : u.funcaoRitual === "mestre" ? "Mestre" : null, perfil].filter(Boolean).join(" · ")}
           </p>
         </div>
       </section>
@@ -45,7 +45,7 @@ export default async function PerfilGuarnicao() {
                   type="submit"
                   className={`h-11 w-full rounded-2xl text-sm font-semibold transition active:scale-[0.98] ${v === visao ? "bg-emerald-600 text-white" : "bg-stone-100 text-stone-700"}`}
                 >
-                  {v === "coordenador" ? "Coordenador" : "Guardião"}
+                  {v === "coordenador" ? "Coordenador" : v === "mestre" ? "Mestre" : "Guardião"}
                 </button>
               </form>
             ))}

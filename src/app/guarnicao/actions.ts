@@ -44,6 +44,15 @@ async function coordenador() {
   return ctx?.visoes.includes("coordenador") ? ctx.u : null;
 }
 
+/** Quem pode colocar e retirar guardiões neste ritual: a coordenação, ou um dos mestres do próprio ritual. */
+async function escalador(evento: { mestres: string[] | null }) {
+  const ctx = await contextoGuarnicao();
+  if (!ctx) return null;
+  if (ctx.visoes.includes("coordenador")) return ctx.u;
+  if (ctx.visoes.includes("mestre") && (evento.mestres ?? []).includes(ctx.u.id)) return ctx.u;
+  return null;
+}
+
 export async function candidatarGuarnicao(eventoId: string): Promise<Resultado> {
   const ctx = await contextoGuarnicao();
   if (!ctx?.visoes.includes("guardiao")) return { erro: "Só guardiões podem se candidatar." };
@@ -65,10 +74,10 @@ export async function cancelarGuarnicao(eventoId: string): Promise<Resultado> {
 }
 
 export async function colocarGuardiao(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const u = await coordenador();
-  if (!u) return { erro: "Só a coordenação pode escalar." };
   const [{ evento, tipo }, usuarios] = await Promise.all([ritual(eventoId), mapaUsuarios()]);
   if (!evento || !temGuarnicao(tipo)) return { erro: "Ritual não encontrado." };
+  const u = await escalador(evento);
+  if (!u) return { erro: "Só a coordenação ou um mestre deste ritual pode escalar." };
   const alvo = usuarios.get(usuarioId);
   if (!alvo || alvo.funcao !== "guardiao") return { erro: "Escolha uma pessoa com a função Guardião." };
   const r = await adicionarGuardiao(evento, { id: alvo.id, sexo: alvo.sexo }, u.id);
@@ -77,10 +86,10 @@ export async function colocarGuardiao(eventoId: string, usuarioId: string): Prom
 }
 
 export async function retirarGuardiao(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const u = await coordenador();
-  if (!u) return { erro: "Só a coordenação pode escalar." };
   const { evento, tipo } = await ritual(eventoId);
   if (!evento || !temGuarnicao(tipo)) return { erro: "Ritual não encontrado." };
+  const u = await escalador(evento);
+  if (!u) return { erro: "Só a coordenação ou um mestre deste ritual pode escalar." };
   const r = await removerGuardiao(evento, usuarioId, u.id);
   revalidar(eventoId);
   return r;

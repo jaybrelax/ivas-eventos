@@ -19,12 +19,14 @@ type Props = {
   confirmados: Record<Sexo, Pessoa[]>;
   espera: Record<Sexo, Pessoa[]>;
   disponiveis: (Pessoa & { sexo: Sexo })[];
+  /** Mestre do ritual: só coloca e retira guardiões (as vagas e a abertura das candidaturas são da coordenação). */
+  somenteEscala?: boolean;
 };
 
 const GRUPO: Record<Sexo, string> = { masculino: "Guardiões", feminino: "Guardiãs" };
 
 /** Escala do ritual pela coordenação: vagas por gênero, abrir/fechar, colocar e retirar guardiões. */
-export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, disponiveis }: Props) {
+export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, disponiveis, somenteEscala = false }: Props) {
   const [pendente, iniciar] = useTransition();
   const [colocando, setColocando] = useState<Sexo | null>(null);
   const [retirando, setRetirando] = useState<Pessoa | null>(null);
@@ -49,7 +51,7 @@ export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, di
   return (
     <div className={`space-y-4 ${pendente ? "opacity-70" : ""}`}>
       {/* Abrir / fechar candidaturas */}
-      <button
+      {!somenteEscala && <button
         type="button"
         onClick={() => rodar(() => ajustarVagas(eventoId, { abertas: !abertas }))}
         className="flex w-full items-center gap-3 rounded-3xl bg-white p-4 text-left shadow-cartao ring-1 ring-stone-200/70 active:scale-[0.99]"
@@ -64,7 +66,7 @@ export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, di
         <span className={`relative h-7 w-12 shrink-0 rounded-full transition ${abertas ? "bg-emerald-500" : "bg-stone-300"}`}>
           <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${abertas ? "left-[1.375rem]" : "left-0.5"}`} />
         </span>
-      </button>
+      </button>}
 
       {(["masculino", "feminino"] as const).map((s) => {
         const conf = confirmados[s];
@@ -77,7 +79,7 @@ export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, di
                 <span className="text-sm font-medium text-stone-500 tabular-nums">· {conf.length}/{vagas[s]}</span>
               </h3>
               {/* Vagas */}
-              <div className="flex items-center gap-1 rounded-full bg-stone-100 p-1">
+              {!somenteEscala && <div className="flex items-center gap-1 rounded-full bg-stone-100 p-1">
                 <button type="button" aria-label={`Menos uma vaga de ${GRUPO[s]}`} disabled={vagas[s] <= 0} onClick={() => rodar(() => ajustarVagas(eventoId, { [s]: vagas[s] - 1 }), true)} className="grid h-8 w-8 place-items-center rounded-full bg-white text-stone-700 shadow-2xs active:scale-90 disabled:opacity-40">
                   <Minus size={16} />
                 </button>
@@ -85,7 +87,7 @@ export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, di
                 <button type="button" aria-label={`Mais uma vaga de ${GRUPO[s]}`} onClick={() => rodar(() => ajustarVagas(eventoId, { [s]: vagas[s] + 1 }), true)} className="grid h-8 w-8 place-items-center rounded-full bg-white text-stone-700 shadow-2xs active:scale-90">
                   <Plus size={16} />
                 </button>
-              </div>
+              </div>}
             </div>
 
             <ul className="mt-3 space-y-1">
@@ -123,7 +125,7 @@ export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, di
                     </li>
                   ))}
                 </ul>
-                <p className="mt-1 text-[11px] text-stone-400">Aumente as vagas para chamar o próximo da espera.</p>
+                {!somenteEscala && <p className="mt-1 text-[11px] text-stone-400">Aumente as vagas para chamar o próximo da espera.</p>}
               </div>
             )}
 

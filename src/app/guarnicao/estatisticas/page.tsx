@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AlertTriangle, CalendarClock, ChevronRight, Flame, Gauge, ShieldCheck, Trophy, UsersRound } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas } from "@/lib/guarnicao-app";
 import { MARCOS, diasDesde, historicoDe, rankingGuarnicao, rituaisPassados } from "@/lib/guarnicao-estatisticas";
@@ -12,6 +13,8 @@ export const metadata = { title: "Estatísticas" };
 
 export default async function EstatisticasGuarnicao({ searchParams }: PageProps<"/guarnicao/estatisticas">) {
   const { u, visao } = (await contextoGuarnicao("/guarnicao/estatisticas"))!;
+  // As estatísticas gerais são da coordenação e os números pessoais, dos guardiões
+  if (visao === "mestre") redirect("/guarnicao");
   const periodo = (await searchParams).periodo === "total" ? "total" : "ano";
   const ranking = await rankingGuarnicao();
 

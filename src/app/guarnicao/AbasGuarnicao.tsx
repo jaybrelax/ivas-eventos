@@ -13,6 +13,10 @@ const ABAS = {
     { href: "/guarnicao/estatisticas", rotulo: "Estatísticas", Icone: BarChart3 },
     { href: "/guarnicao/pacotes", rotulo: "Pacotes", Icone: Ticket },
   ],
+  mestre: [
+    { href: "/guarnicao", rotulo: "Rituais", Icone: Flame },
+    { href: "/guarnicao/guardioes", rotulo: "Guardiões", Icone: UsersRound },
+  ],
   coordenador: [
     { href: "/guarnicao", rotulo: "Rituais", Icone: Flame },
     { href: "/guarnicao/guardioes", rotulo: "Guardiões", Icone: UsersRound },
@@ -30,7 +34,7 @@ export function AbasGuarnicao({ visao }: { visao: VisaoGuarnicao }) {
   return (
     // Barra flutuante e sólida (com sombra), para ter presença nos dois temas
     <nav aria-label="Navegação do app" className="pointer-events-none fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-      <ul className={`dock-app pointer-events-auto mx-auto grid max-w-xl rounded-[26px] px-1 backdrop-blur-xl backdrop-saturate-[1.7] ${ABAS[visao].length > 4 ? "grid-cols-5" : "grid-cols-4"}`}>
+      <ul className={`dock-app pointer-events-auto mx-auto grid max-w-xl rounded-[26px] px-1 backdrop-blur-xl backdrop-saturate-[1.7] ${ABAS[visao].length > 4 ? "grid-cols-5" : ABAS[visao].length > 2 ? "grid-cols-4" : "grid-cols-2"}`}>
         {ABAS[visao].map(({ href, rotulo, Icone }) => {
           const on = ativa(href);
           return (

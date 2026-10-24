@@ -11,10 +11,11 @@ import type { Endereco, Evento, Sexo, SituacaoCandidatura } from "./types";
 /**
  * Quem entra no app da Guarnição e com qual visão:
  * - coordenador: perfil admin ou coordenador (escala, vagas, estatísticas gerais);
- * - guardião: função ritual = guardião (candidata-se às vagas e acompanha o próprio histórico).
- * Quem tem as duas alterna em Perfil; a escolha fica num cookie.
+ * - guardião: função ritual = guardião (candidata-se às vagas e acompanha o próprio histórico);
+ * - mestre: função ritual = mestre (vê os rituais, não se candidata e escala guardiões só nos rituais que conduz).
+ * Quem tem mais de uma alterna em Perfil; a escolha fica num cookie.
  */
-export type VisaoGuarnicao = "coordenador" | "guardiao";
+export type VisaoGuarnicao = "coordenador" | "guardiao" | "mestre";
 export const COOKIE_VISAO = "ivas-guarnicao-visao";
 
 /** Tema do app: claro, escuro ou automático (segue o celular). */
@@ -37,6 +38,8 @@ export function visoesDe(u: Pick<Usuario, "perfil" | "funcaoRitual">): VisaoGuar
   const v: VisaoGuarnicao[] = [];
   if (u.perfil === "admin" || u.perfil === "coordenador") v.push("coordenador");
   if (u.funcaoRitual === "guardiao") v.push("guardiao");
+  // A coordenação já pode tudo o que o mestre pode: a visão de mestre é só para quem não é da coordenação
+  if (u.funcaoRitual === "mestre" && !v.includes("coordenador")) v.push("mestre");
   return v;
 }
 
