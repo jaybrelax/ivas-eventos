@@ -239,6 +239,6 @@ export async function definirPagamento(inscricaoId: string, situacao: "pago" | "
   const dados: Record<string, unknown> = { pagamento: situacao, alterado_por: porId };
   if (situacao === "pago") dados.pago_em = new Date().toISOString();
   await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: dados });
-  const rotulo = { pago: "confirmado", isento: "marcado como isento", pendente: "reaberto" }[situacao];
-  return { ok: `Pagamento ${rotulo}.` };
+  const rotulo = { pago: "confirmada", isento: "marcada como isenta", pendente: "marcada como pendente" }[situacao];
+  return { ok: `Contribuição ${rotulo}.` };
 }

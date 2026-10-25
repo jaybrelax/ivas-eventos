@@ -111,7 +111,7 @@ export const listarPendentes = cache(async (): Promise<Pendente[]> => {
 });
 
 /** Qualquer pessoa com conta ativa (participante ou equipe), para a lista de Participantes no painel. */
-export type PessoaConta = Participante & { perfil: Perfil | null; funcao: FuncaoRitual };
+export type PessoaConta = Participante & { perfil: Perfil | null; funcao: FuncaoRitual; cidade: string | null; estado: string | null };
 
 export const listarTodasAsPessoas = cache(async (): Promise<PessoaConta[]> => {
   const { users } = createAdminClient();
@@ -125,7 +125,7 @@ export const listarTodasAsPessoas = cache(async (): Promise<PessoaConta[]> => {
     const p = prefsDe(u.prefs);
     return [{
       id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone, endereco: bruto.endereco || null,
-      sexo: p.sexo, foto: p.foto_file_id, criadoEm: u.$createdAt, perfil, funcao: p.funcao_ritual,
+      sexo: p.sexo, foto: p.foto_file_id, criadoEm: u.$createdAt, perfil, funcao: p.funcao_ritual, cidade: p.cidade, estado: p.estado,
     }];
   });
 });
