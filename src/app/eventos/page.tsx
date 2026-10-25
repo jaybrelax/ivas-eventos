@@ -158,6 +158,8 @@ export default async function AgendaPublica({ searchParams }: Props) {
               const end = endPorId.get(e.endereco_id ?? "");
               const d = partesData(e.data);
               const descricao = descricaoComTags(e.descricao, e.tags, tags);
+              // Sem tema (ou "A definir"), o card mostra o nome padrão
+              const tituloCard = !e.titulo?.trim() || /^a definir$/i.test(e.titulo.trim()) ? "Ritual da Ayahuasca" : e.titulo;
 
               return (
                 <Link
@@ -177,13 +179,13 @@ export default async function AgendaPublica({ searchParams }: Props) {
                         height={400}
                         loading={i < 3 ? "eager" : "lazy"}
                         decoding="async"
-                        alt={e.titulo}
+                        alt={tituloCard}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-mata-900 via-mata-800 to-mata-950 p-6 text-center">
                         <span className="font-display text-xl font-bold text-ouro-200/90">
-                          {e.titulo}
+                          {tituloCard}
                         </span>
                       </div>
                     )}
@@ -237,7 +239,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
 
                       {/* Título */}
                       <h3 className="line-clamp-2 font-display text-lg font-bold text-stone-900 transition group-hover:text-mata-700 sm:text-xl">
-                        {e.titulo}
+                        {tituloCard}
                       </h3>
 
                       {/* Descrição resumida */}
