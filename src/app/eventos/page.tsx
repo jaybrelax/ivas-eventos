@@ -2,6 +2,7 @@ import { TipografiaPublica } from "@/components/publico/TipografiaPublica";
 import { srcsetImagem, urlImagem, urlPublicaEvento } from "@/lib/links";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Fragment } from "react";
 import {
   ArrowRight,
   Calendar,
@@ -76,6 +77,18 @@ export default async function AgendaPublica({ searchParams }: Props) {
   const totalPaginas = Math.max(1, Math.ceil(eventosFiltrados.length / POR_PAGINA));
   const pagina = Math.min(totalPaginas, Math.max(1, Math.trunc(Number(sp.pagina)) || 1));
   const eventosDaPagina = eventosFiltrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
+  // Agrupa os eventos da página por mês, guardando a posição de cada um na página
+  const meses: { chave: string; rotulo: string; eventos: { e: (typeof eventosDaPagina)[number]; i: number }[] }[] = [];
+  eventosDaPagina.forEach((e, i) => {
+    const chave = e.data.slice(0, 7);
+    let m = meses.at(-1);
+    if (m?.chave !== chave) {
+      const p = partesData(e.data);
+      m = { chave, rotulo: `${p.mesNome} ${p.ano}`, eventos: [] };
+      meses.push(m);
+    }
+    m.eventos.push({ e, i });
+  });
   const hrefPagina = (n: number) => {
     const q = new URLSearchParams();
     if (tipoFiltro) q.set("tipo", tipoFiltro);
@@ -152,8 +165,16 @@ export default async function AgendaPublica({ searchParams }: Props) {
             </p>
           </div>
         ) : (
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {eventosDaPagina.map((e, i) => {
+          <div className="space-y-10 sm:space-y-14">
+            {meses.map((m) => (
+              <section key={m.chave} aria-label={m.rotulo}>
+                {/* Título do mês */}
+                <h2 className="mb-4 flex items-center gap-3 font-display text-xl font-bold text-mata-900 capitalize sm:mb-6 sm:text-2xl">
+                  {m.rotulo}
+                  <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-ouro-300/80 to-transparent" />
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
+            {m.eventos.map(({ e, i }) => {
               const tipo = tipoPorId.get(e.tipo_id);
               const end = endPorId.get(e.endereco_id ?? "");
               const d = partesData(e.data);
@@ -161,11 +182,64 @@ export default async function AgendaPublica({ searchParams }: Props) {
               // Sem tema (ou "A definir"), o card mostra o nome padrão
               const tituloCard = !e.titulo?.trim() || /^a definir$/i.test(e.titulo.trim()) ? "Ritual da Ayahuasca" : e.titulo;
 
+              const local = end ? end.apelido : e.endereco_livre || "Londrina - PR";
+              // No celular, só os 3 primeiros ficam em card grande; os demais usam o card compacto
+              const compacto = i >= 3;
+
               return (
+                <Fragment key={e.$id}>
+                {compacto && (
+                  <Link
+                    href={urlPublicaEvento(e, tipo)}
+                    className={`group flex items-center gap-3.5 rounded-2xl border bg-white p-2.5 pr-3 shadow-cartao transition active:scale-[0.99] sm:hidden ${e.destaque ? "border-ouro-300/70" : "border-stone-200/90"}`}
+                  >
+                    <div className="relative size-24 shrink-0 overflow-hidden rounded-xl bg-mata-950">
+                      {e.capa_file_id ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={urlImagem(e.capa_file_id, 320)}
+                          width={96}
+                          height={96}
+                          loading="lazy"
+                          decoding="async"
+                          alt={tituloCard}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="grid h-full w-full place-items-center bg-gradient-to-br from-mata-900 via-mata-800 to-mata-950">
+                          {tipo ? <IconeTipo nome={tipo.icone} size={26} className="text-ouro-200/90" /> : <Flame size={26} className="text-ouro-200/90" />}
+                        </div>
+                      )}
+                      {e.destaque && (
+                        <span className="absolute top-1.5 left-1.5 grid size-5 place-items-center rounded-full bg-ouro-400 text-mata-950 shadow">
+                          <Star size={11} className="fill-mata-950" aria-label="Destaque" />
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-mata-700">
+                        <Calendar size={12} className="shrink-0" />
+                        <span className="truncate capitalize">{d.diaSemana.split("-")[0]}, {d.dia} {d.mesCurto.toLowerCase()}</span>
+                        <span aria-hidden>•</span>
+                        <Clock size={12} className="shrink-0" />
+                        <span>{e.hora_inicio}</span>
+                      </p>
+                      <h3 className="mt-1 line-clamp-2 font-display text-[15px] leading-snug font-bold text-stone-900">{tituloCard}</h3>
+                      <p className="mt-1 flex items-center gap-1 text-[11px] text-stone-500">
+                        <MapPin size={12} className="shrink-0 text-[#ee4b2b]" />
+                        <span className="truncate">{local}</span>
+                      </p>
+                    </div>
+
+                    <span aria-label="Mais informações" className="grid size-9 shrink-0 place-items-center rounded-full border border-stone-200 bg-stone-50 text-stone-600 transition group-active:border-ouro-300 group-active:text-ouro-800">
+                      <ArrowRight size={16} />
+                    </span>
+                  </Link>
+                )}
                 <Link
-                  key={e.$id}
                   href={urlPublicaEvento(e, tipo)}
-                  className={`group flex flex-col overflow-hidden rounded-3xl border bg-white shadow-cartao ${e.destaque ? "border-ouro-300/70" : "border-stone-200/90"} transition-all duration-300 hover:-translate-y-1.5 hover:border-ouro-300 hover:shadow-elevado`}
+                  className={`group ${compacto ? "hidden sm:flex" : "flex"} flex-col overflow-hidden rounded-3xl border bg-white shadow-cartao ${e.destaque ? "border-ouro-300/70" : "border-stone-200/90"} transition-all duration-300 hover:-translate-y-1.5 hover:border-ouro-300 hover:shadow-elevado`}
                 >
                   {/* Capa com proporção destacada */}
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-mata-950">
@@ -257,7 +331,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
                           <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" fill="currentColor" />
                           <circle cx="12" cy="10" r="3" fill="#fff" />
                         </svg>
-                        <span className="truncate">{end ? end.apelido : e.endereco_livre || "Londrina - PR"}</span>
+                        <span className="truncate">{local}</span>
                       </span>
 
                       {/* Botão sutil: contorno fino que ganha cor quando o cartão recebe o mouse */}
@@ -267,8 +341,12 @@ export default async function AgendaPublica({ searchParams }: Props) {
                     </div>
                   </div>
                 </Link>
+                </Fragment>
               );
             })}
+                </div>
+              </section>
+            ))}
           </div>
         )}
 
