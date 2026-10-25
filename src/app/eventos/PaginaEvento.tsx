@@ -166,7 +166,7 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
     // Card do modal: "Quarta, 28/10/2026" (dia da semana sem "-feira")
     dataCompacta: `${d.diaSemana.split("-")[0].replace(/^./, (c) => c.toUpperCase())}, ${dataCurta(evento.data)}`,
     horaEvento: evento.hora_inicio,
-    localEvento: end ? end.apelido : evento.endereco_livre,
+    localEvento: end ? end.endereco : evento.endereco_livre,
     fotoLocal: end?.foto_file_id ?? null,
     capaEvento: evento.capa_file_id ?? null,
     telefoneWhatsapp: telWhatsapp?.numero,
@@ -403,7 +403,7 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
         <BarraParticipar
           titulo={evento.titulo}
           quando={`${d.diaSemana.slice(0, 3)}, ${d.dia} ${d.mesCurto.toLowerCase()} · ${evento.hora_inicio}`}
-          participar={{ ...participar, localEvento: local }}
+          participar={participar}
         />
       )}
 

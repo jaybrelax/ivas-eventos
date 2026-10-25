@@ -211,7 +211,6 @@ export function BotaoParticipar({
                   podeInscrever={podeInscrever}
                   motivoBloqueio={motivoBloqueio}
                   vagasLivres={vagasLivres}
-                  chavePix={chavePix}
                   linkWhatsApp={linkWhatsApp}
                   exigeContribuicao={exigeContribuicao}
                 />
@@ -251,9 +250,9 @@ function SemSessao({ next, linkWhatsApp }: { next: string; linkWhatsApp: string 
 }
 
 function SemInscricao({
-  eventoId, podeInscrever, motivoBloqueio, vagasLivres, chavePix, linkWhatsApp, exigeContribuicao,
+  eventoId, podeInscrever, motivoBloqueio, vagasLivres, linkWhatsApp, exigeContribuicao,
 }: {
-  eventoId: string; podeInscrever: boolean; motivoBloqueio?: string | null; vagasLivres: number; chavePix?: ChavePix | null; linkWhatsApp: string; exigeContribuicao: boolean;
+  eventoId: string; podeInscrever: boolean; motivoBloqueio?: string | null; vagasLivres: number; linkWhatsApp: string; exigeContribuicao: boolean;
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -281,12 +280,6 @@ function SemInscricao({
           ? `${vagasLivres} vaga${vagasLivres > 1 ? "s" : ""} disponíve${vagasLivres > 1 ? "is" : "l"}.`
           : "As vagas estão preenchidas: você entrará na lista de espera e será avisado se alguém sair."}
       </p>
-      {chavePix && (
-        <div>
-          <p className="mb-2 text-xs font-semibold tracking-wide text-stone-500 uppercase">Contribuição</p>
-          <CartaoPix chave={chavePix} />
-        </div>
-      )}
       <button
         type="button"
         disabled={pendente}
@@ -488,7 +481,28 @@ function PagamentoBloco({
               <span className="block text-xs text-stone-500">Veja a chave Pix para contribuir</span>
             </span>
           </button>
-          {mostrarPix && (chavePix ? <CartaoPix chave={chavePix} /> : <p className="rounded-xl bg-stone-50 px-3.5 py-2.5 text-xs text-stone-600 ring-1 ring-stone-200">A chave Pix ainda não foi cadastrada. Fale com a coordenação.</p>)}
+          {mostrarPix && (
+            <div className="space-y-2.5">
+              {chavePix ? <CartaoPix chave={chavePix} /> : <p className="rounded-xl bg-stone-50 px-3.5 py-2.5 text-xs text-stone-600 ring-1 ring-stone-200">A chave Pix ainda não foi cadastrada. Fale com a coordenação.</p>}
+              <p className="text-xs text-stone-500">Depois de contribuir pelo Pix, toque em Finalizar.</p>
+              <button
+                type="button"
+                disabled={pendente}
+                onClick={() =>
+                  iniciar(async () => {
+                    const fd = new FormData();
+                    fd.set("valor", String(valorContribuicao));
+                    const r = await informarPagamentoAction(eventoId, inscricaoId, fd);
+                    setMsg(r);
+                    if (r.ok) router.refresh();
+                  })
+                }
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60"
+              >
+                {pendente ? <><Upload size={15} className="animate-pulse" /> Finalizando…</> : <><Check size={17} strokeWidth={2.6} /> Finalizar</>}
+              </button>
+            </div>
+          )}
 
           <button type="button" onClick={() => setAbrirForm(true)} className={`${opcao} border-stone-200 bg-white hover:border-stone-300`}>
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><Check size={18} strokeWidth={2.6} /></span>
