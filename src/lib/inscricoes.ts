@@ -77,6 +77,10 @@ export type ItemInscricao = {
   pagamento: SituacaoPagamento;
   valor: number | null;
   comprovante: string | null;
+  /** Quando a inscrição foi feita, quando a contribuição foi informada e quando foi confirmada. */
+  inscritoEm: string;
+  informadoEm: string | null;
+  pagoEm: string | null;
   temContribuicao: boolean;
   passado: boolean;
   /** A própria pessoa ainda pode cancelar: dentro do prazo e sem contribuição confirmada. */
@@ -109,6 +113,9 @@ export async function inscricoesComEventos(usuarioId: string): Promise<ItemInscr
         pagamento: i.pagamento,
         valor: i.valor,
         comprovante: i.comprovante_file_id,
+        inscritoEm: i.$createdAt,
+        informadoEm: i.informado_em,
+        pagoEm: i.pago_em,
         temContribuicao: !!tipo?.conta_como_ritual,
         passado: e.data < hj,
         podeCancelar: i.pagamento !== "pago" && Date.now() <= prazoCancelamento(e).getTime(),

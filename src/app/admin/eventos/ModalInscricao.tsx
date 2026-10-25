@@ -7,7 +7,8 @@ import {
   CalendarClock, CalendarX2, CheckCircle2, ExternalLink, FileImage, Hourglass, Lock, Mail, MapPin,
   MessageCircle, Receipt, ShieldCheck, Undo2, UserRound, X, ZoomIn,
 } from "lucide-react";
-import type { SituacaoPagamento } from "@/lib/types";
+import type { SituacaoInscricao, SituacaoPagamento } from "@/lib/types";
+import { urlImagem } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
 import { Carregando } from "@/components/ui";
 import { confirmarPagamentoAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction } from "./participantes-actions";
@@ -31,19 +32,29 @@ const SITUACAO_CONTRIBUICAO: Record<SituacaoPagamento, { rotulo: string; detalhe
   isento: { rotulo: "Isento", detalhe: "Participação isenta de contribuição.", cor: "bg-sky-50 text-sky-800 ring-sky-200", Icone: ShieldCheck },
 };
 
+/** Evento da inscrição, quando o modal é aberto a partir da ficha do participante. */
+export type EventoDoModal = { titulo: string; quando: string; capa: string | null; href: string };
+
 /**
- * Modal da inscrição de um participante no evento: quem é a pessoa (contato e cadastro),
- * a situação da contribuição (com o comprovante anexado) e o cancelamento da participação.
+ * Modal da inscrição de um participante num evento: quem é a pessoa (contato e cadastro) ou,
+ * aberto pela ficha do participante, qual é o evento; a situação da contribuição (com o
+ * comprovante anexado) e o cancelamento da participação.
  */
 export function ModalInscricao({
-  p, posicaoEspera, dados, fechar, aoCancelar,
+  p, situacaoInscricao, posicaoEspera, dados, evento, podeCancelar = true, fechar, aoCancelar,
 }: {
   p: ItemParticipanteInscrito;
-  /** Posição na lista de espera (sem valor: está confirmado). */
+  /** Sem valor: confirmada, ou lista de espera se houver `posicaoEspera`. */
+  situacaoInscricao?: SituacaoInscricao;
+  /** Posição na lista de espera. */
   posicaoEspera?: number;
-  dados: DadosParticipantes;
+  dados: Pick<DadosParticipantes, "eventoId" | "temContribuicao" | "valorContribuicao" | "gerenciar">;
+  /** Com o evento, o cabeçalho mostra o evento em vez da pessoa (ficha do participante). */
+  evento?: EventoDoModal;
+  /** Eventos já realizados não têm cancelamento. */
+  podeCancelar?: boolean;
   fechar: () => void;
-  /** Depois de cancelar, a linha some da lista: o modal fecha e o aviso aparece no cartão. */
+  /** Depois de cancelar, o modal fecha e o aviso aparece na página. */
   aoCancelar: (r: Resultado) => void;
 }) {
   const [msg, setMsg] = useState<Resultado>();
@@ -70,6 +81,16 @@ export function ModalInscricao({
   const whatsapp = c?.telefone ? `https://wa.me/${(c.telefone.replace(/\D/g, "").startsWith("55") ? "" : "55") + c.telefone.replace(/\D/g, "")}` : null;
   const local = [c?.cidade, c?.estado].filter(Boolean).join(" — ");
   const comprovante = p.comprovante ? `/api/comprovante/${p.comprovante}` : null;
+  const inscricao = situacaoInscricao ?? (posicaoEspera ? "espera" : "confirmada");
+  const chipInscricao =
+    inscricao === "cancelada" ? (
+      <span className="chip bg-stone-100 text-stone-600"><CalendarX2 size={12} /> Participação cancelada</span>
+    ) : inscricao === "espera" ? (
+      <span className="chip bg-amber-50 text-amber-800"><Hourglass size={12} /> Lista de espera{posicaoEspera ? ` · ${posicaoEspera}º` : ""}</span>
+    ) : (
+      <span className="chip bg-emerald-50 text-emerald-800"><CheckCircle2 size={12} /> Presença confirmada</span>
+    );
+  const cancelavel = dados.gerenciar && podeCancelar && inscricao !== "cancelada";
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label={`Inscrição de ${p.nome}`} className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
@@ -81,25 +102,48 @@ export function ModalInscricao({
           <button type="button" onClick={fechar} className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-700" aria-label="Fechar">
             <X size={17} />
           </button>
-          <div className="flex items-center gap-3.5 pr-8">
-            <Avatar nome={p.nome} foto={p.foto} tamanho={56} />
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold tracking-wider text-mata-600 uppercase">Inscrição do participante</p>
-              <h3 className="truncate text-lg font-semibold text-stone-900">{p.nome}</h3>
-              <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                {posicaoEspera ? (
-                  <span className="chip bg-amber-50 text-amber-800"><Hourglass size={12} /> Lista de espera · {posicaoEspera}º</span>
-                ) : (
-                  <span className="chip bg-emerald-50 text-emerald-800"><CheckCircle2 size={12} /> Presença confirmada</span>
+          {evento ? (
+            <div className="flex items-center gap-3.5 pr-8">
+              <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-mata-900 ring-1 ring-stone-200">
+                {evento.capa && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={urlImagem(evento.capa, 160)} width={56} height={56} decoding="async" alt="" className="h-full w-full object-cover" />
                 )}
-                {c?.sexo && <span className="chip bg-stone-100 text-stone-600">{c.sexo === "feminino" ? "Feminino" : "Masculino"}</span>}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold tracking-wider text-mata-600 uppercase">Participação de {p.nome.split(" ")[0]}</p>
+                <h3 className="line-clamp-2 text-base leading-snug font-semibold text-stone-900">{evento.titulo}</h3>
+                <p className="mt-0.5 text-xs text-stone-500">{evento.quando}</p>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5">{chipInscricao}</div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-3.5 pr-8">
+              <Avatar nome={p.nome} foto={p.foto} tamanho={56} />
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold tracking-wider text-mata-600 uppercase">Inscrição do participante</p>
+                <h3 className="truncate text-lg font-semibold text-stone-900">{p.nome}</h3>
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {chipInscricao}
+                  {c?.sexo && <span className="chip bg-stone-100 text-stone-600">{c.sexo === "feminino" ? "Feminino" : "Masculino"}</span>}
+                </div>
+              </div>
+            </div>
+          )}
         </header>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
-          {/* Participante */}
+          {/* Pela ficha do participante: só a inscrição e o atalho para o evento */}
+          {evento ? (
+            <Secao titulo="Inscrição">
+              <ul className="divide-y divide-stone-100 rounded-2xl border border-stone-200/80">
+                <Info Icone={CalendarClock} rotulo="Inscrição" valor={`Feita em ${quando(p.inscritoEm)}`} />
+              </ul>
+              <Link href={evento.href} className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-mata-700 hover:underline">
+                Abrir o evento no painel <ExternalLink size={13} />
+              </Link>
+            </Secao>
+          ) : (
           <Secao titulo="Participante">
             <ul className="divide-y divide-stone-100 rounded-2xl border border-stone-200/80">
               {c ? (
@@ -118,6 +162,7 @@ export function ModalInscricao({
               Ver perfil completo <ExternalLink size={13} />
             </Link>
           </Secao>
+          )}
 
           {/* Contribuição: situação, comprovante e o que a coordenação pode marcar */}
           {dados.temContribuicao && (
@@ -190,7 +235,7 @@ export function ModalInscricao({
               {msg.erro ? <X size={14} className="shrink-0" /> : <CheckCircle2 size={14} className="shrink-0" />} {msg.erro ?? msg.ok}
             </span>
           ) : <span />}
-          {dados.gerenciar && (pago ? (
+          {cancelavel && (pago ? (
             <span className="flex items-center gap-1.5 text-right text-xs text-stone-500">
               <Lock size={13} className="shrink-0" /> Contribuição confirmada: para cancelar, marque como pendente.
             </span>
