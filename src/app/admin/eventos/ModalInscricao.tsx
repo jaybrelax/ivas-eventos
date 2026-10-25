@@ -103,20 +103,22 @@ export function ModalInscricao({
             <X size={17} />
           </button>
           {evento ? (
-            <div className="flex items-center gap-3.5 pr-8">
-              <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-mata-900 ring-1 ring-stone-200">
+            <Link href={evento.href} title="Abrir o evento no painel" className="group flex items-center gap-3.5 pr-8">
+              <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-mata-900 ring-1 ring-stone-200 transition group-hover:ring-mata-300">
                 {evento.capa && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={urlImagem(evento.capa, 160)} width={56} height={56} decoding="async" alt="" className="h-full w-full object-cover" />
                 )}
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold tracking-wider text-mata-600 uppercase">Participação de {p.nome.split(" ")[0]}</p>
-                <h3 className="line-clamp-2 text-base leading-snug font-semibold text-stone-900">{evento.titulo}</h3>
+                <p className="flex items-center gap-1 text-[11px] font-semibold tracking-wider text-mata-600 uppercase">
+                  Participação de {p.nome.split(" ")[0]} <ExternalLink size={11} className="transition group-hover:translate-x-0.5" />
+                </p>
+                <h3 className="line-clamp-2 text-base leading-snug font-semibold text-stone-900 group-hover:text-mata-700">{evento.titulo}</h3>
                 <p className="mt-0.5 text-xs text-stone-500">{evento.quando}</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-1.5">{chipInscricao}</div>
               </div>
-            </div>
+            </Link>
           ) : (
             <div className="flex items-center gap-3.5 pr-8">
               <Avatar nome={p.nome} foto={p.foto} tamanho={56} />
@@ -139,9 +141,6 @@ export function ModalInscricao({
               <ul className="divide-y divide-stone-100 rounded-2xl border border-stone-200/80">
                 <Info Icone={CalendarClock} rotulo="Inscrição" valor={`Feita em ${quando(p.inscritoEm)}`} />
               </ul>
-              <Link href={evento.href} className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-mata-700 hover:underline">
-                Abrir o evento no painel <ExternalLink size={13} />
-              </Link>
             </Secao>
           ) : (
           <Secao titulo="Participante">
@@ -189,19 +188,23 @@ export function ModalInscricao({
               {/* Comprovante anexado */}
               <div className="mt-3">
                 {comprovante ? (
-                  <div className="overflow-hidden rounded-2xl border border-stone-200/80">
-                    <button type="button" onClick={() => setAmpliado(true)} className="group relative block w-full bg-stone-50" aria-label="Ampliar comprovante">
+                  <div className="flex items-center gap-3.5 rounded-2xl border border-stone-200/80 bg-white p-2.5">
+                    {/* Miniatura quadrada: mostra sempre o topo da imagem, qualquer que seja a proporção */}
+                    <button type="button" onClick={() => setAmpliado(true)} className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-stone-100 ring-1 ring-stone-200" aria-label="Ampliar comprovante">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={comprovante} alt={`Comprovante de ${p.nome}`} className="mx-auto max-h-60 w-auto object-contain" />
-                      <span className="absolute right-2.5 bottom-2.5 inline-flex items-center gap-1 rounded-full bg-stone-900/70 px-2.5 py-1 text-[11px] font-semibold text-white opacity-90 backdrop-blur transition group-hover:opacity-100">
-                        <ZoomIn size={12} /> Ampliar
-                      </span>
+                      <img src={comprovante} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-top transition group-hover:scale-105" />
                     </button>
-                    <div className="flex items-center justify-between gap-2 border-t border-stone-100 px-3.5 py-2 text-xs">
-                      <span className="flex items-center gap-1.5 font-medium text-stone-600"><FileImage size={14} /> Comprovante anexado</span>
-                      <a href={comprovante} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-semibold text-mata-700 hover:underline">
-                        Abrir original <ExternalLink size={12} />
-                      </a>
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 text-sm font-semibold text-stone-900">
+                        <FileImage size={15} className="shrink-0 text-mata-600" /> Comprovante anexado
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setAmpliado(true)}
+                        className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50"
+                      >
+                        <ZoomIn size={13} /> Ampliar
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -284,7 +287,10 @@ export function ModalInscricao({
             <X size={20} />
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={comprovante} alt={`Comprovante de ${p.nome}`} className="max-h-full max-w-full rounded-lg object-contain shadow-2xl" />
+          <img src={comprovante} alt={`Comprovante de ${p.nome}`} className="max-h-full max-w-full rounded-lg object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
+          <a href={comprovante} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="absolute bottom-5 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/30 backdrop-blur hover:bg-white/25">
+            Abrir original <ExternalLink size={12} />
+          </a>
         </div>
       )}
     </div>,

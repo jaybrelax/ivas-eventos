@@ -81,7 +81,7 @@ export function InscricoesDoParticipante({
           situacaoInscricao={atual.situacao}
           dados={{ eventoId: atual.eventoId, temContribuicao: atual.temContribuicao, valorContribuicao, gerenciar: true }}
           evento={{
-            titulo: `${atual.ritualNumero ? `${formatarIdRitual(atual.ritualNumero, null, null)} — ` : ""}${atual.titulo}`,
+            titulo: atual.ritualNumero ? `Ritual ${formatarIdRitual(atual.ritualNumero, null, null)}: ${atual.titulo}` : atual.titulo,
             quando: `${dataCurta(atual.data)} às ${atual.hora}${atual.passado ? " · realizado" : ""}`,
             capa: atual.capa,
             href: `/admin/eventos/${atual.eventoId}`,
