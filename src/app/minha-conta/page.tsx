@@ -9,6 +9,7 @@ import { inscricoesComEventos, type ItemInscricao } from "@/lib/inscricoes";
 import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
 import { RodapePublico } from "@/components/publico/RodapePublico";
 import { ProximoRitualCard } from "@/components/publico/ProximoRitualCard";
+import { CancelarParticipacao } from "@/components/publico/CancelarParticipacao";
 import { BotaoComprovante } from "./BotaoComprovante";
 
 export const metadata: Metadata = { title: "Minha conta" };
@@ -83,6 +84,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
             vazio="Você ainda não confirmou participação em nenhum ritual futuro."
             itens={proximos}
             mostrarPagamento
+            cancelar
           />
         )}
 
@@ -111,7 +113,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
   );
 }
 
-function Lista({ itens, vazio, mostrarPagamento }: { itens: ItemInscricao[]; vazio: string; mostrarPagamento: boolean }) {
+function Lista({ itens, vazio, mostrarPagamento, cancelar = false }: { itens: ItemInscricao[]; vazio: string; mostrarPagamento: boolean; cancelar?: boolean }) {
   if (!itens.length) return <p className="cartao text-center text-sm text-stone-400">{vazio}</p>;
   return (
     <ul className="space-y-2.5">
@@ -139,11 +141,11 @@ function Lista({ itens, vazio, mostrarPagamento }: { itens: ItemInscricao[]; vaz
               )}
             </div>
           </div>
-          {mostrarPagamento && i.temContribuicao && (
+          {((mostrarPagamento && i.temContribuicao) || (cancelar && i.podeCancelar)) && (
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-500">
-              {i.valor != null && <span>Contribuição: {formatoReal(i.valor)}</span>}
-              {i.comprovante && <BotaoComprovante id={i.comprovante} />}
-              {i.pagamento === "pendente" && (
+              {mostrarPagamento && i.temContribuicao && i.valor != null && <span>Contribuição: {formatoReal(i.valor)}</span>}
+              {mostrarPagamento && i.temContribuicao && i.comprovante && <BotaoComprovante id={i.comprovante} />}
+              {mostrarPagamento && i.temContribuicao && i.pagamento === "pendente" && (
                 <Link
                   href={`${i.url}?pagar=1`}
                   className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98]"
@@ -151,6 +153,7 @@ function Lista({ itens, vazio, mostrarPagamento }: { itens: ItemInscricao[]; vaz
                   <Receipt size={16} /> Avisar contribuição
                 </Link>
               )}
+              {cancelar && i.podeCancelar && <CancelarParticipacao eventoId={i.eventoId} className="ml-auto" />}
             </div>
           )}
         </li>

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { CartaoPix } from "./CartaoPix";
 import { confirmarParticipacaoAction, contribuirNaHoraAction, informarPagamentoAction } from "@/app/eventos/inscricao-actions";
+import { CancelarParticipacao } from "./CancelarParticipacao";
 import type { ChavePix, SituacaoPagamento } from "@/lib/types";
 import { useImagem } from "@/components/useImagem";
 import { BotaoGoogle } from "@/components/BotaoGoogle";
@@ -84,6 +85,8 @@ export function BotaoParticipar({
   motivoBloqueio,
   vagasLivres,
   minhaInscricao,
+  podeCancelar,
+  prazoTexto,
   valorContribuicao,
 }: Props) {
   const [aberto, setAberto] = useState(false);
@@ -204,6 +207,8 @@ export function BotaoParticipar({
                   valorContribuicao={valorContribuicao}
                   abrirForm={pagando}
                   setAbrirForm={setPagando}
+                  podeCancelar={podeCancelar}
+                  prazoTexto={prazoTexto}
                 />
               ) : (
                 <SemInscricao
@@ -399,12 +404,14 @@ function StatusInscricao({ inscricao }: { inscricao: NonNullable<MinhaInscricao>
 }
 
 function Inscrito({
-  eventoId, minhaInscricao, ehRitual, chavePix, valorContribuicao, abrirForm, setAbrirForm,
+  eventoId, minhaInscricao, ehRitual, chavePix, valorContribuicao, abrirForm, setAbrirForm, podeCancelar, prazoTexto,
 }: {
   eventoId: string; minhaInscricao: NonNullable<MinhaInscricao>;
   ehRitual: boolean; chavePix?: ChavePix | null; valorContribuicao?: number | null; abrirForm: boolean; setAbrirForm: (v: boolean) => void;
+  podeCancelar: boolean; prazoTexto?: string;
 }) {
-  void minhaInscricao.situacao;
+  // Cancelar: só enquanto a contribuição não foi confirmada (e dentro do prazo)
+  const cancelavel = minhaInscricao.pagamento !== "pago" && !abrirForm;
 
   return (
     <div className="space-y-4">
@@ -420,6 +427,13 @@ function Inscrito({
         />
       )}
 
+      {cancelavel && (podeCancelar ? (
+        <CancelarParticipacao eventoId={eventoId} className="flex flex-col items-center border-t border-stone-100 pt-3" />
+      ) : (
+        <p className="border-t border-stone-100 pt-3 text-center text-xs text-stone-500">
+          O prazo para cancelar pelo site terminou{prazoTexto ? ` (${prazoTexto})` : ""}. Para cancelar, fale com a coordenação.
+        </p>
+      ))}
     </div>
   );
 }

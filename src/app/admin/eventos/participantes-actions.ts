@@ -25,7 +25,7 @@ export async function incluirParticipanteAction(eventoId: string, usuarioId: str
   return r;
 }
 
-/** Coordenador retira um participante do evento. */
+/** Coordenador cancela a participação de alguém (bloqueado se a contribuição já foi confirmada). */
 export async function removerParticipanteAction(eventoId: string, usuarioId: string): Promise<Resultado> {
   const u = await exigir(PODE.editarEventos);
   const evento = await getEvento(eventoId);

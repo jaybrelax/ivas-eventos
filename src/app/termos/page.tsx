@@ -29,7 +29,7 @@ export default async function Termos() {
         <h2>2. Inscrições nos encontros</h2>
         <ul>
           <li>As vagas de cada encontro são limitadas e preenchidas por ordem de inscrição. Quando lotam, as próximas inscrições entram na lista de espera e são confirmadas automaticamente se alguém desistir.</li>
-          <li>Você pode cancelar a sua inscrição pelo site até 4 horas antes do início do encontro. Depois disso, fale com a coordenação.</li>
+          <li>Você pode cancelar a sua inscrição pelo site até 4 horas antes do início do encontro, enquanto a sua contribuição não tiver sido confirmada pela coordenação. Fora disso, fale com a coordenação.</li>
           <li>A coordenação pode alterar data, horário ou local de um encontro, ou cancelá-lo, avisando os inscritos.</li>
         </ul>
       </section>

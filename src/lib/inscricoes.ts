@@ -79,6 +79,8 @@ export type ItemInscricao = {
   comprovante: string | null;
   temContribuicao: boolean;
   passado: boolean;
+  /** A própria pessoa ainda pode cancelar: dentro do prazo e sem contribuição confirmada. */
+  podeCancelar: boolean;
   url: string;
 };
 
@@ -109,6 +111,7 @@ export async function inscricoesComEventos(usuarioId: string): Promise<ItemInscr
         comprovante: i.comprovante_file_id,
         temContribuicao: !!tipo?.conta_como_ritual,
         passado: e.data < hj,
+        podeCancelar: i.pagamento !== "pago" && Date.now() <= prazoCancelamento(e).getTime(),
         url: urlPublicaEvento(e, tipo),
       }];
     })
@@ -145,12 +148,14 @@ async function entrarNaFila(eventoId: string, usuarioId: string, alteradoPor: st
   return { jaEstava: false };
 }
 
-async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: string) {
+/** Cancela a inscrição ativa. Com a contribuição já confirmada, não cancela (só depois de reabrir a contribuição). */
+async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: string): Promise<"saiu" | "nao_inscrito" | "pago"> {
   const { tablesDB } = createAdminClient();
   const existente = await inscricaoDe(eventoId, usuarioId);
-  if (!existente || (existente.situacao !== "confirmada" && existente.situacao !== "espera")) return false;
+  if (!existente || (existente.situacao !== "confirmada" && existente.situacao !== "espera")) return "nao_inscrito";
+  if (existente.pagamento === "pago") return "pago";
   await tablesDB.updateRow({ ...base, rowId: existente.$id, data: { situacao: "cancelada", alterado_por: alteradoPor } });
-  return true;
+  return "saiu";
 }
 
 export type Resultado = { ok?: string; erro?: string };
@@ -169,15 +174,16 @@ export async function inscrever(evento: Evento, tipo: TipoEvento | undefined, us
     : { ok: "As vagas estão preenchidas: você entrou na lista de espera e será avisado se alguém sair." };
 }
 
-/** A própria pessoa cancela (até 4 h antes do início). */
+/** A própria pessoa cancela (até 4 h antes do início e enquanto a contribuição não foi confirmada). */
 export async function cancelarInscricao(evento: Evento, usuarioId: string): Promise<Resultado> {
   if (Date.now() > prazoCancelamento(evento).getTime()) {
     return { erro: `O cancelamento só é possível até ${HORAS_LIMITE_CANCELAMENTO} horas antes do início. Fale com a coordenação.` };
   }
-  const saiu = await sairDaFila(evento.$id, usuarioId, usuarioId);
-  if (!saiu) return { erro: "Você não está inscrito neste evento." };
+  const r = await sairDaFila(evento.$id, usuarioId, usuarioId);
+  if (r === "nao_inscrito") return { erro: "Você não está inscrito neste evento." };
+  if (r === "pago") return { erro: "Sua contribuição já foi confirmada, então a participação não pode ser cancelada pelo site. Fale com a coordenação." };
   await reorganizarInscricoes(evento, usuarioId);
-  return { ok: "Inscrição cancelada." };
+  return { ok: "Participação cancelada." };
 }
 
 /** Coordenador inclui alguém manualmente (entra na fila como qualquer inscrição). */
@@ -189,12 +195,13 @@ export async function incluirParticipante(evento: Evento, usuarioId: string, por
   return { ok: insc?.situacao === "confirmada" ? "Participante incluído." : "Vagas cheias: a pessoa entrou na lista de espera." };
 }
 
-/** Coordenador retira alguém (sem prazo); o primeiro da espera assume a vaga. */
+/** Coordenador cancela a participação de alguém (sem prazo, se a contribuição não foi confirmada); o primeiro da espera assume a vaga. */
 export async function removerParticipante(evento: Evento, usuarioId: string, porId: string): Promise<Resultado> {
-  const saiu = await sairDaFila(evento.$id, usuarioId, porId);
-  if (!saiu) return { erro: "Essa pessoa não está neste evento." };
+  const r = await sairDaFila(evento.$id, usuarioId, porId);
+  if (r === "nao_inscrito") return { erro: "Essa pessoa não está neste evento." };
+  if (r === "pago") return { erro: "A contribuição desta pessoa já foi confirmada. Reabra a contribuição antes de cancelar a participação." };
   await reorganizarInscricoes(evento, porId);
-  return { ok: "Participante retirado." };
+  return { ok: "Participação cancelada." };
 }
 
 /** O próprio participante avisa que contribuiu (comprovante opcional); fica aguardando confirmação da coordenação. */

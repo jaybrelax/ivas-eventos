@@ -114,18 +114,27 @@ function Linha({
       <Avatar nome={p.nome} foto={p.foto} tamanho={28} className="ring-0" />
       <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}</span>
       {temContribuicao && <PagamentoMenu p={p} pg={pg} dados={dados} pendente={pendente} rodar={rodar} />}
-      {dados.gerenciar && (
+      {/* Cancelar participação: só enquanto a contribuição não foi confirmada */}
+      {dados.gerenciar && (p.pagamento === "pago" ? (
+        <span
+          className="btn-icone h-8 w-8 cursor-not-allowed opacity-35"
+          title="Contribuição confirmada: reabra a contribuição para poder cancelar a participação"
+          aria-label="Não é possível cancelar: contribuição confirmada"
+        >
+          <X size={15} />
+        </span>
+      ) : (
         <BotaoConfirmar
           className="btn-icone h-8 w-8 hover:bg-red-50 hover:text-red-700"
-          title={`Retirar ${p.nome}`}
-          pergunta={`Retirar ${p.nome} deste evento?`}
-          confirmar="Retirar"
+          title={`Cancelar a participação de ${p.nome}`}
+          pergunta={`Cancelar a participação de ${p.nome}? Se houver lista de espera, a vaga passa para a próxima pessoa.`}
+          confirmar="Sim, cancelar"
           disabled={pendente}
           aoConfirmar={() => rodar(() => removerParticipanteAction(dados.eventoId, p.id))}
         >
           <X size={15} />
         </BotaoConfirmar>
-      )}
+      ))}
     </li>
   );
 }
