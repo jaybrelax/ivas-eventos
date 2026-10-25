@@ -18,7 +18,7 @@ import { dataCurta, hoje, partesData } from "@/lib/format";
 import { IconeTipo } from "@/components/IconeTipo";
 import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
 import { RodapePublico } from "@/components/publico/RodapePublico";
-import { Paginacao } from "@/components/publico/Paginacao";
+import { RolagemInfinita } from "@/components/publico/RolagemInfinita";
 
 // Filtros do topo: pílulas de vidro; a ativa fica branca e o número vira um selo
 const FILTRO = "inline-flex h-10 items-center gap-2 rounded-full pr-1.5 pl-4 text-[13px] font-semibold transition duration-200 active:scale-[0.97]";
@@ -28,7 +28,7 @@ const CONTADOR = "grid h-7 min-w-7 place-items-center rounded-full px-2 text-[11
 const CONTADOR_ATIVO = "bg-mata-700 text-white";
 const CONTADOR_INATIVO = "bg-white/10 text-white/80";
 
-/** Quantos eventos aparecem por página na agenda. */
+/** Quantos eventos a agenda mostra de cada vez (carrega mais ao rolar). */
 const POR_PAGINA = 12;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -54,7 +54,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 type Props = {
-  searchParams: Promise<{ tipo?: string; pagina?: string }>;
+  searchParams: Promise<{ tipo?: string }>;
 };
 
 export default async function AgendaPublica({ searchParams }: Props) {
@@ -73,29 +73,12 @@ export default async function AgendaPublica({ searchParams }: Props) {
     ? eventosFuturos.filter((e) => e.tipo_id === tipoFiltro)
     : eventosFuturos;
 
-  // Paginação: 12 por página; página fora do intervalo cai na mais próxima
-  const totalPaginas = Math.max(1, Math.ceil(eventosFiltrados.length / POR_PAGINA));
-  const pagina = Math.min(totalPaginas, Math.max(1, Math.trunc(Number(sp.pagina)) || 1));
-  const eventosDaPagina = eventosFiltrados.slice((pagina - 1) * POR_PAGINA, pagina * POR_PAGINA);
-  // Agrupa os eventos da página por mês, guardando a posição de cada um na página
-  const meses: { chave: string; rotulo: string; eventos: { e: (typeof eventosDaPagina)[number]; i: number }[] }[] = [];
-  eventosDaPagina.forEach((e, i) => {
-    const chave = e.data.slice(0, 7);
-    let m = meses.at(-1);
-    if (m?.chave !== chave) {
-      const p = partesData(e.data);
-      m = { chave, rotulo: `${p.mesNome} ${p.ano}`, eventos: [] };
-      meses.push(m);
-    }
-    m.eventos.push({ e, i });
+  // Cada evento sabe se abre um mês novo (título do mês, só no celular)
+  const itens = eventosFiltrados.map((e, i) => {
+    const anterior = eventosFiltrados[i - 1];
+    const p = partesData(e.data);
+    return { e, i, mes: anterior?.data.slice(0, 7) !== e.data.slice(0, 7) ? `${p.mesNome} ${p.ano}` : null };
   });
-  const hrefPagina = (n: number) => {
-    const q = new URLSearchParams();
-    if (tipoFiltro) q.set("tipo", tipoFiltro);
-    if (n > 1) q.set("pagina", String(n));
-    const texto = q.toString();
-    return texto ? `/eventos?${texto}` : "/eventos";
-  };
 
   return (
     <div className="min-h-screen bg-stone-100 text-stone-900 selection:bg-ouro-200 selection:text-mata-950">
@@ -165,16 +148,11 @@ export default async function AgendaPublica({ searchParams }: Props) {
             </p>
           </div>
         ) : (
-          <div className="space-y-10 sm:space-y-14">
-            {meses.map((m) => (
-              <section key={m.chave} aria-label={m.rotulo}>
-                {/* Título do mês */}
-                <h2 className="mb-4 flex items-center gap-3 font-display text-xl font-bold text-mata-900 capitalize sm:mb-6 sm:text-2xl">
-                  {m.rotulo}
-                  <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-ouro-300/80 to-transparent" />
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3">
-            {m.eventos.map(({ e, i }) => {
+          <RolagemInfinita
+            key={tipoFiltro ?? "todos"}
+            porVez={POR_PAGINA}
+            className="grid gap-2.5 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3"
+            itens={itens.map(({ e, i, mes }) => {
               const tipo = tipoPorId.get(e.tipo_id);
               const end = endPorId.get(e.endereco_id ?? "");
               const d = partesData(e.data);
@@ -188,6 +166,13 @@ export default async function AgendaPublica({ searchParams }: Props) {
 
               return (
                 <Fragment key={e.$id}>
+                {/* Título do mês: só no celular; no desktop a grade segue contínua */}
+                {mes && (
+                  <h2 className="col-span-full mt-6 mb-1 flex items-center gap-3 font-display text-xl font-bold text-mata-900 capitalize first:mt-0 sm:hidden">
+                    {mes}
+                    <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-ouro-300/80 to-transparent" />
+                  </h2>
+                )}
                 {compacto && (
                   <Link
                     href={urlPublicaEvento(e, tipo)}
@@ -218,15 +203,15 @@ export default async function AgendaPublica({ searchParams }: Props) {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1.5 text-[11px] font-semibold text-mata-700">
-                        <Calendar size={12} className="shrink-0" />
+                      <p className="flex items-center gap-1.5 text-[13px] font-semibold text-mata-700">
+                        <Calendar size={14} className="shrink-0" />
                         <span className="truncate capitalize">{d.diaSemana.split("-")[0]}, {d.dia} {d.mesCurto.toLowerCase()}</span>
                         <span aria-hidden>•</span>
-                        <Clock size={12} className="shrink-0" />
+                        <Clock size={14} className="shrink-0" />
                         <span>{e.hora_inicio}</span>
                       </p>
                       <h3 className="mt-1 line-clamp-2 font-display text-[15px] leading-snug font-bold text-stone-900">{tituloCard}</h3>
-                      <p className="mt-1 flex items-center gap-1 text-[11px] text-stone-500">
+                      <p className="mt-1 flex items-center gap-1 text-xs text-stone-500">
                         <MapPin size={12} className="shrink-0 text-[#ee4b2b]" />
                         <span className="truncate">{local}</span>
                       </p>
@@ -239,7 +224,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
                 )}
                 <Link
                   href={urlPublicaEvento(e, tipo)}
-                  className={`group ${compacto ? "hidden sm:flex" : "flex"} flex-col overflow-hidden rounded-3xl border bg-white shadow-cartao ${e.destaque ? "border-ouro-300/70" : "border-stone-200/90"} transition-all duration-300 hover:-translate-y-1.5 hover:border-ouro-300 hover:shadow-elevado`}
+                  className={`group ${compacto ? "hidden sm:flex" : "mb-3 flex sm:mb-0"} flex-col overflow-hidden rounded-3xl border bg-white shadow-cartao ${e.destaque ? "border-ouro-300/70" : "border-stone-200/90"} transition-all duration-300 hover:-translate-y-1.5 hover:border-ouro-300 hover:shadow-elevado`}
                 >
                   {/* Capa com proporção destacada */}
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-mata-950">
@@ -344,13 +329,9 @@ export default async function AgendaPublica({ searchParams }: Props) {
                 </Fragment>
               );
             })}
-                </div>
-              </section>
-            ))}
-          </div>
+          />
         )}
 
-        <Paginacao atual={pagina} total={totalPaginas} href={hrefPagina} />
       </main>
 
       <RodapePublico
