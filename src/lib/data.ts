@@ -1,0 +1,89 @@
+import "server-only";
+import { cache } from "react";
+import { Query } from "node-appwrite";
+import { createAdminClient } from "./appwrite";
+import { DB_ID, INSTITUTO_ROW_ID, TABLES } from "./config";
+import type { DadosInstituto, Endereco, Evento, Instituto, TipoEvento } from "./types";
+
+export const INSTITUTO_PADRAO: Instituto = {
+  nome: "Instituto IVAS",
+  nome_curto: "IVAS",
+  logo_file_id: null,
+  logo_escura_file_id: null,
+  cor_primaria: "#35204f",
+  cor_secundaria: "#c8a24a",
+  fonte_titulo: "Cinzel",
+  fonte_texto: "Montserrat",
+  ritual_numero_inicial: 500,
+  valor_contribuicao: null,
+  guarnicao_horas_cancelamento: 4,
+  guarnicao_limite_mes: 2,
+  estado: null,
+  cidade: null,
+  info_rituais: null,
+  info_contribuicao: null,
+  fonte_publica_titulo: null,
+  fonte_publica_texto: null,
+};
+
+/** Linhas do SDK vêm como instâncias de classe; os Client Components só aceitam objetos simples. */
+export const simples = <T,>(v: unknown) => JSON.parse(JSON.stringify(v)) as T;
+
+export async function listar<T>(tableId: string, queries: string[] = []): Promise<T[]> {
+  const { tablesDB } = createAdminClient();
+  const res = await tablesDB.listRows({
+    databaseId: DB_ID,
+    tableId,
+    queries: [Query.limit(1000), ...queries],
+  });
+  return simples<T[]>(res.rows);
+}
+
+// cache(): layout e página pedem os mesmos dados na mesma requisição; busca uma vez só.
+export const getInstituto = cache(async (): Promise<Instituto> => {
+  const { tablesDB } = createAdminClient();
+  try {
+    const row = await tablesDB.getRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID });
+    return { ...INSTITUTO_PADRAO, ...simples<Partial<Instituto>>(row) };
+  } catch {
+    return INSTITUTO_PADRAO;
+  }
+});
+
+export async function listarTipos(apenasAtivos = false) {
+  const q = [Query.orderAsc("ordem")];
+  if (apenasAtivos) q.push(Query.equal("ativo", true));
+  return listar<TipoEvento>(TABLES.tipos, q);
+}
+
+export const getDadosInstituto = cache(async (): Promise<DadosInstituto> => {
+  const [instituto, enderecos, tipos] = await Promise.all([
+    getInstituto(),
+    listar<Endereco>(TABLES.enderecos, [Query.orderDesc("padrao"), Query.orderAsc("apelido")]),
+    listarTipos(),
+  ]);
+  return { instituto, enderecos, tipos };
+});
+
+export type FiltroEventos = {
+  inicio?: string;
+  fim?: string;
+  ids?: string[];
+};
+
+export async function listarEventos(f: FiltroEventos = {}) {
+  const q = [Query.orderAsc("data"), Query.orderAsc("hora_inicio")];
+  if (f.inicio) q.push(Query.greaterThanEqual("data", f.inicio));
+  if (f.fim) q.push(Query.lessThanEqual("data", f.fim));
+  if (f.ids?.length) q.push(Query.equal("$id", f.ids));
+  return listar<Evento>(TABLES.eventos, q);
+}
+
+export async function getEvento(id: string): Promise<Evento | null> {
+  const { tablesDB } = createAdminClient();
+  try {
+    return simples<Evento>(await tablesDB.getRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: id }));
+  } catch {
+    return null;
+  }
+}
