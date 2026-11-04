@@ -14,6 +14,8 @@ export type Instituto = {
   guarnicao_horas_cancelamento?: number | null;
   /** Guarnição: quantas participações cada guardião pode ter por mês (padrão 2; 0 = sem limite). */
   guarnicao_limite_mes?: number | null;
+  /** Novos guardiões recebem acesso ao concluir o cadastro sem aguardar a coordenação. */
+  guarnicao_aprovacao_automatica?: boolean | null;
   /** Estado (sigla) e cidade do Instituto: já vêm escolhidos nos formulários de cadastro. */
   estado: string | null;
   cidade: string | null;

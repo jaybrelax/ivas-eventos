@@ -14,6 +14,7 @@ export type Usuario = {
   cpf: string | null; dataNascimento: string | null;
   estado: string | null; cidade: string | null; profissao: string | null;
   experiencia: Experiencia | null; motivacao: string | null; expectativas: string | null;
+  aprovacaoPendente: boolean; cadastroIncompleto: boolean;
   /** "equipe": tem perfil de painel (admin/coordenador/normal). "participante": só cadastro público. */
   tipo: "equipe" | "participante" | null;
 };
@@ -38,6 +39,7 @@ export const getUsuario = cache(async (): Promise<Usuario | null> => {
       cpf: p.cpf, dataNascimento: p.data_nascimento,
       estado: p.estado, cidade: p.cidade, profissao: p.profissao,
       experiencia: p.experiencia_ayahuasca, motivacao: p.motivacao, expectativas: p.expectativas,
+      aprovacaoPendente: p.aprovacao_pendente, cadastroIncompleto: p.cadastro_guarnicao_incompleto,
       tipo: perfil ? "equipe" : ehParticipante(u.labels ?? []) ? "participante" : null,
     };
   } catch {

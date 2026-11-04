@@ -10,11 +10,12 @@ import { salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Sexo } from "@/lib/types";
 import { ehUf } from "@/lib/perfil-extra";
 import { destinoGuarnicao } from "@/lib/destino-auth";
+import { aprovacaoAutomaticaGuarnicao } from "@/lib/aprovacao-guarnicao";
 import { conferirDadosObrigatorios } from "./dados-obrigatorios";
 
 export type ResultadoCadastro = { erro?: string } | undefined;
 
-/** Cadastro de guardião com acesso imediato à Guarnição. */
+/** Cadastro de guardião: acesso imediato ou análise da coordenação, conforme a configuração. */
 export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData): Promise<ResultadoCadastro> {
   // Campo escondido que só robôs preenchem
   if (String(form.get("site") ?? "")) return undefined;
@@ -38,27 +39,40 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   const faltando = conferirDadosObrigatorios(form);
   if (faltando) return { erro: faltando };
 
+  let automatico: boolean;
+  try {
+    automatico = await aprovacaoAutomaticaGuarnicao();
+  } catch (e) {
+    console.error("Configuração de aprovação da Guarnição:", e);
+    return { erro: "Não foi possível consultar a aprovação de cadastros. Tente novamente." };
+  }
+
   const { account, users } = createAdminClient();
   let userId: string | null = null;
   try {
     const u = await users.create({ userId: ID.unique(), email, password: senha, name: nome });
     userId = u.$id;
     await users.updateLabels({ userId, labels: [LABEL_PARTICIPANTE] });
-    await users.updatePrefs({ userId, prefs: { funcao_ritual: "guardiao" } });
+    await users.updatePrefs({ userId, prefs: automatico
+      ? { funcao_ritual: "guardiao" }
+      : { funcao_ritual: "nenhuma", guarnicao_situacao: "pendente", guarnicao_solicitacao: true } });
     const r = await salvarContato(userId, form);
     if (r.erro) {
       await users.delete({ userId }).catch(() => {});
       return { erro: r.erro };
     }
-    // Conta já ativa: entra direto, sem precisar logar de novo.
-    const sessao = await account.createEmailPasswordSession({ email, password: senha });
-    (await cookies()).set(SESSION_COOKIE, sessao.secret, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      expires: new Date(sessao.expire),
-    });
+    if (automatico) {
+      const sessao = await account.createEmailPasswordSession({ email, password: senha });
+      (await cookies()).set(SESSION_COOKIE, sessao.secret, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        expires: new Date(sessao.expire),
+      });
+    } else {
+      await users.updateStatus({ userId, status: false });
+    }
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     if (msg.includes("already")) return { erro: "Já existe um cadastro com esse e-mail. Esqueceu a senha? Fale com a coordenação." };
@@ -66,7 +80,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
     console.error("Cadastro de participante:", msg);
     return { erro: "Não foi possível concluir o cadastro agora. Tente de novo em instantes." };
   }
-  redirect(destinoGuarnicao(form.get("next")));
+  redirect(automatico ? destinoGuarnicao(form.get("next")) : "/aguardando-aprovacao");
 }
 
 /**
@@ -75,6 +89,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
  */
 export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormData): Promise<ResultadoCadastro> {
   const u = await exigirSessao();
+  if (!u.cadastroIncompleto) return { erro: "Este cadastro já foi concluído." };
   const sexo = String(form.get("sexo") ?? "") as Sexo;
 
   if (sexo !== "masculino" && sexo !== "feminino") return { erro: "Escolha o gênero." };
@@ -86,12 +101,34 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
   const faltando = conferirDadosObrigatorios(form);
   if (faltando) return { erro: faltando };
 
+  let automatico: boolean;
+  try {
+    automatico = await aprovacaoAutomaticaGuarnicao();
+  } catch (e) {
+    console.error("Configuração de aprovação da Guarnição:", e);
+    return { erro: "Não foi possível consultar a aprovação de cadastros. Tente novamente." };
+  }
+
   const r = await salvarContato(u.id, form);
   if (r.erro) return { erro: r.erro };
 
   const { users } = createAdminClient();
-  // updatePrefs substitui tudo: preserva os dados preenchidos no formulário.
-  const atuais = await users.getPrefs({ userId: u.id });
-  await users.updatePrefs({ userId: u.id, prefs: { ...atuais, funcao_ritual: "guardiao" } });
-  redirect(destinoGuarnicao(form.get("next")));
+  try {
+    // updatePrefs substitui tudo: preserva os dados preenchidos no formulário.
+    const atuais = await users.getPrefs({ userId: u.id });
+    await users.updatePrefs({ userId: u.id, prefs: { ...atuais,
+      funcao_ritual: automatico ? "guardiao" : "nenhuma",
+      guarnicao_situacao: automatico ? null : "pendente",
+      guarnicao_solicitacao: automatico ? null : true,
+      cadastro_guarnicao_incompleto: null,
+    } });
+    if (!automatico) {
+      await users.updateStatus({ userId: u.id, status: false });
+      (await cookies()).delete(SESSION_COOKIE);
+    }
+  } catch (e) {
+    console.error("Concluir cadastro Google na Guarnição:", e);
+    return { erro: "Não foi possível concluir o cadastro. Fale com a coordenação se o problema continuar." };
+  }
+  redirect(automatico ? destinoGuarnicao(form.get("next")) : "/aguardando-aprovacao");
 }

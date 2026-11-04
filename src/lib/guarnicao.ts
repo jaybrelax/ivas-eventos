@@ -41,7 +41,7 @@ export async function regrasGuarnicao() {
   const i = await getInstituto();
   const horas = i.guarnicao_horas_cancelamento ?? HORAS_LIMITE_CANCELAMENTO;
   const limiteMes = i.guarnicao_limite_mes ?? 2;
-  return { horas: Math.max(0, horas), limiteMes: Math.max(0, limiteMes) };
+  return { horas: Math.max(0, horas), limiteMes: Math.max(0, limiteMes), aprovacaoAutomatica: i.guarnicao_aprovacao_automatica !== false };
 }
 
 const MESES_NOME = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];

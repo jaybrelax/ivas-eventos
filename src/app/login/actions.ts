@@ -32,7 +32,7 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
     if (e instanceof AppwriteException && e.type === "user_blocked") {
       const { users } = createAdminClient();
       const u = (await users.list({ queries: [Query.equal("email", email), Query.limit(1)] }).catch(() => null))?.users[0];
-      if ((u?.prefs as { situacao?: string } | undefined)?.situacao === "pendente")
+      if ((u?.prefs as { guarnicao_situacao?: string } | undefined)?.guarnicao_situacao === "pendente")
         return { erro: "Seu cadastro ainda está aguardando a aprovação da coordenação." };
       return { erro: "Este acesso está desativado. Fale com a coordenação." };
     }

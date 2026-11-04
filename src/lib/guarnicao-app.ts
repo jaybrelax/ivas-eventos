@@ -47,6 +47,8 @@ export function visoesDe(u: Pick<Usuario, "perfil" | "funcaoRitual">): VisaoGuar
 export async function contextoGuarnicao(next = "/guarnicao"): Promise<ContextoGuarnicao | null> {
   const u = await getUsuario();
   if (!u) redirect(`/login-guarnicao?next=${encodeURIComponent(next)}`);
+  if (u.aprovacaoPendente) redirect("/aguardando-aprovacao");
+  if (u.cadastroIncompleto) redirect(`/cadastro?completar=1&next=${encodeURIComponent(next)}`);
   const visoes = visoesDe(u);
   if (!visoes.length) return null;
   const salva = (await cookies()).get(COOKIE_VISAO)?.value as VisaoGuarnicao | undefined;

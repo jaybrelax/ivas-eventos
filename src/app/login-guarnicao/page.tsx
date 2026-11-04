@@ -33,7 +33,10 @@ export default async function LoginGuarnicao({ searchParams }: PageProps<"/login
   const next = destinoGuarnicao(sp.next);
   const erroGoogle = sp.erro === "google" || sp.erro === "google-email";
   // Já logado (ex.: acabou de concluir o cadastro): segue direto para o app, sem pedir a senha de novo
-  if (await getUsuario()) redirect(next);
+  const usuario = await getUsuario();
+  if (usuario?.aprovacaoPendente) redirect("/aguardando-aprovacao");
+  if (usuario?.cadastroIncompleto) redirect(`/cadastro?completar=1&next=${encodeURIComponent(next)}`);
+  if (usuario) redirect(next);
 
   return (
     <main className="app-guarnicao relative isolate flex min-h-dvh flex-col items-center justify-center overflow-hidden bg-[#1c1040] px-5 py-10 text-white">

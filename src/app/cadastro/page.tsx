@@ -23,10 +23,13 @@ export const metadata: Metadata = {
 export default async function CadastroParticipantePage({ searchParams }: PageProps<"/cadastro">) {
   const [sp, instituto] = await Promise.all([searchParams, getInstituto()]);
   const next = destinoGuarnicao(sp.next);
+  const aprovacaoAutomatica = instituto.guarnicao_aprovacao_automatica !== false;
   // Voltou do Google (conta nova, já logada): continua aqui mesmo para completar telefone, estado/cidade e gênero
-  const completar = sp.completar === "1";
-  const usuario = completar ? await getUsuario() : null;
+  const usuario = await getUsuario();
+  const completar = sp.completar === "1" || !!usuario?.cadastroIncompleto;
   if (completar && !usuario) redirect(`/cadastro?next=${encodeURIComponent(next)}`);
+  if (completar && usuario && !usuario.cadastroIncompleto) redirect(next);
+  if (!completar && usuario) redirect(next);
 
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
@@ -52,10 +55,11 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
           </div>
           <h2 className="text-center text-2xl font-semibold tracking-tight text-stone-900 lg:text-3xl">{completar ? "Só mais um pouco" : "Criar cadastro"}</h2>
           <p className="mt-1 mb-5 text-center text-sm lg:mt-1.5 lg:mb-8 text-stone-500">
-            {completar ? "Falta pouco: complete seus dados para terminar o cadastro." : "Rápido: seu acesso já fica pronto para usar."}
+            {completar ? "Falta pouco: complete seus dados para terminar o cadastro." : aprovacaoAutomatica ? "Rápido: seu acesso já fica pronto para usar." : "Envie seus dados para análise da coordenação."}
           </p>
           <ParticipanteForm
             next={next}
+            aprovacaoAutomatica={aprovacaoAutomatica}
             completar={completar}
             nomeInicial={usuario?.nome}
             fotoInicial={usuario?.foto}

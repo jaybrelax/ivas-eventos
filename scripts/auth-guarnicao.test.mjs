@@ -51,20 +51,23 @@ class Redirecionamento extends Error {
   constructor(destino) { super(destino); this.destino = destino; }
 }
 
-function ambiente({ nova = false, next = ritual, guardiao = false, perfil = "normal", erroGoogle = false } = {}) {
+function ambiente({ nova = false, next = ritual, guardiao = false, perfil = "normal", erroGoogle = false, automatico = true, pendente = false } = {}) {
   const estado = { state: "estado-teste", next, guardiao };
   const jar = new Map([["google_oauth_state", { value: JSON.stringify(estado) }]]);
   const prefs = {};
   let chamadasGoogle = 0;
   const sessao = { secret: "sessao-teste", userId: "usuario-123", expire: "2030-01-01T00:00:00Z" };
-  const conta = { $id: "usuario-123", labels: [perfil] };
+  const conta = { $id: "usuario-123", labels: [perfil], status: !pendente, prefs };
+  if (pendente) Object.assign(prefs, { guarnicao_situacao: "pendente", guarnicao_solicitacao: true, funcao_ritual: "nenhuma" });
   const users = {
     list: async () => ({ users: nova ? [] : [conta] }),
     create: async () => conta,
     get: async () => conta,
     getPrefs: async () => prefs,
-    updatePrefs: async ({ prefs: novas }) => Object.assign(prefs, novas),
+    updatePrefs: async ({ prefs: novas }) => { Object.assign(prefs, novas); conta.prefs = prefs; },
     updateLabels: async ({ labels }) => { conta.labels = labels; },
+    updateStatus: async ({ status }) => { conta.status = status; },
+    delete: async () => {},
     updateName: async () => {},
     createSession: async () => sessao,
   };
@@ -76,6 +79,7 @@ function ambiente({ nova = false, next = ritual, guardiao = false, perfil = "nor
     "node-appwrite": { ID: { unique: () => "novo-id" }, Query: { equal() {}, limit() {} }, AppwriteException: class extends Error {} },
     "@/lib/appwrite": { createAdminClient: () => ({ users, account: { createEmailPasswordSession: async () => sessao } }) },
     "@/lib/auth": { exigirSessao: async () => ({ id: conta.$id }) },
+    "@/lib/aprovacao-guarnicao": { aprovacaoAutomaticaGuarnicao: async () => automatico },
     "@/lib/imagem-servidor": {},
     "@/lib/usuarios": {
       ehParticipante: (labels) => labels.includes("participante"),
@@ -95,7 +99,8 @@ function ambiente({ nova = false, next = ritual, guardiao = false, perfil = "nor
         : { email: "guardiao@example.com", email_verified: true, name: "Guardião Teste" } };
     },
   };
-  return { mocks, globals, prefs, jar, get chamadasGoogle() { return chamadasGoogle; } };
+  mocks["@/lib/auth"] = { exigirSessao: async () => ({ id: conta.$id, cadastroIncompleto: true }) };
+  return { mocks, globals, prefs, jar, conta, get chamadasGoogle() { return chamadasGoogle; } };
 }
 
 function request(caminho) {
@@ -137,7 +142,8 @@ test("conta nova pelo Google completa o cadastro da Guarnição e retorna ao rit
   assert.equal(url.searchParams.get("guardiao"), null);
   assert.equal(url.searchParams.get("completar"), "1");
   assert.equal(url.searchParams.get("next"), ritual);
-  assert.equal(env.prefs.funcao_ritual, "guardiao");
+  assert.equal(env.prefs.funcao_ritual, "nenhuma");
+  assert.equal(env.prefs.cadastro_guarnicao_incompleto, true);
   assert.ok(env.jar.has("ivas-session"));
 });
 
@@ -169,6 +175,14 @@ test("falha no retorno do Google mantém o login do Guarnição", async () => {
   assert.equal(url.searchParams.get("next"), ritual);
 });
 
+test("conta pendente pelo Google continua aguardando, sem criar sessão", async () => {
+  const env = ambiente({ perfil: "participante", pendente: true });
+  const { GET } = carregar("src/app/api/auth/google/callback/route.ts", env.mocks, env.globals);
+  const url = await GET(request("/api/auth/google/callback?code=teste&state=estado-teste"));
+  assert.equal(url.pathname, "/aguardando-aprovacao");
+  assert.equal(env.jar.has("ivas-session"), false);
+});
+
 for (const acao of ["cadastrarParticipante", "completarCadastroGoogle"]) {
   for (const next of [null, ritual, "/eventos"]) {
     test(`${acao} de guardião retorna ao Guarnição com next=${next}`, async () => {
@@ -183,6 +197,81 @@ for (const acao of ["cadastrarParticipante", "completarCadastroGoogle"]) {
   }
 }
 
+function ambienteCoordenacao(coordenador = true) {
+  const prefs = { guarnicao_situacao: "pendente", guarnicao_solicitacao: true, funcao_ritual: "nenhuma" };
+  const conta = { $id: "guardiao-123", labels: ["participante"], status: false, prefs };
+  const chamadas = { status: 0, prefs: 0, config: null };
+  const mocks = {
+    "next/headers": { cookies: async () => ({}) },
+    "next/navigation": { redirect: () => {} },
+    "next/cache": { revalidatePath() {} },
+    "@/lib/guarnicao-app": { contextoGuarnicao: async () => ({ u: { id: "coord-123" }, visoes: coordenador ? ["coordenador"] : ["guardiao"] }) },
+    "@/lib/data": {},
+    "@/lib/guarnicao": {},
+    "@/lib/appwrite": { createAdminClient: () => ({ users: {
+      get: async () => conta,
+      updateStatus: async ({ status }) => { chamadas.status++; conta.status = status; },
+      updatePrefs: async ({ prefs: novos }) => { chamadas.prefs++; Object.assign(prefs, novos); },
+    }, tablesDB: { updateRow: async ({ data }) => { chamadas.config = data; } } }) },
+    "@/lib/config": { DB_ID: "ivas", INSTITUTO_ROW_ID: "principal", LABEL_PARTICIPANTE: "participante", TABLES: { instituto: "instituto" } },
+    "@/lib/usuarios": {},
+    "@/lib/push": {},
+  };
+  return { mocks, prefs, conta, chamadas };
+}
+
+test("somente a coordenação pode alterar a aprovação automática", async () => {
+  const negado = ambienteCoordenacao(false);
+  const acoesNegadas = carregar("src/app/guarnicao/actions.ts", negado.mocks);
+  assert.ok((await acoesNegadas.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, aprovacaoAutomatica: false })).erro);
+  assert.equal(negado.chamadas.config, null);
+
+  const aceito = ambienteCoordenacao();
+  const acoes = carregar("src/app/guarnicao/actions.ts", aceito.mocks);
+  assert.ok((await acoes.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, aprovacaoAutomatica: false })).ok);
+  assert.equal(aceito.chamadas.config.guarnicao_aprovacao_automatica, false);
+});
+
+test("coordenador aprova apenas solicitação pendente da Guarnição", async () => {
+  const negado = ambienteCoordenacao(false);
+  const acoesNegadas = carregar("src/app/guarnicao/actions.ts", negado.mocks);
+  assert.ok((await acoesNegadas.aprovarGuardiao("guardiao-123")).erro);
+  assert.equal(negado.chamadas.status, 0);
+
+  const aceito = ambienteCoordenacao();
+  const acoes = carregar("src/app/guarnicao/actions.ts", aceito.mocks);
+  assert.ok((await acoes.aprovarGuardiao("guardiao-123")).ok);
+  assert.equal(aceito.conta.status, true);
+  assert.equal(aceito.prefs.funcao_ritual, "guardiao");
+  assert.equal(aceito.prefs.guarnicao_situacao, null);
+
+  const outroCadastro = ambienteCoordenacao();
+  outroCadastro.prefs.guarnicao_solicitacao = false;
+  const outrasAcoes = carregar("src/app/guarnicao/actions.ts", outroCadastro.mocks);
+  assert.ok((await outrasAcoes.aprovarGuardiao("guardiao-123")).erro);
+  assert.equal(outroCadastro.chamadas.status, 0);
+});
+
+for (const [estado, usuario, destino] of [
+  ["pendente", { aprovacaoPendente: true, cadastroIncompleto: false, perfil: null, funcaoRitual: "nenhuma" }, "/aguardando-aprovacao"],
+  ["incompleto", { aprovacaoPendente: false, cadastroIncompleto: true, perfil: null, funcaoRitual: "nenhuma" }, "/cadastro?completar=1&next=%2Fguarnicao%2Fritual%2Fx"],
+]) {
+  test(`acesso ao app redireciona cadastro ${estado}`, async () => {
+    const mocks = {
+      "server-only": {},
+      "next/headers": { cookies: async () => ({ get: () => null }) },
+      "next/navigation": { redirect: (url) => { throw new Redirecionamento(url); } },
+      "./auth": { getUsuario: async () => usuario },
+      "./data": {},
+      "./guarnicao": {},
+      "./format": {},
+      "./usuarios": {},
+    };
+    const { contextoGuarnicao } = carregar("src/lib/guarnicao-app.ts", mocks);
+    await assert.rejects(contextoGuarnicao("/guarnicao/ritual/x"), (e) => e.destino === destino);
+  });
+}
+
 test("conclusão do perfil preserva o ritual da Guarnição", async () => {
   const env = ambiente();
   const { salvarMeusDados } = carregar("src/app/guarnicao/perfil/dados-actions.ts", env.mocks, env.globals);
@@ -190,3 +279,19 @@ test("conclusão do perfil preserva o ritual da Guarnição", async () => {
   form.set("nome", "Guardião Teste"); form.set("next", ritual);
   await assert.rejects(salvarMeusDados(undefined, form), (e) => e.destino === ritual);
 });
+
+for (const acao of ["cadastrarParticipante", "completarCadastroGoogle"]) {
+  test(`${acao} aguarda coordenação quando aprovação automática está desligada`, async () => {
+    const env = ambiente({ automatico: false });
+    const actions = carregar("src/app/cadastro/actions.ts", env.mocks, env.globals);
+    const form = new FormData();
+    for (const [k, v] of Object.entries({ nome: "Guardião Teste", email: "guardiao@example.com", senha: "senha-teste", confirmar: "senha-teste", sexo: "masculino", telefone: "62999999999", estado: "GO", cidade: "Goiânia" })) form.set(k, v);
+    await assert.rejects(actions[acao](undefined, form), (e) => e.destino === "/aguardando-aprovacao");
+    assert.equal(env.conta.status, false);
+    assert.equal(env.prefs.funcao_ritual, "nenhuma");
+    assert.equal(env.prefs.guarnicao_situacao, "pendente");
+    assert.equal(env.prefs.situacao, undefined);
+    assert.equal(env.prefs.guarnicao_solicitacao, true);
+    assert.equal(env.jar.has("ivas-session"), false);
+  });
+}

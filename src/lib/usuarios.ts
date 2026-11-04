@@ -15,10 +15,12 @@ export type FuncaoRitual = Funcao | "nenhuma";
 /** Dados extras de cada usuário, guardados nas preferências (prefs) da conta no Appwrite. */
 export type PrefsUsuario = {
   telefone?: string | null; foto_file_id?: string | null; funcao_ritual?: FuncaoRitual | null; sexo?: Sexo | null;
-  /** Cadastro feito pela página pública, aguardando um Admin aprovar. */
-  situacao?: "pendente" | null;
-  /** Função que a pessoa indicou ao se cadastrar (vem do link: /cadastro/equipe?funcao=guardiao). */
-  funcao_solicitada?: Funcao | null;
+  /** Solicitação de acesso feita pelo cadastro desta aplicação. */
+  guarnicao_situacao?: "pendente" | null;
+  /** Identifica solicitações da Guarnição sem misturá-las aos cadastros da equipe de Eventos. */
+  guarnicao_solicitacao?: boolean | null;
+  /** Cadastro pelo Google ainda precisa dos dados obrigatórios. */
+  cadastro_guarnicao_incompleto?: boolean | null;
   /** Endereço informado no cadastro ou preenchido depois em "Meus dados". */
   endereco?: string | null;
   /** CPF (opcional, preenchido depois em "Meus dados"), só dígitos. */
@@ -58,6 +60,8 @@ export function prefsDe(prefs: unknown) {
     experiencia_ayahuasca: p.experiencia_ayahuasca && ehExperiencia(p.experiencia_ayahuasca) ? p.experiencia_ayahuasca : null,
     motivacao: p.motivacao || null,
     expectativas: p.expectativas || null,
+    aprovacao_pendente: p.guarnicao_situacao === "pendente" && p.guarnicao_solicitacao === true,
+    cadastro_guarnicao_incompleto: p.cadastro_guarnicao_incompleto === true,
   };
 }
 
@@ -95,52 +99,17 @@ export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> 
   );
 });
 
-/** Cadastros da página pública aguardando aprovação (conta bloqueada até o Admin aprovar). */
-export type Pendente = { id: string; nome: string; email: string; telefone: string | null; sexo: Sexo | null; funcaoSolicitada: Funcao | null; endereco: string | null; foto: string | null; criadoEm: string };
+export type Pendente = { id: string; nome: string; email: string; telefone: string | null };
 
-export const listarPendentes = cache(async (): Promise<Pendente[]> => {
+/** Solicitações concluídas de guardiões, aguardando aprovação nesta aplicação. */
+export const listarGuardioesPendentes = cache(async (): Promise<Pendente[]> => {
   const { users } = createAdminClient();
   const res = await users.list({ queries: [Query.limit(500), Query.orderDesc("$createdAt")] });
   return res.users.flatMap((u) => {
     const bruto = (u.prefs ?? {}) as PrefsUsuario;
-    if (bruto.situacao !== "pendente") return [];
+    if (bruto.guarnicao_situacao !== "pendente" || bruto.guarnicao_solicitacao !== true) return [];
     const p = prefsDe(u.prefs);
-    const f = bruto.funcao_solicitada;
-    return [{ id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone, sexo: p.sexo, funcaoSolicitada: f === "mestre" || f === "guardiao" ? f : null, endereco: bruto.endereco || null, foto: p.foto_file_id, criadoEm: u.$createdAt }];
-  });
-});
-
-/** Qualquer pessoa com conta ativa (participante ou equipe), para a lista de Participantes no painel. */
-export type PessoaConta = Participante & { perfil: Perfil | null; funcao: FuncaoRitual; cidade: string | null; estado: string | null };
-
-export const listarTodasAsPessoas = cache(async (): Promise<PessoaConta[]> => {
-  const { users } = createAdminClient();
-  const res = await users.list({ queries: [Query.limit(500), Query.orderDesc("$createdAt")] });
-  return res.users.flatMap((u) => {
-    const bruto = (u.prefs ?? {}) as PrefsUsuario;
-    // Cadastros da equipe que ainda esperam aprovação ficam em Usuários › Cadastros pendentes
-    if (bruto.situacao === "pendente") return [];
-    const perfil = perfilDosLabels(u.labels);
-    if (!perfil && !ehParticipante(u.labels)) return [];
-    const p = prefsDe(u.prefs);
-    return [{
-      id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone, endereco: bruto.endereco || null,
-      sexo: p.sexo, foto: p.foto_file_id, criadoEm: u.$createdAt, perfil, funcao: p.funcao_ritual, cidade: p.cidade, estado: p.estado,
-    }];
-  });
-});
-
-/** Participante do site público: nome, contato e dados usados no cadastro. */
-export type Participante = { id: string; nome: string; email: string; telefone: string | null; endereco: string | null; sexo: Sexo | null; foto: string | null; criadoEm: string };
-
-export const listarParticipantes = cache(async (): Promise<Participante[]> => {
-  const { users } = createAdminClient();
-  const res = await users.list({ queries: [Query.limit(500), Query.orderDesc("$createdAt")] });
-  return res.users.flatMap((u) => {
-    if (!ehParticipante(u.labels)) return [];
-    const bruto = (u.prefs ?? {}) as PrefsUsuario;
-    const p = prefsDe(u.prefs);
-    return [{ id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone, endereco: bruto.endereco || null, sexo: p.sexo, foto: p.foto_file_id, criadoEm: u.$createdAt }];
+    return [{ id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone }];
   });
 });
 

@@ -7,7 +7,7 @@ import { COOKIE_TEMA, COOKIE_VISAO, contextoGuarnicao, type TemaGuarnicao, type 
 import { getEvento, listarTipos } from "@/lib/data";
 import { adicionarGuardiao, ajustarGuarnicao, cancelar, candidatar, removerGuardiao, temGuarnicao, type Resultado } from "@/lib/guarnicao";
 import { createAdminClient } from "@/lib/appwrite";
-import { DB_ID, INSTITUTO_ROW_ID, TABLES } from "@/lib/config";
+import { DB_ID, INSTITUTO_ROW_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
 import { mapaUsuarios, salvarContato } from "@/lib/usuarios";
 import { enviarPush, removerInscricao, salvarInscricao } from "@/lib/push";
 
@@ -103,22 +103,45 @@ export async function ajustarVagas(eventoId: string, mudar: { masculino?: number
 }
 
 /** Coordenação: prazo de cancelamento (horas antes do início) e limite de participações por mês. */
-export async function salvarConfigGuarnicao(dados: { horas: number; limiteMes: number }): Promise<Resultado> {
+export async function salvarConfigGuarnicao(dados: { horas: number; limiteMes: number; aprovacaoAutomatica: boolean }): Promise<Resultado> {
   const u = await coordenador();
   if (!u) return { erro: "Só a coordenação pode mudar as configurações." };
   const horas = Math.round(Number(dados.horas));
   const limite = Math.round(Number(dados.limiteMes));
   if (!Number.isFinite(horas) || horas < 0 || horas > 72) return { erro: "O prazo deve ficar entre 0 e 72 horas." };
   if (!Number.isFinite(limite) || limite < 0 || limite > 31) return { erro: "O limite deve ficar entre 0 e 31 por mês." };
+  if (typeof dados.aprovacaoAutomatica !== "boolean") return { erro: "Escolha uma opção válida para a aprovação automática." };
   const { tablesDB } = createAdminClient();
   try {
-    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { guarnicao_horas_cancelamento: horas, guarnicao_limite_mes: limite } });
+    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { guarnicao_horas_cancelamento: horas, guarnicao_limite_mes: limite, guarnicao_aprovacao_automatica: dados.aprovacaoAutomatica } });
   } catch (e) {
     console.error(e);
     return { erro: "Não foi possível salvar. Tente de novo." };
   }
-  revalidatePath("/", "layout");
+  revalidatePath("/guarnicao/configuracoes");
   return { ok: "Configurações salvas." };
+}
+
+/** Libera um cadastro da Guarnição depois da conferência da coordenação. */
+export async function aprovarGuardiao(userId: string): Promise<Resultado> {
+  const u = await coordenador();
+  if (!u) return { erro: "Só a coordenação pode aprovar guardiões." };
+  if (!userId || userId.length > 64) return { erro: "Cadastro inválido." };
+  const { users } = createAdminClient();
+  try {
+    const conta = await users.get({ userId });
+    const prefs = (conta.prefs ?? {}) as Record<string, unknown>;
+    if (prefs.guarnicao_situacao !== "pendente" || prefs.guarnicao_solicitacao !== true || !conta.labels.includes(LABEL_PARTICIPANTE))
+      return { erro: "Este cadastro não está aguardando aprovação da Guarnição." };
+    await users.updateStatus({ userId, status: true });
+    await users.updatePrefs({ userId, prefs: { ...prefs, funcao_ritual: "guardiao", guarnicao_situacao: null, guarnicao_solicitacao: null, cadastro_guarnicao_incompleto: null } });
+  } catch (e) {
+    console.error("Aprovar guardião:", e);
+    return { erro: "Não foi possível aprovar. Tente novamente." };
+  }
+  revalidatePath("/guarnicao/configuracoes");
+  revalidatePath("/guarnicao/guardioes");
+  return { ok: "Guardião aprovado. Ele já pode entrar na Guarnição." };
 }
 
 /** Troca ou remove a foto de perfil pelo menu do cartão do Perfil (mantém o resto do cadastro). */

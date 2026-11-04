@@ -96,10 +96,13 @@ export async function GET(req: NextRequest) {
       userId = novo.$id;
       await users.updateLabels({ userId, labels: [LABEL_PARTICIPANTE] });
       const fotoId = perfil.picture ? await baixarFotoGoogle(storage, perfil.picture) : null;
-      await users.updatePrefs({ userId, prefs: { funcao_ritual: "guardiao", foto_file_id: fotoId } });
+      await users.updatePrefs({ userId, prefs: { funcao_ritual: "nenhuma", cadastro_guarnicao_incompleto: true, foto_file_id: fotoId } });
     }
 
     const contaAtual = await users.get({ userId });
+    const prefs = (contaAtual.prefs ?? {}) as { guarnicao_situacao?: string; guarnicao_solicitacao?: boolean; cadastro_guarnicao_incompleto?: boolean };
+    if (prefs.guarnicao_situacao === "pendente" && prefs.guarnicao_solicitacao === true)
+      return NextResponse.redirect(new URL("/aguardando-aprovacao", req.url));
     const perfilAcesso = perfilDosLabels(contaAtual.labels);
     // Conta nova sem perfil de equipe e sem cadastro de participante ainda: primeiro login pelo Google vira participante.
     if (!perfilAcesso && !ehParticipante(contaAtual.labels)) {
@@ -118,7 +121,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Conta nova pelo Google: WhatsApp, CPF, endereço e nascimento não vêm de lá, então completa o cadastro antes de seguir.
-    const destino = contaNova
+    const destino = contaNova || prefs.cadastro_guarnicao_incompleto === true
       ? `/cadastro?completar=1&next=${encodeURIComponent(next)}`
       : next;
     return NextResponse.redirect(new URL(destino, req.url));

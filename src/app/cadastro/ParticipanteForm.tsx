@@ -23,9 +23,9 @@ type Etapa = "escolha" | "dados" | "sobre" | "perfil";
  * na própria tela para completar os dados que faltam, sem e-mail nem senha.
  */
 export function ParticipanteForm({
-  next, completar, nomeInicial, fotoInicial, estadoPadrao, cidadePadrao,
+  next, completar, aprovacaoAutomatica = true, nomeInicial, fotoInicial, estadoPadrao, cidadePadrao,
 }: {
-  next?: string; completar?: boolean; nomeInicial?: string; fotoInicial?: string | null;
+  next?: string; completar?: boolean; aprovacaoAutomatica?: boolean; nomeInicial?: string; fotoInicial?: string | null;
   estadoPadrao?: string | null; cidadePadrao?: string | null;
 }) {
   const [estadoSenha, acaoSenha, pendenteSenha] = useActionState(cadastrarParticipante, undefined);
@@ -151,7 +151,7 @@ export function ParticipanteForm({
           </div>
         )}
         <button type="submit" className="btn-primario h-11 w-full" disabled={pendente}>
-          {pendente ? <><Carregando /> {completar ? "Concluindo…" : "Criando conta…"}</> : <>{completar ? "Concluir cadastro" : "Criar cadastro"} <ArrowRight size={17} /></>}
+          {pendente ? <><Carregando /> {completar ? "Concluindo…" : "Criando conta…"}</> : <>{completar ? "Concluir cadastro" : aprovacaoAutomatica ? "Criar cadastro" : "Enviar para aprovação"} <ArrowRight size={17} /></>}
         </button>
         {!completar && (
           <p className="text-center text-xs leading-relaxed text-stone-500">
