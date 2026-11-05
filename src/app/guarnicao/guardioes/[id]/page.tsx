@@ -41,10 +41,11 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
 
   return (
     <div className="pb-6">
-      <div className="px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
+      <div className="flex items-center justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top))]">
         <Link href="/guarnicao/guardioes" aria-label="Voltar" className="grid h-10 w-10 place-items-center rounded-full bg-white shadow-cartao ring-1 ring-stone-200 active:scale-90">
           <ChevronLeft size={22} />
         </Link>
+        {visao === "coordenador" && id !== u.id && <AcoesGuardiao id={id} nome={pessoa.name || pessoa.email} suspensoAte={suspensoAte} />}
       </div>
       <section className="mt-2 flex flex-col items-center px-5 text-center">
         <Avatar nome={pessoa.name || pessoa.email} foto={p.foto_file_id} tamanho={96} />
@@ -100,7 +101,6 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
             </div>
           )}
         </section>
-        {visao === "coordenador" && id !== u.id && <AcoesGuardiao id={id} nome={pessoa.name || pessoa.email} suspensoAte={suspensoAte} />}
       </div>
     </div>
   );

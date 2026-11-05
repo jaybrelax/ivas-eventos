@@ -20,6 +20,9 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
+    // Páginas visitadas ficam na memória da aba. Mutações e Realtime invalidam o cache.
+    // A prévia de páginas ainda não visitadas continua curta.
+    staleTimes: { dynamic: 86_400, static: 30 },
     // Igual ao teto das Functions da Vercel (4,5 MB), para o dev falhar como produção.
     // As imagens são reduzidas no navegador antes do envio (src/lib/imagem.ts).
     serverActions: { bodySizeLimit: "4.5mb" },

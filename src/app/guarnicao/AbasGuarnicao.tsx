@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, CalendarCheck, Flame, Settings, Ticket, UsersRound } from "lucide-react";
 import type { VisaoGuarnicao } from "@/lib/guarnicao-app";
@@ -26,6 +26,19 @@ const ABAS = {
   ],
 } as const;
 
+function IndicadorNavegacao() {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      role="status"
+      className={`pointer-events-none absolute top-1 right-2 left-2 flex justify-center transition-opacity duration-150 ${pending ? "opacity-100 delay-300" : "opacity-0"}`}
+    >
+      {pending && <span className="sr-only">Carregando página</span>}
+      <span aria-hidden className="h-0.5 w-5 rounded-full bg-white/80 motion-safe:animate-pulse" />
+    </span>
+  );
+}
+
 /** Barra de abas fixa embaixo, como num app nativo (respeita a área segura do iPhone). O Perfil abre pela foto no topo. */
 export function AbasGuarnicao({ visao }: { visao: VisaoGuarnicao }) {
   const path = usePathname();
@@ -41,9 +54,11 @@ export function AbasGuarnicao({ visao }: { visao: VisaoGuarnicao }) {
             <li key={href}>
               <Link
                 href={href}
+                prefetch={href === "/guarnicao/configuracoes" ? false : true}
                 aria-current={on ? "page" : undefined}
-                className={`flex h-[4.5rem] flex-col items-center justify-center gap-1 font-semibold transition active:scale-95 ${ABAS[visao].length > 4 ? "text-[10px] tracking-tight" : "text-[11px]"}`}
+                className={`relative flex h-[4.5rem] flex-col items-center justify-center gap-1 font-semibold transition active:scale-95 ${ABAS[visao].length > 4 ? "text-[10px] tracking-tight" : "text-[11px]"}`}
               >
+                <IndicadorNavegacao />
                 <span
                   className={`grid h-8 w-12 place-items-center rounded-full transition-all duration-300 ${
                     on ? "bg-white text-emerald-700 shadow-[0_6px_16px_-4px_rgb(0_0_0/0.35)]" : "text-white/75"

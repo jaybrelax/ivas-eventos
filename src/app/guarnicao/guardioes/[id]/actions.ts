@@ -6,6 +6,7 @@ import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { retirarParticipacoesFuturas, type Resultado } from "@/lib/guarnicao";
 import { prefsDe } from "@/lib/usuarios";
 import { fimSuspensao, suspensaoAtiva } from "@/lib/suspensao-guarnicao";
+import { sinalizarMudanca } from "@/lib/tempo-real";
 
 async function alvoDoCoordenador(userId: string) {
   const ctx = await contextoGuarnicao();
@@ -18,7 +19,8 @@ async function alvoDoCoordenador(userId: string) {
   return { users, conta, coordenadorId: ctx.u.id } as const;
 }
 
-function revalidar(userId: string) {
+async function revalidar(userId: string) {
+  await sinalizarMudanca();
   revalidatePath("/guarnicao", "layout");
   revalidatePath("/guarnicao/guardioes");
   revalidatePath(`/guarnicao/guardioes/${userId}`);
@@ -37,7 +39,7 @@ export async function suspenderGuardiao(userId: string, meses: number): Promise<
     console.error("Suspender guardião:", e);
     return { erro: "Não foi possível aplicar a suspensão." };
   }
-  revalidar(userId);
+  await revalidar(userId);
   return { ok: "Candidaturas suspensas. O guardião continua com acesso ao aplicativo e poderá se candidatar novamente ao fim do prazo." };
 }
 
@@ -52,7 +54,7 @@ export async function removerSuspensaoGuardiao(userId: string): Promise<Resultad
     console.error("Remover suspensão do guardião:", e);
     return { erro: "Não foi possível remover a suspensão." };
   }
-  revalidar(userId);
+  await revalidar(userId);
   return { ok: "Suspensão removida. O guardião já pode se candidatar novamente." };
 }
 
@@ -69,7 +71,7 @@ export async function retirarCargoGuardiao(userId: string): Promise<Resultado> {
     console.error("Retirar cargo de guardião:", e);
     return { erro: "Não foi possível retirar a função de guardião." };
   }
-  revalidar(userId);
+  await revalidar(userId);
   try {
     await retirarParticipacoesFuturas(userId, alvo.coordenadorId);
   } catch (e) {

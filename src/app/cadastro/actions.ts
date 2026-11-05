@@ -11,6 +11,7 @@ import type { Sexo } from "@/lib/types";
 import { ehUf } from "@/lib/perfil-extra";
 import { destinoGuarnicao } from "@/lib/destino-auth";
 import { aprovacaoAutomaticaGuarnicao } from "@/lib/aprovacao-guarnicao";
+import { sinalizarMudanca } from "@/lib/tempo-real";
 import { conferirDadosObrigatorios } from "./dados-obrigatorios";
 
 export type ResultadoCadastro = { erro?: string } | undefined;
@@ -80,6 +81,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
     console.error("Cadastro de participante:", msg);
     return { erro: "Não foi possível concluir o cadastro agora. Tente de novo em instantes." };
   }
+  await sinalizarMudanca();
   redirect(automatico ? destinoGuarnicao(form.get("next")) : "/aguardando-aprovacao");
 }
 
@@ -129,5 +131,6 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
     console.error("Concluir cadastro Google na Guarnição:", e);
     return { erro: "Não foi possível concluir o cadastro. Fale com a coordenação se o problema continuar." };
   }
+  await sinalizarMudanca();
   redirect(automatico ? destinoGuarnicao(form.get("next")) : "/aguardando-aprovacao");
 }

@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/appwrite";
 import { exigirSessao } from "@/lib/auth";
 import { salvarContato } from "@/lib/usuarios";
 import { destinoGuarnicao } from "@/lib/destino-auth";
+import { sinalizarMudanca } from "@/lib/tempo-real";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
 
@@ -26,6 +27,7 @@ export async function salvarMeusDados(_: Resultado, form: FormData): Promise<Res
   const r = await salvarContato(u.id, form);
   if (r.erro) return { erro: r.erro };
 
+  await sinalizarMudanca();
   revalidatePath("/guarnicao/perfil");
   redirect(destinoGuarnicao(form.get("next")));
 }

@@ -22,6 +22,7 @@ function carregar(arquivo, mocks = {}, globals = {}) {
     }).outputText;
     const resolver = (id) => {
       if (Object.hasOwn(mocks, id)) return mocks[id];
+      if (id === "@/lib/tempo-real") return { sinalizarMudanca: async () => {} };
       if (id.startsWith("@/")) return ler(path.join(root, "src", `${id.slice(2)}.ts`));
       if (id.startsWith(".")) return ler(path.resolve(path.dirname(filename), `${id}.ts`));
       if (id.startsWith("node:")) return require(id);

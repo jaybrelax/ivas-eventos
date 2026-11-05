@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/appwrite";
 import { DB_ID, INSTITUTO_ROW_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
 import { mapaUsuarios, salvarContato } from "@/lib/usuarios";
 import { suspensaoAtiva } from "@/lib/suspensao-guarnicao";
+import { sinalizarMudanca } from "@/lib/tempo-real";
 import { enviarPush, removerInscricao, salvarInscricao } from "@/lib/push";
 
 /** Alterna entre a visão de coordenador e a de guardião (para quem tem as duas). */
@@ -120,6 +121,7 @@ export async function salvarConfigGuarnicao(dados: { horas: number; limiteMes: n
     console.error(e);
     return { erro: "Não foi possível salvar. Tente de novo." };
   }
+  await sinalizarMudanca();
   revalidatePath("/guarnicao/configuracoes");
   return { ok: "Configurações salvas." };
 }
@@ -141,6 +143,7 @@ export async function aprovarGuardiao(userId: string): Promise<Resultado> {
     console.error("Aprovar guardião:", e);
     return { erro: "Não foi possível aprovar. Tente novamente." };
   }
+  await sinalizarMudanca();
   revalidatePath("/guarnicao/configuracoes");
   revalidatePath("/guarnicao/guardioes");
   return { ok: "Guardião aprovado. Ele já pode entrar na Guarnição." };
@@ -159,6 +162,7 @@ export async function trocarFotoGuarnicao(form: FormData): Promise<Resultado> {
   else return { erro: "Escolha uma foto." };
   const r = await salvarContato(ctx.u.id, dados);
   if (r.erro) return { erro: r.erro };
+  await sinalizarMudanca();
   revalidatePath("/guarnicao", "layout");
   return { ok: foto instanceof File && foto.size > 0 ? "Foto atualizada." : "Foto removida." };
 }
