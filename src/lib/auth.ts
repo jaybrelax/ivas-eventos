@@ -6,6 +6,7 @@ import type { Perfil } from "./config";
 import { ehParticipante, prefsDe, type FuncaoRitual } from "./usuarios";
 import type { Sexo } from "./types";
 import type { Experiencia } from "./perfil-extra";
+import { suspensaoAtiva } from "./suspensao-guarnicao";
 
 export type Usuario = {
   id: string; nome: string; email: string; perfil: Perfil | null; telefone: string | null; foto: string | null;
@@ -15,13 +16,14 @@ export type Usuario = {
   estado: string | null; cidade: string | null; profissao: string | null;
   experiencia: Experiencia | null; motivacao: string | null; expectativas: string | null;
   aprovacaoPendente: boolean; cadastroIncompleto: boolean;
+  suspensoAte: string | null; cargoRemovido: boolean;
   /** "equipe": tem perfil de painel (admin/coordenador/normal). "participante": só cadastro público. */
   tipo: "equipe" | "participante" | null;
 };
 
 /** Conta já existente no IVAS que ainda pode solicitar a função de guardião. */
-export function podeSolicitarGuarnicao(u: Pick<Usuario, "tipo" | "perfil" | "funcaoRitual" | "aprovacaoPendente">): boolean {
-  return !u.aprovacaoPendente && u.funcaoRitual === "nenhuma" && (u.tipo === "participante" || u.perfil === "normal");
+export function podeSolicitarGuarnicao(u: Pick<Usuario, "tipo" | "perfil" | "funcaoRitual" | "aprovacaoPendente"> & Partial<Pick<Usuario, "cargoRemovido">>): boolean {
+  return !u.aprovacaoPendente && !u.cargoRemovido && u.funcaoRitual === "nenhuma" && (u.tipo === "participante" || u.perfil === "normal");
 }
 
 function perfilDe(labels: string[]): Perfil | null {
@@ -45,6 +47,8 @@ export const getUsuario = cache(async (): Promise<Usuario | null> => {
       estado: p.estado, cidade: p.cidade, profissao: p.profissao,
       experiencia: p.experiencia_ayahuasca, motivacao: p.motivacao, expectativas: p.expectativas,
       aprovacaoPendente: p.aprovacao_pendente, cadastroIncompleto: p.cadastro_guarnicao_incompleto,
+      suspensoAte: suspensaoAtiva(p.guarnicao_suspenso_ate) ? p.guarnicao_suspenso_ate : null,
+      cargoRemovido: p.guarnicao_cargo_removido,
       tipo: perfil ? "equipe" : ehParticipante(u.labels ?? []) ? "participante" : null,
     };
   } catch {

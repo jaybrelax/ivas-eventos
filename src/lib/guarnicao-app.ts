@@ -6,6 +6,7 @@ import { getDadosInstituto, listarEventos } from "./data";
 import { candidaturasDosEventos, inicioDe, vagasDe } from "./guarnicao";
 import { hoje } from "./format";
 import { mapaUsuarios } from "./usuarios";
+import { suspensaoAtiva } from "./suspensao-guarnicao";
 import type { Endereco, Evento, Sexo, SituacaoCandidatura } from "./types";
 
 /**
@@ -34,10 +35,10 @@ export function classeTema(t: TemaGuarnicao) {
 
 export type ContextoGuarnicao = { u: Usuario; visoes: VisaoGuarnicao[]; visao: VisaoGuarnicao };
 
-export function visoesDe(u: Pick<Usuario, "perfil" | "funcaoRitual">): VisaoGuarnicao[] {
+export function visoesDe(u: Pick<Usuario, "perfil" | "funcaoRitual"> & Partial<Pick<Usuario, "suspensoAte">>): VisaoGuarnicao[] {
   const v: VisaoGuarnicao[] = [];
   if (u.perfil === "admin" || u.perfil === "coordenador") v.push("coordenador");
-  if (u.funcaoRitual === "guardiao") v.push("guardiao");
+  if (u.funcaoRitual === "guardiao" && !suspensaoAtiva(u.suspensoAte)) v.push("guardiao");
   // A coordenação já pode tudo o que o mestre pode: a visão de mestre é só para quem não é da coordenação
   if (u.funcaoRitual === "mestre" && !v.includes("coordenador")) v.push("mestre");
   return v;
@@ -50,6 +51,7 @@ export async function contextoGuarnicao(next = "/guarnicao"): Promise<ContextoGu
   if (u.aprovacaoPendente) redirect("/aguardando-aprovacao");
   if (u.cadastroIncompleto) redirect(`/cadastro?completar=1&next=${encodeURIComponent(next)}`);
   const visoes = visoesDe(u);
+  if (u.suspensoAte && !visoes.includes("coordenador")) redirect("/guarnicao-suspensa");
   if (!visoes.length && podeSolicitarGuarnicao(u)) redirect(`/cadastro?completar=1&next=${encodeURIComponent(next)}`);
   if (!visoes.length) return null;
   const salva = (await cookies()).get(COOKIE_VISAO)?.value as VisaoGuarnicao | undefined;

@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
     }
 
     const contaAtual = await users.get({ userId });
-    const prefs = (contaAtual.prefs ?? {}) as { guarnicao_situacao?: string; guarnicao_solicitacao?: boolean; cadastro_guarnicao_incompleto?: boolean; funcao_ritual?: string };
+    const prefs = (contaAtual.prefs ?? {}) as { guarnicao_situacao?: string; guarnicao_solicitacao?: boolean; cadastro_guarnicao_incompleto?: boolean; guarnicao_cargo_removido?: boolean; funcao_ritual?: string };
     if (prefs.guarnicao_situacao === "pendente" && prefs.guarnicao_solicitacao === true)
       return NextResponse.redirect(new URL("/aguardando-aprovacao", req.url));
     const perfilAcesso = perfilDosLabels(contaAtual.labels);
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Conta nova pelo Google: WhatsApp, endereço e nascimento são completados no cadastro antes de seguir.
-    const semAcessoGuarnicao = (perfilAcesso === null || perfilAcesso === "normal") && prefs.funcao_ritual !== "guardiao" && prefs.funcao_ritual !== "mestre";
+    const semAcessoGuarnicao = !prefs.guarnicao_cargo_removido && (perfilAcesso === null || perfilAcesso === "normal") && prefs.funcao_ritual !== "guardiao" && prefs.funcao_ritual !== "mestre";
     const destino = contaNova || prefs.cadastro_guarnicao_incompleto === true || semAcessoGuarnicao
       ? `/cadastro?completar=1&next=${encodeURIComponent(next)}`
       : next;

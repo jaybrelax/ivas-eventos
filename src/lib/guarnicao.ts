@@ -8,6 +8,7 @@ import { enviarPush } from "./push";
 import { concordar } from "./genero";
 import { sinalizarMudanca } from "./tempo-real";
 import { mapaUsuarios } from "./usuarios";
+import { suspensaoAtiva } from "./suspensao-guarnicao";
 import type { Candidatura, Evento, Sexo, TipoEvento } from "./types";
 
 /**
@@ -162,7 +163,7 @@ function avisarMudancas(evento: Evento, promovidos: string[], livres: Record<Sex
       const usuarios = await mapaUsuarios();
       for (const sexo of ["masculino", "feminino"] as const) {
         if (!livres[sexo]) continue;
-        const alvo = [...usuarios.values()].filter((u) => u.ativo && u.funcao === "guardiao" && u.sexo === sexo && !jaNoEvento.has(u.id)).map((u) => u.id);
+        const alvo = [...usuarios.values()].filter((u) => u.ativo && u.funcao === "guardiao" && !suspensaoAtiva(u.suspensoAte) && u.sexo === sexo && !jaNoEvento.has(u.id)).map((u) => u.id);
         await enviarPush(alvo, {
           titulo: `Abriu vaga para ${sexo === "masculino" ? "guardião" : "guardiã"}`,
           corpo: `${nome} · ${quandoCurto(evento)}. Toque para se candidatar.`,
@@ -261,6 +262,29 @@ export async function removerGuardiao(evento: Evento, usuarioId: string, porId: 
   if (!saiu) return { erro: "Essa pessoa não está neste evento." };
   await reorganizar(evento, porId, true);
   return { ok: "Guardião retirado." };
+}
+
+/** Retira candidaturas futuras afetadas por uma suspensão ou pela perda da função. Preserva o histórico. */
+export async function retirarParticipacoesFuturas(usuarioId: string, porId: string, antesDe?: string) {
+  const candidaturas = await participacoesDe(usuarioId);
+  if (!candidaturas.length) return;
+  const ids = [...new Set(candidaturas.map((c) => c.evento_id))];
+  const eventos: Evento[] = [];
+  for (let i = 0; i < ids.length; i += 100) eventos.push(...await listarEventos({ ids: ids.slice(i, i + 100) }));
+  const agora = Date.now();
+  const limite = antesDe ? Date.parse(antesDe) : Infinity;
+  let falhas = 0;
+  for (const evento of eventos) {
+    const inicio = inicioDe(evento).getTime();
+    if (inicio > agora && inicio < limite) {
+      try {
+        await removerGuardiao(evento, usuarioId, porId);
+      } catch {
+        falhas++;
+      }
+    }
+  }
+  if (falhas) throw new Error(`Não foi possível retirar o guardião de ${falhas} ritual(is).`);
 }
 
 /** Coordenador ajusta as vagas e/ou abre e fecha as candidaturas; a fila se reorganiza na hora. */

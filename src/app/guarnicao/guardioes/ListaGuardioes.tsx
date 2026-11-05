@@ -7,7 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
 import type { Sexo } from "@/lib/types";
 
-type Pessoa = { id: string; nome: string; foto: string | null; sexo: Sexo | null; total: number; ultimoTexto: string };
+type Pessoa = { id: string; nome: string; foto: string | null; sexo: Sexo | null; total: number; ultimoTexto: string; suspenso: boolean };
 
 /** Lista de guardiões com busca por nome (filtra enquanto digita, sem diferenciar acentos). */
 export function ListaGuardioes({ pessoas }: { pessoas: Pessoa[] }) {
@@ -46,7 +46,7 @@ export function ListaGuardioes({ pessoas }: { pessoas: Pessoa[] }) {
                 <Avatar nome={p.nome} foto={p.foto} tamanho={44} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1 truncate text-sm font-semibold text-stone-900">{p.nome} {p.sexo && <IconeGenero genero={p.sexo} size={12} />}</span>
-                  <span className="block text-xs text-stone-500">{p.ultimoTexto}</span>
+                  <span className="block text-xs text-stone-500">{p.suspenso ? "Suspenso · " : ""}{p.ultimoTexto}</span>
                 </span>
                 <span className="text-right">
                   <span className="block text-lg leading-none font-bold text-stone-900 tabular-nums">{p.total}</span>

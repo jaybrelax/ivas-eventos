@@ -9,6 +9,7 @@ import { adicionarGuardiao, ajustarGuarnicao, cancelar, candidatar, removerGuard
 import { createAdminClient } from "@/lib/appwrite";
 import { DB_ID, INSTITUTO_ROW_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
 import { mapaUsuarios, salvarContato } from "@/lib/usuarios";
+import { suspensaoAtiva } from "@/lib/suspensao-guarnicao";
 import { enviarPush, removerInscricao, salvarInscricao } from "@/lib/push";
 
 /** Alterna entre a visão de coordenador e a de guardião (para quem tem as duas). */
@@ -76,7 +77,7 @@ export async function colocarGuardiao(eventoId: string, usuarioId: string): Prom
   const u = await escalador(evento);
   if (!u) return { erro: "Só a coordenação ou um mestre deste ritual pode escalar." };
   const alvo = usuarios.get(usuarioId);
-  if (!alvo || alvo.funcao !== "guardiao") return { erro: "Escolha uma pessoa com a função Guardião." };
+  if (!alvo || alvo.funcao !== "guardiao" || !alvo.ativo || suspensaoAtiva(alvo.suspensoAte)) return { erro: "Escolha um guardião ativo, sem suspensão." };
   const r = await adicionarGuardiao(evento, { id: alvo.id, sexo: alvo.sexo }, u.id);
   revalidar(eventoId);
   return r;

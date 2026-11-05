@@ -38,6 +38,7 @@ function carregar(arquivo, mocks = {}, globals = {}) {
 
 const destinos = carregar("src/lib/destino-auth.ts");
 const { conferirDadosObrigatorios } = carregar("src/app/cadastro/dados-obrigatorios.ts");
+const { fimSuspensao, suspensaoAtiva } = carregar("src/lib/suspensao-guarnicao.ts");
 const ritual = "/guarnicao/ritual/ritual-123?origem=escala";
 
 test("cadastro é concluído sem CPF; endereço e nascimento continuam obrigatórios", () => {
@@ -51,6 +52,15 @@ test("cadastro é concluído sem CPF; endereço e nascimento continuam obrigató
   form.set("endereco", "Rua das Flores, 123");
   form.set("data_nascimento", "2099-01-01");
   assert.match(conferirDadosObrigatorios(form), /futuro/);
+});
+
+test("suspensão de 3 ou 6 meses expira automaticamente na data calculada", () => {
+  const inicio = new Date("2026-01-31T12:00:00.000Z");
+  assert.equal(fimSuspensao(3, inicio), "2026-04-30T12:00:00.000Z");
+  assert.equal(fimSuspensao(6, inicio), "2026-07-31T12:00:00.000Z");
+  const ate = fimSuspensao(3, inicio);
+  assert.equal(suspensaoAtiva(ate, Date.parse("2026-04-30T11:59:59.999Z")), true);
+  assert.equal(suspensaoAtiva(ate, Date.parse(ate)), false);
 });
 
 test("retorno da Guarnição aceita a raiz e preserva links de rituais", () => {
@@ -181,6 +191,28 @@ test("Gmail já cadastrado no Eventos sem função segue para o cadastro da Guar
   assert.equal(env.prefs.funcao_ritual, undefined);
 });
 
+test("cargo retirado não pode ser recuperado pelo cadastro Google", async () => {
+  const env = ambiente({ perfil: "participante", incompleto: false });
+  env.prefs.guarnicao_cargo_removido = true;
+  const { GET } = carregar("src/app/api/auth/google/callback/route.ts", env.mocks, env.globals);
+  const url = await GET(request("/api/auth/google/callback?code=teste&state=estado-teste"));
+  assert.equal(url.pathname + url.search, ritual);
+  assert.equal(env.prefs.funcao_ritual, undefined);
+});
+
+test("cargo retirado bloqueia nova solicitação de acesso pela conta existente", () => {
+  const { podeSolicitarGuarnicao } = carregar("src/lib/auth.ts", {
+    "server-only": {},
+    react: { cache: (f) => f },
+    "next/navigation": {},
+    "./appwrite": {},
+    "./usuarios": {},
+  });
+  const usuario = { tipo: "participante", perfil: null, funcaoRitual: "nenhuma", aprovacaoPendente: false };
+  assert.equal(podeSolicitarGuarnicao(usuario), true);
+  assert.equal(podeSolicitarGuarnicao({ ...usuario, cargoRemovido: true }), false);
+});
+
 for (const query of ["error=access_denied&state=estado-teste", "code=teste&state=incorreto"]) {
   test(`Google cancelado ou state inválido volta ao login do Guarnição: ${query}`, async () => {
     const env = ambiente();
@@ -278,10 +310,56 @@ test("coordenador aprova apenas solicitação pendente da Guarnição", async ()
   assert.equal(outroCadastro.chamadas.status, 0);
 });
 
+function ambienteSuspensao(perfil = "coordenador") {
+  const prefs = { funcao_ritual: "guardiao" };
+  const conta = { $id: "guardiao-123", status: true, prefs };
+  const escalas = [];
+  let gravacoes = 0;
+  const users = {
+    get: async () => conta,
+    updatePrefs: async ({ prefs: novos }) => { Object.assign(prefs, novos); gravacoes++; },
+  };
+  const mocks = {
+    "next/cache": { revalidatePath() {} },
+    "@/lib/appwrite": { createAdminClient: () => ({ users }) },
+    "@/lib/guarnicao-app": { contextoGuarnicao: async () => ({ u: { id: "coordenador-123", perfil } }) },
+    "@/lib/guarnicao": { retirarParticipacoesFuturas: async (...args) => escalas.push(args) },
+    "@/lib/usuarios": { prefsDe: (p) => p },
+  };
+  return { mocks, prefs, escalas, get gravacoes() { return gravacoes; } };
+}
+
+test("somente o perfil coordenador pode suspender ou retirar o cargo", async () => {
+  for (const perfil of ["admin", "normal", null]) {
+    const env = ambienteSuspensao(perfil);
+    const acoes = carregar("src/app/guarnicao/guardioes/[id]/actions.ts", env.mocks);
+    assert.ok((await acoes.suspenderGuardiao("guardiao-123", 3)).erro);
+    assert.ok((await acoes.retirarCargoGuardiao("guardiao-123")).erro);
+    assert.equal(env.gravacoes, 0);
+  }
+});
+
+test("coordenador suspende por prazo válido, remove suspensão e retira somente o cargo", async () => {
+  const env = ambienteSuspensao();
+  const acoes = carregar("src/app/guarnicao/guardioes/[id]/actions.ts", env.mocks);
+  assert.ok((await acoes.suspenderGuardiao("guardiao-123", 12)).erro);
+  assert.equal(env.gravacoes, 0);
+  assert.ok((await acoes.suspenderGuardiao("guardiao-123", 3)).ok);
+  assert.equal(suspensaoAtiva(env.prefs.guarnicao_suspenso_ate), true);
+  assert.equal(env.escalas[0][2], env.prefs.guarnicao_suspenso_ate);
+  assert.ok((await acoes.removerSuspensaoGuardiao("guardiao-123")).ok);
+  assert.equal(env.prefs.guarnicao_suspenso_ate, null);
+  assert.ok((await acoes.retirarCargoGuardiao("guardiao-123")).ok);
+  assert.equal(env.prefs.funcao_ritual, "nenhuma");
+  assert.equal(env.prefs.guarnicao_cargo_removido, true);
+  assert.equal(env.escalas[1][2], undefined);
+});
+
 for (const [estado, usuario, destino] of [
   ["pendente", { aprovacaoPendente: true, cadastroIncompleto: false, perfil: null, funcaoRitual: "nenhuma" }, "/aguardando-aprovacao"],
   ["incompleto", { aprovacaoPendente: false, cadastroIncompleto: true, perfil: null, funcaoRitual: "nenhuma" }, "/cadastro?completar=1&next=%2Fguarnicao%2Fritual%2Fx"],
   ["existente sem função", { aprovacaoPendente: false, cadastroIncompleto: false, perfil: null, tipo: "participante", funcaoRitual: "nenhuma" }, "/cadastro?completar=1&next=%2Fguarnicao%2Fritual%2Fx"],
+  ["suspenso", { aprovacaoPendente: false, cadastroIncompleto: false, perfil: null, tipo: "participante", funcaoRitual: "guardiao", suspensoAte: "2099-01-01T00:00:00.000Z" }, "/guarnicao-suspensa"],
 ]) {
   test(`acesso ao app redireciona cadastro ${estado}`, async () => {
     const mocks = {

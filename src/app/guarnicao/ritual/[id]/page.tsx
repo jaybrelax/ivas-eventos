@@ -32,7 +32,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
   // Mestre só escala nos rituais em que é um dos mestres; nos outros vê a guarnição sem poder mudar nada
   const mestreDoRitual = visao === "mestre" && (evento.mestres ?? []).includes(u.id);
   const podeEscalar = coord || mestreDoRitual;
-  const g = await dadosGuarnicao(evento, { id: u.id, funcaoRitual: u.funcaoRitual, sexo: u.sexo }, podeEscalar);
+  const g = await dadosGuarnicao(evento, { id: u.id, funcaoRitual: u.funcaoRitual, sexo: u.sexo, suspensoAte: u.suspensoAte }, podeEscalar);
   // Coordenação: tudo o que mudou na guarnição deste ritual (quem entrou, saiu, foi retirado e por quem)
   const [historico, usuarios] = coord
     ? await Promise.all([listar<Candidatura>(TABLES.candidaturas, [Query.equal("evento_id", evento.$id)]), mapaUsuarios()])

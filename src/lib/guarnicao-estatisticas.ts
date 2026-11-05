@@ -4,6 +4,7 @@ import { getDadosInstituto, listarEventos } from "./data";
 import { hoje } from "./format";
 import { inicioDe } from "./guarnicao";
 import { mapaUsuarios } from "./usuarios";
+import { suspensaoAtiva } from "./suspensao-guarnicao";
 import type { Evento, Sexo } from "./types";
 
 /**
@@ -11,7 +12,7 @@ import type { Evento, Sexo } from "./types";
  * (lista mantida igual às candidaturas confirmadas e que também traz o histórico importado).
  */
 
-export type Guardiao = { id: string; nome: string; foto: string | null; sexo: Sexo | null };
+export type Guardiao = { id: string; nome: string; foto: string | null; sexo: Sexo | null; suspensoAte: string | null };
 export type LinhaRanking = Guardiao & { total: number; ano: number; ultimo: string | null };
 
 /** Rituais que já aconteceram (com a guarnição registrada), do mais recente ao mais antigo. */
@@ -23,14 +24,16 @@ export const rituaisPassados = cache(async (): Promise<Evento[]> => {
 });
 
 /** Guardiões e guardiãs ativos. */
-export const guardioesAtivos = cache(async (): Promise<Guardiao[]> => {
+export const guardioesAtivos = cache(async (incluirSuspensos = false): Promise<Guardiao[]> => {
   const usuarios = await mapaUsuarios();
-  return [...usuarios.values()].filter((u) => u.ativo && u.funcao === "guardiao").map((u) => ({ id: u.id, nome: u.nome, foto: u.foto, sexo: u.sexo }));
+  return [...usuarios.values()]
+    .filter((u) => u.ativo && u.funcao === "guardiao" && (incluirSuspensos || !suspensaoAtiva(u.suspensoAte)))
+    .map((u) => ({ id: u.id, nome: u.nome, foto: u.foto, sexo: u.sexo, suspensoAte: suspensaoAtiva(u.suspensoAte) ? u.suspensoAte : null }));
 });
 
 /** Ranking de quem mais serviu (no total e no ano), com a data do último ritual. */
-export const rankingGuarnicao = cache(async (): Promise<LinhaRanking[]> => {
-  const [passados, guardioes] = await Promise.all([rituaisPassados(), guardioesAtivos()]);
+export const rankingGuarnicao = cache(async (incluirSuspensos = false): Promise<LinhaRanking[]> => {
+  const [passados, guardioes] = await Promise.all([rituaisPassados(), guardioesAtivos(incluirSuspensos)]);
   const ano = hoje().slice(0, 4);
   return guardioes
     .map((g) => {

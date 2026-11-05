@@ -8,19 +8,23 @@ import { prefsDe } from "@/lib/usuarios";
 import { dataCurta, formatarIdRitual } from "@/lib/format";
 import { Avatar } from "@/components/Avatar";
 import { GraficoMeses } from "../../estatisticas/blocos";
+import { suspensaoAtiva } from "@/lib/suspensao-guarnicao";
+import { AcoesGuardiao } from "./AcoesGuardiao";
 
 export const metadata = { title: "Guardião" };
 
 /** Perfil de um guardião (visível a guardiões e coordenação), com números e o histórico de rituais servidos. */
 export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/guardioes/[id]">) {
   const { id } = await params;
-  const { visao } = (await contextoGuarnicao(`/guarnicao/guardioes/${id}`))!;
+  const { u, visao } = (await contextoGuarnicao(`/guarnicao/guardioes/${id}`))!;
   const { users } = createAdminClient();
   const pessoa = await users.get({ userId: id }).catch(() => null);
   if (!pessoa) notFound();
   const p = prefsDe(pessoa.prefs);
   // Só perfis de guardiões ativos (nunca de participantes ou de outras contas)
   if (p.funcao_ritual !== "guardiao" || !pessoa.status) notFound();
+  const suspensoAte = suspensaoAtiva(p.guarnicao_suspenso_ate) ? p.guarnicao_suspenso_ate : null;
+  if (suspensoAte && u.perfil !== "coordenador" && u.perfil !== "admin") notFound();
   const h = await historicoDe(id);
   const numero = p.telefone ? p.telefone.replace(/\D/g, "") : "";
   // O WhatsApp é dado de contato: só a coordenação vê; guardiões veem apenas nome, foto e estatísticas
@@ -42,6 +46,7 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
         <Avatar nome={pessoa.name || pessoa.email} foto={p.foto_file_id} tamanho={96} />
         <h1 className="mt-3 text-2xl font-bold text-stone-900">{pessoa.name}</h1>
         <p className="text-sm text-emerald-700">{p.sexo === "feminino" ? "Guardiã" : "Guardião"}</p>
+        {suspensoAte && <p className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Suspenso</p>}
         {whats && (
           <a href={whats} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex h-10 items-center gap-2 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white active:scale-95">
             <MessageCircle size={16} /> WhatsApp
@@ -76,6 +81,7 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
             </ul>
           )}
         </section>
+        {u.perfil === "coordenador" && id !== u.id && <AcoesGuardiao id={id} nome={pessoa.name || pessoa.email} suspensoAte={suspensoAte} />}
       </div>
     </div>
   );

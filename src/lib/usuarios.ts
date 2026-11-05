@@ -8,6 +8,7 @@ import { conferirImagem } from "./imagem";
 import { validarCpf } from "./cpf";
 import { ehExperiencia, ehUf, LIMITE_TEXTO_LONGO, type Experiencia } from "./perfil-extra";
 import type { Funcao, Pessoa, Sexo } from "./types";
+import { suspensaoAtiva } from "./suspensao-guarnicao";
 
 /** Função do usuário (Mestre, Guardião ou nenhuma), independente do perfil de acesso (um Admin pode ser Mestre). */
 export type FuncaoRitual = Funcao | "nenhuma";
@@ -21,6 +22,10 @@ export type PrefsUsuario = {
   guarnicao_solicitacao?: boolean | null;
   /** Cadastro pelo Google ainda precisa dos dados obrigatórios. */
   cadastro_guarnicao_incompleto?: boolean | null;
+  /** Até quando a função de guardião está suspensa (ISO UTC). Expira automaticamente na leitura. */
+  guarnicao_suspenso_ate?: string | null;
+  /** Impede que um cargo retirado seja recuperado pelo cadastro automático. */
+  guarnicao_cargo_removido?: boolean | null;
   /** Endereço informado no cadastro ou preenchido depois em "Meus dados". */
   endereco?: string | null;
   /** CPF (opcional, preenchido depois em "Meus dados"), só dígitos. */
@@ -62,6 +67,8 @@ export function prefsDe(prefs: unknown) {
     expectativas: p.expectativas || null,
     aprovacao_pendente: p.guarnicao_situacao === "pendente" && p.guarnicao_solicitacao === true,
     cadastro_guarnicao_incompleto: p.cadastro_guarnicao_incompleto === true,
+    guarnicao_suspenso_ate: typeof p.guarnicao_suspenso_ate === "string" ? p.guarnicao_suspenso_ate : null,
+    guarnicao_cargo_removido: p.guarnicao_cargo_removido === true,
   };
 }
 
@@ -80,13 +87,13 @@ export const listarEquipe = cache(async (): Promise<Pessoa[]> => {
   const res = await users.list({ queries: [Query.limit(500), Query.orderAsc("name")] });
   return res.users.flatMap((u) => {
     const p = prefsDe(u.prefs);
-    if (p.funcao_ritual === "nenhuma" || !u.status) return [];
+    if (p.funcao_ritual === "nenhuma" || !u.status || (p.funcao_ritual === "guardiao" && suspensaoAtiva(p.guarnicao_suspenso_ate))) return [];
     return [{ $id: u.$id, nome: u.name || u.email, funcao: p.funcao_ritual, sexo: p.sexo, foto: p.foto_file_id }];
   });
 });
 
 /** Resumo de todos os usuários (ativos ou não), por ID: para exibir nomes e fotos em listas. */
-export type ResumoUsuario = { id: string; nome: string; foto: string | null; sexo: Sexo | null; funcao: FuncaoRitual; ativo: boolean };
+export type ResumoUsuario = { id: string; nome: string; foto: string | null; sexo: Sexo | null; funcao: FuncaoRitual; ativo: boolean; suspensoAte: string | null };
 
 export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> => {
   const { users } = createAdminClient();
@@ -94,7 +101,7 @@ export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> 
   return new Map(
     res.users.map((u) => {
       const p = prefsDe(u.prefs);
-      return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: p.funcao_ritual, ativo: !!u.status }];
+      return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: p.funcao_ritual, ativo: !!u.status, suspensoAte: p.guarnicao_suspenso_ate }];
     }),
   );
 });
