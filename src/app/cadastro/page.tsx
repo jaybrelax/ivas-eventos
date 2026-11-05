@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getInstituto } from "@/lib/data";
-import { getUsuario } from "@/lib/auth";
+import { getUsuario, podeSolicitarGuarnicao } from "@/lib/auth";
 import { MarcaInstituto } from "@/components/Marca";
 import { urlImagem } from "@/lib/links";
 import { ParticipanteForm } from "./ParticipanteForm";
@@ -24,11 +24,13 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
   const [sp, instituto] = await Promise.all([searchParams, getInstituto()]);
   const next = destinoGuarnicao(sp.next);
   const aprovacaoAutomatica = instituto.guarnicao_aprovacao_automatica !== false;
-  // Voltou do Google (conta nova, já logada): continua aqui mesmo para completar telefone, estado/cidade e gênero
+  // Conta nova pelo Google ou conta já existente sem função: completa os dados antes de entrar.
   const usuario = await getUsuario();
-  const completar = sp.completar === "1" || !!usuario?.cadastroIncompleto;
+  if (usuario?.aprovacaoPendente) redirect("/aguardando-aprovacao");
+  const podeSolicitar = !!usuario && podeSolicitarGuarnicao(usuario);
+  const completar = sp.completar === "1" || !!usuario?.cadastroIncompleto || podeSolicitar;
   if (completar && !usuario) redirect(`/cadastro?next=${encodeURIComponent(next)}`);
-  if (completar && usuario && !usuario.cadastroIncompleto) redirect(next);
+  if (completar && usuario && !usuario.cadastroIncompleto && !podeSolicitar) redirect(next);
   if (!completar && usuario) redirect(next);
 
   return (

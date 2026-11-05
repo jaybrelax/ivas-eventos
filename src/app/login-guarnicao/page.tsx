@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getUsuario } from "@/lib/auth";
+import { getUsuario, podeSolicitarGuarnicao } from "@/lib/auth";
 import Link from "next/link";
 import { destinoGuarnicao } from "@/lib/destino-auth";
 import { LoginForm } from "../login/LoginForm";
@@ -36,6 +36,7 @@ export default async function LoginGuarnicao({ searchParams }: PageProps<"/login
   const usuario = await getUsuario();
   if (usuario?.aprovacaoPendente) redirect("/aguardando-aprovacao");
   if (usuario?.cadastroIncompleto) redirect(`/cadastro?completar=1&next=${encodeURIComponent(next)}`);
+  if (usuario && podeSolicitarGuarnicao(usuario)) redirect(`/cadastro?completar=1&next=${encodeURIComponent(next)}`);
   if (usuario) redirect(next);
 
   return (

@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getUsuario, type Usuario } from "./auth";
+import { getUsuario, podeSolicitarGuarnicao, type Usuario } from "./auth";
 import { getDadosInstituto, listarEventos } from "./data";
 import { candidaturasDosEventos, inicioDe, vagasDe } from "./guarnicao";
 import { hoje } from "./format";
@@ -50,6 +50,7 @@ export async function contextoGuarnicao(next = "/guarnicao"): Promise<ContextoGu
   if (u.aprovacaoPendente) redirect("/aguardando-aprovacao");
   if (u.cadastroIncompleto) redirect(`/cadastro?completar=1&next=${encodeURIComponent(next)}`);
   const visoes = visoesDe(u);
+  if (!visoes.length && podeSolicitarGuarnicao(u)) redirect(`/cadastro?completar=1&next=${encodeURIComponent(next)}`);
   if (!visoes.length) return null;
   const salva = (await cookies()).get(COOKIE_VISAO)?.value as VisaoGuarnicao | undefined;
   const visao = salva && visoes.includes(salva) ? salva : visoes[0];

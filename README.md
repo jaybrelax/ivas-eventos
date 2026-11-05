@@ -11,6 +11,7 @@ Aplicativo dos guardiões do Instituto IVAS para acompanhar rituais, candidatar-
 - `/api/cron/lembretes`: lembretes de escala para guardiões, acionados pelo cron da Vercel.
 
 Na visão de coordenação, **Configurações** permite ligar ou desligar a aprovação automática. Ela começa ligada. Desligada, novos cadastros por senha ou Google ficam pendentes e o coordenador os aprova na lista da mesma tela; o guardião só entra depois da aprovação.
+Quem já tem uma conta no IVAS sem função de guardião usa a mesma conta para concluir o cadastro da Guarnição; não é criada uma conta duplicada.
 
 ## Banco de dados
 

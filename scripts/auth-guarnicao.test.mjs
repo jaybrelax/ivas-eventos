@@ -51,10 +51,11 @@ class Redirecionamento extends Error {
   constructor(destino) { super(destino); this.destino = destino; }
 }
 
-function ambiente({ nova = false, next = ritual, guardiao = false, perfil = "normal", erroGoogle = false, automatico = true, pendente = false } = {}) {
+function ambiente({ nova = false, next = ritual, guardiao = false, perfil = "normal", funcao = null, incompleto = true, erroGoogle = false, automatico = true, pendente = false } = {}) {
   const estado = { state: "estado-teste", next, guardiao };
   const jar = new Map([["google_oauth_state", { value: JSON.stringify(estado) }]]);
   const prefs = {};
+  if (funcao) prefs.funcao_ritual = funcao;
   let chamadasGoogle = 0;
   const sessao = { secret: "sessao-teste", userId: "usuario-123", expire: "2030-01-01T00:00:00Z" };
   const conta = { $id: "usuario-123", labels: [perfil], status: !pendente, prefs };
@@ -78,12 +79,15 @@ function ambiente({ nova = false, next = ritual, guardiao = false, perfil = "nor
     "next/cache": { revalidatePath() {} },
     "node-appwrite": { ID: { unique: () => "novo-id" }, Query: { equal() {}, limit() {} }, AppwriteException: class extends Error {} },
     "@/lib/appwrite": { createAdminClient: () => ({ users, account: { createEmailPasswordSession: async () => sessao } }) },
-    "@/lib/auth": { exigirSessao: async () => ({ id: conta.$id }) },
+    "@/lib/auth": {
+      exigirSessao: async () => ({ id: conta.$id, cadastroIncompleto: incompleto, aprovacaoPendente: false, funcaoRitual: prefs.funcao_ritual ?? "nenhuma", tipo: "participante", perfil: null }),
+      podeSolicitarGuarnicao: (u) => !u.aprovacaoPendente && u.funcaoRitual === "nenhuma" && u.tipo === "participante",
+    },
     "@/lib/aprovacao-guarnicao": { aprovacaoAutomaticaGuarnicao: async () => automatico },
     "@/lib/imagem-servidor": {},
     "@/lib/usuarios": {
       ehParticipante: (labels) => labels.includes("participante"),
-      perfilDosLabels: (labels) => labels.find((p) => ["admin", "coordenador", "normal"].includes(p)),
+      perfilDosLabels: (labels) => labels.find((p) => ["admin", "coordenador", "normal"].includes(p)) ?? null,
       validarTelefone: () => ({ valor: "5562999999999" }), salvarContato: async () => ({}),
     },
     "@/lib/perfil-extra": { ehUf: () => true },
@@ -99,7 +103,6 @@ function ambiente({ nova = false, next = ritual, guardiao = false, perfil = "nor
         : { email: "guardiao@example.com", email_verified: true, name: "Guardião Teste" } };
     },
   };
-  mocks["@/lib/auth"] = { exigirSessao: async () => ({ id: conta.$id, cadastroIncompleto: true }) };
   return { mocks, globals, prefs, jar, conta, get chamadasGoogle() { return chamadasGoogle; } };
 }
 
@@ -147,11 +150,20 @@ test("conta nova pelo Google completa o cadastro da Guarnição e retorna ao rit
   assert.ok(env.jar.has("ivas-session"));
 });
 
-test("conta existente no Google retorna diretamente ao Guarnição", async () => {
-  const env = ambiente({ perfil: "admin" });
+test("conta existente que já é guardiã retorna diretamente ao Guarnição", async () => {
+  const env = ambiente({ perfil: "participante", funcao: "guardiao" });
   const { GET } = carregar("src/app/api/auth/google/callback/route.ts", env.mocks, env.globals);
   const url = await GET(request("/api/auth/google/callback?code=teste&state=estado-teste"));
   assert.equal(url.pathname + url.search, ritual);
+  assert.equal(env.prefs.funcao_ritual, "guardiao");
+});
+
+test("Gmail já cadastrado no Eventos sem função segue para o cadastro da Guarnição", async () => {
+  const env = ambiente({ perfil: "participante", incompleto: false });
+  const { GET } = carregar("src/app/api/auth/google/callback/route.ts", env.mocks, env.globals);
+  const url = await GET(request("/api/auth/google/callback?code=teste&state=estado-teste"));
+  assert.equal(url.pathname, "/cadastro");
+  assert.equal(url.searchParams.get("completar"), "1");
   assert.equal(env.prefs.funcao_ritual, undefined);
 });
 
@@ -255,13 +267,14 @@ test("coordenador aprova apenas solicitação pendente da Guarnição", async ()
 for (const [estado, usuario, destino] of [
   ["pendente", { aprovacaoPendente: true, cadastroIncompleto: false, perfil: null, funcaoRitual: "nenhuma" }, "/aguardando-aprovacao"],
   ["incompleto", { aprovacaoPendente: false, cadastroIncompleto: true, perfil: null, funcaoRitual: "nenhuma" }, "/cadastro?completar=1&next=%2Fguarnicao%2Fritual%2Fx"],
+  ["existente sem função", { aprovacaoPendente: false, cadastroIncompleto: false, perfil: null, tipo: "participante", funcaoRitual: "nenhuma" }, "/cadastro?completar=1&next=%2Fguarnicao%2Fritual%2Fx"],
 ]) {
   test(`acesso ao app redireciona cadastro ${estado}`, async () => {
     const mocks = {
       "server-only": {},
       "next/headers": { cookies: async () => ({ get: () => null }) },
       "next/navigation": { redirect: (url) => { throw new Redirecionamento(url); } },
-      "./auth": { getUsuario: async () => usuario },
+      "./auth": { getUsuario: async () => usuario, podeSolicitarGuarnicao: (u) => !u.aprovacaoPendente && u.funcaoRitual === "nenhuma" && u.tipo === "participante" },
       "./data": {},
       "./guarnicao": {},
       "./format": {},
@@ -278,6 +291,15 @@ test("conclusão do perfil preserva o ritual da Guarnição", async () => {
   const form = new FormData();
   form.set("nome", "Guardião Teste"); form.set("next", ritual);
   await assert.rejects(salvarMeusDados(undefined, form), (e) => e.destino === ritual);
+});
+
+test("conta Gmail existente pode concluir o cadastro e receber acesso automático", async () => {
+  const env = ambiente({ perfil: "participante", incompleto: false });
+  const { completarCadastroGoogle } = carregar("src/app/cadastro/actions.ts", env.mocks, env.globals);
+  const form = new FormData();
+  for (const [k, v] of Object.entries({ sexo: "masculino", telefone: "62999999999", estado: "GO", cidade: "Goiânia" })) form.set(k, v);
+  await assert.rejects(completarCadastroGoogle(undefined, form), (e) => e.destino === "/guarnicao");
+  assert.equal(env.prefs.funcao_ritual, "guardiao");
 });
 
 for (const acao of ["cadastrarParticipante", "completarCadastroGoogle"]) {

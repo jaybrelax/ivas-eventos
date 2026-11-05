@@ -19,8 +19,8 @@ type Etapa = "escolha" | "dados" | "sobre" | "perfil";
 
 /**
  * Cadastro de participante: a conta já nasce ativa e, ao enviar, a pessoa já entra direto.
- * `completar`: voltou do botão "Continuar com Google" (a conta já existe e já está logada) — continua
- * na própria tela para completar os dados que faltam, sem e-mail nem senha.
+ * `completar`: conta já autenticada pelo Google ou pelo IVAS, que completa os dados
+ * necessários à Guarnição sem criar outra conta.
  */
 export function ParticipanteForm({
   next, completar, aprovacaoAutomatica = true, nomeInicial, fotoInicial, estadoPadrao, cidadePadrao,

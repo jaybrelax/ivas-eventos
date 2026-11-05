@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { ID } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
 import { LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
-import { exigirSessao } from "@/lib/auth";
+import { exigirSessao, podeSolicitarGuarnicao } from "@/lib/auth";
 import { salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Sexo } from "@/lib/types";
 import { ehUf } from "@/lib/perfil-extra";
@@ -84,12 +84,11 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
 }
 
 /**
- * Conclui o cadastro de quem entrou pelo botão do Google (a conta já existe e já está logada:
- * falta telefone, estado/cidade e gênero). Continua na própria tela de cadastro, sem página à parte.
+ * Conclui o cadastro de quem entrou pelo Google ou já tinha conta no IVAS sem função de guardião.
  */
 export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormData): Promise<ResultadoCadastro> {
   const u = await exigirSessao();
-  if (!u.cadastroIncompleto) return { erro: "Este cadastro já foi concluído." };
+  if (!u.cadastroIncompleto && !podeSolicitarGuarnicao(u)) return { erro: "Este cadastro já foi concluído." };
   const sexo = String(form.get("sexo") ?? "") as Sexo;
 
   if (sexo !== "masculino" && sexo !== "feminino") return { erro: "Escolha o gênero." };

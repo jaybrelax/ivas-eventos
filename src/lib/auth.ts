@@ -19,6 +19,11 @@ export type Usuario = {
   tipo: "equipe" | "participante" | null;
 };
 
+/** Conta já existente no IVAS que ainda pode solicitar a função de guardião. */
+export function podeSolicitarGuarnicao(u: Pick<Usuario, "tipo" | "perfil" | "funcaoRitual" | "aprovacaoPendente">): boolean {
+  return !u.aprovacaoPendente && u.funcaoRitual === "nenhuma" && (u.tipo === "participante" || u.perfil === "normal");
+}
+
 function perfilDe(labels: string[]): Perfil | null {
   if (labels.includes("admin")) return "admin";
   if (labels.includes("coordenador")) return "coordenador";
