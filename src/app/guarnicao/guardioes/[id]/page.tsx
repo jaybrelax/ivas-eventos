@@ -5,13 +5,18 @@ import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { diasDesde, historicoDe } from "@/lib/guarnicao-estatisticas";
 import { createAdminClient } from "@/lib/appwrite";
 import { prefsDe } from "@/lib/usuarios";
-import { dataCurta, formatarIdRitual } from "@/lib/format";
+import { formatarIdRitual, partesData } from "@/lib/format";
 import { Avatar } from "@/components/Avatar";
 import { GraficoMeses } from "../../estatisticas/blocos";
 import { suspensaoAtiva } from "@/lib/suspensao-guarnicao";
 import { AcoesGuardiao } from "./AcoesGuardiao";
 
 export const metadata = { title: "Guardião" };
+
+function dataDaParticipacao(iso: string) {
+  const { dia, mes, ano } = partesData(iso);
+  return `${String(dia).padStart(2, "0")}/${String(mes).padStart(2, "0")}/${String(ano).slice(-2)}`;
+}
 
 /** Perfil de um guardião (visível a guardiões e coordenação), com números e o histórico de rituais servidos. */
 export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/guardioes/[id]">) {
@@ -64,20 +69,35 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
 
       <div className="mt-4 space-y-4 px-4">
         <GraficoMeses porMes={h.porMes} titulo={`Rituais em ${new Date().getFullYear()}`} />
-        <section className="rounded-3xl bg-white p-4 shadow-cartao ring-1 ring-stone-200/70">
-          <h2 className="mb-2 px-1 text-sm font-semibold text-stone-900">Histórico</h2>
+        <section className="rounded-3xl bg-white px-3 py-4 shadow-cartao ring-1 ring-stone-200/70">
+          <h2 className="px-1 text-sm font-semibold text-stone-900">Histórico de Participações</h2>
           {h.rituais.length === 0 ? (
             <p className="px-1 py-3 text-sm text-stone-500">Ainda não serviu em nenhum ritual.</p>
           ) : (
-            <ul className="divide-y divide-stone-100">
-              {h.rituais.slice(0, 50).map((e) => (
-                <li key={e.$id} className="flex items-center gap-3 px-1 py-2.5">
-                  <span className="w-12 shrink-0 text-xs font-semibold text-stone-500 tabular-nums">{dataCurta(e.data)}</span>
-                  <span className="min-w-0 flex-1 truncate text-sm text-stone-800">{e.titulo}</span>
-                  <span className="font-mono text-[11px] text-emerald-700">{formatarIdRitual(e.ritual_numero_geral, null, null)}</span>
-                </li>
-              ))}
-            </ul>
+            <div className="relative mt-4">
+              <span aria-hidden className="absolute top-2 bottom-3 left-20 w-px bg-stone-200" />
+              <ol className="relative">
+                {h.rituais.slice(0, 50).map((e) => {
+                  const numeroRitual = formatarIdRitual(e.ritual_numero_geral, null, null);
+                  return (
+                    <li key={e.$id} className="grid grid-cols-[4rem_1rem_minmax(0,1fr)] gap-x-2 pb-5 last:pb-0">
+                      <div className="min-w-0 text-right">
+                        {numeroRitual && (
+                          <span className="inline-flex rounded-md bg-mata-50 px-2 py-0.5 text-[10px] font-semibold text-mata-700">
+                            {numeroRitual}
+                          </span>
+                        )}
+                        <time dateTime={e.data} className="mt-1 block text-[11px] font-medium text-stone-500 tabular-nums">
+                          {dataDaParticipacao(e.data)}
+                        </time>
+                      </div>
+                      <span aria-hidden className="relative z-10 mx-auto mt-1 h-2.5 w-2.5 rounded-full border-2 border-white bg-emerald-600 ring-1 ring-emerald-200" />
+                      <p className="min-w-0 pt-0.5 text-sm leading-snug font-medium text-stone-800 [overflow-wrap:anywhere]">{e.titulo}</p>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
           )}
         </section>
         {u.perfil === "coordenador" && id !== u.id && <AcoesGuardiao id={id} nome={pessoa.name || pessoa.email} suspensoAte={suspensoAte} />}
