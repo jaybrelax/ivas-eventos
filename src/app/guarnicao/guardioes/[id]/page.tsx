@@ -50,7 +50,7 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
         <Avatar nome={pessoa.name || pessoa.email} foto={p.foto_file_id} tamanho={96} />
         <h1 className="mt-3 text-2xl font-bold text-stone-900">{pessoa.name}</h1>
         <p className="text-sm text-emerald-700">{p.sexo === "feminino" ? "Guardiã" : "Guardião"}</p>
-        {suspensoAte && u.perfil === "coordenador" && <p className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Candidaturas suspensas</p>}
+        {suspensoAte && visao === "coordenador" && <p className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Candidaturas suspensas</p>}
         {whats && (
           <a href={whats} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex h-10 items-center gap-2 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white active:scale-95">
             <MessageCircle size={16} /> WhatsApp
@@ -68,14 +68,14 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
       </div>
 
       <div className="mt-4 space-y-4 px-4">
-        <GraficoMeses porMes={h.porMes} titulo={`Rituais em ${new Date().getFullYear()}`} />
+        <GraficoMeses porMes={h.porMes} titulo={`Rituais em ${new Date().getFullYear()}`} compacto />
         <section className="rounded-3xl bg-white px-3 py-4 shadow-cartao ring-1 ring-stone-200/70">
           <h2 className="px-1 text-sm font-semibold text-stone-900">Histórico de Participações</h2>
           {h.rituais.length === 0 ? (
             <p className="px-1 py-3 text-sm text-stone-500">Ainda não serviu em nenhum ritual.</p>
           ) : (
             <div className="relative mt-4">
-              <span aria-hidden className="absolute top-2 bottom-3 left-20 w-px bg-stone-200" />
+              <span aria-hidden className="absolute top-2 bottom-3 left-20 w-0.5 bg-stone-300" />
               <ol className="relative">
                 {h.rituais.slice(0, 50).map((e) => {
                   const numeroRitual = formatarIdRitual(e.ritual_numero_geral, null, null);
@@ -100,7 +100,7 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
             </div>
           )}
         </section>
-        {u.perfil === "coordenador" && id !== u.id && <AcoesGuardiao id={id} nome={pessoa.name || pessoa.email} suspensoAte={suspensoAte} />}
+        {visao === "coordenador" && id !== u.id && <AcoesGuardiao id={id} nome={pessoa.name || pessoa.email} suspensoAte={suspensoAte} />}
       </div>
     </div>
   );

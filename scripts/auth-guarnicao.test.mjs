@@ -329,14 +329,21 @@ function ambienteSuspensao(perfil = "coordenador") {
   return { mocks, prefs, escalas, get gravacoes() { return gravacoes; } };
 }
 
-test("somente o perfil coordenador pode suspender ou retirar o cargo", async () => {
-  for (const perfil of ["admin", "normal", null]) {
+test("somente a coordenação pode suspender ou retirar o cargo", async () => {
+  for (const perfil of ["normal", null]) {
     const env = ambienteSuspensao(perfil);
     const acoes = carregar("src/app/guarnicao/guardioes/[id]/actions.ts", env.mocks);
     assert.ok((await acoes.suspenderGuardiao("guardiao-123", 3)).erro);
     assert.ok((await acoes.retirarCargoGuardiao("guardiao-123")).erro);
     assert.equal(env.gravacoes, 0);
   }
+});
+
+test("perfil admin tem as ações da visão de coordenação", async () => {
+  const env = ambienteSuspensao("admin");
+  const acoes = carregar("src/app/guarnicao/guardioes/[id]/actions.ts", env.mocks);
+  assert.ok((await acoes.suspenderGuardiao("guardiao-123", 3)).ok);
+  assert.equal(env.gravacoes, 1);
 });
 
 test("coordenador suspende por prazo válido, remove suspensão e retira somente o cargo", async () => {

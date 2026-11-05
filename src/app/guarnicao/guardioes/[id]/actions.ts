@@ -9,7 +9,8 @@ import { fimSuspensao, suspensaoAtiva } from "@/lib/suspensao-guarnicao";
 
 async function alvoDoCoordenador(userId: string) {
   const ctx = await contextoGuarnicao();
-  if (ctx?.u.perfil !== "coordenador") return { erro: "Só o coordenador pode alterar a situação de um guardião." } as const;
+  if (!ctx || (ctx.u.perfil !== "coordenador" && ctx.u.perfil !== "admin"))
+    return { erro: "Só a coordenação pode alterar a situação de um guardião." } as const;
   if (!userId || userId.length > 64 || userId === ctx.u.id) return { erro: "Guardião inválido." } as const;
   const { users } = createAdminClient();
   const conta = await users.get({ userId }).catch(() => null);
