@@ -120,7 +120,7 @@ export async function GET(req: NextRequest) {
       expires: new Date(sessao.expire),
     });
 
-    // Conta nova pelo Google: WhatsApp, CPF, endereço e nascimento não vêm de lá, então completa o cadastro antes de seguir.
+    // Conta nova pelo Google: WhatsApp, endereço e nascimento são completados no cadastro antes de seguir.
     const semAcessoGuarnicao = (perfilAcesso === null || perfilAcesso === "normal") && prefs.funcao_ritual !== "guardiao" && prefs.funcao_ritual !== "mestre";
     const destino = contaNova || prefs.cadastro_guarnicao_incompleto === true || semAcessoGuarnicao
       ? `/cadastro?completar=1&next=${encodeURIComponent(next)}`

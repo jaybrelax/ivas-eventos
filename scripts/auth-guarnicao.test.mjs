@@ -37,7 +37,21 @@ function carregar(arquivo, mocks = {}, globals = {}) {
 }
 
 const destinos = carregar("src/lib/destino-auth.ts");
+const { conferirDadosObrigatorios } = carregar("src/app/cadastro/dados-obrigatorios.ts");
 const ritual = "/guarnicao/ritual/ritual-123?origem=escala";
+
+test("cadastro é concluído sem CPF; endereço e nascimento continuam obrigatórios", () => {
+  const form = new FormData();
+  form.set("endereco", "Rua das Flores, 123");
+  form.set("data_nascimento", "1990-05-12");
+  assert.equal(conferirDadosObrigatorios(form), null);
+
+  form.set("endereco", "Rua");
+  assert.match(conferirDadosObrigatorios(form), /endereço completo/);
+  form.set("endereco", "Rua das Flores, 123");
+  form.set("data_nascimento", "2099-01-01");
+  assert.match(conferirDadosObrigatorios(form), /futuro/);
+});
 
 test("retorno da Guarnição aceita a raiz e preserva links de rituais", () => {
   assert.equal(destinos.destinoGuarnicao(undefined), "/guarnicao");

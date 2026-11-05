@@ -30,7 +30,7 @@ export function MeusDadosForm({
   cpf: string | null; dataNascimento: string | null;
   estado: string | null; cidade: string | null; profissao: string | null;
   experiencia: Experiencia | null; motivacao: string | null; expectativas: string | null;
-  /** Veio direto do cadastro pelo Google: pede pra completar o que não veio de lá (WhatsApp, CPF, endereço, nascimento). */
+  /** Veio direto do cadastro pelo Google: pede WhatsApp, endereço e nascimento. */
   completar?: boolean;
   /** Sem o campo de foto (o app da Guarnição troca a foto pelo menu do cartão do perfil). */
   semFoto?: boolean;
@@ -50,7 +50,7 @@ export function MeusDadosForm({
       }}
     >
       {completar && !resultado && (
-        <Aviso tipo="info">Falta pouco! Complete seu cadastro com WhatsApp, CPF, endereço e data de nascimento.</Aviso>
+        <Aviso tipo="info">Falta pouco! Complete seu cadastro com WhatsApp, endereço e data de nascimento. Você pode adicionar o CPF e os demais dados depois.</Aviso>
       )}
       {resultado && <Aviso tipo={resultado.erro ? "erro" : "ok"}>{resultado.erro ?? resultado.ok}</Aviso>}
       {next && <input type="hidden" name="next" value={next} />}

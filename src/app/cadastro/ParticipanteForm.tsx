@@ -1,7 +1,7 @@
 "use client";
 
 import { startTransition, useActionState, useState } from "react";
-import { ArrowRight, CalendarDays, ChevronLeft, IdCard, Lock, LockKeyhole, Mail, MapPin, MessageCircle, UserRound } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronLeft, Lock, LockKeyhole, Mail, MapPin, MessageCircle, UserRound } from "lucide-react";
 import { cadastrarParticipante, completarCadastroGoogle } from "./actions";
 import { Aviso, Carregando } from "@/components/ui";
 import { avisarCampo } from "@/components/Toaster";
@@ -11,9 +11,6 @@ import { InputTelefone } from "@/components/InputTelefone";
 import { CampoFoto } from "@/components/CampoFoto";
 import { BotaoGoogle } from "@/components/BotaoGoogle";
 import { CampoEstadoCidade } from "@/components/CampoEstadoCidade";
-import { CamposSobreVoce } from "@/components/CamposSobreVoce";
-import { InputCPF } from "@/components/InputCPF";
-import { validarCpf } from "@/lib/cpf";
 
 type Etapa = "escolha" | "dados" | "sobre" | "perfil";
 
@@ -64,9 +61,6 @@ export function ParticipanteForm({
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailOk)) return avisarCampo(alvo, "email", "Informe um e-mail válido.");
           }
           if (!String(f.get("telefone") ?? "").trim()) return avisarCampo(alvo, "telefone", "Informe o WhatsApp.");
-          const cpfOk = String(f.get("cpf") ?? "").replace(/\D/g, "");
-          if (cpfOk.length !== 11) return avisarCampo(alvo, "cpf", "Informe o CPF completo.");
-          if (!validarCpf(cpfOk)) return avisarCampo(alvo, "cpf", "CPF inválido. Confira os números.");
           if (!String(f.get("sexo") ?? "")) return avisarCampo(alvo, "sexo", "Escolha o gênero.");
           setEtapa("sobre");
           return;
@@ -105,9 +99,6 @@ export function ParticipanteForm({
         <CampoMD id="telefone" rotulo="WhatsApp" icone={MessageCircle}>
           <InputTelefone id="telefone" name="telefone" className="campo-md" />
         </CampoMD>
-        <CampoMD id="cpf" rotulo="CPF" icone={IdCard}>
-          <InputCPF id="cpf" name="cpf" className="campo-md" />
-        </CampoMD>
         <CampoGenero id="cad-sexo" />
         <button type="submit" className="btn-primario h-11 w-full">Continuar <ArrowRight size={17} /></button>
       </div>
@@ -126,7 +117,6 @@ export function ParticipanteForm({
         <CampoMD id="data_nascimento" rotulo="Data de nascimento" icone={CalendarDays}>
           <input id="data_nascimento" name="data_nascimento" type="date" max={new Date().toISOString().slice(0, 10)} className="campo-md" />
         </CampoMD>
-        <CamposSobreVoce id="cad" moderno />
         <button type="submit" className="btn-primario h-11 w-full">Continuar <ArrowRight size={17} /></button>
       </div>
 

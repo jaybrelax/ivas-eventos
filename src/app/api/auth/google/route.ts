@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("response_type", "code");
   // Só o perfil básico (nome, e-mail, foto): escopos não sensíveis, sem precisar da verificação do Google.
-  // Telefone, CPF, endereço e nascimento são preenchidos no cadastro da Guarnição.
+  // WhatsApp, endereço e nascimento são preenchidos no cadastro da Guarnição; CPF fica no perfil.
   url.searchParams.set("scope", "openid email profile");
   url.searchParams.set("state", state);
   url.searchParams.set("prompt", "select_account");
