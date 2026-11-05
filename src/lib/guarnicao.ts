@@ -8,7 +8,6 @@ import { enviarPush } from "./push";
 import { concordar } from "./genero";
 import { sinalizarMudanca } from "./tempo-real";
 import { mapaUsuarios } from "./usuarios";
-import { suspensaoAtiva } from "./suspensao-guarnicao";
 import type { Candidatura, Evento, Sexo, TipoEvento } from "./types";
 
 /**
@@ -163,7 +162,7 @@ function avisarMudancas(evento: Evento, promovidos: string[], livres: Record<Sex
       const usuarios = await mapaUsuarios();
       for (const sexo of ["masculino", "feminino"] as const) {
         if (!livres[sexo]) continue;
-        const alvo = [...usuarios.values()].filter((u) => u.ativo && u.funcao === "guardiao" && !suspensaoAtiva(u.suspensoAte) && u.sexo === sexo && !jaNoEvento.has(u.id)).map((u) => u.id);
+        const alvo = [...usuarios.values()].filter((u) => u.ativo && u.funcao === "guardiao" && u.sexo === sexo && !jaNoEvento.has(u.id)).map((u) => u.id);
         await enviarPush(alvo, {
           titulo: `Abriu vaga para ${sexo === "masculino" ? "guardião" : "guardiã"}`,
           corpo: `${nome} · ${quandoCurto(evento)}. Toque para se candidatar.`,

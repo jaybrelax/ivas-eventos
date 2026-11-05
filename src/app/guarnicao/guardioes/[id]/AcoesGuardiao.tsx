@@ -31,7 +31,7 @@ export function AcoesGuardiao({ id, nome, suspensoAte }: { id: string; nome: str
       {suspensoAte ? (
         <div className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
           <p className="font-semibold">Suspenso até {dataFim(suspensoAte)}</p>
-          <p className="mt-1">O acesso volta automaticamente ao fim do prazo. As participações retiradas não voltam automaticamente.</p>
+          <p className="mt-1">O guardião continua usando o aplicativo e vendo suas estatísticas. Ele poderá voltar a se candidatar automaticamente ao fim do prazo.</p>
           <button type="button" disabled={pendente} onClick={() => executar(() => removerSuspensaoGuardiao(id))} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 font-semibold text-white disabled:opacity-50">
             {pendente ? <Carregando /> : <ShieldOff size={17} />} Remover suspensão
           </button>
@@ -46,7 +46,7 @@ export function AcoesGuardiao({ id, nome, suspensoAte }: { id: string; nome: str
         </div>
       ) : (
         <div className="mt-4">
-          <p className="text-sm leading-relaxed text-stone-600">Suspender o acesso à Guarnição e retirar as participações futuras dentro do prazo.</p>
+          <p className="text-sm leading-relaxed text-stone-600">Impedir novas candidaturas do guardião durante o prazo. O acesso, as participações existentes e as estatísticas continuam normalmente.</p>
           <label htmlFor="periodo-suspensao" className="mt-4 block text-sm font-semibold text-stone-700">Período da suspensão</label>
           <select id="periodo-suspensao" value={meses} onChange={(e) => setMeses(Number(e.target.value) as 3 | 6)} className="campo mt-1 h-11">
             <option value={3}>3 meses</option>

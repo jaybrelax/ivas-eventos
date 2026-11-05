@@ -24,16 +24,16 @@ export const rituaisPassados = cache(async (): Promise<Evento[]> => {
 });
 
 /** Guardiões e guardiãs ativos. */
-export const guardioesAtivos = cache(async (incluirSuspensos = false): Promise<Guardiao[]> => {
+export const guardioesAtivos = cache(async (): Promise<Guardiao[]> => {
   const usuarios = await mapaUsuarios();
   return [...usuarios.values()]
-    .filter((u) => u.ativo && u.funcao === "guardiao" && (incluirSuspensos || !suspensaoAtiva(u.suspensoAte)))
+    .filter((u) => u.ativo && u.funcao === "guardiao")
     .map((u) => ({ id: u.id, nome: u.nome, foto: u.foto, sexo: u.sexo, suspensoAte: suspensaoAtiva(u.suspensoAte) ? u.suspensoAte : null }));
 });
 
 /** Ranking de quem mais serviu (no total e no ano), com a data do último ritual. */
-export const rankingGuarnicao = cache(async (incluirSuspensos = false): Promise<LinhaRanking[]> => {
-  const [passados, guardioes] = await Promise.all([rituaisPassados(), guardioesAtivos(incluirSuspensos)]);
+export const rankingGuarnicao = cache(async (): Promise<LinhaRanking[]> => {
+  const [passados, guardioes] = await Promise.all([rituaisPassados(), guardioesAtivos()]);
   const ano = hoje().slice(0, 4);
   return guardioes
     .map((g) => {

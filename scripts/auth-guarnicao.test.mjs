@@ -346,20 +346,20 @@ test("coordenador suspende por prazo válido, remove suspensão e retira somente
   assert.equal(env.gravacoes, 0);
   assert.ok((await acoes.suspenderGuardiao("guardiao-123", 3)).ok);
   assert.equal(suspensaoAtiva(env.prefs.guarnicao_suspenso_ate), true);
-  assert.equal(env.escalas[0][2], env.prefs.guarnicao_suspenso_ate);
+  assert.equal(env.escalas.length, 0);
   assert.ok((await acoes.removerSuspensaoGuardiao("guardiao-123")).ok);
   assert.equal(env.prefs.guarnicao_suspenso_ate, null);
   assert.ok((await acoes.retirarCargoGuardiao("guardiao-123")).ok);
   assert.equal(env.prefs.funcao_ritual, "nenhuma");
   assert.equal(env.prefs.guarnicao_cargo_removido, true);
-  assert.equal(env.escalas[1][2], undefined);
+  assert.equal(env.escalas.length, 1);
+  assert.equal(env.escalas[0][2], undefined);
 });
 
 for (const [estado, usuario, destino] of [
   ["pendente", { aprovacaoPendente: true, cadastroIncompleto: false, perfil: null, funcaoRitual: "nenhuma" }, "/aguardando-aprovacao"],
   ["incompleto", { aprovacaoPendente: false, cadastroIncompleto: true, perfil: null, funcaoRitual: "nenhuma" }, "/cadastro?completar=1&next=%2Fguarnicao%2Fritual%2Fx"],
   ["existente sem função", { aprovacaoPendente: false, cadastroIncompleto: false, perfil: null, tipo: "participante", funcaoRitual: "nenhuma" }, "/cadastro?completar=1&next=%2Fguarnicao%2Fritual%2Fx"],
-  ["suspenso", { aprovacaoPendente: false, cadastroIncompleto: false, perfil: null, tipo: "participante", funcaoRitual: "guardiao", suspensoAte: "2099-01-01T00:00:00.000Z" }, "/guarnicao-suspensa"],
 ]) {
   test(`acesso ao app redireciona cadastro ${estado}`, async () => {
     const mocks = {
@@ -376,6 +376,52 @@ for (const [estado, usuario, destino] of [
     await assert.rejects(contextoGuarnicao("/guarnicao/ritual/x"), (e) => e.destino === destino);
   });
 }
+
+test("guardião suspenso continua com acesso à visão e às estatísticas do app", async () => {
+  const usuario = { aprovacaoPendente: false, cadastroIncompleto: false, perfil: null, tipo: "participante", funcaoRitual: "guardiao", suspensoAte: "2099-01-01T00:00:00.000Z" };
+  const mocks = {
+    "server-only": {},
+    "next/headers": { cookies: async () => ({ get: () => null }) },
+    "next/navigation": { redirect: (url) => { throw new Redirecionamento(url); } },
+    "./auth": { getUsuario: async () => usuario, podeSolicitarGuarnicao: () => false },
+    "./data": {}, "./guarnicao": {}, "./format": {}, "./usuarios": {},
+  };
+  const { contextoGuarnicao } = carregar("src/lib/guarnicao-app.ts", mocks);
+  const ctx = await contextoGuarnicao("/guarnicao/estatisticas");
+  assert.equal(ctx.visao, "guardiao");
+  assert.equal(ctx.u.suspensoAte, usuario.suspensoAte);
+});
+
+test("guardiões suspensos continuam no ranking de participações", async () => {
+  const usuarios = new Map([
+    ["suspenso", { id: "suspenso", nome: "Guardiã Suspensa", foto: null, sexo: "feminino", ativo: true, funcao: "guardiao", suspensoAte: "2099-01-01T00:00:00.000Z" }],
+    ["ativo", { id: "ativo", nome: "Guardião Ativo", foto: null, sexo: "masculino", ativo: true, funcao: "guardiao", suspensoAte: null }],
+  ]);
+  const { guardioesAtivos } = carregar("src/lib/guarnicao-estatisticas.ts", {
+    "server-only": {}, react: { cache: (f) => f },
+    "./data": {}, "./format": {}, "./guarnicao": {},
+    "./usuarios": { mapaUsuarios: async () => usuarios },
+  });
+  assert.equal((await guardioesAtivos()).map((u) => u.id).join(","), "suspenso,ativo");
+});
+
+test("suspensão bloqueia só nova candidatura; cancelamento existente continua permitido", async () => {
+  let cancelamentos = 0;
+  let candidaturas = 0;
+  const evento = { $id: "ritual-123" };
+  const mocks = {
+    "next/headers": {}, "next/navigation": {}, "next/cache": { revalidatePath() {} },
+    "@/lib/guarnicao-app": { contextoGuarnicao: async () => ({ u: { id: "guardiao-123", funcaoRitual: "guardiao", suspensoAte: "2099-01-01T00:00:00.000Z" }, visoes: ["guardiao"] }) },
+    "@/lib/data": { getEvento: async () => evento, listarTipos: async () => [] },
+    "@/lib/guarnicao": { candidatar: async () => { candidaturas++; return { ok: "Candidatura aceita" }; }, cancelar: async () => { cancelamentos++; return { ok: "Cancelada" }; } },
+    "@/lib/appwrite": {}, "@/lib/config": {}, "@/lib/usuarios": {}, "@/lib/push": {},
+  };
+  const acoes = carregar("src/app/guarnicao/actions.ts", mocks);
+  assert.match((await acoes.candidatarGuarnicao("ritual-123")).erro, /suspensas/);
+  assert.equal(candidaturas, 0);
+  assert.ok((await acoes.cancelarGuarnicao("ritual-123")).ok);
+  assert.equal(cancelamentos, 1);
+});
 
 test("conclusão do perfil preserva o ritual da Guarnição", async () => {
   const env = ambiente();

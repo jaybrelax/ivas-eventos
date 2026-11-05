@@ -17,7 +17,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   const ctx = (await contextoGuarnicao())!;
   const { u, visao } = ctx;
   const sp = await searchParams;
-  const soComVaga = sp.filtro === "vaga";
+  const soComVaga = !u.suspensoAte && sp.filtro === "vaga";
   // Só a coordenação alterna para os rituais que já aconteceram
   const anteriores = visao === "coordenador" && sp.periodo === "anteriores";
   const [rituais, { limiteMes }, porMes] = await Promise.all([
@@ -28,13 +28,19 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   const sexo = u.sexo;
   // Já atingiu o limite de participações no mês deste ritual (avisa no card, antes de tentar)
   const noLimite = (r: RitualGuarnicao) => limiteMes > 0 && !r.minha && (porMes.get(r.evento.data.slice(0, 7)) ?? 0) >= limiteMes;
-  const temVagaPraMim = (r: RitualGuarnicao) => !!sexo && r.aberto && !r.minha && r.vagas[sexo] - r.confirmados[sexo] > 0 && !noLimite(r);
+  const temVagaPraMim = (r: RitualGuarnicao) => !u.suspensoAte && !!sexo && r.aberto && !r.minha && r.vagas[sexo] - r.confirmados[sexo] > 0 && !noLimite(r);
   const lista = visao === "guardiao" && soComVaga ? rituais.filter(temVagaPraMim) : rituais;
   const comVaga = rituais.filter(temVagaPraMim).length;
 
   return (
     <>
       <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : visao === "mestre" ? "Mestre" : undefined} saudacao={`Olá, ${u.nome.split(" ")[0]}`} titulo="Rituais" />
+
+      {visao === "guardiao" && u.suspensoAte && (
+        <div className="mx-5 mb-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
+          Suas candidaturas estão suspensas até {new Date(u.suspensoAte).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}. Você pode acompanhar os rituais, suas participações e estatísticas normalmente.
+        </div>
+      )}
 
       {visao === "guardiao" && !sexo && (
         <Link href="/guarnicao/perfil" className="mx-5 mb-3 flex items-center gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
@@ -54,9 +60,9 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
       {visao === "guardiao" && (
         <div className="flex gap-2 px-5 pt-[calc(0.25rem+5px)] pb-3">
           <Link href="/guarnicao" className={`chip-app ${!soComVaga ? "chip-app-on" : ""}`}>Todos</Link>
-          <Link href="/guarnicao?filtro=vaga" className={`chip-app ${soComVaga ? "chip-app-on" : ""}`}>
+          {!u.suspensoAte && <Link href="/guarnicao?filtro=vaga" className={`chip-app ${soComVaga ? "chip-app-on" : ""}`}>
             <Sparkles size={14} /> Com vaga para mim {comVaga > 0 && <span className="rounded-full bg-emerald-600 px-1.5 text-[10px] text-white tabular-nums">{comVaga}</span>}
-          </Link>
+          </Link>}
         </div>
       )}
 

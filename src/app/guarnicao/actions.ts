@@ -54,6 +54,7 @@ async function escalador(evento: { mestres: string[] | null }) {
 export async function candidatarGuarnicao(eventoId: string): Promise<Resultado> {
   const ctx = await contextoGuarnicao();
   if (!ctx?.visoes.includes("guardiao")) return { erro: "Só guardiões podem se candidatar." };
+  if (suspensaoAtiva(ctx.u.suspensoAte)) return { erro: "Suas candidaturas estão suspensas até o fim do prazo informado pela coordenação." };
   const { evento, tipo } = await ritual(eventoId);
   if (!evento) return { erro: "Ritual não encontrado." };
   const r = await candidatar(evento, tipo, { id: ctx.u.id, funcaoRitual: ctx.u.funcaoRitual, sexo: ctx.u.sexo });
@@ -77,7 +78,7 @@ export async function colocarGuardiao(eventoId: string, usuarioId: string): Prom
   const u = await escalador(evento);
   if (!u) return { erro: "Só a coordenação ou um mestre deste ritual pode escalar." };
   const alvo = usuarios.get(usuarioId);
-  if (!alvo || alvo.funcao !== "guardiao" || !alvo.ativo || suspensaoAtiva(alvo.suspensoAte)) return { erro: "Escolha um guardião ativo, sem suspensão." };
+  if (!alvo || alvo.funcao !== "guardiao" || !alvo.ativo) return { erro: "Escolha um guardião ativo." };
   const r = await adicionarGuardiao(evento, { id: alvo.id, sexo: alvo.sexo }, u.id);
   revalidar(eventoId);
   return r;

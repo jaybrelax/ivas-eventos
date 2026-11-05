@@ -1,7 +1,6 @@
 import "server-only";
 import { candidaturasDoEvento, inicioDe, prazoCancelamento, regrasGuarnicao, vagasDe } from "@/lib/guarnicao";
 import { mapaUsuarios } from "@/lib/usuarios";
-import { suspensaoAtiva } from "@/lib/suspensao-guarnicao";
 import type { Evento, Sexo } from "@/lib/types";
 
 export type PessoaGuarnicao = { id: string; nome: string; foto: string | null };
@@ -30,7 +29,7 @@ function quando(d: Date) {
 /** Monta o que o cartão da guarnição precisa para um evento e o usuário logado. */
 export async function dadosGuarnicao(
   evento: Evento,
-  eu: { id: string; funcaoRitual: string; sexo: Sexo | null; suspensoAte?: string | null },
+  eu: { id: string; funcaoRitual: string; sexo: Sexo | null },
   gerenciar: boolean,
 ): Promise<DadosGuarnicao> {
   const [candidaturas, usuarios, { horas }] = await Promise.all([candidaturasDoEvento(evento.$id), mapaUsuarios(), regrasGuarnicao()]);
@@ -56,7 +55,7 @@ export async function dadosGuarnicao(
     espera,
     eu: {
       id: eu.id,
-      guardiao: eu.funcaoRitual === "guardiao" && !suspensaoAtiva(eu.suspensoAte),
+      guardiao: eu.funcaoRitual === "guardiao",
       sexo: eu.sexo,
       situacao: minha?.situacao === "confirmada" || minha?.situacao === "espera" ? minha.situacao : null,
       posicaoEspera: minha?.situacao === "espera" ? espera[minha.sexo].findIndex((p) => p.id === eu.id) + 1 : null,
@@ -64,7 +63,7 @@ export async function dadosGuarnicao(
     gerenciar,
     disponiveis: gerenciar
       ? [...usuarios.values()]
-          .filter((u) => u.ativo && u.funcao === "guardiao" && !suspensaoAtiva(u.suspensoAte) && u.sexo && !inscritos.has(u.id))
+          .filter((u) => u.ativo && u.funcao === "guardiao" && u.sexo && !inscritos.has(u.id))
           .map((u) => ({ id: u.id, nome: u.nome, foto: u.foto, sexo: u.sexo! }))
       : [],
   };

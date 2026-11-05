@@ -24,7 +24,7 @@ function revalidar(userId: string) {
   revalidatePath("/guarnicao/estatisticas");
 }
 
-/** Suspende o acesso de guardião por 3 ou 6 meses de calendário. */
+/** Impede novas candidaturas feitas pelo guardião por 3 ou 6 meses de calendário. */
 export async function suspenderGuardiao(userId: string, meses: number): Promise<Resultado> {
   const alvo = await alvoDoCoordenador(userId);
   if ("erro" in alvo) return { erro: alvo.erro };
@@ -37,16 +37,10 @@ export async function suspenderGuardiao(userId: string, meses: number): Promise<
     return { erro: "Não foi possível aplicar a suspensão." };
   }
   revalidar(userId);
-  try {
-    await retirarParticipacoesFuturas(userId, alvo.coordenadorId, ate);
-  } catch (e) {
-    console.error("Retirar escalas do guardião suspenso:", e);
-    return { erro: "A suspensão foi aplicada, mas não foi possível retirar todas as participações futuras. Tente suspender novamente." };
-  }
-  return { ok: "Guardião suspenso. O acesso será liberado automaticamente ao fim do prazo." };
+  return { ok: "Candidaturas suspensas. O guardião continua com acesso ao aplicativo e poderá se candidatar novamente ao fim do prazo." };
 }
 
-/** Encerra a suspensão imediatamente; candidaturas retiradas não são restauradas. */
+/** Permite que o guardião volte a se candidatar imediatamente. */
 export async function removerSuspensaoGuardiao(userId: string): Promise<Resultado> {
   const alvo = await alvoDoCoordenador(userId);
   if ("erro" in alvo) return { erro: alvo.erro };
@@ -58,7 +52,7 @@ export async function removerSuspensaoGuardiao(userId: string): Promise<Resultad
     return { erro: "Não foi possível remover a suspensão." };
   }
   revalidar(userId);
-  return { ok: "Suspensão removida. O guardião pode acessar a plataforma novamente." };
+  return { ok: "Suspensão removida. O guardião já pode se candidatar novamente." };
 }
 
 /** Retira só a função de guardião; a conta e o histórico permanecem. */
