@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { RecorteFoto } from "./RecorteFoto";
 import { Camera, Trash2 } from "lucide-react";
 import { iniciais } from "./Avatar";
 import { useImagem } from "./useImagem";
@@ -9,6 +10,9 @@ import { useImagem } from "./useImagem";
 export function CampoFoto({ nome, fotoAtual, tamanho = 88 }: { nome: string; fotoAtual?: string | null; tamanho?: number }) {
   const { local, erro, otimizando, escolher, limpar } = useImagem("foto");
   const [remover, setRemover] = useState(false);
+  // Foto escolhida, aguardando o recorte circular antes de entrar no formulário
+  const [escolhida, setEscolhida] = useState<File | null>(null);
+  const input = useRef<HTMLInputElement>(null);
   const preview = local ?? (fotoAtual && !remover ? `/api/arquivo/${fotoAtual}` : null);
 
   return (
@@ -29,14 +33,17 @@ export function CampoFoto({ nome, fotoAtual, tamanho = 88 }: { nome: string; fot
           <Camera size={15} />
         </span>
         <input
+          ref={input}
           type="file"
           name="foto"
           accept="image/png,image/jpeg,image/webp"
           className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            escolher(e.currentTarget, f);
-            if (f) setRemover(false);
+            if (!f) return escolher(e.currentTarget, null);
+            // Antes de usar a foto, o usuário escolhe o trecho no círculo (o campo recebe só o recorte)
+            e.currentTarget.value = "";
+            setEscolhida(f);
           }}
         />
       </label>
@@ -59,6 +66,17 @@ export function CampoFoto({ nome, fotoAtual, tamanho = 88 }: { nome: string; fot
         {remover && <p className="mt-1.5 text-xs text-red-700">A foto será removida ao salvar.</p>}
         {remover && <input type="hidden" name="remover_foto" value="on" />}
       </div>
+      {escolhida && (
+        <RecorteFoto
+          arquivo={escolhida}
+          aoCancelar={() => setEscolhida(null)}
+          aoConfirmar={(recortada) => {
+            setEscolhida(null);
+            setRemover(false);
+            if (input.current) escolher(input.current, recortada);
+          }}
+        />
+      )}
     </div>
   );
 }

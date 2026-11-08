@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { EllipsisVertical, ImagePlus, Trash2 } from "lucide-react";
-import { otimizarImagem } from "@/lib/imagem";
+import { RecorteFoto } from "@/components/RecorteFoto";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import { trocarFotoGuarnicao } from "../actions";
@@ -16,6 +16,8 @@ export function MenuFoto({ temFoto, avatar }: { temFoto: boolean; avatar: ReactN
   const [pendente, iniciar] = useTransition();
   const caixa = useRef<HTMLDivElement>(null);
   const arquivo = useRef<HTMLInputElement>(null);
+  // Foto escolhida, aguardando o recorte circular antes de enviar
+  const [escolhida, setEscolhida] = useState<File | null>(null);
 
   useEffect(() => {
     if (!aberto) return;
@@ -98,20 +100,26 @@ export function MenuFoto({ temFoto, avatar }: { temFoto: boolean; avatar: ReactN
           type="file"
           accept="image/png,image/jpeg,image/webp"
           className="sr-only"
-          onChange={async (e) => {
+          onChange={(e) => {
             const f = e.target.files?.[0];
             e.target.value = "";
             if (!f) return;
-            try {
-              const pronta = await otimizarImagem(f, "foto");
-              const fd = new FormData();
-              fd.set("foto", pronta);
-              enviar(fd);
-            } catch (err) {
-              toast(err instanceof Error ? err.message : "Não foi possível usar essa imagem.");
-            }
+            if (!f.type.startsWith("image/")) return toast("Escolha uma imagem PNG, JPG ou WEBP.");
+            setEscolhida(f);
           }}
         />
+      {escolhida && (
+        <RecorteFoto
+          arquivo={escolhida}
+          aoCancelar={() => setEscolhida(null)}
+          aoConfirmar={(recortada) => {
+            setEscolhida(null);
+            const fd = new FormData();
+            fd.set("foto", recortada);
+            enviar(fd);
+          }}
+        />
+      )}
     </>
   );
 }
