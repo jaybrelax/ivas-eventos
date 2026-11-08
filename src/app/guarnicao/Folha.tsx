@@ -43,7 +43,7 @@ export function Folha({ aberta, aoFechar, titulo, topo, cheia = false, tituloGra
       <div className={cheia ? "absolute inset-0 mx-auto flex max-w-xl animate-folha flex-col overflow-y-auto bg-white px-5 pt-[calc(0.5rem+env(safe-area-inset-top))] pb-[calc(1.25rem+env(safe-area-inset-bottom))]" : "absolute inset-x-0 bottom-0 mx-auto max-h-[var(--vvh,90dvh)] max-w-xl animate-folha overflow-y-auto rounded-t-[28px] bg-white px-5 pt-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-[0_-12px_40px_-10px_rgb(0_0_0/0.35)]"}>
         <button type="button" onClick={aoFechar} aria-label="Fechar" className="mx-auto mb-3 block h-1.5 w-11 rounded-full bg-stone-300" />
         {topo}
-        {titulo && <h2 className={tituloGrande ? "mb-6 text-3xl font-bold leading-tight text-stone-900" : "mb-4 text-lg font-semibold text-stone-900"}>{titulo}</h2>}
+        {titulo && <h2 className={tituloGrande ? "mb-1.5 text-xl font-bold leading-tight text-stone-900" : "mb-4 text-lg font-semibold text-stone-900"}>{titulo}</h2>}
         {cheia ? <div className="flex flex-1 flex-col">{children}</div> : children}
       </div>
     </div>,

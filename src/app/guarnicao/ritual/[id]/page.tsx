@@ -50,7 +50,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
           <ListasReuniao dados={r} meuId={u.id} gerenciar={coord || visao === "mestre"} coordenacao={coord} />
         </section>
         {participa && (
-          <AcaoReuniao eventoId={evento.$id} nome={u.nome} situacao={r.eu.situacao} justificativa={r.eu.justificativa} jaComecou={r.presencaEncerrada} prazoPassou={r.prazoPassou} prazoTexto={r.prazoTexto} />
+          <AcaoReuniao eventoId={evento.$id} dataEvento={evento.data} nome={u.nome} situacao={r.eu.situacao} justificativa={r.eu.justificativa} jaComecou={r.presencaEncerrada} prazoPassou={r.prazoPassou} prazoTexto={r.prazoTexto} />
         )}
       </div>
     );

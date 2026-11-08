@@ -51,6 +51,8 @@ const MAX = 200;
 
 type Props = {
   eventoId: string;
+  /** Data do ritual (AAAA-MM-DD); entra no termo da justificativa. */
+  dataEvento: string;
   /** Nome completo de quem justifica (abre o termo: "Eu, <nome>, …"). */
   nome: string;
   situacao: "confirmada" | "justificada" | null;
@@ -61,7 +63,7 @@ type Props = {
 };
 
 /** Barra fixa do guardião na reunião: marcar presença, cancelar (até o prazo) ou justificar a ausência. */
-export function AcaoReuniao({ eventoId, nome, situacao, justificativa, jaComecou, prazoPassou, prazoTexto }: Props) {
+export function AcaoReuniao({ eventoId, dataEvento, nome, situacao, justificativa, jaComecou, prazoPassou, prazoTexto }: Props) {
   const [pendente, iniciar] = useTransition();
   const [justificando, setJustificando] = useState(false);
   // Etapa 1: escrever a justificativa. Etapa 2: ler o termo, marcar a ciência e enviar.
@@ -103,17 +105,19 @@ export function AcaoReuniao({ eventoId, nome, situacao, justificativa, jaComecou
   const tamanho = texto.trim().length;
   const dataHora = useMemo(() => {
     const agora = new Date();
-    const data = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(agora);
+    const data = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", month: "long", year: "numeric" }).format(agora);
     const hora = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(agora);
     return { data, hora };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [justificando, etapa]);
   // Termo da justificativa: o que aparece na tela é o que o botão copia
+  const [anoR, mesR, diaR] = dataEvento.split("-");
   const paragrafos = [
-    `Eu, ${nome}, venho justificar minha ausência no Ritual e na Reunião, ciente de que tenho direito a até cinco justificativas durante o ano.`,
+    "JUSTIFICATIVA DE FALTA NO RITUAL E REUNIÃO DOS MESTRES E GUARDIÕES",
+    `Eu, ${nome}, venho justificar minha ausência no Ritual e na Reunião do dia ${diaR}/${mesR}/${anoR}, ciente de que tenho direito a até cinco justificativas durante o ano.`,
     `MOTIVO: ${texto.trim()}`,
     "Peço que esta justificativa seja analisada e considerada, em razão de um impedimento legítimo, justo e honesto que me impossibilitou de estar presente.",
-    "Renovo meu compromisso de respeitar o Juramento e as Regras dos Mestres e Guardiões do Instituto das Virtudes da Ayahuasca e do Sol (IVAS), mantendo meu empenho com os princípios e valores da instituição.",
+    "Renovo meu compromisso de respeitar o JURAMENTO e as REGRAS dos Mestres e Guardiões do Instituto das Virtudes da Ayahuasca e do Sol (IVAS), mantendo meu empenho com os princípios e valores da instituição.",
     `Data: ${dataHora.data} às ${dataHora.hora}`,
   ];
   // Rola a tela de trás: o título do evento fica centralizado na parte visível acima da folha; ao fechar, volta
@@ -212,7 +216,7 @@ export function AcaoReuniao({ eventoId, nome, situacao, justificativa, jaComecou
         document.body,
       )}
 
-      <Folha aberta={justificando} aoFechar={() => setJustificando(false)} escuro cheia={etapa === 2} tituloGrande={etapa === 2} topo={etapa === 1 ? FiguraJustica : undefined} titulo={etapa === 1 ? "Justificar ausência" : "Justificativa de Ausência"}>
+      <Folha aberta={justificando} aoFechar={() => setJustificando(false)} escuro cheia={etapa === 2} tituloGrande={etapa === 2} topo={etapa === 1 ? FiguraJustica : undefined} titulo={etapa === 1 ? "Justificar ausência" : "Texto legal"}>
         {etapa === 1 ? (
           <div>
             <p className="mb-3 text-sm text-stone-600">Conte por que você não vai participar desta reunião. A justificativa aparece para todos os guardiões.</p>
@@ -246,9 +250,9 @@ export function AcaoReuniao({ eventoId, nome, situacao, justificativa, jaComecou
           </div>
         ) : (
           <>
-            <div className="relative flex-1 space-y-4 rounded-2xl bg-stone-50 p-5 text-lg leading-relaxed text-stone-700 ring-1 ring-stone-200/70">
+            <div className="relative flex-1 space-y-3 rounded-2xl bg-stone-50 p-3 text-[13.5px] leading-snug text-stone-700 ring-1 ring-stone-200/70">
               {paragrafos.map((p, i) => (
-                <p key={i} className={i === paragrafos.length - 1 ? "font-semibold text-stone-900" : i === 1 ? "font-medium break-words whitespace-pre-line text-stone-900" : undefined}>{p}</p>
+                <p key={i} className={i === 0 ? "text-xs font-bold tracking-tight text-stone-900" : i === paragrafos.length - 1 ? "font-semibold text-stone-900" : i === 2 ? "font-medium break-words whitespace-pre-line text-stone-900" : undefined}>{p}</p>
               ))}
               <button
                 type="button"
@@ -260,11 +264,11 @@ export function AcaoReuniao({ eventoId, nome, situacao, justificativa, jaComecou
                 {copiado ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
               </button>
             </div>
-            <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-stone-200 p-3.5">
+            <label className="mt-3 flex cursor-pointer items-start gap-3 rounded-2xl border border-stone-200 p-3">
               <input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-600" />
-              <span className="text-sm font-medium text-stone-800">Li e confirmo o texto acima.</span>
+              <span className="text-[13px] font-medium text-stone-800">Li e confirmo o texto acima.</span>
             </label>
-            <div className="mt-4 grid gap-2">
+            <div className="mt-3 grid gap-2">
               <button
                 type="button"
                 disabled={!aceito || pendente}
