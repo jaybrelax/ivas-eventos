@@ -4,6 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import { BarChart3, CalendarCheck, Flame, Settings, Ticket, UsersRound } from "lucide-react";
 import type { VisaoGuarnicao } from "@/lib/guarnicao-app";
+import { useNavegacaoApp } from "./NavegacaoApp";
 
 const ABAS = {
   guardiao: [
@@ -41,7 +42,10 @@ function IndicadorNavegacao() {
 
 /** Barra de abas fixa embaixo, como num app nativo (respeita a área segura do iPhone). O Perfil abre pela foto no topo. */
 export function AbasGuarnicao({ visao }: { visao: VisaoGuarnicao }) {
-  const path = usePathname();
+  const real = usePathname();
+  const { alvo, ir } = useNavegacaoApp();
+  // Na troca em andamento, a aba tocada já aparece ativa
+  const path = alvo ?? real;
   const ativa = (href: string) => (href === "/guarnicao" ? path === "/guarnicao" || path.startsWith("/guarnicao/ritual") : path.startsWith(href));
 
   return (
@@ -56,6 +60,11 @@ export function AbasGuarnicao({ visao }: { visao: VisaoGuarnicao }) {
                 href={href}
                 prefetch={href === "/guarnicao/configuracoes" ? false : true}
                 aria-current={on ? "page" : undefined}
+                onClick={(e) => {
+                  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                  e.preventDefault();
+                  if (href !== real || alvo) ir(href);
+                }}
                 className={`relative flex h-[4.5rem] flex-col items-center justify-center gap-1 font-semibold transition active:scale-95 ${ABAS[visao].length > 4 ? "text-[10px] tracking-tight" : "text-[11px]"}`}
               >
                 <IndicadorNavegacao />

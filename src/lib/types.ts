@@ -76,7 +76,8 @@ export type Evento = {
   $updatedAt: string;
 };
 
-export type SituacaoCandidatura = "confirmada" | "espera" | "cancelada" | "removida";
+/** `justificada`: só em reuniões — o guardião (ou a coordenação) justificou a ausência. */
+export type SituacaoCandidatura = "confirmada" | "espera" | "cancelada" | "removida" | "justificada";
 
 /** Candidatura de um guardião a uma vaga de um evento. A ordem de chegada é o campo `ordem`. */
 export type Candidatura = {
@@ -86,6 +87,8 @@ export type Candidatura = {
   sexo: Sexo;
   situacao: SituacaoCandidatura;
   ordem: number;
+  /** Texto da justificativa de ausência (reuniões). */
+  justificativa?: string | null;
   alterado_por: string | null;
   $createdAt: string;
   $updatedAt: string;

@@ -5,7 +5,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { COOKIE_TEMA, COOKIE_VISAO, contextoGuarnicao, type TemaGuarnicao, type VisaoGuarnicao } from "@/lib/guarnicao-app";
 import { getEvento, listarTipos } from "@/lib/data";
-import { adicionarGuardiao, ajustarGuarnicao, cancelar, candidatar, removerGuardiao, temGuarnicao, type Resultado } from "@/lib/guarnicao";
+import {
+  adicionarGuardiao, ajustarGuarnicao, cancelar, cancelarPresenca, candidatar, ehReuniao, incluirNaReuniao, ingressarReuniao, justificarAusencia,
+  removerGuardiao, removerJustificativa, retirarDaReuniao, temGuarnicao, type Resultado,
+} from "@/lib/guarnicao";
 import { createAdminClient } from "@/lib/appwrite";
 import { DB_ID, INSTITUTO_ROW_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
 import { mapaUsuarios, salvarContato } from "@/lib/usuarios";
@@ -71,6 +74,95 @@ export async function cancelarGuarnicao(eventoId: string): Promise<Resultado> {
   const r = await cancelar(evento, ctx.u.id);
   revalidar(eventoId);
   return r;
+}
+
+// ───────── Reuniões: presença e justificativa ─────────
+
+/** Reunião do evento (tipo fechado para guardiões), ou null. */
+async function reuniao(eventoId: string) {
+  const { evento, tipo } = await ritual(eventoId);
+  return evento && ehReuniao(tipo) ? { evento, tipo } : null;
+}
+
+/** Na reunião, guardiões e mestres marcam presença ou justificam a ausência. */
+function participaDaReuniao(funcao: string | undefined) {
+  return funcao === "guardiao" || funcao === "mestre";
+}
+
+/** Coordenação ou qualquer mestre: gerencia a lista de presença de qualquer reunião. */
+async function gestorReuniao() {
+  const ctx = await contextoGuarnicao();
+  return ctx && (ctx.visoes.includes("coordenador") || ctx.visoes.includes("mestre")) ? ctx.u : null;
+}
+
+/** O guardião marca a própria presença (só antes de a reunião começar). */
+export async function ingressarNaReuniao(eventoId: string): Promise<Resultado> {
+  const ctx = await contextoGuarnicao();
+  if (!participaDaReuniao(ctx?.u.funcaoRitual)) return { erro: "Só guardiões e mestres marcam presença." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await ingressarReuniao(r.evento, r.tipo, { id: ctx.u.id, funcaoRitual: ctx.u.funcaoRitual, sexo: ctx.u.sexo });
+  revalidar(eventoId);
+  return res;
+}
+
+/** O guardião cancela a própria presença (até o prazo antes do início). */
+export async function cancelarPresencaReuniao(eventoId: string): Promise<Resultado> {
+  const ctx = await contextoGuarnicao();
+  if (!ctx) return { erro: "Sem acesso." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await cancelarPresenca(r.evento, ctx.u.id);
+  revalidar(eventoId);
+  return res;
+}
+
+/** O guardião justifica a própria ausência (a qualquer momento). */
+export async function justificarAusenciaReuniao(eventoId: string, texto: string): Promise<Resultado> {
+  const ctx = await contextoGuarnicao();
+  if (!ctx || !participaDaReuniao(ctx.u.funcaoRitual)) return { erro: "Só guardiões e mestres justificam a própria ausência." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await justificarAusencia(r.evento, { id: ctx.u.id, sexo: ctx.u.sexo }, texto, ctx.u.id);
+  revalidar(eventoId);
+  return res;
+}
+
+/** Coordenação registra, edita ou apaga a justificativa de um guardião (texto vazio apaga). */
+export async function justificarPelaCoordenacao(eventoId: string, usuarioId: string, texto: string): Promise<Resultado> {
+  const u = await coordenador();
+  if (!u) return { erro: "Só a coordenação justifica pelo guardião." };
+  const [r, usuarios] = await Promise.all([reuniao(eventoId), mapaUsuarios()]);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const alvo = usuarios.get(usuarioId);
+  if (!alvo || !participaDaReuniao(alvo.funcao)) return { erro: "Escolha um guardião ou mestre." };
+  const res = texto.trim() ? await justificarAusencia(r.evento, { id: alvo.id, sexo: alvo.sexo }, texto, u.id) : await removerJustificativa(r.evento, alvo.id, u.id);
+  revalidar(eventoId);
+  return res;
+}
+
+/** Mestre ou coordenação inclui um guardião na lista de presença. */
+export async function incluirGuardiaoNaReuniao(eventoId: string, usuarioId: string): Promise<Resultado> {
+  const u = await gestorReuniao();
+  if (!u) return { erro: "Só a coordenação ou um mestre gerencia a presença." };
+  const [r, usuarios] = await Promise.all([reuniao(eventoId), mapaUsuarios()]);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const alvo = usuarios.get(usuarioId);
+  if (!alvo || !participaDaReuniao(alvo.funcao)) return { erro: "Escolha um guardião ou mestre." };
+  const res = await incluirNaReuniao(r.evento, { id: alvo.id, sexo: alvo.sexo }, u.id);
+  revalidar(eventoId);
+  return res;
+}
+
+/** Mestre ou coordenação tira um guardião da lista de presença. */
+export async function retirarGuardiaoDaReuniao(eventoId: string, usuarioId: string): Promise<Resultado> {
+  const u = await gestorReuniao();
+  if (!u) return { erro: "Só a coordenação ou um mestre gerencia a presença." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await retirarDaReuniao(r.evento, usuarioId, u.id);
+  revalidar(eventoId);
+  return res;
 }
 
 export async function colocarGuardiao(eventoId: string, usuarioId: string): Promise<Resultado> {

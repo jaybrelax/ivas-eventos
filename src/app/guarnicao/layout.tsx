@@ -8,6 +8,7 @@ import { MarcarPrimeiroAcesso } from "./MarcarPrimeiroAcesso";
 import { TempoReal } from "./TempoReal";
 import { AbasGuarnicao } from "./AbasGuarnicao";
 import { Transicao } from "./Transicao";
+import { NavegacaoApp } from "./NavegacaoApp";
 import { Abertura, AvisoOffline, PuxarAtualizar } from "./nativo";
 import { BotaoSair } from "./perfil/BotaoSair";
 
@@ -52,6 +53,7 @@ export default async function GuarnicaoLayout({ children }: LayoutProps<"/guarni
       <TemaNoDocumento classe={classe} />
       <MarcarPrimeiroAcesso />
       {/* overflow-x-clip: a tela nova entra deslizando pela lateral; sem cortar, a página fica mais larga que o celular por um instante e o navegador a encolhe (o menu fixo "pula") */}
+      <NavegacaoApp>
       <div className="mx-auto min-h-dvh max-w-xl overflow-x-clip bg-stone-50 pb-[calc(7.25rem+env(safe-area-inset-bottom))] shadow-[0_0_60px_-20px_rgb(0_0_0/0.25)]">
         <AvisoOffline />
         {process.env.APPWRITE_ENDPOINT && process.env.APPWRITE_PROJECT_ID && (
@@ -62,6 +64,7 @@ export default async function GuarnicaoLayout({ children }: LayoutProps<"/guarni
         </PuxarAtualizar>
       </div>
       <AbasGuarnicao visao={ctx.visao} />
+      </NavegacaoApp>
       <Abertura />
     </div>
   );

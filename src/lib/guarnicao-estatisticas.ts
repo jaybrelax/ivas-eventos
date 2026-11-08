@@ -2,9 +2,9 @@ import "server-only";
 import { cache } from "react";
 import { getDadosInstituto, listarEventos } from "./data";
 import { hoje } from "./format";
-import { inicioDe } from "./guarnicao";
-import { mapaUsuarios } from "./usuarios";
+import { inicioDe, temGuarnicao } from "./guarnicao";
 import { suspensaoAtiva } from "./suspensao-guarnicao";
+import { mapaUsuarios } from "./usuarios";
 import type { Evento, Sexo } from "./types";
 
 /**
@@ -18,7 +18,7 @@ export type LinhaRanking = Guardiao & { total: number; ano: number; ultimo: stri
 /** Rituais que já aconteceram (com a guarnição registrada), do mais recente ao mais antigo. */
 export const rituaisPassados = cache(async (): Promise<Evento[]> => {
   const [{ tipos }, eventos] = await Promise.all([getDadosInstituto(), listarEventos({ fim: hoje() })]);
-  const ritual = new Set(tipos.filter((t) => t.conta_como_ritual).map((t) => t.$id));
+  const ritual = new Set(tipos.filter((t) => temGuarnicao(t)).map((t) => t.$id));
   const agora = Date.now();
   return eventos.filter((e) => ritual.has(e.tipo_id) && inicioDe(e).getTime() <= agora).reverse();
 });
