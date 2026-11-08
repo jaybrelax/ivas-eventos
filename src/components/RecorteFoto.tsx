@@ -63,16 +63,48 @@ export function RecorteFoto({ arquivo, aoCancelar, aoConfirmar }: { arquivo: Fil
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escala, img]);
 
+  // Toques ativos na área da foto: um dedo arrasta; dois dedos (pinça) aproximam ou afastam
+  const toques = useRef(new Map<number, { x: number; y: number }>());
+  const pinca = useRef<{ d: number; z: number } | null>(null);
+  const distancia = () => {
+    const [a, b] = [...toques.current.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+  const limitarZoom = (z: number) => Math.min(3, Math.max(1, z));
+
   const iniciarArrasto = (e: ReactPointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    arrasto.current = { px: e.clientX, py: e.clientY, x: pos.x, y: pos.y };
+    toques.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (toques.current.size >= 2) {
+      arrasto.current = null;
+      pinca.current = { d: distancia(), z: zoom };
+    } else {
+      arrasto.current = { px: e.clientX, py: e.clientY, x: pos.x, y: pos.y };
+    }
   };
   const mover = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!toques.current.has(e.pointerId)) return;
+    toques.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const p = pinca.current;
+    if (p && toques.current.size >= 2) {
+      if (p.d > 0) setZoom(limitarZoom((p.z * distancia()) / p.d));
+      return;
+    }
     const a = arrasto.current;
     if (!a) return;
     setPos(limitar(a.x + (e.clientX - a.px), a.y + (e.clientY - a.py)));
   };
-  const soltar = () => (arrasto.current = null);
+  const soltar = (e: ReactPointerEvent<HTMLDivElement>) => {
+    toques.current.delete(e.pointerId);
+    if (toques.current.size < 2) pinca.current = null;
+    if (toques.current.size === 1) {
+      // Saiu um dos dedos da pinça: o que ficou volta a arrastar a partir daqui
+      const [t] = [...toques.current.values()];
+      arrasto.current = { px: t.x, py: t.y, x: pos.x, y: pos.y };
+    } else if (toques.current.size === 0) {
+      arrasto.current = null;
+    }
+  };
 
   const confirmar = () => {
     if (!img) return;
@@ -125,6 +157,7 @@ export function RecorteFoto({ arquivo, aoCancelar, aoConfirmar }: { arquivo: Fil
           onPointerMove={mover}
           onPointerUp={soltar}
           onPointerCancel={soltar}
+          onWheel={(e) => setZoom((z) => limitarZoom(z * (e.deltaY < 0 ? 1.08 : 1 / 1.08)))}
         >
           {/* Só o círculo mostra a foto */}
           <div className="absolute inset-0 overflow-hidden rounded-full">
@@ -163,7 +196,7 @@ export function RecorteFoto({ arquivo, aoCancelar, aoConfirmar }: { arquivo: Fil
             <Plus size={16} />
           </button>
         </div>
-        <p className="text-center text-xs text-white/60">Arraste a foto para posicionar. Só a parte do círculo vai ser usada.</p>
+        <p className="text-center text-xs text-white/60">Arraste para posicionar e use dois dedos para aproximar. Só a parte do círculo vai ser usada.</p>
         <button
           type="button"
           onClick={confirmar}

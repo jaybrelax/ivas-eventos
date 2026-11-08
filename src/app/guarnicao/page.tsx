@@ -241,10 +241,8 @@ function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuar
   const e = r.evento;
   const d = partesData(e.data);
   const comecou = fimPrazoPresenca(e, horasPresenca).getTime() < Date.now(); // prazo para confirmar já encerrou
-  // Avatares sobrepostos em até duas linhas de 10: aparecem conforme as presenças e, com mais de 20,
-  // o último círculo mostra quantos passam disso.
-  const POR_LINHA = 10;
-  const TOTAL = POR_LINHA * 2;
+  // Avatares sobrepostos: no máximo 14 círculos. Com mais de 14 presenças, o 14º mostra quantos passam disso ("+N").
+  const TOTAL = 14;
   const excedem = r.presentes.length > TOTAL;
   const mostrados = excedem ? r.presentes.slice(0, TOTAL - 1) : r.presentes;
   const outros = r.presentes.length - mostrados.length;
@@ -281,8 +279,8 @@ function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuar
         </p>
 
         {itens.length > 0 && (
-          // Até 20 avatares (19 + "+N"); quebram de linha conforme a largura do card (10 por linha quando cabe)
-          <div className="mt-3 flex flex-wrap gap-y-1" style={{ paddingLeft: 10 }} aria-label={`${r.presentes.length} ${r.presentes.length === 1 ? "presente" : "presentes"}`}>
+          // Até 14 círculos (13 avatares + "+N"); quebram de linha conforme a largura do card
+          <div className="mt-3 flex flex-wrap gap-y-1" style={{ paddingLeft: 10 }} aria-label={`${r.presentes.length} ${r.presentes.length === 1 ? "confirmado" : "confirmados"}`}>
             {itens.map((it) => (
               <span key={it.tipo === "pessoa" ? it.p.id : "mais"} style={{ marginLeft: -10 }}>
                 {it.tipo === "pessoa" ? (
@@ -295,9 +293,9 @@ function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuar
           </div>
         )}
         <p className="mt-2 text-xs text-stone-500">
-          <strong className="font-semibold text-stone-700 tabular-nums">{r.presentes.length}</strong> {r.presentes.length === 1 ? "presente" : "presentes"}
+          <strong className="font-semibold text-stone-700 tabular-nums">{r.presentes.length}</strong> {r.presentes.length === 1 ? "confirmado" : "confirmados"}
           {r.justificados > 0 && <> · <strong className="font-semibold text-stone-700 tabular-nums">{r.justificados}</strong> {r.justificados === 1 ? "justificou" : "justificaram"}</>}
-          {r.semResposta > 0 && <> · <strong className="font-semibold text-stone-700 tabular-nums">{r.semResposta}</strong> sem resposta</>}
+          {r.semResposta > 0 && <span className="mt-0.5 block"><strong className="font-semibold text-stone-700 tabular-nums">{r.semResposta}</strong> {r.semResposta === 1 ? "não respondeu" : "não responderam"}</span>}
         </p>
 
         {participa ? (

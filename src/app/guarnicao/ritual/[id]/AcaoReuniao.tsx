@@ -8,6 +8,7 @@ import { Carregando } from "@/components/ui";
 import { cancelarPresencaReuniao, ingressarNaReuniao, justificarAusenciaReuniao } from "../../actions";
 import { Folha } from "../../Folha";
 import { vibrar } from "../../nativo";
+import { dataHoraExtenso, paragrafosTermo } from "@/lib/termo-justificativa";
 
 /** Ilustração do topo das folhas de justificativa (Anúbis com a balança), com um fundo geométrico animado e suave atrás. */
 export const FiguraJustica = (
@@ -46,7 +47,7 @@ export const FiguraJustica = (
   </div>
 );
 
-const MIN = 25;
+const MIN = 30;
 const MAX = 200;
 
 type Props = {
@@ -103,23 +104,11 @@ export function AcaoReuniao({ eventoId, dataEvento, nome, situacao, justificativ
     setJustificando(true);
   };
   const tamanho = texto.trim().length;
-  const dataHora = useMemo(() => {
-    const agora = new Date();
-    const data = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "numeric", month: "long", year: "numeric" }).format(agora);
-    const hora = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(agora);
-    return { data, hora };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [justificando, etapa]);
+  // Momento da justificativa: fixo enquanto a folha está aberta
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const quando = useMemo(() => dataHoraExtenso(new Date()), [justificando, etapa]);
   // Termo da justificativa: o que aparece na tela é o que o botão copia
-  const [anoR, mesR, diaR] = dataEvento.split("-");
-  const paragrafos = [
-    "JUSTIFICATIVA DE FALTA NO RITUAL E REUNIÃO DOS MESTRES E GUARDIÕES",
-    `Eu, ${nome}, venho justificar minha ausência no Ritual e na Reunião do dia ${diaR}/${mesR}/${anoR}, ciente de que tenho direito a até cinco justificativas durante o ano.`,
-    `MOTIVO: ${texto.trim()}`,
-    "Peço que esta justificativa seja analisada e considerada, em razão de um impedimento legítimo, justo e honesto que me impossibilitou de estar presente.",
-    "Renovo meu compromisso de respeitar o JURAMENTO e as REGRAS dos Mestres e Guardiões do Instituto das Virtudes da Ayahuasca e do Sol (IVAS), mantendo meu empenho com os princípios e valores da instituição.",
-    `Data: ${dataHora.data} às ${dataHora.hora}`,
-  ];
+  const paragrafos = paragrafosTermo({ nome, dataEvento, motivo: texto.trim(), quando });
   // Rola a tela de trás: o título do evento fica centralizado na parte visível acima da folha; ao fechar, volta
   useEffect(() => {
     if (!justificando || etapa !== 1) return;
@@ -202,9 +191,9 @@ export function AcaoReuniao({ eventoId, dataEvento, nome, situacao, justificativ
                   type="button"
                   disabled={jaComecou || pendente}
                   onClick={() => rodar(() => ingressarNaReuniao(eventoId))}
-                  className={`${btnPrincipal} ${ouro} order-2`}
+                  className={`${btnPrincipal} ${jaComecou ? ouro : "btn-chama"} order-2`}
                 >
-                  {pendente ? <><Carregando /> Enviando…</> : jaComecou ? "Prazo para confirmar encerrado" : <><ShieldPlus size={18} /> Confirmar presença</>}
+                  {pendente ? <><Carregando /> Enviando…</> : jaComecou ? "Prazo encerrado" : <><ShieldPlus size={18} /> Confirmar presença</>}
                 </button>
               )}
               <button type="button" onClick={abrirJustificativa} disabled={pendente} className={`${btnPrincipal} ${neutro} order-1`}>

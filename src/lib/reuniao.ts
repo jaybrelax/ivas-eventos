@@ -1,15 +1,18 @@
 import "server-only";
 import { fimPrazoPresenca, inicioDe, prazoCancelamento, presencasDaReuniao, regrasGuarnicao } from "./guarnicao";
 import { mapaUsuarios } from "./usuarios";
+import { dataHoraExtenso } from "./termo-justificativa";
 import type { Evento, Sexo } from "./types";
 
 /** Lista de presença de uma reunião, como a página do app a mostra (todos veem as três listas). */
 
 export type PessoaReuniao = { id: string; nome: string; foto: string | null; /** Mestres ficam num bloco à parte em cada lista. */ mestre: boolean; sexo: Sexo | null };
-export type JustificadoReuniao = PessoaReuniao & { texto: string; /** Primeiro nome de quem registrou, se não foi o próprio guardião. */ por: string | null };
+export type JustificadoReuniao = PessoaReuniao & { texto: string; /** Quando a justificativa foi registrada (data e hora por extenso). */ quando: string; /** Primeiro nome de quem registrou, se não foi o próprio guardião. */ por: string | null };
 
 export type DadosReuniao = {
   eventoId: string;
+  /** Data do ritual (AAAA-MM-DD). */
+  dataEvento: string;
   confirmados: PessoaReuniao[];
   justificados: JustificadoReuniao[];
   /** Guardiões e mestres ativos que não marcaram presença nem justificaram. */
@@ -45,6 +48,7 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
     .map((c): JustificadoReuniao => ({
       ...pessoa(c.usuario_id),
       texto: c.justificativa ?? "",
+      quando: c.$updatedAt ? dataHoraExtenso(new Date(c.$updatedAt)) : "",
       por: verRegistradoPor && c.alterado_por && c.alterado_por !== c.usuario_id ? (usuarios.get(c.alterado_por)?.nome.split(" ")[0] ?? null) : null,
     }));
   const respondeu = new Set(candidaturas.map((c) => c.usuario_id));
@@ -53,6 +57,7 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
   const agora = Date.now();
   return {
     eventoId: evento.$id,
+    dataEvento: evento.data,
     confirmados,
     justificados,
     semResposta,
