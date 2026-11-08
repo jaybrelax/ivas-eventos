@@ -108,7 +108,7 @@ export function RecorteFoto({ arquivo, aoCancelar, aoConfirmar }: { arquivo: Fil
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[70] flex flex-col bg-[#0c0a14]/95 text-white" role="dialog" aria-modal="true" aria-label="Ajustar foto de perfil">
+    <div className="fixed inset-0 z-[70] flex flex-col bg-[#0c0a14] text-white" role="dialog" aria-modal="true" aria-label="Ajustar foto de perfil">
       <div className="flex items-center justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-3">
         <button type="button" onClick={aoCancelar} aria-label="Cancelar" className="grid h-10 w-10 place-items-center rounded-full bg-white/10 active:scale-90">
           <X size={20} />
@@ -140,7 +140,7 @@ export function RecorteFoto({ arquivo, aoCancelar, aoConfirmar }: { arquivo: Fil
             )}
           </div>
           {/* Máscara: escurece tudo fora do círculo */}
-          <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_0_9999px_rgb(12_10_20/0.72)] ring-2 ring-white/80" />
+          <div aria-hidden className="pointer-events-none absolute inset-0 rounded-full ring-2 ring-white/80" />
         </div>
       </div>
 

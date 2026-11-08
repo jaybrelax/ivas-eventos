@@ -22,6 +22,8 @@ import type { Candidatura, Evento, Sexo, TipoEvento } from "./types";
 
 export const VAGAS_PADRAO = 2;
 export const HORAS_LIMITE_CANCELAMENTO = 4;
+/** Reunião: horas depois do início em que o guardião ainda pode confirmar presença. */
+export const HORAS_PRESENCA_PADRAO = 1;
 const ATIVAS = ["confirmada", "espera"] as const;
 
 export function vagasDe(e: Pick<Evento, "vagas_guardioes" | "vagas_guardias">): Record<Sexo, number> {
@@ -33,6 +35,11 @@ export function inicioDe(e: Pick<Evento, "data" | "hora_inicio">) {
   return new Date(`${e.data}T${e.hora_inicio}:00-03:00`);
 }
 
+/** Fim do prazo para confirmar presença numa reunião: o início mais `horas`. */
+export function fimPrazoPresenca(e: Pick<Evento, "data" | "hora_inicio">, horas = HORAS_PRESENCA_PADRAO) {
+  return new Date(inicioDe(e).getTime() + horas * 3_600_000);
+}
+
 export function prazoCancelamento(e: Pick<Evento, "data" | "hora_inicio">, horas = HORAS_LIMITE_CANCELAMENTO) {
   return new Date(inicioDe(e).getTime() - horas * 3_600_000);
 }
@@ -42,7 +49,8 @@ export async function regrasGuarnicao() {
   const i = await getInstituto();
   const horas = i.guarnicao_horas_cancelamento ?? HORAS_LIMITE_CANCELAMENTO;
   const limiteMes = i.guarnicao_limite_mes ?? 2;
-  return { horas: Math.max(0, horas), limiteMes: Math.max(0, limiteMes), aprovacaoAutomatica: i.guarnicao_aprovacao_automatica !== false };
+  const horasPresenca = i.guarnicao_horas_presenca ?? HORAS_PRESENCA_PADRAO;
+  return { horas: Math.max(0, horas), limiteMes: Math.max(0, limiteMes), horasPresenca: Math.max(0, horasPresenca), aprovacaoAutomatica: i.guarnicao_aprovacao_automatica !== false };
 }
 
 const MESES_NOME = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -402,7 +410,7 @@ async function gravarPresenca(evento: Evento, usuarioId: string, sexo: Sexo | nu
   return true;
 }
 
-/** O próprio guardião marca presença na reunião (só antes de ela começar). */
+/** O próprio guardião marca presença na reunião (até o prazo configurado depois do início). */
 export async function ingressarReuniao(
   evento: Evento,
   tipo: TipoEvento | undefined,
@@ -410,7 +418,8 @@ export async function ingressarReuniao(
 ): Promise<Resultado> {
   if (!ehReuniao(tipo)) return { erro: "Este evento não é uma reunião." };
   if (usuario.funcaoRitual !== "guardiao" && usuario.funcaoRitual !== "mestre") return { erro: "Só guardiões e mestres marcam presença." };
-  if (inicioDe(evento).getTime() <= Date.now()) return { erro: "Esta reunião já começou." };
+  const { horasPresenca } = await regrasGuarnicao();
+  if (Date.now() > fimPrazoPresenca(evento, horasPresenca).getTime()) return { erro: "O prazo para confirmar presença nesta reunião já encerrou." };
   const novo = await gravarPresenca(evento, usuario.id, usuario.sexo, usuario.id);
   await sinalizarMudanca(evento.$id);
   return novo ? { ok: "Presença confirmada." } : { erro: "Sua presença já está confirmada." };

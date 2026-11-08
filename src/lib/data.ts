@@ -18,6 +18,7 @@ export const INSTITUTO_PADRAO: Instituto = {
   valor_contribuicao: null,
   guarnicao_horas_cancelamento: 4,
   guarnicao_limite_mes: 2,
+  guarnicao_horas_presenca: 1,
   guarnicao_aprovacao_automatica: true,
   estado: null,
   cidade: null,

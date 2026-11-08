@@ -1,5 +1,5 @@
 import "server-only";
-import { inicioDe, prazoCancelamento, presencasDaReuniao, regrasGuarnicao } from "./guarnicao";
+import { fimPrazoPresenca, inicioDe, prazoCancelamento, presencasDaReuniao, regrasGuarnicao } from "./guarnicao";
 import { mapaUsuarios } from "./usuarios";
 import type { Evento, Sexo } from "./types";
 
@@ -16,6 +16,8 @@ export type DadosReuniao = {
   semResposta: PessoaReuniao[];
   eu: { situacao: "confirmada" | "justificada" | null; justificativa: string | null };
   jaComecou: boolean;
+  /** Passou o prazo para confirmar presença (início + horas configuradas). */
+  presencaEncerrada: boolean;
   prazoPassou: boolean;
   prazoTexto: string;
 };
@@ -28,7 +30,7 @@ function quando(d: Date) {
 
 /** `verRegistradoPor`: só a coordenação vê quem registrou cada justificativa. */
 export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPor = false): Promise<DadosReuniao> {
-  const [candidaturas, usuarios, { horas }] = await Promise.all([presencasDaReuniao(evento), mapaUsuarios(), regrasGuarnicao()]);
+  const [candidaturas, usuarios, { horas, horasPresenca }] = await Promise.all([presencasDaReuniao(evento), mapaUsuarios(), regrasGuarnicao()]);
   const pessoa = (id: string): PessoaReuniao => {
     const u = usuarios.get(id);
     return { id, nome: u?.nome ?? "Usuário removido", foto: u?.foto ?? null, mestre: u?.funcao === "mestre", sexo: u?.sexo ?? null };
@@ -56,6 +58,7 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
     semResposta,
     eu: { situacao: minha?.situacao === "confirmada" || minha?.situacao === "justificada" ? minha.situacao : null, justificativa: minha?.situacao === "justificada" ? (minha.justificativa ?? "") : null },
     jaComecou: inicioDe(evento).getTime() <= agora,
+    presencaEncerrada: fimPrazoPresenca(evento, horasPresenca).getTime() < agora,
     prazoPassou: prazoCancelamento(evento, horas).getTime() < agora,
     prazoTexto: quando(prazoCancelamento(evento, horas)),
   };

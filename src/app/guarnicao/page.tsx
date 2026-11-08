@@ -2,7 +2,7 @@ import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
 import { CalendarClock, CalendarX2, Clock, FileText, History, Hourglass, MapPin, ShieldCheck, Sparkles, Users, UserRoundPen } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas, type RitualGuarnicao } from "@/lib/guarnicao-app";
-import { inicioDe, participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
+import { fimPrazoPresenca, inicioDe, participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
 import { partesData } from "@/lib/format";
 import { concordar } from "@/lib/genero";
 import { urlImagem } from "@/lib/links";
@@ -44,7 +44,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   const mostrar = Number.isFinite(pedido) ? Math.min(Math.max(pedido, PAGINA), 480) : PAGINA;
   // Guardião nos próximos precisa de todos para contar "com vaga para mim"; nos demais, busca só o que vai aparecer
   const limite = q || (visao === "guardiao" && !anteriores) ? undefined : mostrar + 1;
-  const [rituais, { limiteMes }, porMes] = await Promise.all([
+  const [rituais, { limiteMes, horasPresenca }, porMes] = await Promise.all([
     q
       ? Promise.all([rituaisComVagas(u.id, 120), rituaisComVagas(u.id, 120, true)]).then(([prox, ant]) => [...prox, ...ant].filter((r) => casaBusca(r, q)))
       : rituaisComVagas(u.id, 120, anteriores, limite),
@@ -118,7 +118,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
         <ul className="space-y-3 px-4">
           {visiveis.map((r) => (
             <li key={r.evento.$id}>
-              <CartaoRitual meuId={u.id} participaReuniao={participaReuniao} r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={ehPassado(r)} limite={noLimite(r) && r.aberto ? limiteMes : null} />
+              <CartaoRitual meuId={u.id} participaReuniao={participaReuniao} horasPresenca={horasPresenca} r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={ehPassado(r)} limite={noLimite(r) && r.aberto ? limiteMes : null} />
             </li>
           ))}
         </ul>
@@ -129,13 +129,13 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   );
 }
 
-function CartaoRitual({ meuId, participaReuniao, r, visao, sexo, vagaPraMim, passado = false, limite = null }: { meuId: string; participaReuniao: boolean; r: RitualGuarnicao; visao: "coordenador" | "guardiao" | "mestre"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
+function CartaoRitual({ meuId, participaReuniao, horasPresenca, r, visao, sexo, vagaPraMim, passado = false, limite = null }: { meuId: string; participaReuniao: boolean; horasPresenca: number; r: RitualGuarnicao; visao: "coordenador" | "guardiao" | "mestre"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
   const e = r.evento;
   const d = partesData(e.data);
   const faltam = (s: Sexo) => Math.max(0, r.vagas[s] - r.confirmados[s]);
   const completo = !faltam("masculino") && !faltam("feminino");
 
-  if (r.reuniao) return <CartaoReuniao r={r} participa={participaReuniao} passado={passado} />;
+  if (r.reuniao) return <CartaoReuniao r={r} participa={participaReuniao} passado={passado} horasPresenca={horasPresenca} />;
 
   return (
     <Link
@@ -237,10 +237,10 @@ function CartaoRitual({ meuId, participaReuniao, r, visao, sexo, vagaPraMim, pas
 }
 
 /** Reunião: sem vagas; mostra quem já marcou presença e a situação de quem está vendo. */
-function CartaoReuniao({ r, participa, passado }: { r: RitualGuarnicao; participa: boolean; passado: boolean }) {
+function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuarnicao; participa: boolean; passado: boolean; horasPresenca: number }) {
   const e = r.evento;
   const d = partesData(e.data);
-  const comecou = inicioDe(e).getTime() <= Date.now();
+  const comecou = fimPrazoPresenca(e, horasPresenca).getTime() < Date.now(); // prazo para confirmar já encerrou
   // Avatares sobrepostos em até duas linhas de 10: aparecem conforme as presenças e, com mais de 20,
   // o último círculo mostra quantos passam disso.
   const POR_LINHA = 10;

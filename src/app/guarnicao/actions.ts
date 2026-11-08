@@ -198,17 +198,19 @@ export async function ajustarVagas(eventoId: string, mudar: { masculino?: number
 }
 
 /** Coordenação: prazo de cancelamento (horas antes do início) e limite de participações por mês. */
-export async function salvarConfigGuarnicao(dados: { horas: number; limiteMes: number; aprovacaoAutomatica: boolean }): Promise<Resultado> {
+export async function salvarConfigGuarnicao(dados: { horas: number; limiteMes: number; horasPresenca: number; aprovacaoAutomatica: boolean }): Promise<Resultado> {
   const u = await coordenador();
   if (!u) return { erro: "Só a coordenação pode mudar as configurações." };
   const horas = Math.round(Number(dados.horas));
   const limite = Math.round(Number(dados.limiteMes));
+  const horasPresenca = Math.round(Number(dados.horasPresenca));
   if (!Number.isFinite(horas) || horas < 0 || horas > 72) return { erro: "O prazo deve ficar entre 0 e 72 horas." };
   if (!Number.isFinite(limite) || limite < 0 || limite > 31) return { erro: "O limite deve ficar entre 0 e 31 por mês." };
+  if (!Number.isFinite(horasPresenca) || horasPresenca < 0 || horasPresenca > 24) return { erro: "O prazo para confirmar presença deve ficar entre 0 e 24 horas." };
   if (typeof dados.aprovacaoAutomatica !== "boolean") return { erro: "Escolha uma opção válida para a aprovação automática." };
   const { tablesDB } = createAdminClient();
   try {
-    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { guarnicao_horas_cancelamento: horas, guarnicao_limite_mes: limite, guarnicao_aprovacao_automatica: dados.aprovacaoAutomatica } });
+    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { guarnicao_horas_cancelamento: horas, guarnicao_limite_mes: limite, guarnicao_horas_presenca: horasPresenca, guarnicao_aprovacao_automatica: dados.aprovacaoAutomatica } });
   } catch (e) {
     console.error(e);
     return { erro: "Não foi possível salvar. Tente de novo." };

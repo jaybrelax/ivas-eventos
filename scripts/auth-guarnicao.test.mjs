@@ -282,12 +282,12 @@ function ambienteCoordenacao(coordenador = true) {
 test("somente a coordenação pode alterar a aprovação automática", async () => {
   const negado = ambienteCoordenacao(false);
   const acoesNegadas = carregar("src/app/guarnicao/actions.ts", negado.mocks);
-  assert.ok((await acoesNegadas.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, aprovacaoAutomatica: false })).erro);
+  assert.ok((await acoesNegadas.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, horasPresenca: 1, aprovacaoAutomatica: false })).erro);
   assert.equal(negado.chamadas.config, null);
 
   const aceito = ambienteCoordenacao();
   const acoes = carregar("src/app/guarnicao/actions.ts", aceito.mocks);
-  assert.ok((await acoes.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, aprovacaoAutomatica: false })).ok);
+  assert.ok((await acoes.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, horasPresenca: 1, aprovacaoAutomatica: false })).ok);
   assert.equal(aceito.chamadas.config.guarnicao_aprovacao_automatica, false);
 });
 

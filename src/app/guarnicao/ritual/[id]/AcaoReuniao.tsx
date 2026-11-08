@@ -95,7 +95,7 @@ export function AcaoReuniao({ eventoId, situacao, justificativa, jaComecou, praz
                   onClick={() => rodar(() => ingressarNaReuniao(eventoId))}
                   className={`${btnPrincipal} ${ouro} order-2`}
                 >
-                  {pendente ? <><Carregando /> Enviando…</> : jaComecou ? "Reunião já começou" : <><ShieldPlus size={18} /> Confirmar presença</>}
+                  {pendente ? <><Carregando /> Enviando…</> : jaComecou ? "Prazo para confirmar encerrado" : <><ShieldPlus size={18} /> Confirmar presença</>}
                 </button>
               )}
               <button type="button" onClick={abrirJustificativa} disabled={pendente} className={`${btnPrincipal} ${neutro} order-1`}>
