@@ -441,3 +441,15 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
 @media (prefers-reduced-motion: reduce) {
   .geo-girar-60, .geo-girar-90r, .geo-girar-40, .geo-girar-120r, .geo-pulsar { animation: none; }
 }
+
+/* Botão "Confirmar presença" chamando a atenção enquanto o prazo está aberto: fundo em movimento */
+@keyframes chama-fundo { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.btn-chama {
+  background-image: linear-gradient(110deg, #fde68a, #fdba74, #fda4af, #c4b5fd, #fde68a);
+  background-size: 300% 100%;
+  color: #1c1040;
+  animation: chama-fundo 4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-chama { animation: none; }
+}

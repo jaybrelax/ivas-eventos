@@ -357,7 +357,7 @@ export async function ajustarGuarnicao(
 // ───────── Reuniões: presença dos guardiões ─────────
 // Todos os guardiões ingressam (candidatura confirmada, sem vagas, espera nem limite mensal) ou justificam a ausência.
 
-export const JUSTIFICATIVA_MIN = 25;
+export const JUSTIFICATIVA_MIN = 30;
 export const JUSTIFICATIVA_MAX = 200;
 
 /**

@@ -1,17 +1,19 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { CircleCheck, Crown, FileText, SquarePen, UserCheck, UserX, X } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
-import type { DadosReuniao, PessoaReuniao } from "@/lib/reuniao";
+import type { DadosReuniao, JustificadoReuniao, PessoaReuniao } from "@/lib/reuniao";
+import { paragrafosTermo } from "@/lib/termo-justificativa";
 import { incluirGuardiaoNaReuniao, justificarPelaCoordenacao, retirarGuardiaoDaReuniao } from "../../actions";
 import { Folha } from "../../Folha";
+import { Popup } from "../../Popup";
 import { FiguraJustica } from "./AcaoReuniao";
 import { vibrar } from "../../nativo";
 
-const MIN = 25;
+const MIN = 30;
 const MAX = 200;
 
 type Props = {
@@ -28,6 +30,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
   const [pendente, iniciar] = useTransition();
   const [retirando, setRetirando] = useState<PessoaReuniao | null>(null);
   const [incluindo, setIncluindo] = useState<PessoaReuniao | null>(null);
+  const [verTermo, setVerTermo] = useState<JustificadoReuniao | null>(null);
   const [justificando, setJustificando] = useState<{ pessoa: PessoaReuniao; texto: string; existe: boolean } | null>(null);
 
   const rodar = (fn: () => Promise<{ ok?: string; erro?: string }>, aoOk?: () => void) =>
@@ -78,7 +81,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
                 </button>
               )}
             </div>
-            <TextoJustificativa texto={p.texto} />
+            <TextoJustificativa texto={p.texto} aoAbrir={() => setVerTermo(p)} />
           </li>
         )}
       />
@@ -143,6 +146,17 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
         )}
       </Folha>
 
+      {/* Texto legal completo da justificativa de quem foi tocado */}
+      <Popup aberto={!!verTermo} aoFechar={() => setVerTermo(null)} titulo="Texto legal">
+        {verTermo && (
+          <div className="space-y-3 rounded-2xl bg-stone-50 p-4 text-sm leading-snug text-stone-700 ring-1 ring-stone-200/70">
+            {paragrafosTermo({ nome: verTermo.nome, dataEvento: dados.dataEvento, motivo: verTermo.texto, quando: verTermo.quando }).map((p, i) => (
+              <p key={i} className={i === 0 ? "text-xs font-bold tracking-tight text-stone-900" : i === 2 ? "font-medium break-words whitespace-pre-line text-stone-900" : p.startsWith("Data:") ? "font-semibold text-stone-900" : undefined}>{p}</p>
+            ))}
+          </div>
+        )}
+      </Popup>
+
       {/* Confirmar a presença de alguém da lista */}
       <Folha aberta={!!incluindo} aoFechar={() => setIncluindo(null)} titulo={incluindo ? `Confirmar a presença de ${incluindo.nome.split(" ")[0]}?` : undefined}>
         <p className="text-sm text-stone-600">A pessoa passa para a lista de confirmados desta reunião.</p>
@@ -184,25 +198,19 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
   );
 }
 
-/** Justificativa recolhida em 3 linhas; tocando, abre o texto completo (e tocando de novo, recolhe). */
-function TextoJustificativa({ texto }: { texto: string }) {
-  const ref = useRef<HTMLParagraphElement>(null);
-  const [aberto, setAberto] = useState(false);
-  const [corta, setCorta] = useState(false);
-  // Só vira "tocável" se o texto realmente passa de 3 linhas
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (el && !aberto) setCorta(el.scrollHeight > el.clientHeight + 1);
-  }, [texto, aberto]);
+/** Justificativa recolhida em 2 linhas; o card todo é clicável e abre o texto legal completo num pop-up. */
+function TextoJustificativa({ texto, aoAbrir }: { texto: string; aoAbrir: () => void }) {
   return (
     <button
       type="button"
-      onClick={() => setAberto((a) => !a)}
-      aria-expanded={aberto}
-      className={`mt-2 ml-[3.25rem] block w-[calc(100%-3.25rem)] rounded-2xl bg-amber-50 px-3.5 py-2.5 text-left cursor-pointer active:opacity-80`}
+      onClick={aoAbrir}
+      aria-haspopup="dialog"
+      className="mt-2 ml-[3.25rem] block w-[calc(100%-3.25rem)] cursor-pointer rounded-2xl bg-amber-50 px-3.5 py-2.5 text-left active:opacity-80"
     >
-      <span ref={ref} className={`text-[15px] leading-relaxed whitespace-pre-line break-words text-amber-900 ${aberto ? "block" : "line-clamp-3"}`}>{texto}</span>
-      {(corta || aberto) && <span className="mt-1 block text-right text-xs font-bold text-emerald-700">{aberto ? "Ver menos" : "Ver mais"}</span>}
+      <span className="line-clamp-2 text-[15px] leading-snug whitespace-pre-line break-words text-amber-900">{texto}</span>
+      <span className="mt-2 flex justify-end">
+        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-200">Ver justificativa</span>
+      </span>
     </button>
   );
 }
