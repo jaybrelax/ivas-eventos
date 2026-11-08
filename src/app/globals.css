@@ -389,3 +389,34 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
 @media (prefers-color-scheme: dark) {
   html.tema-auto, html.tema-auto body { background-color: #151022; }
 }
+
+/* Borda animada: um brilho em degradê (ouro, coral e lilás) percorre a borda continuamente. */
+@property --borda-angulo {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.borda-animada {
+  position: relative;
+  isolation: isolate;
+}
+.borda-animada::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 1px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--borda-angulo), transparent 0deg, #e0b04a 50deg, #f8566b 110deg, #a78bfa 170deg, transparent 230deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: borda-girar 4s linear infinite;
+}
+@keyframes borda-girar {
+  to { --borda-angulo: 360deg; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .borda-animada::before { animation: none; }
+}
