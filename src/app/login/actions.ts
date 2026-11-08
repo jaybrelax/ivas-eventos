@@ -6,12 +6,7 @@ import { AppwriteException, Query } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "@/lib/appwrite";
 import { SESSION_COOKIE } from "@/lib/config";
 import { perfilDosLabels } from "@/lib/usuarios";
-
-/** Só aceita um caminho interno (evita mandar o login para outro site). */
-function destinoSeguro(next: unknown): string | null {
-  const n = String(next ?? "");
-  return n.startsWith("/") && !n.startsWith("//") ? n : null;
-}
+import { destinoSeguro } from "@/lib/destino-auth";
 
 export async function entrar(_: { erro?: string } | undefined, form: FormData) {
   const email = String(form.get("email") ?? "").trim();
@@ -41,7 +36,8 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
     if (e instanceof AppwriteException && e.type === "user_blocked") {
       const { users } = createAdminClient();
       const u = (await users.list({ queries: [Query.equal("email", email), Query.limit(1)] }).catch(() => null))?.users[0];
-      if ((u?.prefs as { situacao?: string } | undefined)?.situacao === "pendente")
+      const prefs = u?.prefs as { situacao?: string; guarnicao_situacao?: string; guarnicao_solicitacao?: boolean } | undefined;
+      if (prefs?.situacao === "pendente" || (prefs?.guarnicao_situacao === "pendente" && prefs.guarnicao_solicitacao === true))
         return { erro: "Seu cadastro ainda está aguardando a aprovação da coordenação." };
       return { erro: "Este acesso está desativado. Fale com a coordenação." };
     }

@@ -3,6 +3,8 @@ import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { regrasGuarnicao } from "@/lib/guarnicao";
 import { CabecalhoApp, Vazio } from "../ui";
 import { FormConfig } from "./FormConfig";
+import { listarGuardioesPendentes } from "@/lib/usuarios";
+import { GuardioesPendentes } from "./GuardioesPendentes";
 
 export const metadata = { title: "Configurações" };
 
@@ -16,11 +18,12 @@ export default async function ConfiguracoesGuarnicao() {
         <Vazio icone={<ShieldAlert size={26} />} titulo="Só para a coordenação" texto="As configurações da guarnição aparecem na visão de coordenador." />
       </>
     );
-  const { horas, limiteMes } = await regrasGuarnicao();
+  const [{ horas, limiteMes, aprovacaoAutomatica }, pendentes] = await Promise.all([regrasGuarnicao(), listarGuardioesPendentes()]);
   return (
     <>
       <CabecalhoApp u={u} sobre="Coordenação" titulo="Configurações" />
-      <FormConfig horasInicial={horas} limiteInicial={limiteMes} />
+      <FormConfig horasInicial={horas} limiteInicial={limiteMes} aprovacaoAutomaticaInicial={aprovacaoAutomatica} />
+      <GuardioesPendentes pendentes={pendentes} />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { CalendarClock, CalendarX2, Clock, History, Hourglass, MapPin, ShieldCheck, Sparkles, UserRoundPen } from "lucide-react";
+import { CalendarClock, CalendarX2, Clock, FileText, History, Hourglass, MapPin, ShieldCheck, Sparkles, Users, UserRoundPen } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas, type RitualGuarnicao } from "@/lib/guarnicao-app";
-import { participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
+import { inicioDe, participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
 import { partesData } from "@/lib/format";
 import { concordar } from "@/lib/genero";
 import { urlImagem } from "@/lib/links";
@@ -9,6 +9,22 @@ import { IconeGenero } from "@/components/genero";
 import { Avatar } from "@/components/Avatar";
 import type { Sexo } from "@/lib/types";
 import { AvatarEscalado, CabecalhoApp, Vazio, VagaLivre } from "./ui";
+import { BuscaRituais } from "./BuscaRituais";
+import { Carrossel } from "./Carrossel";
+import { MaisRituais } from "./MaisRituais";
+import { AreaLista, ChipFiltro, NavegacaoRituais } from "./NavegacaoRituais";
+
+/** Quantos cards a lista mostra de cada vez; ao rolar até o fim, vêm mais `PAGINA`. */
+const PAGINA = 12;
+
+const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+/** Busca pelo tema (título) ou pelo número geral do ritual ("532", "nº 532", "ritual 532"). */
+function casaBusca(r: RitualGuarnicao, q: string) {
+  if (semAcento(r.evento.titulo).includes(semAcento(q))) return true;
+  const numero = /^\D*\d+\D*$/.test(q) ? q.replace(/\D/g, "") : "";
+  return !!numero && String(r.evento.ritual_numero_geral ?? "").startsWith(numero);
+}
 
 export const metadata = { title: "Rituais" };
 
@@ -17,24 +33,46 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   const ctx = (await contextoGuarnicao())!;
   const { u, visao } = ctx;
   const sp = await searchParams;
-  const soComVaga = sp.filtro === "vaga";
-  // Só a coordenação alterna para os rituais que já aconteceram
-  const anteriores = visao === "coordenador" && sp.periodo === "anteriores";
+  // Coordenação e guardiões alternam para os rituais que já aconteceram
+  const anteriores = (visao === "coordenador" || visao === "guardiao") && sp.periodo === "anteriores";
+  const soComVaga = !anteriores && !u.suspensoAte && sp.filtro === "vaga";
+  // Com busca, procura nos próximos e também nos do último ano
+  const q = typeof sp.q === "string" ? sp.q.trim().slice(0, 60) : "";
+  // Quantos cards mostrar (de 12 em 12, conforme a rolagem)
+  const pedido = Number.parseInt(typeof sp.n === "string" ? sp.n : "", 10);
+  const mostrar = Number.isFinite(pedido) ? Math.min(Math.max(pedido, PAGINA), 480) : PAGINA;
+  // Guardião nos próximos precisa de todos para contar "com vaga para mim"; nos demais, busca só o que vai aparecer
+  const limite = q || (visao === "guardiao" && !anteriores) ? undefined : mostrar + 1;
   const [rituais, { limiteMes }, porMes] = await Promise.all([
-    rituaisComVagas(u.id, 120, anteriores),
+    q
+      ? Promise.all([rituaisComVagas(u.id, 120), rituaisComVagas(u.id, 120, true)]).then(([prox, ant]) => [...prox, ...ant].filter((r) => casaBusca(r, q)))
+      : rituaisComVagas(u.id, 120, anteriores, limite),
     regrasGuarnicao(),
     visao === "guardiao" ? participacoesPorMes(u.id) : Promise.resolve(new Map<string, number>()),
   ]);
   const sexo = u.sexo;
+  // Na reunião, guardiões e mestres marcam presença ou justificam a ausência
+  const participaReuniao = u.funcaoRitual === "guardiao" || u.funcaoRitual === "mestre";
   // Já atingiu o limite de participações no mês deste ritual (avisa no card, antes de tentar)
-  const noLimite = (r: RitualGuarnicao) => limiteMes > 0 && !r.minha && (porMes.get(r.evento.data.slice(0, 7)) ?? 0) >= limiteMes;
-  const temVagaPraMim = (r: RitualGuarnicao) => !!sexo && r.aberto && !r.minha && r.vagas[sexo] - r.confirmados[sexo] > 0 && !noLimite(r);
+  const noLimite = (r: RitualGuarnicao) => !r.reuniao && limiteMes > 0 && !r.minha && (porMes.get(r.evento.data.slice(0, 7)) ?? 0) >= limiteMes;
+  const temVagaPraMim = (r: RitualGuarnicao) => !r.reuniao && !u.suspensoAte && !!sexo && r.aberto && !r.minha && r.vagas[sexo] - r.confirmados[sexo] > 0 && !noLimite(r);
   const lista = visao === "guardiao" && soComVaga ? rituais.filter(temVagaPraMim) : rituais;
   const comVaga = rituais.filter(temVagaPraMim).length;
+  const visiveis = lista.slice(0, mostrar);
+  const temMais = lista.length > mostrar;
+  const agora = Date.now();
+  const ehPassado = (r: RitualGuarnicao) => (q ? inicioDe(r.evento).getTime() <= agora - 6 * 3_600_000 : anteriores);
+  const manter: Record<string, string> = soComVaga && visao === "guardiao" ? { filtro: "vaga" } : anteriores ? { periodo: "anteriores" } : {};
 
   return (
-    <>
+    <NavegacaoRituais>
       <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : visao === "mestre" ? "Mestre" : undefined} saudacao={`Olá, ${u.nome.split(" ")[0]}`} titulo="Rituais" />
+
+      {visao === "guardiao" && u.suspensoAte && (
+        <div className="mx-5 mb-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
+          Suas candidaturas estão suspensas até {new Date(u.suspensoAte).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" })}. Você pode acompanhar os rituais, suas participações e estatísticas normalmente.
+        </div>
+      )}
 
       {visao === "guardiao" && !sexo && (
         <Link href="/guarnicao/perfil" className="mx-5 mb-3 flex items-center gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
@@ -43,47 +81,60 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
         </Link>
       )}
 
-      {visao === "coordenador" && (
-        <div className="flex px-5 pt-[calc(0.25rem+5px)] pb-3">
-          <Link href={anteriores ? "/guarnicao" : "/guarnicao?periodo=anteriores"} className="chip-app">
+      {/* Busca à esquerda e, para a coordenação, o atalho dos rituais anteriores na mesma linha (mesma altura) */}
+      <div className="flex items-center gap-2 px-5 pt-[calc(0.25rem+5px)] pb-3">
+        <BuscaRituais inicial={q} manter={manter} />
+        {visao === "coordenador" && (
+          <ChipFiltro href={anteriores ? "/guarnicao" : "/guarnicao?periodo=anteriores"} ativo={false} className="shrink-0 whitespace-nowrap">
             {anteriores ? <><CalendarClock size={14} /> Ver próximos rituais</> : <><History size={14} /> Ver rituais anteriores</>}
-          </Link>
-        </div>
-      )}
+          </ChipFiltro>
+        )}
+      </div>
 
+      {/* Guardião: filtros num carrossel que rola de lado, como nos apps nativos */}
       {visao === "guardiao" && (
-        <div className="flex gap-2 px-5 pt-[calc(0.25rem+5px)] pb-3">
-          <Link href="/guarnicao" className={`chip-app ${!soComVaga ? "chip-app-on" : ""}`}>Todos</Link>
-          <Link href="/guarnicao?filtro=vaga" className={`chip-app ${soComVaga ? "chip-app-on" : ""}`}>
-            <Sparkles size={14} /> Com vaga para mim {comVaga > 0 && <span className="rounded-full bg-emerald-600 px-1.5 text-[10px] text-white tabular-nums">{comVaga}</span>}
-          </Link>
-        </div>
+        <Carrossel rotulo="Filtros">
+          <ChipFiltro href="/guarnicao" ativo={!soComVaga && !anteriores} className="shrink-0 snap-start whitespace-nowrap">
+            <CalendarClock size={14} /> Próximos rituais
+          </ChipFiltro>
+          <ChipFiltro href="/guarnicao?periodo=anteriores" ativo={anteriores} className="shrink-0 snap-start whitespace-nowrap">
+            <History size={14} /> Rituais anteriores
+          </ChipFiltro>
+          {!u.suspensoAte && <ChipFiltro href="/guarnicao?filtro=vaga" ativo={soComVaga} className="shrink-0 snap-start whitespace-nowrap">
+            <Sparkles size={14} /> Com vaga para mim {comVaga > 0 && !anteriores && <span className="rounded-full bg-emerald-600 px-1.5 text-[10px] text-white tabular-nums">{comVaga}</span>}
+          </ChipFiltro>}
+        </Carrossel>
       )}
 
+      <AreaLista>
       {lista.length === 0 ? (
         <Vazio
           icone={<CalendarX2 size={26} />}
-          titulo={soComVaga ? "Nenhuma vaga para você agora" : anteriores ? "Nenhum ritual anterior" : "Nenhum ritual agendado"}
-          texto={soComVaga ? "Quando abrir uma vaga para o seu gênero, ela aparece aqui em destaque." : "Os próximos rituais aparecem aqui assim que forem publicados na agenda."}
+          titulo={q ? "Nenhum ritual encontrado" : soComVaga ? "Nenhuma vaga para você agora" : anteriores ? "Nenhum ritual anterior" : "Nenhum ritual agendado"}
+          texto={q ? `Nada com “${q}” no tema ou no número, entre os próximos rituais e os do último ano.` : soComVaga ? "Quando abrir uma vaga para o seu gênero, ela aparece aqui em destaque." : "Os próximos rituais aparecem aqui assim que forem publicados na agenda."}
         />
       ) : (
         <ul className="space-y-3 px-4">
-          {lista.map((r) => (
+          {visiveis.map((r) => (
             <li key={r.evento.$id}>
-              <CartaoRitual meuId={u.id} r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={anteriores} limite={noLimite(r) && r.aberto ? limiteMes : null} />
+              <CartaoRitual meuId={u.id} participaReuniao={participaReuniao} r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={ehPassado(r)} limite={noLimite(r) && r.aberto ? limiteMes : null} />
             </li>
           ))}
         </ul>
       )}
-    </>
+      {temMais && <MaisRituais proximo={mostrar + PAGINA} />}
+      </AreaLista>
+    </NavegacaoRituais>
   );
 }
 
-function CartaoRitual({ meuId, r, visao, sexo, vagaPraMim, passado = false, limite = null }: { meuId: string; r: RitualGuarnicao; visao: "coordenador" | "guardiao" | "mestre"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
+function CartaoRitual({ meuId, participaReuniao, r, visao, sexo, vagaPraMim, passado = false, limite = null }: { meuId: string; participaReuniao: boolean; r: RitualGuarnicao; visao: "coordenador" | "guardiao" | "mestre"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
   const e = r.evento;
   const d = partesData(e.data);
   const faltam = (s: Sexo) => Math.max(0, r.vagas[s] - r.confirmados[s]);
   const completo = !faltam("masculino") && !faltam("feminino");
+
+  if (r.reuniao) return <CartaoReuniao r={r} participa={participaReuniao} passado={passado} />;
 
   return (
     <Link
@@ -167,7 +218,7 @@ function CartaoRitual({ meuId, r, visao, sexo, vagaPraMim, passado = false, limi
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-1 text-xs font-bold text-stone-600"><CalendarClock size={13} /> Limite do mês atingido ({limite}/{limite})</p>
           ) : vagaPraMim ? (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white"><Sparkles size={13} /> Vaga para você</p>
-          ) : !r.aberto ? (
+          ) : !r.aberto && !passado ? (
             <p className="mt-3 text-xs font-medium text-stone-400">Candidaturas encerradas</p>
           ) : null
         ) : (
@@ -179,6 +230,72 @@ function CartaoRitual({ meuId, r, visao, sexo, vagaPraMim, passado = false, limi
               : completo ? "Guarnição completa" : `Faltam ${faltam("masculino") + faltam("feminino")} na guarnição`}
           </p>
         )}
+      </div>
+    </Link>
+  );
+}
+
+/** Reunião: sem vagas; mostra quem já marcou presença e a situação de quem está vendo. */
+function CartaoReuniao({ r, participa, passado }: { r: RitualGuarnicao; participa: boolean; passado: boolean }) {
+  const e = r.evento;
+  const d = partesData(e.data);
+  const comecou = inicioDe(e).getTime() <= Date.now();
+  const VER = 6;
+  return (
+    <Link
+      href={`/guarnicao/ritual/${e.$id}`}
+      className={`borda-animada flex overflow-hidden rounded-3xl bg-white shadow-cartao transition active:scale-[0.985] `}
+    >
+      <div className="coluna-data flex w-[6.5rem] shrink-0 flex-col">
+        <div className="flex flex-col items-center px-2 pt-3 pb-2.5 text-center">
+          <span className="data-mes text-[10px] font-bold tracking-[0.22em] uppercase">{d.mesCurto}</span>
+          <span className="text-[34px] leading-none font-black tabular-nums">{d.dia}</span>
+          <span className="data-sem mt-1 text-[11px] font-extrabold tracking-[0.14em] uppercase">{d.diaSemana.replace("-feira", "")}</span>
+        </div>
+        <div className="relative isolate min-h-24 flex-1 overflow-hidden">
+          {e.capa_file_id && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={urlImagem(e.capa_file_id, 320)} alt="" loading="lazy" decoding="async" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+          )}
+          <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+          <div className="absolute inset-x-0 bottom-2 flex flex-col items-center gap-0.5 text-white [text-shadow:0_1px_8px_rgb(0_0_0/0.6)]">
+            <Users size={20} />
+            <span className="text-[9px] font-bold tracking-[0.2em] text-white/80 uppercase">Reunião</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="min-w-0 flex-1 p-4">
+        <h2 className="line-clamp-2 text-base leading-snug font-semibold text-stone-900">{e.titulo}</h2>
+        <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-stone-500">
+          <Clock size={12} className="shrink-0" /> <span className="shrink-0 font-semibold text-stone-600 tabular-nums">{e.hora_inicio}</span>
+          {r.local && <><MapPin size={12} className="ml-1.5 shrink-0" /> <span className="truncate">{r.local}</span></>}
+        </p>
+
+        <div className="mt-3 flex items-center">
+          {r.presentes.slice(0, VER).map((p, i) => (
+            <span key={p.id} className={i ? "-ml-2" : ""}>
+              <Avatar nome={p.nome} foto={p.foto} tamanho={32} className="ring-2 ring-white" />
+            </span>
+          ))}
+          {r.presentes.length > VER && <span className="ml-1.5 text-xs font-semibold text-stone-500 tabular-nums">+{r.presentes.length - VER}</span>}
+        </div>
+        <p className="mt-2 text-xs text-stone-500">
+          <strong className="font-semibold text-stone-700 tabular-nums">{r.presentes.length}</strong> {r.presentes.length === 1 ? "presente" : "presentes"}
+          {r.justificados > 0 && <> · <strong className="font-semibold text-stone-700 tabular-nums">{r.justificados}</strong> {r.justificados === 1 ? "justificou" : "justificaram"}</>}
+        </p>
+
+        {participa ? (
+          r.minha === "confirmada" ? (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#f8566b] px-2.5 py-1 text-xs font-bold text-[#1c1040] shadow-sm"><ShieldCheck size={14} /> Presença confirmada</p>
+          ) : r.minha === "justificada" ? (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800"><FileText size={14} /> Ausência justificada</p>
+          ) : !passado && !comecou ? (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white"><Sparkles size={13} /> Confirme sua presença</p>
+          ) : (
+            <p className="mt-3 text-xs font-medium text-stone-400">Sem resposta</p>
+          )
+        ) : null}
       </div>
     </Link>
   );

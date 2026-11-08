@@ -1,5 +1,5 @@
 import { getDadosInstituto, listarEventos } from "@/lib/data";
-import { candidaturasDosEventos } from "@/lib/guarnicao";
+import { candidaturasDosEventos, temGuarnicao } from "@/lib/guarnicao";
 import { hoje } from "@/lib/format";
 import { enviarPush } from "@/lib/push";
 
@@ -13,7 +13,7 @@ export async function GET(req: Request) {
 
   const amanha = new Date(Date.parse(`${hoje()}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
   const [{ tipos, enderecos }, eventos] = await Promise.all([getDadosInstituto(), listarEventos({ inicio: amanha, fim: amanha })]);
-  const ritual = new Set(tipos.filter((t) => t.conta_como_ritual).map((t) => t.$id));
+  const ritual = new Set(tipos.filter((t) => temGuarnicao(t)).map((t) => t.$id));
   const rituais = eventos.filter((e) => ritual.has(e.tipo_id));
   const cand = await candidaturasDosEventos(rituais.map((e) => e.$id));
 

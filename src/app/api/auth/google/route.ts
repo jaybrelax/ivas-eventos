@@ -1,25 +1,26 @@
 import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
-
-/** Só aceita um caminho interno (evita mandar o retorno do Google para outro site). */
-function destinoSeguro(next: string | null): string | null {
-  return next && next.startsWith("/") && !next.startsWith("//") ? next : null;
-}
+import { destinoGuarnicao, destinoSeguro, ehDestinoGuarnicao } from "@/lib/destino-auth";
 
 /**
  * Início do login/cadastro com um clique pelo Google: o próprio app fala com o Google
  * (não passa pelo domínio do Appwrite, só usado para guardar a conta depois do retorno).
  */
 export async function GET(req: NextRequest) {
+  const retorno = destinoSeguro(req.nextUrl.searchParams.get("next"));
+  const guardiao = req.nextUrl.searchParams.get("guardiao") === "1";
+  const doApp = guardiao || ehDestinoGuarnicao(retorno);
+  const next = doApp ? destinoGuarnicao(retorno) : retorno;
+  const login = doApp ? "/login-guarnicao" : "/login";
   const clientId = process.env.GOOGLE_CLIENT_ID;
   if (!clientId) {
     console.error("GOOGLE_CLIENT_ID ausente no .env.local");
-    return NextResponse.redirect(new URL("/login?erro=google", req.url));
+    const falha = new URL(`${login}?erro=google`, req.url);
+    if (next) falha.searchParams.set("next", next);
+    return NextResponse.redirect(falha);
   }
 
-  const next = destinoSeguro(req.nextUrl.searchParams.get("next"));
-  const guardiao = req.nextUrl.searchParams.get("guardiao") === "1";
   const origem = req.nextUrl.searchParams.get("origem") === "cadastro" ? "cadastro" : null;
   const redirectUri = `${req.nextUrl.origin}/api/auth/google/callback`;
   const state = randomBytes(16).toString("hex");

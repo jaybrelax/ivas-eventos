@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { CalendarRange, Clock, Minus, Plus } from "lucide-react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { CalendarRange, Check, Clock, Minus, Plus, ShieldCheck } from "lucide-react";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import { salvarConfigGuarnicao } from "../actions";
@@ -22,11 +22,36 @@ function Passo({ valor, min, max, aoMudar, rotulo }: { valor: number; min: numbe
   );
 }
 
-export function FormConfig({ horasInicial, limiteInicial }: { horasInicial: number; limiteInicial: number }) {
+export function FormConfig({ horasInicial, limiteInicial, aprovacaoAutomaticaInicial }: { horasInicial: number; limiteInicial: number; aprovacaoAutomaticaInicial: boolean }) {
   const [horas, setHoras] = useState(horasInicial);
   const [limite, setLimite] = useState(limiteInicial);
+  const [aprovacaoAutomatica, setAprovacaoAutomatica] = useState(aprovacaoAutomaticaInicial);
   const [pendente, iniciar] = useTransition();
-  const mudou = horas !== horasInicial || limite !== limiteInicial;
+  const [estado, setEstado] = useState<"salvo" | "salvando" | "erro">("salvo");
+  const salvo = useRef({ horas: horasInicial, limiteMes: limiteInicial, aprovacaoAutomatica: aprovacaoAutomaticaInicial });
+  const versao = useRef(0);
+
+  useEffect(() => {
+    const atual = { horas, limiteMes: limite, aprovacaoAutomatica };
+    if (atual.horas === salvo.current.horas && atual.limiteMes === salvo.current.limiteMes && atual.aprovacaoAutomatica === salvo.current.aprovacaoAutomatica) return;
+    const estaVersao = ++versao.current;
+    setEstado("salvando");
+    const espera = window.setTimeout(() => {
+      iniciar(async () => {
+        const r = await salvarConfigGuarnicao(atual);
+        if (estaVersao !== versao.current) return;
+        if (r.erro) {
+          setEstado("erro");
+          toast(r.erro);
+          return;
+        }
+        salvo.current = atual;
+        setEstado("salvo");
+        vibrar();
+      });
+    }, 450);
+    return () => window.clearTimeout(espera);
+  }, [horas, limite, aprovacaoAutomatica]);
 
   return (
     <div className="space-y-4 px-4">
@@ -58,23 +83,23 @@ export function FormConfig({ horasInicial, limiteInicial }: { horasInicial: numb
         </div>
       </section>
 
-      <button
-        type="button"
-        disabled={!mudou || pendente}
-        onClick={() =>
-          iniciar(async () => {
-            const r = await salvarConfigGuarnicao({ horas, limiteMes: limite });
-            if (r.erro) toast(r.erro);
-            else if (r.ok) {
-              vibrar();
-              toast(r.ok, "ok");
-            }
-          })
-        }
-        className="flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 text-base font-bold text-white shadow-md transition active:scale-[0.98] disabled:bg-stone-300 disabled:text-stone-600 disabled:shadow-none"
-      >
-        {pendente ? <><Carregando /> Salvando…</> : mudou ? "Salvar configurações" : "Tudo salvo"}
-      </button>
+      <section className="rounded-3xl bg-white p-5 shadow-cartao ring-1 ring-stone-200/70">
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><ShieldCheck size={21} /></span>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-stone-900">Aprovação automática de guardiões</h2>
+            <p className="mt-0.5 text-sm leading-snug text-stone-500">Quando ligada, quem conclui o cadastro já recebe a função de guardião e pode entrar no app. Desligada, o cadastro aguarda aprovação da coordenação.</p>
+          </div>
+        </div>
+        <label className="mt-4 flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-stone-700">
+          <span>{aprovacaoAutomatica ? "Ligada: acesso imediato" : "Desligada: aprovação manual"}</span>
+          <input type="checkbox" role="switch" aria-label="Aprovação automática de guardiões" checked={aprovacaoAutomatica} onChange={(e) => setAprovacaoAutomatica(e.target.checked)} className="h-5 w-5 accent-emerald-600" />
+        </label>
+      </section>
+
+      <p aria-live="polite" className={`flex h-8 items-center justify-center gap-2 text-xs font-semibold ${estado === "erro" ? "text-red-600" : estado === "salvando" || pendente ? "text-stone-500" : "text-emerald-700"}`}>
+        {estado === "erro" ? "Não foi possível salvar" : estado === "salvando" || pendente ? <><Carregando /> Salvando automaticamente…</> : <><Check size={15} /> Salvo automaticamente</>}
+      </p>
     </div>
   );
 }

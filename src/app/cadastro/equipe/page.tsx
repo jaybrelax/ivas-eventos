@@ -3,6 +3,7 @@ import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
 import { FundoMarca } from "@/components/FundoMarca";
 import { CadastroForm } from "./CadastroForm";
+import { destinoGuarnicao, destinoSeguro, ehDestinoGuarnicao } from "@/lib/destino-auth";
 
 export const metadata: Metadata = { title: "Cadastro — Instituto IVAS", robots: { index: false } };
 
@@ -14,6 +15,11 @@ export default async function CadastroPage({ searchParams }: PageProps<"/cadastr
   const [sp, instituto] = await Promise.all([searchParams, getInstituto()]);
   const f = typeof sp.funcao === "string" ? sp.funcao.toLowerCase() : "";
   const funcao = f === "mestre" || f === "guardiao" ? f : null;
+  const doApp = funcao === "guardiao" || ehDestinoGuarnicao(sp.next);
+  const next = doApp ? destinoGuarnicao(sp.next) : destinoSeguro(sp.next);
+  const login = doApp ? "/login-guarnicao" : "/login";
+  const loginHref = next ? `${login}?next=${encodeURIComponent(next)}` : login;
+  const cadastroHref = doApp ? `/cadastro?guardiao=1&next=${encodeURIComponent(destinoGuarnicao(next))}` : "/cadastro";
 
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
@@ -39,7 +45,7 @@ export default async function CadastroPage({ searchParams }: PageProps<"/cadastr
           </div>
           <h2 className="text-center text-2xl font-semibold tracking-tight text-stone-900 lg:text-3xl">Criar cadastro</h2>
           <p className="mt-1 mb-5 text-center text-sm lg:mt-1.5 lg:mb-8 text-stone-500">O acesso é liberado depois da aprovação da coordenação.</p>
-          <CadastroForm funcao={funcao} estadoPadrao={instituto.estado} cidadePadrao={instituto.cidade} />
+          <CadastroForm funcao={funcao} loginHref={loginHref} cadastroHref={cadastroHref} estadoPadrao={instituto.estado} cidadePadrao={instituto.cidade} />
         </div>
       </section>
     </main>

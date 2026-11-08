@@ -1,8 +1,8 @@
+import Link from "next/link";
+import { UserRound } from "lucide-react";
 import { contextoGuarnicao, temaGuarnicao } from "@/lib/guarnicao-app";
-import { getDadosInstituto } from "@/lib/data";
 import { PERFIS } from "@/lib/config";
 import { Avatar } from "@/components/Avatar";
-import { MeusDadosForm } from "@/app/minha-conta/MeusDadosForm";
 import { sair } from "@/app/login/actions";
 import { trocarVisao } from "../actions";
 import { CabecalhoApp } from "../ui";
@@ -16,7 +16,7 @@ export const metadata = { title: "Perfil" };
 
 export default async function PerfilGuarnicao() {
   const { u, visoes, visao } = (await contextoGuarnicao("/guarnicao/perfil"))!;
-  const [{ instituto }, tema] = await Promise.all([getDadosInstituto(), temaGuarnicao()]);
+  const tema = await temaGuarnicao();
   const perfil = PERFIS.find((p) => p.id === u.perfil)?.nome;
 
   return (
@@ -32,6 +32,21 @@ export default async function PerfilGuarnicao() {
             {[u.funcaoRitual === "guardiao" ? (u.sexo === "feminino" ? "Guardiã" : "Guardião") : u.funcaoRitual === "mestre" ? "Mestre" : null, perfil].filter(Boolean).join(" · ")}
           </p>
         </div>
+      </section>
+
+      <section className="mx-4 mt-4 rounded-3xl bg-white p-5 shadow-cartao ring-1 ring-stone-200/70">
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-mata-50 text-mata-700">
+            <UserRound size={21} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold text-stone-900">Meus dados</h2>
+            <p className="mt-0.5 text-sm leading-snug text-stone-500">Atualize suas informações pessoais, contato, endereço e dados do seu perfil.</p>
+          </div>
+        </div>
+        <Link href="/guarnicao/perfil/dados" className="mt-4 flex h-11 w-full items-center justify-center rounded-2xl bg-mata-50 text-sm font-bold text-mata-700 transition active:scale-[0.98]">
+          Editar meus dados
+        </Link>
       </section>
 
       {/* Quem é coordenador e guardião escolhe a visão */}
@@ -59,17 +74,7 @@ export default async function PerfilGuarnicao() {
 
       <InstalarGuarnicao />
 
-      <section className="mx-4 mt-4 rounded-3xl bg-white p-5 shadow-cartao ring-1 ring-stone-200/70">
-        <h2 className="mb-4 text-base font-semibold text-stone-900">Meus dados</h2>
-        <MeusDadosForm
-          nome={u.nome} email={u.email} telefone={u.telefone} endereco={u.endereco} sexo={u.sexo} foto={u.foto}
-          cpf={u.cpf} dataNascimento={u.dataNascimento} next="/guarnicao/perfil" semFoto compacto
-          estado={u.estado ?? instituto.estado} cidade={u.estado ? u.cidade : instituto.cidade}
-          profissao={u.profissao} experiencia={u.experiencia} motivacao={u.motivacao} expectativas={u.expectativas}
-        />
-      </section>
-
-      <BotaoSair sair={sair.bind(null, "/guarnicao")} />
+      <BotaoSair sair={sair} />
     </>
   );
 }

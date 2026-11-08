@@ -1,9 +1,9 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getUsuario, type Usuario } from "./auth";
+import { getUsuario, podeSolicitarGuarnicao, type Usuario } from "./auth";
 import { getDadosInstituto, listarEventos } from "./data";
-import { candidaturasDosEventos, inicioDe, vagasDe } from "./guarnicao";
+import { candidaturasDosEventos, comMestresAutomaticos, ehReuniao, inicioDe, registrosDasReunioes, temAppGuarnicao, vagasDe } from "./guarnicao";
 import { hoje } from "./format";
 import { mapaUsuarios } from "./usuarios";
 import type { Endereco, Evento, Sexo, SituacaoCandidatura } from "./types";
@@ -47,7 +47,10 @@ export function visoesDe(u: Pick<Usuario, "perfil" | "funcaoRitual">): VisaoGuar
 export async function contextoGuarnicao(next = "/guarnicao"): Promise<ContextoGuarnicao | null> {
   const u = await getUsuario();
   if (!u) redirect(`/login-guarnicao?next=${encodeURIComponent(next)}`);
+  if (u.aprovacaoPendente) redirect("/aguardando-aprovacao");
+  if (u.cadastroIncompleto) redirect(`/cadastro-guarnicao?completar=1&next=${encodeURIComponent(next)}`);
   const visoes = visoesDe(u);
+  if (!visoes.length && podeSolicitarGuarnicao(u)) redirect(`/cadastro-guarnicao?completar=1&next=${encodeURIComponent(next)}`);
   if (!visoes.length) return null;
   const salva = (await cookies()).get(COOKIE_VISAO)?.value as VisaoGuarnicao | undefined;
   const visao = salva && visoes.includes(salva) ? salva : visoes[0];
@@ -68,41 +71,57 @@ export type RitualGuarnicao = {
   minha: SituacaoCandidatura | null;
   /** Ainda dá para se candidatar (aberto e não começou). */
   aberto: boolean;
+  /** Reunião: sem vagas; vale a presença de todos os guardiões. */
+  reuniao: boolean;
+  /** Reunião: quem marcou presença. */
+  presentes: { id: string; nome: string; foto: string | null }[];
+  /** Reunião: quantos justificaram a ausência. */
+  justificados: number;
 };
 
 /**
  * Rituais com vagas por gênero, confirmados e espera. Por padrão, os próximos (até `dias` à frente);
  * com `anteriores`, os que já aconteceram no último ano, do mais recente ao mais antigo.
  */
-export async function rituaisComVagas(usuarioId: string | null, dias = 120, anteriores = false): Promise<RitualGuarnicao[]> {
+export async function rituaisComVagas(usuarioId: string | null, dias = 120, anteriores = false, maximo?: number): Promise<RitualGuarnicao[]> {
   const hj = hoje();
   const deslocar = (n: number) => new Date(Date.parse(`${hj}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
   const [{ tipos, enderecos }, eventos] = await Promise.all([
     getDadosInstituto(),
     anteriores ? listarEventos({ inicio: deslocar(-365), fim: hj }) : listarEventos({ inicio: hj, fim: deslocar(dias) }),
   ]);
-  const ritual = new Set(tipos.filter((t) => t.conta_como_ritual).map((t) => t.$id));
+  const ritual = new Set(tipos.filter((t) => temAppGuarnicao(t)).map((t) => t.$id));
+  const reunioes = new Set(tipos.filter((t) => ehReuniao(t)).map((t) => t.$id));
   const limite = Date.now() - 6 * 3_600_000;
   const rituais = eventos
     .filter((e) => ritual.has(e.tipo_id) && (anteriores ? inicioDe(e).getTime() <= limite : inicioDe(e).getTime() > limite))
     .sort((a, b) => (anteriores ? -1 : 1) * (a.data + a.hora_inicio).localeCompare(b.data + b.hora_inicio))
-    // A lista de anteriores mostra só os 40 mais recentes (o resto fica no histórico de cada guardião)
-    .slice(0, anteriores ? 40 : undefined);
-  const [cand, usuarios] = await Promise.all([candidaturasDosEventos(rituais.map((e) => e.$id)), mapaUsuarios()]);
+    // Só os primeiros `maximo` (a tela pede de 12 em 12 ao rolar); sem limite, todos
+    .slice(0, maximo);
+  const idsReunioes = rituais.filter((e) => reunioes.has(e.tipo_id)).map((e) => e.$id);
+  const [cand, usuarios, registrosReunioes] = await Promise.all([candidaturasDosEventos(rituais.map((e) => e.$id), true), mapaUsuarios(), registrosDasReunioes(idsReunioes)]);
   const pessoa = (id: string) => ({ id, nome: usuarios.get(id)?.nome ?? "Guardião", foto: usuarios.get(id)?.foto ?? null });
   const doGenero = (e: Evento, s: Sexo) => (e.guardioes ?? []).filter((id) => usuarios.get(id)?.sexo === s).map(pessoa);
   const endPorId = new Map<string, Endereco>(enderecos.map((e) => [e.$id, e]));
   return rituais.map((e) => {
-    const doEvento = cand.filter((c) => c.evento_id === e.$id);
+    const reuniao = reunioes.has(e.tipo_id);
+    // Reunião: os mestres escalados já contam como confirmados, até responderem de outro jeito
+    const doEvento = reuniao
+      ? comMestresAutomaticos(e, registrosReunioes.filter((c) => c.evento_id === e.$id)).filter((c) => !c.$id.startsWith("auto-") || usuarios.get(c.usuario_id)?.ativo)
+      : cand.filter((c) => c.evento_id === e.$id);
     const conf = (s: Sexo) => doEvento.filter((c) => c.sexo === s && c.situacao === "confirmada").length;
     const end = e.endereco_id ? endPorId.get(e.endereco_id) : undefined;
+    const presentes = reuniao ? doEvento.filter((c) => c.situacao === "confirmada").sort((a, b) => a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)).sort((a, b) => Number(usuarios.get(b.id)?.funcao === "mestre") - Number(usuarios.get(a.id)?.funcao === "mestre")) : [];
     return {
+      reuniao,
+      presentes,
+      justificados: reuniao ? doEvento.filter((c) => c.situacao === "justificada").length : 0,
       evento: e,
       local: end ? end.apelido : e.endereco_livre,
-      vagas: vagasDe(e),
+      vagas: reuniao ? { masculino: 0, feminino: 0 } : vagasDe(e),
       // Nos rituais passados vale a lista `guardioes` do evento (traz também o histórico importado)
-      confirmados: anteriores ? { masculino: doGenero(e, "masculino").length, feminino: doGenero(e, "feminino").length } : { masculino: conf("masculino"), feminino: conf("feminino") },
-      escalados: anteriores
+      confirmados: reuniao ? { masculino: presentes.length, feminino: 0 } : anteriores ? { masculino: doGenero(e, "masculino").length, feminino: doGenero(e, "feminino").length } : { masculino: conf("masculino"), feminino: conf("feminino") },
+      escalados: reuniao ? { masculino: [], feminino: [] } : anteriores
         ? { masculino: doGenero(e, "masculino"), feminino: doGenero(e, "feminino") }
         : {
             masculino: doEvento.filter((c) => c.sexo === "masculino" && c.situacao === "confirmada").sort((a, b) => a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)),

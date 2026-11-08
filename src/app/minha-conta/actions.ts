@@ -5,15 +5,9 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigirSessao } from "@/lib/auth";
 import { salvarContato } from "@/lib/usuarios";
-import { comParticiparAberto } from "@/lib/links";
+import { destinoAposCadastro } from "@/lib/destino-auth";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
-
-/** Só aceita um caminho interno (evita mandar o formulário para outro site). */
-function destinoSeguro(next: unknown): string | null {
-  const n = String(next ?? "");
-  return n.startsWith("/") && !n.startsWith("//") ? n : null;
-}
 
 /** O próprio participante (ou equipe) atualiza nome, telefone, endereço, gênero e foto. */
 export async function salvarMeusDados(_: Resultado, form: FormData): Promise<Resultado> {
@@ -33,13 +27,11 @@ export async function salvarMeusDados(_: Resultado, form: FormData): Promise<Res
   if (r.erro) return { erro: r.erro };
 
   // Concluindo o cadastro pelo Google com o link de divulgação para guardiões: vira guardião agora
-  if (form.get("guardiao") === "1") {
+  const guardiao = form.get("guardiao") === "1";
+  if (guardiao) {
     // updatePrefs substitui tudo: mescla com o que o formulário acabou de salvar
     const atuais = await users.getPrefs({ userId: u.id });
     await users.updatePrefs({ userId: u.id, prefs: { ...atuais, funcao_ritual: "guardiao" } });
-    revalidatePath("/minha-conta");
-    revalidatePath("/minha-conta/dados");
-    redirect("/login-guarnicao?next=%2Fguarnicao");
   }
 
   revalidatePath("/minha-conta");
@@ -47,6 +39,5 @@ export async function salvarMeusDados(_: Resultado, form: FormData): Promise<Res
 
   // Veio direto do cadastro pelo Google, completando os dados: segue para onde a pessoa ia antes.
   // Nos demais casos, salvou com sucesso → volta para Minhas inscrições.
-  const destino = destinoSeguro(form.get("next"));
-  redirect(destino ? comParticiparAberto(destino) : "/minha-conta?aba=proximos");
+  redirect(destinoAposCadastro(form.get("next"), guardiao, "/minha-conta?aba=proximos"));
 }

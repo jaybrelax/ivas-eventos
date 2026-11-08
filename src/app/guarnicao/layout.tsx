@@ -1,14 +1,16 @@
 import type { Metadata, Viewport } from "next";
-import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { classeTema, contextoGuarnicao, temaGuarnicao } from "@/lib/guarnicao-app";
 import { DB_ID, TABLES } from "@/lib/config";
+import { sair } from "@/app/login/actions";
 import { TemaNoDocumento } from "./TemaNoDocumento";
 import { MarcarPrimeiroAcesso } from "./MarcarPrimeiroAcesso";
 import { TempoReal } from "./TempoReal";
 import { AbasGuarnicao } from "./AbasGuarnicao";
 import { Transicao } from "./Transicao";
+import { NavegacaoApp } from "./NavegacaoApp";
 import { Abertura, AvisoOffline, PuxarAtualizar } from "./nativo";
+import { BotaoSair } from "./perfil/BotaoSair";
 
 // App da Guarnição: PWA à parte, com manifesto, nome e cor próprios
 export const metadata: Metadata = {
@@ -30,7 +32,7 @@ export default async function GuarnicaoLayout({ children }: LayoutProps<"/guarni
 
   if (!ctx)
     return (
-      <main className="app-guarnicao grid min-h-dvh place-items-center bg-[#1c1040] px-6 text-center text-white">
+      <main className="app-guarnicao grid min-h-dvh grid-rows-[1fr_auto] place-items-center bg-[#1c1040] px-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] text-center text-white">
         <div className="max-w-sm">
           <span className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-white/10 ring-1 ring-white/15">
             <ShieldAlert size={28} />
@@ -39,10 +41,10 @@ export default async function GuarnicaoLayout({ children }: LayoutProps<"/guarni
           <p className="mt-2 text-sm leading-relaxed text-white/70">
             Este app é para guardiões e para a coordenação. Se você serve como guardião, peça para a coordenação marcar sua função no cadastro.
           </p>
-          <Link href="/eventos" className="mt-6 inline-flex h-11 items-center justify-center rounded-xl bg-white px-5 text-sm font-semibold text-[#1c1040]">
-            Ir para a agenda
-          </Link>
         </div>
+        <footer className="w-full max-w-sm">
+          <BotaoSair sair={sair} rotulo="Sair da conta" />
+        </footer>
       </main>
     );
 
@@ -51,6 +53,7 @@ export default async function GuarnicaoLayout({ children }: LayoutProps<"/guarni
       <TemaNoDocumento classe={classe} />
       <MarcarPrimeiroAcesso />
       {/* overflow-x-clip: a tela nova entra deslizando pela lateral; sem cortar, a página fica mais larga que o celular por um instante e o navegador a encolhe (o menu fixo "pula") */}
+      <NavegacaoApp>
       <div className="mx-auto min-h-dvh max-w-xl overflow-x-clip bg-stone-50 pb-[calc(7.25rem+env(safe-area-inset-bottom))] shadow-[0_0_60px_-20px_rgb(0_0_0/0.25)]">
         <AvisoOffline />
         {process.env.APPWRITE_ENDPOINT && process.env.APPWRITE_PROJECT_ID && (
@@ -61,6 +64,7 @@ export default async function GuarnicaoLayout({ children }: LayoutProps<"/guarni
         </PuxarAtualizar>
       </div>
       <AbasGuarnicao visao={ctx.visao} />
+      </NavegacaoApp>
       <Abertura />
     </div>
   );

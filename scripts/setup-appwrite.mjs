@@ -58,7 +58,7 @@ const TABELAS = {
       // Estado (sigla) e cidade do Instituto: vêm já escolhidos nos formulários de cadastro
       v("estado", 2), v("cidade", 100),
       // App da Guarnição: prazo para o guardião cancelar e limite de participações por mês (0 = sem limite)
-      i("guarnicao_horas_cancelamento", { xdefault: 4, min: 0, max: 72 }), i("guarnicao_limite_mes", { xdefault: 2, min: 0, max: 31 }),
+      i("guarnicao_horas_cancelamento", { xdefault: 4, min: 0, max: 72 }), i("guarnicao_limite_mes", { xdefault: 2, min: 0, max: 31 }), b("guarnicao_aprovacao_automatica", true),
     ],
   },
   enderecos: {
@@ -119,8 +119,10 @@ const TABELAS = {
     colunas: [
       v("evento_id", 36, { required: true }), v("usuario_id", 36, { required: true }),
       en("sexo", ["masculino", "feminino"], "masculino"),
-      en("situacao", ["confirmada", "espera", "cancelada", "removida"], "espera"),
+      en("situacao", ["confirmada", "espera", "cancelada", "removida", "justificada"], "espera"),
       i("ordem", { min: 0 }), v("alterado_por", 36),
+      // Reuniões: texto da justificativa de ausência
+      t("justificativa"),
     ],
     indices: [
       ["ux_candidatura", "unique", ["evento_id", "usuario_id"]],

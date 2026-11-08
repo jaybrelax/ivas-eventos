@@ -8,6 +8,7 @@ import { FundoMarca } from "@/components/FundoMarca";
 import { urlImagem } from "@/lib/links";
 import { ParticipanteForm } from "./ParticipanteForm";
 import { SemBannerInstalar } from "@/components/SemBannerInstalar";
+import { destinoGuarnicao, destinoSeguro, ehDestinoGuarnicao } from "@/lib/destino-auth";
 
 const DESCRICAO = "Faça seu cadastro no Instituto IVAS para confirmar presença nos rituais e acompanhar seu histórico de participações.";
 
@@ -23,14 +24,35 @@ export const metadata: Metadata = {
 export default async function CadastroParticipantePage({ searchParams }: PageProps<"/cadastro">) {
   const [sp, instituto] = await Promise.all([searchParams, getInstituto()]);
   // Links antigos do cadastro da equipe (/cadastro?funcao=guardiao) seguem funcionando.
-  if (typeof sp.funcao === "string") redirect(`/cadastro/equipe?funcao=${encodeURIComponent(sp.funcao)}`);
-  const next = typeof sp.next === "string" ? sp.next : undefined;
-  // Link da divulgação para guardiões (?guardiao): o cadastro já nasce com a função e volta para o login do app
-  const guardiao = "guardiao" in sp;
+  if (typeof sp.funcao === "string") {
+    const params = new URLSearchParams({ funcao: sp.funcao });
+    const retorno = destinoSeguro(sp.next);
+    if (retorno) params.set("next", retorno);
+    redirect(`/cadastro/equipe?${params}`);
+  }
+  // O app da Guarnição tem cadastro próprio (/cadastro-guarnicao): links antigos com ?guardiao ou next=/guarnicao seguem para lá.
+  if ("guardiao" in sp || ehDestinoGuarnicao(sp.next)) {
+    const params = new URLSearchParams();
+    const retorno = destinoSeguro(sp.next);
+    if (retorno) params.set("next", retorno);
+    if (sp.completar === "1") params.set("completar", "1");
+    redirect(`/cadastro-guarnicao${params.size ? `?${params}` : ""}`);
+  }
+  const guardiao = false;
+  const next = guardiao ? destinoGuarnicao(sp.next) : destinoSeguro(sp.next) ?? undefined;
+  const login = guardiao ? "/login-guarnicao" : "/login";
   // Voltou do Google (conta nova, já logada): continua aqui mesmo para completar telefone, estado/cidade e gênero
   const completar = sp.completar === "1";
   const usuario = completar ? await getUsuario() : null;
-  if (completar && !usuario) redirect(`/login?next=${encodeURIComponent("/cadastro?completar=1")}`);
+  if (completar && !usuario) {
+    const params = new URLSearchParams();
+    if (next) params.set("next", next);
+    if (guardiao) params.set("guardiao", "1");
+    // Sessão do Google expirada: recomeça no cadastro do mesmo app.
+    if (guardiao) redirect(`/cadastro?${params}`);
+    params.set("completar", "1");
+    redirect(`/login?next=${encodeURIComponent(`/cadastro?${params}`)}`);
+  }
 
   return (
     <main className="grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
@@ -38,10 +60,10 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
       <section className="relative hidden overflow-hidden bg-mata-950 p-12 text-white lg:flex lg:flex-col">
         <FundoMarca />
         <div className="relative mt-auto max-w-md">
-          <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-ouro-300 uppercase">Participe dos rituais</p>
-          <h1 className="font-display text-4xl leading-tight font-semibold text-white">Confirme presença, acompanhe seu histórico e seus pagamentos.</h1>
+          <p className="mb-4 text-xs font-semibold tracking-[0.2em] text-ouro-300 uppercase">{guardiao ? "Guarnição IVAS" : "Participe dos rituais"}</p>
+          <h1 className="font-display text-4xl leading-tight font-semibold text-white">{guardiao ? "Faça parte da guarnição dos rituais." : "Confirme presença, acompanhe seu histórico e seus pagamentos."}</h1>
           <p className="mt-4 text-[15px] leading-relaxed text-mata-200">
-            Com o cadastro você confirma a vaga em cada ritual, tem historico de participação e vê os rituais de que já participou.
+            {guardiao ? "Cadastre-se para consultar vagas, se candidatar e acompanhar suas escalas no Guarnição." : "Com o cadastro você confirma a vaga em cada ritual, tem historico de participação e vê os rituais de que já participou."}
           </p>
         </div>
         <p className="relative mt-12 text-xs text-mata-400">{instituto.nome}</p>
@@ -69,7 +91,7 @@ export default async function CadastroParticipantePage({ searchParams }: PagePro
           />
         </div>
         <p className="relative mt-5 text-center text-sm font-medium text-stone-600">
-          Já tem acesso? <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-semibold text-mata-700 underline-offset-2 hover:underline">Entrar</Link>
+          Já tem acesso? <Link href={next ? `${login}?next=${encodeURIComponent(next)}` : login} className="font-semibold text-mata-700 underline-offset-2 hover:underline">Entrar</Link>
         </p>
         {/* Celular: a logo do Instituto, pequena, fechando a página */}
         {instituto.logo_file_id && (

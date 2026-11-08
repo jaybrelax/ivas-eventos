@@ -5,7 +5,7 @@ import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
 import { listarEquipe } from "@/lib/usuarios";
-import { candidaturasDosEventos, vagasDe } from "@/lib/guarnicao";
+import { candidaturasDosEventos, temGuarnicao, vagasDe } from "@/lib/guarnicao";
 import { IconeGenero } from "@/components/genero";
 import { formatarIdRitual, hoje, limitesMes, nomeMes, partesData, somarMes } from "@/lib/format";
 import { BadgeDestaque, BadgeTipo, Titulo, Vazio } from "@/components/Titulo";
@@ -37,7 +37,7 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
   const endPorId = new Map(enderecos.map((e) => [e.$id, e]));
   const pessoaPorId = new Map(equipe.map((p) => [p.$id, p]));
   // Guarnição: guardiões confirmados por gênero em cada ritual do mês
-  const rituaisDoMes = eventos.filter((e) => tipoPorId.get(e.tipo_id)?.conta_como_ritual);
+  const rituaisDoMes = eventos.filter((e) => temGuarnicao(tipoPorId.get(e.tipo_id)));
   const candidaturas = await candidaturasDosEventos(rituaisDoMes.map((e) => e.$id));
   const guarnicaoPorId = new Map(
     rituaisDoMes.map((e) => {

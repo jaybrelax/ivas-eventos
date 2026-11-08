@@ -17,7 +17,9 @@ import { InfoRitual } from "@/components/InfoRitual";
 import { EventoForm } from "../EventoForm";
 import { Guarnicao } from "../Guarnicao";
 import { dadosGuarnicao } from "../guarnicao-dados";
-import { temGuarnicao } from "@/lib/guarnicao";
+import { ehReuniao, temGuarnicao } from "@/lib/guarnicao";
+import { dadosReuniao } from "@/lib/reuniao";
+import { PresencaReuniao } from "../PresencaReuniao";
 import { Participantes } from "../Participantes";
 import { RenumerarProximos } from "../RenumerarProximos";
 import { dadosParticipantes } from "../participantes-dados";
@@ -34,6 +36,7 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const idRitual = formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano);
   const guarnicao = temGuarnicao(tipo) ? await dadosGuarnicao(evento, u, pode(u, PODE.editarEventos)) : null;
+  const reuniao = ehReuniao(tipo) ? await dadosReuniao(evento, u.id) : null;
   const participantes = await dadosParticipantes(evento, tipo, instituto.valor_contribuicao, pode(u, PODE.editarEventos));
   const voltar = (
     <Link href={`/admin/eventos?mes=${evento.data.slice(0, 7)}`} className="inline-flex items-center gap-1.5 hover:text-ouro-700">
@@ -91,6 +94,7 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
             {tipo?.conta_como_ritual && <InfoRitual instituto={instituto} />}
           </div>
         </article>
+        {reuniao && <div className="mt-6 max-w-3xl"><PresencaReuniao dados={reuniao} /></div>}
         {guarnicao && <div className="mt-6 max-w-3xl"><Guarnicao dados={guarnicao} /></div>}
         {participantes && <div className="mt-6 max-w-3xl"><Participantes dados={participantes} /></div>}
       </>
@@ -126,6 +130,7 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
         participantes={participantes && <Participantes dados={participantes} />}
         renumerar={evento.ritual_numero_geral && pode(u, PODE.editarNumeracao) ? <RenumerarProximos eventoId={evento.$id} numero={evento.ritual_numero_geral} /> : undefined}
       />
+      {reuniao && <div className="xl:mr-[23.5rem]"><PresencaReuniao dados={reuniao} /></div>}
       {u.perfil === "admin" && (
         <form action={excluirEvento} className="xl:mr-[23.5rem]">
           <input type="hidden" name="id" value={evento.$id} />

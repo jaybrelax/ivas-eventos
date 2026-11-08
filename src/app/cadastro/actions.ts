@@ -9,16 +9,10 @@ import { exigirSessao } from "@/lib/auth";
 import { salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Sexo } from "@/lib/types";
 import { ehUf } from "@/lib/perfil-extra";
-import { comParticiparAberto } from "@/lib/links";
+import { destinoAposCadastro } from "@/lib/destino-auth";
 import { conferirDadosObrigatorios } from "./dados-obrigatorios";
 
 export type ResultadoCadastro = { erro?: string } | undefined;
-
-/** Só aceita um caminho interno (evita mandar o cadastro para outro site). */
-function destinoSeguro(next: unknown): string | null {
-  const n = String(next ?? "");
-  return n.startsWith("/") && !n.startsWith("//") ? n : null;
-}
 
 /**
  * Cadastro público de participante: diferente do cadastro da equipe, a conta já nasce
@@ -79,9 +73,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   }
   // Veio de uma página de evento: volta para ela, já com a janela de confirmação aberta.
   // Cadastro direto: completa os dados e depois vê o próximo ritual em Minhas inscrições.
-  if (guardiao) redirect("/login-guarnicao?next=%2Fguarnicao");
-  const destino = destinoSeguro(form.get("next"));
-  redirect(destino ? comParticiparAberto(destino) : "/minha-conta/dados?bemvindo=1");
+  redirect(destinoAposCadastro(form.get("next"), guardiao, "/minha-conta/dados?bemvindo=1"));
 }
 
 /**
@@ -111,8 +103,6 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
     // updatePrefs substitui tudo: mescla com o que o formulário acabou de salvar (gênero, telefone, endereço…)
     const atuais = await users.getPrefs({ userId: u.id });
     await users.updatePrefs({ userId: u.id, prefs: { ...atuais, funcao_ritual: "guardiao" } });
-    redirect("/login-guarnicao?next=%2Fguarnicao");
   }
-  const destino = destinoSeguro(form.get("next"));
-  redirect(destino ? comParticiparAberto(destino) : "/minha-conta?aba=proximos");
+  redirect(destinoAposCadastro(form.get("next"), guardiao, "/minha-conta?aba=proximos"));
 }

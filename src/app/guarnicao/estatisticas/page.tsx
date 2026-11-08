@@ -77,7 +77,7 @@ export default async function EstatisticasGuarnicao({ searchParams }: PageProps<
   }
 
   // ───────── Coordenação ─────────
-  const proximos = await rituaisComVagas(null);
+  const proximos = (await rituaisComVagas(null)).filter((r) => !r.reuniao); // reuniões não têm vagas nem entram nas estatísticas de rituais
   const faltam = (r: (typeof proximos)[number]) => Math.max(0, r.vagas.masculino - r.confirmados.masculino) + Math.max(0, r.vagas.feminino - r.confirmados.feminino);
   const totalVagas = proximos.reduce((s, r) => s + r.vagas.masculino + r.vagas.feminino, 0);
   const totalConf = proximos.reduce((s, r) => s + r.confirmados.masculino + r.confirmados.feminino, 0);

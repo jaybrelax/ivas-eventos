@@ -8,13 +8,13 @@ import type { LinhaRanking } from "@/lib/guarnicao-estatisticas";
 const MESES = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"];
 
 /** Barras dos 12 meses do ano (mês atual destacado). */
-export function GraficoMeses({ porMes, titulo }: { porMes: number[]; titulo: string }) {
+export function GraficoMeses({ porMes, titulo, compacto = false }: { porMes: number[]; titulo: string; compacto?: boolean }) {
   const max = Math.max(1, ...porMes);
   const mesAtual = new Date().getMonth();
   return (
-    <section className="rounded-3xl bg-white p-5 shadow-cartao ring-1 ring-stone-200/70">
+    <section className={`rounded-3xl bg-white shadow-cartao ring-1 ring-stone-200/70 ${compacto ? "p-4" : "p-5"}`}>
       <h2 className="text-sm font-semibold text-stone-900">{titulo}</h2>
-      <div className="mt-4 flex h-32 items-end gap-1.5">
+      <div className={`flex items-end gap-1.5 ${compacto ? "mt-3 h-28" : "mt-4 h-32"}`}>
         {porMes.map((n, i) => (
           <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
             {n > 0 && <span className="text-[10px] font-semibold text-stone-500 tabular-nums">{n}</span>}

@@ -33,6 +33,15 @@ export type PrefsUsuario = {
   experiencia_ayahuasca?: Experiencia | null;
   motivacao?: string | null;
   expectativas?: string | null;
+  /** Pedido de acesso ao app da Guarnição aguardando aprovação da coordenação (quando a aprovação automática está desligada). */
+  guarnicao_situacao?: "pendente" | null;
+  guarnicao_solicitacao?: boolean | null;
+  /** Conta criada pelo Google que ainda precisa completar os dados da Guarnição. */
+  cadastro_guarnicao_incompleto?: boolean | null;
+  /** Até quando novas candidaturas do guardião estão suspensas (ISO UTC). Expira automaticamente na leitura. */
+  guarnicao_suspenso_ate?: string | null;
+  /** Marca que a coordenação retirou a função de guardião. */
+  guarnicao_cargo_removido?: boolean | null;
 };
 
 const FUNCOES: FuncaoRitual[] = ["mestre", "guardiao", "nenhuma"];
@@ -58,6 +67,10 @@ export function prefsDe(prefs: unknown) {
     experiencia_ayahuasca: p.experiencia_ayahuasca && ehExperiencia(p.experiencia_ayahuasca) ? p.experiencia_ayahuasca : null,
     motivacao: p.motivacao || null,
     expectativas: p.expectativas || null,
+    aprovacao_pendente: p.guarnicao_situacao === "pendente" && p.guarnicao_solicitacao === true,
+    cadastro_guarnicao_incompleto: p.cadastro_guarnicao_incompleto === true,
+    guarnicao_suspenso_ate: typeof p.guarnicao_suspenso_ate === "string" ? p.guarnicao_suspenso_ate : null,
+    guarnicao_cargo_removido: p.guarnicao_cargo_removido === true,
   };
 }
 
@@ -82,7 +95,7 @@ export const listarEquipe = cache(async (): Promise<Pessoa[]> => {
 });
 
 /** Resumo de todos os usuários (ativos ou não), por ID: para exibir nomes e fotos em listas. */
-export type ResumoUsuario = { id: string; nome: string; foto: string | null; sexo: Sexo | null; funcao: FuncaoRitual; ativo: boolean };
+export type ResumoUsuario = { id: string; nome: string; foto: string | null; sexo: Sexo | null; funcao: FuncaoRitual; ativo: boolean; suspensoAte: string | null };
 
 export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> => {
   const { users } = createAdminClient();
@@ -90,9 +103,24 @@ export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> 
   return new Map(
     res.users.map((u) => {
       const p = prefsDe(u.prefs);
-      return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: p.funcao_ritual, ativo: !!u.status }];
+      return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: p.funcao_ritual, ativo: !!u.status, suspensoAte: p.guarnicao_suspenso_ate }];
     }),
   );
+});
+
+/** Guardião que concluiu o cadastro na Guarnição e aguarda a aprovação da coordenação. */
+export type PendenteGuardiao = { id: string; nome: string; email: string; telefone: string | null };
+
+/** Solicitações concluídas de guardiões, aguardando aprovação nesta aplicação. */
+export const listarGuardioesPendentes = cache(async (): Promise<PendenteGuardiao[]> => {
+  const { users } = createAdminClient();
+  const res = await users.list({ queries: [Query.limit(500), Query.orderDesc("$createdAt")] });
+  return res.users.flatMap((u) => {
+    const bruto = (u.prefs ?? {}) as PrefsUsuario;
+    if (bruto.guarnicao_situacao !== "pendente" || bruto.guarnicao_solicitacao !== true) return [];
+    const p = prefsDe(u.prefs);
+    return [{ id: u.$id, nome: u.name || u.email, email: u.email, telefone: p.telefone }];
+  });
 });
 
 /** Cadastros da página pública aguardando aprovação (conta bloqueada até o Admin aprovar). */

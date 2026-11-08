@@ -20,12 +20,13 @@ type Props = {
   prazoPassou: boolean;
   prazoTexto: string;
   temVaga: boolean;
+  suspenso: boolean;
 };
 
 const vibrar = () => (navigator as Navigator & { vibrate?: (p: number) => boolean }).vibrate?.(15);
 
 /** Barra fixa acima das abas com a ação principal do guardião: candidatar-se ou cancelar. */
-export function AcaoGuardiao({ eventoId, situacao, posicaoEspera, bloqueio, prazoPassou, prazoTexto, temVaga, sexo }: Props) {
+export function AcaoGuardiao({ eventoId, situacao, posicaoEspera, bloqueio, prazoPassou, prazoTexto, temVaga, sexo, suspenso }: Props) {
   const [pendente, iniciar] = useTransition();
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
   const [montado, setMontado] = useState(false);
@@ -82,7 +83,7 @@ export function AcaoGuardiao({ eventoId, situacao, posicaoEspera, bloqueio, praz
       )}
 
       <Folha aberta={confirmarCancelar} aoFechar={() => setConfirmarCancelar(false)} titulo="Cancelar sua participação?">
-        <p className="text-sm text-stone-600">Sua vaga vai para o próximo da lista de espera. Você pode se candidatar de novo depois, se ainda houver vaga.</p>
+        <p className="text-sm text-stone-600">Sua vaga vai para o próximo da lista de espera. {suspenso ? "Durante a suspensão, você não poderá se candidatar novamente." : "Você pode se candidatar de novo depois, se ainda houver vaga."}</p>
         <div className="mt-5 grid gap-2">
           <button
             type="button"

@@ -28,7 +28,7 @@ export default async function GuardioesGuarnicao({ searchParams }: PageProps<"/g
       {lista.length === 0 ? (
         <Vazio icone={<UsersRound size={26} />} titulo="Ninguém aqui ainda" texto="Pessoas com a função Guardião no cadastro aparecem nesta lista." />
       ) : (
-        <ListaGuardioes pessoas={lista.map((p) => ({ id: p.id, nome: p.nome, foto: p.foto, sexo: p.sexo, total: p.total, ultimoTexto: p.ultimo ? `Último há ${diasDesde(p.ultimo)} dias` : "Ainda não serviu" }))} />
+        <ListaGuardioes pessoas={lista.map((p) => ({ id: p.id, nome: p.nome, foto: p.foto, sexo: p.sexo, total: p.total, ultimoTexto: p.ultimo ? `Último há ${diasDesde(p.ultimo)} dias` : "Ainda não serviu", suspenso: u.perfil === "coordenador" && !!p.suspensoAte }))} />
       )}
     </>
   );

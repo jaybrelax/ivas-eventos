@@ -3,7 +3,7 @@ import { ChevronRight, Clock, Hourglass, Shield, Users } from "lucide-react";
 import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
-import { candidaturasDosEventos, vagasDe } from "@/lib/guarnicao";
+import { candidaturasDosEventos, temGuarnicao, vagasDe } from "@/lib/guarnicao";
 import { hoje, partesData } from "@/lib/format";
 import { Titulo, Vazio, BadgeTipo } from "@/components/Titulo";
 import { IconeGenero } from "@/components/genero";
@@ -15,7 +15,7 @@ export default async function GuarnicaoPage() {
   const ate = new Date(Date.parse(`${hj}T12:00:00Z`) + 90 * 86_400_000).toISOString().slice(0, 10);
   const [{ tipos }, eventos] = await Promise.all([getDadosInstituto(), listarEventos({ inicio: hj, fim: ate })]);
   const tipoPorId = new Map(tipos.map((t) => [t.$id, t]));
-  const rituais = eventos.filter((e) => tipoPorId.get(e.tipo_id)?.conta_como_ritual);
+  const rituais = eventos.filter((e) => temGuarnicao(tipoPorId.get(e.tipo_id)));
   const candidaturas = await candidaturasDosEventos(rituais.map((e) => e.$id));
 
   const linhas = rituais.map((e) => {

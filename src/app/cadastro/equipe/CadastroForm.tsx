@@ -12,7 +12,7 @@ import { CampoEstadoCidade } from "@/components/CampoEstadoCidade";
 import { CamposSobreVoce } from "@/components/CamposSobreVoce";
 
 /** `estadoPadrao`/`cidadePadrao`: os do Instituto (Configurações), já escolhidos no formulário. */
-export function CadastroForm({ funcao, estadoPadrao, cidadePadrao }: { funcao: "mestre" | "guardiao" | null; estadoPadrao?: string | null; cidadePadrao?: string | null }) {
+export function CadastroForm({ funcao, loginHref = "/login", cadastroHref = "/cadastro", estadoPadrao, cidadePadrao }: { funcao: "mestre" | "guardiao" | null; loginHref?: string; cadastroHref?: string; estadoPadrao?: string | null; cidadePadrao?: string | null }) {
   const [estado, acao, pendente] = useActionState(cadastrar, undefined);
   const [nome, setNome] = useState("");
 
@@ -24,7 +24,7 @@ export function CadastroForm({ funcao, estadoPadrao, cidadePadrao }: { funcao: "
         <p className="mt-1.5 text-sm text-stone-600">
           Agora é só aguardar: a coordenação vai analisar e liberar o seu acesso. Depois disso, entre com o e-mail e a senha que você escolheu.
         </p>
-        <Link href="/login" className="btn-secundario mt-5">Ir para o login</Link>
+        <Link href={loginHref} className="btn-secundario mt-5">Ir para o login</Link>
       </div>
     );
 
@@ -79,10 +79,10 @@ export function CadastroForm({ funcao, estadoPadrao, cidadePadrao }: { funcao: "
         {pendente ? <><Carregando /> Enviando…</> : <>Enviar cadastro <ArrowRight size={17} /></>}
       </button>
       <p className="text-center text-sm text-stone-500">
-        Já tem acesso? <Link href="/login" className="font-medium text-mata-700 hover:underline">Entrar</Link>
+        Já tem acesso? <Link href={loginHref} className="font-medium text-mata-700 hover:underline">Entrar</Link>
       </p>
       <p className="text-center text-xs text-stone-400">
-        Só vai participar dos rituais? <Link href="/cadastro" className="font-medium text-stone-600 hover:underline">Cadastro de participante</Link>
+        Só vai participar dos rituais? <Link href={cadastroHref} className="font-medium text-stone-600 hover:underline">Cadastro de participante</Link>
       </p>
     </form>
   );

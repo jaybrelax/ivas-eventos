@@ -5,10 +5,15 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { COOKIE_TEMA, COOKIE_VISAO, contextoGuarnicao, type TemaGuarnicao, type VisaoGuarnicao } from "@/lib/guarnicao-app";
 import { getEvento, listarTipos } from "@/lib/data";
-import { adicionarGuardiao, ajustarGuarnicao, cancelar, candidatar, removerGuardiao, temGuarnicao, type Resultado } from "@/lib/guarnicao";
+import {
+  adicionarGuardiao, ajustarGuarnicao, cancelar, cancelarPresenca, candidatar, ehReuniao, incluirNaReuniao, ingressarReuniao, justificarAusencia,
+  removerGuardiao, removerJustificativa, retirarDaReuniao, temGuarnicao, type Resultado,
+} from "@/lib/guarnicao";
 import { createAdminClient } from "@/lib/appwrite";
-import { DB_ID, INSTITUTO_ROW_ID, TABLES } from "@/lib/config";
+import { DB_ID, INSTITUTO_ROW_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
 import { mapaUsuarios, salvarContato } from "@/lib/usuarios";
+import { suspensaoAtiva } from "@/lib/suspensao-guarnicao";
+import { sinalizarMudanca } from "@/lib/tempo-real";
 import { enviarPush, removerInscricao, salvarInscricao } from "@/lib/push";
 
 /** Alterna entre a visão de coordenador e a de guardião (para quem tem as duas). */
@@ -28,9 +33,6 @@ export async function salvarTema(tema: TemaGuarnicao) {
 
 function revalidar(eventoId: string) {
   revalidatePath("/guarnicao", "layout");
-  revalidatePath(`/admin/eventos/${eventoId}`);
-  revalidatePath("/admin/eventos");
-  revalidatePath("/admin/guarnicao");
 }
 
 async function ritual(eventoId: string) {
@@ -56,6 +58,7 @@ async function escalador(evento: { mestres: string[] | null }) {
 export async function candidatarGuarnicao(eventoId: string): Promise<Resultado> {
   const ctx = await contextoGuarnicao();
   if (!ctx?.visoes.includes("guardiao")) return { erro: "Só guardiões podem se candidatar." };
+  if (suspensaoAtiva(ctx.u.suspensoAte)) return { erro: "Suas candidaturas estão suspensas até o fim do prazo informado pela coordenação." };
   const { evento, tipo } = await ritual(eventoId);
   if (!evento) return { erro: "Ritual não encontrado." };
   const r = await candidatar(evento, tipo, { id: ctx.u.id, funcaoRitual: ctx.u.funcaoRitual, sexo: ctx.u.sexo });
@@ -73,13 +76,102 @@ export async function cancelarGuarnicao(eventoId: string): Promise<Resultado> {
   return r;
 }
 
+// ───────── Reuniões: presença e justificativa ─────────
+
+/** Reunião do evento (tipo fechado para guardiões), ou null. */
+async function reuniao(eventoId: string) {
+  const { evento, tipo } = await ritual(eventoId);
+  return evento && ehReuniao(tipo) ? { evento, tipo } : null;
+}
+
+/** Na reunião, guardiões e mestres marcam presença ou justificam a ausência. */
+function participaDaReuniao(funcao: string | undefined) {
+  return funcao === "guardiao" || funcao === "mestre";
+}
+
+/** Coordenação ou qualquer mestre: gerencia a lista de presença de qualquer reunião. */
+async function gestorReuniao() {
+  const ctx = await contextoGuarnicao();
+  return ctx && (ctx.visoes.includes("coordenador") || ctx.visoes.includes("mestre")) ? ctx.u : null;
+}
+
+/** O guardião marca a própria presença (só antes de a reunião começar). */
+export async function ingressarNaReuniao(eventoId: string): Promise<Resultado> {
+  const ctx = await contextoGuarnicao();
+  if (!participaDaReuniao(ctx?.u.funcaoRitual)) return { erro: "Só guardiões e mestres marcam presença." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await ingressarReuniao(r.evento, r.tipo, { id: ctx.u.id, funcaoRitual: ctx.u.funcaoRitual, sexo: ctx.u.sexo });
+  revalidar(eventoId);
+  return res;
+}
+
+/** O guardião cancela a própria presença (até o prazo antes do início). */
+export async function cancelarPresencaReuniao(eventoId: string): Promise<Resultado> {
+  const ctx = await contextoGuarnicao();
+  if (!ctx) return { erro: "Sem acesso." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await cancelarPresenca(r.evento, ctx.u.id);
+  revalidar(eventoId);
+  return res;
+}
+
+/** O guardião justifica a própria ausência (a qualquer momento). */
+export async function justificarAusenciaReuniao(eventoId: string, texto: string): Promise<Resultado> {
+  const ctx = await contextoGuarnicao();
+  if (!ctx || !participaDaReuniao(ctx.u.funcaoRitual)) return { erro: "Só guardiões e mestres justificam a própria ausência." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await justificarAusencia(r.evento, { id: ctx.u.id, sexo: ctx.u.sexo }, texto, ctx.u.id);
+  revalidar(eventoId);
+  return res;
+}
+
+/** Coordenação registra, edita ou apaga a justificativa de um guardião (texto vazio apaga). */
+export async function justificarPelaCoordenacao(eventoId: string, usuarioId: string, texto: string): Promise<Resultado> {
+  const u = await coordenador();
+  if (!u) return { erro: "Só a coordenação justifica pelo guardião." };
+  const [r, usuarios] = await Promise.all([reuniao(eventoId), mapaUsuarios()]);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const alvo = usuarios.get(usuarioId);
+  if (!alvo || !participaDaReuniao(alvo.funcao)) return { erro: "Escolha um guardião ou mestre." };
+  const res = texto.trim() ? await justificarAusencia(r.evento, { id: alvo.id, sexo: alvo.sexo }, texto, u.id) : await removerJustificativa(r.evento, alvo.id, u.id);
+  revalidar(eventoId);
+  return res;
+}
+
+/** Mestre ou coordenação inclui um guardião na lista de presença. */
+export async function incluirGuardiaoNaReuniao(eventoId: string, usuarioId: string): Promise<Resultado> {
+  const u = await gestorReuniao();
+  if (!u) return { erro: "Só a coordenação ou um mestre gerencia a presença." };
+  const [r, usuarios] = await Promise.all([reuniao(eventoId), mapaUsuarios()]);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const alvo = usuarios.get(usuarioId);
+  if (!alvo || !participaDaReuniao(alvo.funcao)) return { erro: "Escolha um guardião ou mestre." };
+  const res = await incluirNaReuniao(r.evento, { id: alvo.id, sexo: alvo.sexo }, u.id);
+  revalidar(eventoId);
+  return res;
+}
+
+/** Mestre ou coordenação tira um guardião da lista de presença. */
+export async function retirarGuardiaoDaReuniao(eventoId: string, usuarioId: string): Promise<Resultado> {
+  const u = await gestorReuniao();
+  if (!u) return { erro: "Só a coordenação ou um mestre gerencia a presença." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await retirarDaReuniao(r.evento, usuarioId, u.id);
+  revalidar(eventoId);
+  return res;
+}
+
 export async function colocarGuardiao(eventoId: string, usuarioId: string): Promise<Resultado> {
   const [{ evento, tipo }, usuarios] = await Promise.all([ritual(eventoId), mapaUsuarios()]);
   if (!evento || !temGuarnicao(tipo)) return { erro: "Ritual não encontrado." };
   const u = await escalador(evento);
   if (!u) return { erro: "Só a coordenação ou um mestre deste ritual pode escalar." };
   const alvo = usuarios.get(usuarioId);
-  if (!alvo || alvo.funcao !== "guardiao") return { erro: "Escolha uma pessoa com a função Guardião." };
+  if (!alvo || alvo.funcao !== "guardiao" || !alvo.ativo) return { erro: "Escolha um guardião ativo." };
   const r = await adicionarGuardiao(evento, { id: alvo.id, sexo: alvo.sexo }, u.id);
   revalidar(eventoId);
   return r;
@@ -106,22 +198,47 @@ export async function ajustarVagas(eventoId: string, mudar: { masculino?: number
 }
 
 /** Coordenação: prazo de cancelamento (horas antes do início) e limite de participações por mês. */
-export async function salvarConfigGuarnicao(dados: { horas: number; limiteMes: number }): Promise<Resultado> {
+export async function salvarConfigGuarnicao(dados: { horas: number; limiteMes: number; aprovacaoAutomatica: boolean }): Promise<Resultado> {
   const u = await coordenador();
   if (!u) return { erro: "Só a coordenação pode mudar as configurações." };
   const horas = Math.round(Number(dados.horas));
   const limite = Math.round(Number(dados.limiteMes));
   if (!Number.isFinite(horas) || horas < 0 || horas > 72) return { erro: "O prazo deve ficar entre 0 e 72 horas." };
   if (!Number.isFinite(limite) || limite < 0 || limite > 31) return { erro: "O limite deve ficar entre 0 e 31 por mês." };
+  if (typeof dados.aprovacaoAutomatica !== "boolean") return { erro: "Escolha uma opção válida para a aprovação automática." };
   const { tablesDB } = createAdminClient();
   try {
-    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { guarnicao_horas_cancelamento: horas, guarnicao_limite_mes: limite } });
+    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { guarnicao_horas_cancelamento: horas, guarnicao_limite_mes: limite, guarnicao_aprovacao_automatica: dados.aprovacaoAutomatica } });
   } catch (e) {
     console.error(e);
     return { erro: "Não foi possível salvar. Tente de novo." };
   }
-  revalidatePath("/", "layout");
+  await sinalizarMudanca();
+  revalidatePath("/guarnicao/configuracoes");
   return { ok: "Configurações salvas." };
+}
+
+/** Libera um cadastro da Guarnição depois da conferência da coordenação. */
+export async function aprovarGuardiao(userId: string): Promise<Resultado> {
+  const u = await coordenador();
+  if (!u) return { erro: "Só a coordenação pode aprovar guardiões." };
+  if (!userId || userId.length > 64) return { erro: "Cadastro inválido." };
+  const { users } = createAdminClient();
+  try {
+    const conta = await users.get({ userId });
+    const prefs = (conta.prefs ?? {}) as Record<string, unknown>;
+    if (prefs.guarnicao_situacao !== "pendente" || prefs.guarnicao_solicitacao !== true || !conta.labels.includes(LABEL_PARTICIPANTE))
+      return { erro: "Este cadastro não está aguardando aprovação da Guarnição." };
+    await users.updateStatus({ userId, status: true });
+    await users.updatePrefs({ userId, prefs: { ...prefs, funcao_ritual: "guardiao", guarnicao_situacao: null, guarnicao_solicitacao: null, cadastro_guarnicao_incompleto: null } });
+  } catch (e) {
+    console.error("Aprovar guardião:", e);
+    return { erro: "Não foi possível aprovar. Tente novamente." };
+  }
+  await sinalizarMudanca();
+  revalidatePath("/guarnicao/configuracoes");
+  revalidatePath("/guarnicao/guardioes");
+  return { ok: "Guardião aprovado. Ele já pode entrar na Guarnição." };
 }
 
 /** Troca ou remove a foto de perfil pelo menu do cartão do Perfil (mantém o resto do cadastro). */
@@ -137,6 +254,7 @@ export async function trocarFotoGuarnicao(form: FormData): Promise<Resultado> {
   else return { erro: "Escolha uma foto." };
   const r = await salvarContato(ctx.u.id, dados);
   if (r.erro) return { erro: r.erro };
+  await sinalizarMudanca();
   revalidatePath("/guarnicao", "layout");
   return { ok: foto instanceof File && foto.size > 0 ? "Foto atualizada." : "Foto removida." };
 }

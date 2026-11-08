@@ -2,7 +2,8 @@ import "server-only";
 import { cache } from "react";
 import { getDadosInstituto, listarEventos } from "./data";
 import { hoje } from "./format";
-import { inicioDe } from "./guarnicao";
+import { inicioDe, temGuarnicao } from "./guarnicao";
+import { suspensaoAtiva } from "./suspensao-guarnicao";
 import { mapaUsuarios } from "./usuarios";
 import type { Evento, Sexo } from "./types";
 
@@ -11,13 +12,13 @@ import type { Evento, Sexo } from "./types";
  * (lista mantida igual às candidaturas confirmadas e que também traz o histórico importado).
  */
 
-export type Guardiao = { id: string; nome: string; foto: string | null; sexo: Sexo | null };
+export type Guardiao = { id: string; nome: string; foto: string | null; sexo: Sexo | null; suspensoAte: string | null };
 export type LinhaRanking = Guardiao & { total: number; ano: number; ultimo: string | null };
 
 /** Rituais que já aconteceram (com a guarnição registrada), do mais recente ao mais antigo. */
 export const rituaisPassados = cache(async (): Promise<Evento[]> => {
   const [{ tipos }, eventos] = await Promise.all([getDadosInstituto(), listarEventos({ fim: hoje() })]);
-  const ritual = new Set(tipos.filter((t) => t.conta_como_ritual).map((t) => t.$id));
+  const ritual = new Set(tipos.filter((t) => temGuarnicao(t)).map((t) => t.$id));
   const agora = Date.now();
   return eventos.filter((e) => ritual.has(e.tipo_id) && inicioDe(e).getTime() <= agora).reverse();
 });
@@ -25,7 +26,7 @@ export const rituaisPassados = cache(async (): Promise<Evento[]> => {
 /** Guardiões e guardiãs ativos. */
 export const guardioesAtivos = cache(async (): Promise<Guardiao[]> => {
   const usuarios = await mapaUsuarios();
-  return [...usuarios.values()].filter((u) => u.ativo && u.funcao === "guardiao").map((u) => ({ id: u.id, nome: u.nome, foto: u.foto, sexo: u.sexo }));
+  return [...usuarios.values()].filter((u) => u.ativo && u.funcao === "guardiao").map((u) => ({ id: u.id, nome: u.nome, foto: u.foto, sexo: u.sexo, suspensoAte: suspensaoAtiva(u.suspensoAte) ? u.suspensoAte : null }));
 });
 
 /** Ranking de quem mais serviu (no total e no ano), com a data do último ritual. */

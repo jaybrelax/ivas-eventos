@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 
 /**
  * Atualiza a tela na hora quando alguém muda a escala: escuta a tabela `sinais` pelo Realtime do Appwrite
- * (WebSocket) e recarrega os dados da página. Se a conexão cair, reconecta e recarrega ao voltar;
- * enquanto estiver sem conexão, confere de minuto em minuto como reserva.
+ * (WebSocket) e invalida os dados das telas. Ao reconectar, sincroniza possíveis mudanças perdidas.
  */
 export function TempoReal({ endpoint, projeto, canal }: { endpoint: string; projeto: string; canal: string }) {
   const router = useRouter();
@@ -18,7 +17,7 @@ export function TempoReal({ endpoint, projeto, canal }: { endpoint: string; proj
     let religar: ReturnType<typeof setTimeout> | undefined;
     let batida: ReturnType<typeof setInterval> | undefined;
     let adiar: ReturnType<typeof setTimeout> | undefined;
-    let conectado = false;
+    let jaConectou = false;
     let pendente = false;
 
     // Junta vários avisos seguidos em uma só atualização e só atualiza com a tela visível
@@ -42,7 +41,8 @@ export function TempoReal({ endpoint, projeto, canal }: { endpoint: string; proj
       }
       ws.onopen = () => {
         tentativa = 0;
-        conectado = true;
+        if (jaConectou) atualizar();
+        jaConectou = true;
         batida = setInterval(() => ws?.readyState === WebSocket.OPEN && ws.send('{"type":"ping"}'), 20_000);
       };
       ws.onmessage = (m) => {
@@ -52,7 +52,6 @@ export function TempoReal({ endpoint, projeto, canal }: { endpoint: string; proj
         } catch {}
       };
       ws.onclose = () => {
-        conectado = false;
         clearInterval(batida);
         agendar();
       };
@@ -67,8 +66,7 @@ export function TempoReal({ endpoint, projeto, canal }: { endpoint: string; proj
 
     const aoVoltar = () => {
       if (document.visibilityState !== "visible") return;
-      // Ao voltar para o app: recarrega o que ficou pendente (ou tudo, se a conexão caiu) e religa se preciso
-      if (pendente || !conectado) router.refresh();
+      if (pendente) atualizar();
       pendente = false;
       if (!ws || ws.readyState === WebSocket.CLOSED) {
         tentativa = 0;
@@ -79,13 +77,11 @@ export function TempoReal({ endpoint, projeto, canal }: { endpoint: string; proj
     conectar();
     document.addEventListener("visibilitychange", aoVoltar);
     window.addEventListener("online", aoVoltar);
-    const reserva = setInterval(() => !conectado && document.visibilityState === "visible" && router.refresh(), 60_000);
 
     return () => {
       vivo = false;
       document.removeEventListener("visibilitychange", aoVoltar);
       window.removeEventListener("online", aoVoltar);
-      clearInterval(reserva);
       clearInterval(batida);
       clearTimeout(religar);
       clearTimeout(adiar);

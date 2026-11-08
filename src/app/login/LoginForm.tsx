@@ -6,14 +6,14 @@ import { ArrowRight } from "lucide-react";
 import { Aviso, Carregando } from "@/components/ui";
 import { BotaoGoogle } from "@/components/BotaoGoogle";
 
-export function LoginForm({ semPerfil, erroGoogle, next }: { semPerfil: boolean; erroGoogle?: boolean; next?: string }) {
+export function LoginForm({ semPerfil, erroGoogle, next, guardiao = false }: { semPerfil: boolean; erroGoogle?: boolean; next?: string; guardiao?: boolean }) {
   const [estado, acao, pendente] = useActionState(entrar, undefined);
   return (
     <div className="space-y-3.5 lg:space-y-5">
       {semPerfil && <Aviso tipo="info">Sua conta ainda não tem perfil (Admin, Coordenador ou Normal). Peça a um Admin.</Aviso>}
       {erroGoogle && <Aviso>Não foi possível entrar com o Google. Tente de novo ou use e-mail e senha.</Aviso>}
 
-      <BotaoGoogle next={next} />
+      <BotaoGoogle next={next} guardiao={guardiao} />
       <div className="flex items-center gap-3 text-xs text-stone-400">
         <span className="h-px flex-1 bg-stone-200" /> ou <span className="h-px flex-1 bg-stone-200" />
       </div>

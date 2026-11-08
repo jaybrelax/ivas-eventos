@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createSessionClient } from "./appwrite";
 import type { Perfil } from "./config";
 import { ehParticipante, prefsDe, type FuncaoRitual } from "./usuarios";
+import { suspensaoAtiva } from "./suspensao-guarnicao";
 import type { Sexo } from "./types";
 import type { Experiencia } from "./perfil-extra";
 
@@ -16,7 +17,16 @@ export type Usuario = {
   experiencia: Experiencia | null; motivacao: string | null; expectativas: string | null;
   /** "equipe": tem perfil de painel (admin/coordenador/normal). "participante": só cadastro público. */
   tipo: "equipe" | "participante" | null;
+  /** Guardião com candidaturas suspensas: até quando (ISO), ou null. */
+  suspensoAte: string | null;
+  /** Pedido de acesso à Guarnição aguardando a coordenação; cadastro pelo Google ainda por completar; cargo de guardião retirado. */
+  aprovacaoPendente: boolean; cadastroIncompleto: boolean; cargoRemovido: boolean;
 };
+
+/** Conta já existente no IVAS que ainda pode solicitar a função de guardião. */
+export function podeSolicitarGuarnicao(u: Pick<Usuario, "tipo" | "perfil" | "funcaoRitual" | "aprovacaoPendente"> & Partial<Pick<Usuario, "cargoRemovido">>): boolean {
+  return !u.aprovacaoPendente && !u.cargoRemovido && u.funcaoRitual === "nenhuma" && (u.tipo === "participante" || u.perfil === "normal");
+}
 
 function perfilDe(labels: string[]): Perfil | null {
   if (labels.includes("admin")) return "admin";
@@ -39,6 +49,9 @@ export const getUsuario = cache(async (): Promise<Usuario | null> => {
       estado: p.estado, cidade: p.cidade, profissao: p.profissao,
       experiencia: p.experiencia_ayahuasca, motivacao: p.motivacao, expectativas: p.expectativas,
       tipo: perfil ? "equipe" : ehParticipante(u.labels ?? []) ? "participante" : null,
+      suspensoAte: suspensaoAtiva(p.guarnicao_suspenso_ate) ? p.guarnicao_suspenso_ate : null,
+      aprovacaoPendente: p.aprovacao_pendente, cadastroIncompleto: p.cadastro_guarnicao_incompleto,
+      cargoRemovido: p.guarnicao_cargo_removido,
     };
   } catch {
     return null;
