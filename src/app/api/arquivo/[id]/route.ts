@@ -30,7 +30,7 @@ export async function GET(req: Request, ctx: RouteContext<"/api/arquivo/[id]">) 
       const reduzida = await sharp(Buffer.from(bytes), { failOn: "none" })
         .rotate()
         .resize({ width: w, withoutEnlargement: true })
-        .webp({ quality: w <= 320 ? 72 : 78, effort: 4 })
+        .webp({ quality: w <= 128 ? 45 : w <= 320 ? 72 : 78, effort: 4 })
         .toBuffer();
       return new Response(new Uint8Array(reduzida), { headers: { "Content-Type": "image/webp", "Cache-Control": CACHE } });
     }

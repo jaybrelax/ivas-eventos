@@ -311,6 +311,7 @@ select.campo {
   --shadow-elevado: 0 2px 4px rgb(0 0 0 / 0.4), 0 18px 40px -16px rgb(0 0 0 / 0.7);
 }
 .tema-escuro .bg-white, .tema-escuro .campo, .tema-escuro .chip-app:not(.chip-app-on) { background-color: #1a1428; }
+.tema-escuro .ring-fundo-card { --tw-ring-color: rgb(26 20 40 / 0.5) !important; }
 .tema-escuro .bg-white\/95 { background-color: rgb(26 20 40 / 0.95); }
 .tema-escuro .bg-white\/90 { background-color: rgb(26 20 40 / 0.9); }
 .tema-escuro .bg-white\/85 { background-color: rgb(21 16 34 / 0.85); }
@@ -359,6 +360,7 @@ select.campo {
   --shadow-elevado: 0 2px 4px rgb(0 0 0 / 0.4), 0 18px 40px -16px rgb(0 0 0 / 0.7);
 }
 .tema-auto .bg-white, .tema-auto .campo, .tema-auto .chip-app:not(.chip-app-on) { background-color: #1a1428; }
+.tema-auto .ring-fundo-card { --tw-ring-color: rgb(26 20 40 / 0.5) !important; }
 .tema-auto .bg-white\/95 { background-color: rgb(26 20 40 / 0.95); }
 .tema-auto .bg-white\/90 { background-color: rgb(26 20 40 / 0.9); }
 .tema-auto .bg-white\/85 { background-color: rgb(21 16 34 / 0.85); }
@@ -405,7 +407,7 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
   position: absolute;
   inset: 0;
   z-index: 1;
-  padding: 1px;
+  padding: 2px;
   border-radius: inherit;
   background: conic-gradient(from var(--borda-angulo), transparent 0deg, #e0b04a 50deg, #f8566b 110deg, #a78bfa 170deg, transparent 230deg, transparent 360deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -420,3 +422,6 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
 @media (prefers-reduced-motion: reduce) {
   .borda-animada::before { animation: none; }
 }
+
+/* Contorno com a mesma cor do fundo dos cards (branco no claro; ver .bg-white nos temas escuros). */
+.ring-fundo-card { --tw-ring-color: rgb(255 255 255 / 0.5) !important; }

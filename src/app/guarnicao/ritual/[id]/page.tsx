@@ -39,7 +39,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
   // Reunião: todos os guardiões marcam presença ou justificam; as três listas são iguais para todos.
   // Os mestres escalados já entram como confirmados (e ficam no topo da lista), por isso o cartão de mestres não aparece.
   if (ehReuniao(tipo)) {
-    const r = await dadosReuniao(evento, u.id);
+    const r = await dadosReuniao(evento, u.id, coord);
     // Guardiões e mestres (inclusive da coordenação) marcam a própria presença ou justificam a ausência
     const participa = u.funcaoRitual === "guardiao" || u.funcaoRitual === "mestre";
     return (

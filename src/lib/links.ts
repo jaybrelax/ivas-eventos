@@ -1,5 +1,5 @@
 /** Larguras em que /api/arquivo/[id]?w= entrega as imagens (cada uma fica em cache na CDN). */
-export const LARGURAS_IMAGEM = [160, 320, 640, 960, 1600] as const;
+export const LARGURAS_IMAGEM = [64, 128, 160, 320, 640, 960, 1600] as const;
 
 /** Endereço de uma imagem do Storage; com `w`, a versão reduzida (WEBP) nessa largura. */
 export function urlImagem(id: string, w?: number) {

@@ -200,7 +200,7 @@ function TextoJustificativa({ texto }: { texto: string }) {
       aria-expanded={aberto}
       className={`mt-2 ml-[3.25rem] block w-[calc(100%-3.25rem)] rounded-2xl bg-amber-50 px-3.5 py-2.5 text-left cursor-pointer active:opacity-80`}
     >
-      <span ref={ref} className={`text-[17px] leading-relaxed whitespace-pre-line break-words text-amber-900 ${aberto ? "block" : "line-clamp-3"}`}>{texto}</span>
+      <span ref={ref} className={`text-[15px] leading-relaxed whitespace-pre-line break-words text-amber-900 ${aberto ? "block" : "line-clamp-3"}`}>{texto}</span>
       {(corta || aberto) && <span className="mt-1 block text-right text-xs font-bold text-emerald-700">{aberto ? "Ver menos" : "Ver mais"}</span>}
     </button>
   );

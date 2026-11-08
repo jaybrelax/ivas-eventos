@@ -26,7 +26,8 @@ function quando(d: Date) {
     .replace(",", " às");
 }
 
-export async function dadosReuniao(evento: Evento, euId: string): Promise<DadosReuniao> {
+/** `verRegistradoPor`: só a coordenação vê quem registrou cada justificativa. */
+export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPor = false): Promise<DadosReuniao> {
   const [candidaturas, usuarios, { horas }] = await Promise.all([presencasDaReuniao(evento), mapaUsuarios(), regrasGuarnicao()]);
   const pessoa = (id: string): PessoaReuniao => {
     const u = usuarios.get(id);
@@ -42,7 +43,7 @@ export async function dadosReuniao(evento: Evento, euId: string): Promise<DadosR
     .map((c): JustificadoReuniao => ({
       ...pessoa(c.usuario_id),
       texto: c.justificativa ?? "",
-      por: c.alterado_por && c.alterado_por !== c.usuario_id ? (usuarios.get(c.alterado_por)?.nome.split(" ")[0] ?? null) : null,
+      por: verRegistradoPor && c.alterado_por && c.alterado_por !== c.usuario_id ? (usuarios.get(c.alterado_por)?.nome.split(" ")[0] ?? null) : null,
     }));
   const respondeu = new Set(candidaturas.map((c) => c.usuario_id));
   const semResposta = [...usuarios.values()].filter((u) => u.ativo && (u.funcao === "guardiao" || u.funcao === "mestre") && !respondeu.has(u.id)).map((u) => pessoa(u.id));

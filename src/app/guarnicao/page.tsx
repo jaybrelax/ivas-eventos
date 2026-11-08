@@ -241,7 +241,14 @@ function CartaoReuniao({ r, participa, passado }: { r: RitualGuarnicao; particip
   const e = r.evento;
   const d = partesData(e.data);
   const comecou = inicioDe(e).getTime() <= Date.now();
-  const VER = 6;
+  // Avatares sobrepostos em até duas linhas de 10: aparecem conforme as presenças e, com mais de 20,
+  // o último círculo mostra quantos passam disso.
+  const POR_LINHA = 10;
+  const TOTAL = POR_LINHA * 2;
+  const excedem = r.presentes.length > TOTAL;
+  const mostrados = excedem ? r.presentes.slice(0, TOTAL - 1) : r.presentes;
+  const outros = r.presentes.length - mostrados.length;
+  const itens: ({ tipo: "pessoa"; p: (typeof mostrados)[number] } | { tipo: "mais" })[] = [...mostrados.map((p) => ({ tipo: "pessoa" as const, p })), ...(excedem ? [{ tipo: "mais" as const }] : [])];
   return (
     <Link
       href={urlRitualGuarnicao(e)}
@@ -273,14 +280,20 @@ function CartaoReuniao({ r, participa, passado }: { r: RitualGuarnicao; particip
           {r.local && <><MapPin size={12} className="ml-1.5 shrink-0" /> <span className="truncate">{r.local}</span></>}
         </p>
 
-        <div className="mt-3 flex items-center">
-          {r.presentes.slice(0, VER).map((p, i) => (
-            <span key={p.id} className={i ? "-ml-2" : ""}>
-              <Avatar nome={p.nome} foto={p.foto} tamanho={32} className="ring-2 ring-white" />
-            </span>
-          ))}
-          {r.presentes.length > VER && <span className="ml-1.5 text-xs font-semibold text-stone-500 tabular-nums">+{r.presentes.length - VER}</span>}
-        </div>
+        {itens.length > 0 && (
+          // Até 20 avatares (19 + "+N"); quebram de linha conforme a largura do card (10 por linha quando cabe)
+          <div className="mt-3 flex flex-wrap gap-y-1" style={{ paddingLeft: 9 }} aria-label={`${r.presentes.length} ${r.presentes.length === 1 ? "presente" : "presentes"}`}>
+            {itens.map((it) => (
+              <span key={it.tipo === "pessoa" ? it.p.id : "mais"} style={{ marginLeft: -9 }}>
+                {it.tipo === "pessoa" ? (
+                  <Avatar nome={it.p.nome} foto={it.p.foto} tamanho={36} leve className="ring-2 ring-fundo-card" />
+                ) : (
+                  <span className="grid h-9 w-9 place-items-center rounded-full bg-emerald-600 text-xs font-bold text-white ring-2 ring-fundo-card tabular-nums">+{outros}</span>
+                )}
+              </span>
+            ))}
+          </div>
+        )}
         <p className="mt-2 text-xs text-stone-500">
           <strong className="font-semibold text-stone-700 tabular-nums">{r.presentes.length}</strong> {r.presentes.length === 1 ? "presente" : "presentes"}
           {r.justificados > 0 && <> · <strong className="font-semibold text-stone-700 tabular-nums">{r.justificados}</strong> {r.justificados === 1 ? "justificou" : "justificaram"}</>}
