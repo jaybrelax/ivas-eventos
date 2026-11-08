@@ -8,6 +8,7 @@ import { Carregando } from "@/components/ui";
 import type { DadosReuniao, PessoaReuniao } from "@/lib/reuniao";
 import { incluirGuardiaoNaReuniao, justificarPelaCoordenacao, retirarGuardiaoDaReuniao } from "../../actions";
 import { Folha } from "../../Folha";
+import { FiguraJustica } from "./AcaoReuniao";
 import { vibrar } from "../../nativo";
 
 const MIN = 25;
@@ -101,7 +102,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
       />
 
       {/* Justificativa registrada pela coordenação */}
-      <Folha aberta={!!justificando} aoFechar={() => setJustificando(null)} titulo={justificando ? `Justificativa de ${justificando.pessoa.nome.split(" ")[0]}` : undefined}>
+      <Folha aberta={!!justificando} aoFechar={() => setJustificando(null)} topo={FiguraJustica} cheia titulo={justificando ? `Justificativa de ${justificando.pessoa.nome.split(" ")[0]}` : undefined}>
         {justificando && (
           <>
             <p className="mb-3 text-sm text-stone-600">Registre o motivo da ausência. Ele aparece para todos os guardiões.</p>

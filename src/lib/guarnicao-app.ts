@@ -77,6 +77,8 @@ export type RitualGuarnicao = {
   presentes: { id: string; nome: string; foto: string | null }[];
   /** Reunião: quantos justificaram a ausência. */
   justificados: number;
+  /** Reunião: guardiões e mestres ativos que não confirmaram nem justificaram. */
+  semResposta: number;
 };
 
 /**
@@ -116,6 +118,7 @@ export async function rituaisComVagas(usuarioId: string | null, dias = 120, ante
       reuniao,
       presentes,
       justificados: reuniao ? doEvento.filter((c) => c.situacao === "justificada").length : 0,
+      semResposta: reuniao ? [...usuarios.values()].filter((u) => u.ativo && (u.funcao === "guardiao" || u.funcao === "mestre") && !doEvento.some((c) => c.usuario_id === u.id)).length : 0,
       evento: e,
       local: end ? end.apelido : e.endereco_livre,
       vagas: reuniao ? { masculino: 0, feminino: 0 } : vagasDe(e),

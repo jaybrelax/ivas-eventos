@@ -168,10 +168,10 @@ function CartaoRitual({ meuId, participaReuniao, horasPresenca, r, visao, sexo, 
       </div>
 
       <div className="min-w-0 flex-1 p-4">
-        <h2 className="line-clamp-2 text-base leading-snug font-semibold text-stone-900">{e.titulo}</h2>
-        <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-stone-500">
-          <Clock size={12} className="shrink-0" /> <span className="shrink-0 font-semibold text-stone-600 tabular-nums">{e.hora_inicio}</span>
-          {r.local && <><MapPin size={12} className="ml-1.5 shrink-0" /> <span className="truncate">{r.local}</span></>}
+        <h2 className="line-clamp-2 text-xl leading-snug font-semibold text-stone-900">{e.titulo}</h2>
+        <p className="mt-1.5 flex min-w-0 items-center gap-1 text-sm text-stone-500">
+          <Clock size={14} className="shrink-0" /> <span className="shrink-0 font-semibold text-stone-600 tabular-nums">{e.hora_inicio}</span>
+          {r.local && <><MapPin size={14} className="ml-2 shrink-0" /> <span className="truncate">{r.local}</span></>}
         </p>
 
         {/* Vagas: um círculo por vaga; preenchida mostra a foto de quem está escalado */}
@@ -274,21 +274,21 @@ function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuar
       </div>
 
       <div className="min-w-0 flex-1 p-4">
-        <h2 className="line-clamp-2 text-base leading-snug font-semibold text-stone-900">{e.titulo}</h2>
-        <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-stone-500">
-          <Clock size={12} className="shrink-0" /> <span className="shrink-0 font-semibold text-stone-600 tabular-nums">{e.hora_inicio}</span>
-          {r.local && <><MapPin size={12} className="ml-1.5 shrink-0" /> <span className="truncate">{r.local}</span></>}
+        <h2 className="line-clamp-2 text-xl leading-snug font-semibold text-stone-900">{e.titulo}</h2>
+        <p className="mt-1.5 flex min-w-0 items-center gap-1 text-sm text-stone-500">
+          <Clock size={14} className="shrink-0" /> <span className="shrink-0 font-semibold text-stone-600 tabular-nums">{e.hora_inicio}</span>
+          {r.local && <><MapPin size={14} className="ml-2 shrink-0" /> <span className="truncate">{r.local}</span></>}
         </p>
 
         {itens.length > 0 && (
           // Até 20 avatares (19 + "+N"); quebram de linha conforme a largura do card (10 por linha quando cabe)
-          <div className="mt-3 flex flex-wrap gap-y-1" style={{ paddingLeft: 9 }} aria-label={`${r.presentes.length} ${r.presentes.length === 1 ? "presente" : "presentes"}`}>
+          <div className="mt-3 flex flex-wrap gap-y-1" style={{ paddingLeft: 10 }} aria-label={`${r.presentes.length} ${r.presentes.length === 1 ? "presente" : "presentes"}`}>
             {itens.map((it) => (
-              <span key={it.tipo === "pessoa" ? it.p.id : "mais"} style={{ marginLeft: -9 }}>
+              <span key={it.tipo === "pessoa" ? it.p.id : "mais"} style={{ marginLeft: -10 }}>
                 {it.tipo === "pessoa" ? (
-                  <Avatar nome={it.p.nome} foto={it.p.foto} tamanho={36} leve className="ring-2 ring-fundo-card" />
+                  <Avatar nome={it.p.nome} foto={it.p.foto} tamanho={40} leve className="ring-2 ring-fundo-card" />
                 ) : (
-                  <span className="grid h-9 w-9 place-items-center rounded-full bg-emerald-600 text-xs font-bold text-white ring-2 ring-fundo-card tabular-nums">+{outros}</span>
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-600 text-sm font-bold text-white ring-2 ring-fundo-card tabular-nums">+{outros}</span>
                 )}
               </span>
             ))}
@@ -297,6 +297,7 @@ function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuar
         <p className="mt-2 text-xs text-stone-500">
           <strong className="font-semibold text-stone-700 tabular-nums">{r.presentes.length}</strong> {r.presentes.length === 1 ? "presente" : "presentes"}
           {r.justificados > 0 && <> · <strong className="font-semibold text-stone-700 tabular-nums">{r.justificados}</strong> {r.justificados === 1 ? "justificou" : "justificaram"}</>}
+          {r.semResposta > 0 && <> · <strong className="font-semibold text-stone-700 tabular-nums">{r.semResposta}</strong> sem resposta</>}
         </p>
 
         {participa ? (

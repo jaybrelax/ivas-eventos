@@ -1,19 +1,58 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { CalendarCheck, FileText, ShieldCheck, ShieldPlus } from "lucide-react";
+import { CalendarCheck, Check, Copy, FileText, ShieldCheck, ShieldPlus } from "lucide-react";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import { cancelarPresencaReuniao, ingressarNaReuniao, justificarAusenciaReuniao } from "../../actions";
 import { Folha } from "../../Folha";
 import { vibrar } from "../../nativo";
 
+/** Ilustração do topo das folhas de justificativa (Anúbis com a balança), com um fundo geométrico animado e suave atrás. */
+export const FiguraJustica = (
+  <div aria-hidden className="pointer-events-none relative z-10 mx-auto mt-0 -mb-4 flex h-60 w-full justify-center select-none">
+    <svg viewBox="0 0 300 300" className="absolute top-1/2 left-1/2 h-[19rem] w-[19rem] -translate-x-1/2 -translate-y-1/2 overflow-visible">
+      <defs>
+        <radialGradient id="geo-brilho" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.45" />
+          <stop offset="55%" stopColor="#6d28d9" stopOpacity="0.14" />
+          <stop offset="100%" stopColor="#6d28d9" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+      {/* brilho que respira */}
+      <circle className="geo-peca geo-pulsar" cx="150" cy="150" r="128" fill="url(#geo-brilho)" />
+      {/* anel externo pontilhado */}
+      <circle className="geo-peca geo-girar-120r" cx="150" cy="150" r="138" fill="none" stroke="#e0b04a" strokeOpacity="0.3" strokeWidth="1" strokeDasharray="1.5 7" />
+      {/* anel com marcações */}
+      <g className="geo-peca geo-girar-60">
+        <circle cx="150" cy="150" r="118" fill="none" stroke="#e0b04a" strokeOpacity="0.28" strokeWidth="1" />
+        <circle cx="150" cy="32" r="3" fill="#e0b04a" fillOpacity="0.85" />
+        <circle cx="252" cy="209" r="2.2" fill="#a78bfa" fillOpacity="0.9" />
+        <circle cx="48" cy="209" r="2.2" fill="#a78bfa" fillOpacity="0.9" />
+      </g>
+      {/* hexagrama (dois triângulos) */}
+      <g className="geo-peca geo-girar-90r" fill="none" stroke="#a78bfa" strokeOpacity="0.32" strokeWidth="1">
+        <polygon points="150,48 238,201 62,201" />
+        <polygon points="150,252 62,99 238,99" />
+      </g>
+      {/* quadrado em losango tracejado */}
+      <rect className="geo-peca geo-girar-40" x="88" y="88" width="124" height="124" fill="none" stroke="#e0b04a" strokeOpacity="0.22" strokeWidth="1" strokeDasharray="4 6" transform="rotate(45 150 150)" />
+      {/* anel interno fino */}
+      <circle cx="150" cy="150" r="74" fill="none" stroke="#c4b5fd" strokeOpacity="0.2" strokeWidth="0.8" />
+    </svg>
+    {/* eslint-disable-next-line @next/next/no-img-element */}
+    <img src="/icons/justica-anubis.webp" alt="" width={356} height={450} draggable={false} className="relative h-60 w-auto" />
+  </div>
+);
+
 const MIN = 25;
 const MAX = 200;
 
 type Props = {
   eventoId: string;
+  /** Nome completo de quem justifica (abre o termo: "Eu, <nome>, …"). */
+  nome: string;
   situacao: "confirmada" | "justificada" | null;
   justificativa: string | null;
   jaComecou: boolean;
@@ -22,14 +61,23 @@ type Props = {
 };
 
 /** Barra fixa do guardião na reunião: marcar presença, cancelar (até o prazo) ou justificar a ausência. */
-export function AcaoReuniao({ eventoId, situacao, justificativa, jaComecou, prazoPassou, prazoTexto }: Props) {
+export function AcaoReuniao({ eventoId, nome, situacao, justificativa, jaComecou, prazoPassou, prazoTexto }: Props) {
   const [pendente, iniciar] = useTransition();
   const [justificando, setJustificando] = useState(false);
   // Etapa 1: escrever a justificativa. Etapa 2: ler o termo, marcar a ciência e enviar.
   const [etapa, setEtapa] = useState<1 | 2>(1);
   const [aceito, setAceito] = useState(false);
+  const [copiado, setCopiado] = useState(false);
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
   const [texto, setTexto] = useState(justificativa ?? "");
+  // Campo do motivo: começa pequeno e cresce conforme o texto (até um limite, depois rola por dentro)
+  const campo = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const el = campo.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, window.innerHeight * 0.35)}px`;
+  }, [texto, justificando, etapa]);
   const [montado, setMontado] = useState(false);
   useEffect(() => setMontado(true), []);
 
@@ -51,7 +99,62 @@ export function AcaoReuniao({ eventoId, situacao, justificativa, jaComecou, praz
     setJustificando(true);
   };
   const tamanho = texto.trim().length;
-  const dataHoje = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date());
+  const dataHora = useMemo(() => {
+    const agora = new Date();
+    const data = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(agora);
+    const hora = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }).format(agora);
+    return { data, hora };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [justificando, etapa]);
+  // Termo da justificativa: o que aparece na tela é o que o botão copia
+  const paragrafos = [
+    `Eu, ${nome}, venho justificar minha ausência no Ritual e na Reunião, ciente de que tenho direito a até cinco justificativas durante o ano.`,
+    `MOTIVO: ${texto.trim()}`,
+    "Peço que esta justificativa seja analisada e considerada, em razão de um impedimento legítimo, justo e honesto que me impossibilitou de estar presente.",
+    "Renovo meu compromisso de respeitar o Juramento e as Regras dos Mestres e Guardiões do Instituto das Virtudes da Ayahuasca e do Sol (IVAS), mantendo meu empenho com os princípios e valores da instituição.",
+    `Data: ${dataHora.data} às ${dataHora.hora}`,
+  ];
+  // Rola a tela de trás: o título do evento fica centralizado na parte visível acima da folha; ao fechar, volta
+  useEffect(() => {
+    if (!justificando || etapa !== 1) return;
+    const antes = window.scrollY;
+    let mexeu = false;
+    const id = window.setTimeout(() => {
+      const titulo = document.querySelector("h1");
+      const folha = document.querySelector<HTMLElement>('[role="dialog"] > div:last-child');
+      if (!titulo || !folha) return;
+      const livre = window.innerHeight - folha.offsetHeight; // área visível acima da folha
+      const caixa = titulo.getBoundingClientRect();
+      const alvo = window.scrollY + caixa.top + caixa.height / 2 - livre / 2;
+      mexeu = true;
+      window.scrollTo({ top: Math.max(0, alvo), behavior: "smooth" });
+    }, 120);
+    return () => {
+      window.clearTimeout(id);
+      if (mexeu) window.scrollTo({ top: antes, behavior: "smooth" });
+    };
+  }, [justificando, etapa]);
+
+  const copiar = async () => {
+    const conteudo = paragrafos.join("\n\n");
+    try {
+      await navigator.clipboard.writeText(conteudo);
+    } catch {
+      // Sem permissão da área de transferência: usa o método antigo
+      const area = document.createElement("textarea");
+      area.value = conteudo;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+    vibrar();
+    setCopiado(true);
+    toast("Texto copiado.", "ok");
+    setTimeout(() => setCopiado(false), 2000);
+  };
 
   const btnPrincipal =
     "flex h-12 w-full items-center justify-center gap-1.5 rounded-2xl px-2 text-[13px] font-bold transition active:scale-[0.98] disabled:bg-none disabled:bg-stone-300 disabled:text-stone-600 disabled:shadow-none";
@@ -107,18 +210,19 @@ export function AcaoReuniao({ eventoId, situacao, justificativa, jaComecou, praz
         document.body,
       )}
 
-      <Folha aberta={justificando} aoFechar={() => setJustificando(false)} titulo={etapa === 1 ? "Justificar ausência" : "Justificativa de Ausência"}>
+      <Folha aberta={justificando} aoFechar={() => setJustificando(false)} escuro cheia={etapa === 2} tituloGrande={etapa === 2} topo={etapa === 1 ? FiguraJustica : undefined} titulo={etapa === 1 ? "Justificar ausência" : "Justificativa de Ausência"}>
         {etapa === 1 ? (
-          <>
+          <div>
             <p className="mb-3 text-sm text-stone-600">Conte por que você não vai participar desta reunião. A justificativa aparece para todos os guardiões.</p>
             <textarea
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
-              rows={5}
+              ref={campo}
+              rows={3}
               maxLength={MAX}
               autoFocus
               placeholder="Descreva o motivo da sua ausência…"
-              className="campo min-h-32 w-full resize-y rounded-2xl text-base"
+              className="campo min-h-[5.5rem] w-full resize-none overflow-y-auto rounded-2xl text-base"
             />
             <p className={`mt-1 text-right text-xs tabular-nums ${tamanho > 0 && tamanho < MIN ? "text-red-600" : "text-stone-400"}`}>
               {tamanho}/{MAX}{tamanho < MIN ? ` · mínimo ${MIN}` : ""}
@@ -134,14 +238,22 @@ export function AcaoReuniao({ eventoId, situacao, justificativa, jaComecou, praz
               </button>
               <button type="button" onClick={() => setJustificando(false)} className="h-12 rounded-2xl bg-stone-100 text-sm font-semibold text-stone-700">Voltar</button>
             </div>
-          </>
+          </div>
         ) : (
           <>
-            <div className="space-y-3 rounded-2xl bg-stone-50 p-4 text-sm leading-relaxed text-stone-700 ring-1 ring-stone-200/70">
-              <p>Venho justificar minha ausência no Ritual e na Reunião, ciente de que tenho direito a até cinco justificativas durante o ano.</p>
-              <p>Peço que esta justificativa seja analisada e considerada, em razão de um impedimento legítimo, justo e honesto que me impossibilitou de estar presente.</p>
-              <p>Renovo meu compromisso de respeitar o Juramento e as Regras dos Mestres e Guardiões do Instituto das Virtudes da Ayahuasca e do Sol (IVAS), mantendo meu empenho com os princípios e valores da instituição.</p>
-              <p className="font-semibold text-stone-900">Data: {dataHoje}</p>
+            <div className="relative flex-1 space-y-4 rounded-2xl bg-stone-50 p-5 text-lg leading-relaxed text-stone-700 ring-1 ring-stone-200/70">
+              {paragrafos.map((p, i) => (
+                <p key={i} className={i === paragrafos.length - 1 ? "font-semibold text-stone-900" : i === 1 ? "font-medium break-words whitespace-pre-line text-stone-900" : undefined}>{p}</p>
+              ))}
+              <button
+                type="button"
+                onClick={copiar}
+                aria-label="Copiar o texto"
+                title="Copiar o texto"
+                className="absolute right-2 bottom-2 grid h-9 w-9 place-items-center rounded-xl bg-stone-100/80 text-stone-600 ring-1 ring-stone-200 backdrop-blur-sm active:scale-90"
+              >
+                {copiado ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
+              </button>
             </div>
             <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-2xl border border-stone-200 p-3.5">
               <input type="checkbox" checked={aceito} onChange={(e) => setAceito(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-emerald-600" />
