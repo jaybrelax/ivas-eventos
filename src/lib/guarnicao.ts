@@ -4,6 +4,7 @@ import { createAdminClient } from "./appwrite";
 import { DB_ID, TABLES } from "./config";
 import { after } from "next/server";
 import { getDadosInstituto, getInstituto, listar, listarEventos } from "./data";
+import { urlRitualGuarnicao } from "./guarnicao-links";
 import { enviarPush } from "./push";
 import { concordar } from "./genero";
 import { sinalizarMudanca } from "./tempo-real";
@@ -177,7 +178,7 @@ function avisarMudancas(evento: Evento, promovidos: string[], livres: Record<Sex
   const aberto = evento.candidaturas_abertas !== false && inicioDe(evento).getTime() > Date.now();
   if (!aberto || (!promovidos.length && !(livres && (livres.masculino || livres.feminino)))) return;
   const nome = evento.ritual_numero_geral ? `Ritual Nº ${evento.ritual_numero_geral}` : evento.titulo;
-  const url = `/guarnicao/ritual/${evento.$id}`;
+  const url = urlRitualGuarnicao(evento);
   after(async () => {
     if (promovidos.length) {
       await enviarPush(promovidos, { titulo: "Você entrou na guarnição!", corpo: `Abriu vaga no ${nome} (${quandoCurto(evento)}) e você saiu da lista de espera.`, url, tag: `promovido-${evento.$id}` });

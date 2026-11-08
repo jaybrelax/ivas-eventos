@@ -1,3 +1,4 @@
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
 import { CalendarClock, CalendarX2, Clock, FileText, History, Hourglass, MapPin, ShieldCheck, Sparkles, Users, UserRoundPen } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas, type RitualGuarnicao } from "@/lib/guarnicao-app";
@@ -138,7 +139,7 @@ function CartaoRitual({ meuId, participaReuniao, r, visao, sexo, vagaPraMim, pas
 
   return (
     <Link
-      href={`/guarnicao/ritual/${e.$id}`}
+      href={urlRitualGuarnicao(e)}
       className={`flex overflow-hidden rounded-3xl bg-white shadow-cartao transition active:scale-[0.985] ${
         // Guardião escalado neste ritual: borda coral-rosada (entre o laranja e o rosa do escudo)
         visao === "guardiao" && r.minha === "confirmada" ? "ring-2 ring-[#f8566b]" : "ring-1 ring-stone-200/70"
@@ -243,7 +244,7 @@ function CartaoReuniao({ r, participa, passado }: { r: RitualGuarnicao; particip
   const VER = 6;
   return (
     <Link
-      href={`/guarnicao/ritual/${e.$id}`}
+      href={urlRitualGuarnicao(e)}
       className={`borda-animada flex overflow-hidden rounded-3xl bg-white shadow-cartao transition active:scale-[0.985] `}
     >
       <div className="coluna-data flex w-[6.5rem] shrink-0 flex-col">

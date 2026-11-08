@@ -80,6 +80,13 @@ export async function listarEventos(f: FiltroEventos = {}) {
   return listar<Evento>(TABLES.eventos, q);
 }
 
+/** Ritual pelo número geral (o “ID” público: /ritual/525). */
+export async function getEventoPorNumero(numero: number): Promise<Evento | null> {
+  if (!Number.isInteger(numero) || numero < 1) return null;
+  const achados = await listar<Evento>(TABLES.eventos, [Query.equal("ritual_numero_geral", numero), Query.limit(1)]);
+  return achados[0] ?? null;
+}
+
 export async function getEvento(id: string): Promise<Evento | null> {
   const { tablesDB } = createAdminClient();
   try {
@@ -87,4 +94,13 @@ export async function getEvento(id: string): Promise<Evento | null> {
   } catch {
     return null;
   }
+}
+
+/** Evento pelo trecho da URL do app da Guarnição: número geral do ritual ou, como antes, o id do evento. */
+export async function getEventoPorIdOuNumero(trecho: string): Promise<Evento | null> {
+  if (/^\d{1,7}$/.test(trecho)) {
+    const porNumero = await getEventoPorNumero(Number(trecho));
+    if (porNumero) return porNumero;
+  }
+  return getEvento(trecho);
 }

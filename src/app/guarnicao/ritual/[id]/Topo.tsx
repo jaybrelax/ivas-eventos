@@ -1,3 +1,4 @@
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
 import { CalendarPlus, ChevronLeft, Clock, Crown, MapPin } from "lucide-react";
 import { dataPorExtenso } from "@/lib/format";
@@ -21,7 +22,7 @@ export function Topo({ evento, end, mestres, agenda }: { evento: Evento; end: En
         </Link>
         {/* Guardião presente: levar para a agenda do celular (ícone, canto superior direito da capa) */}
         {agenda && (
-          <a href={`/guarnicao/ritual/${evento.$id}/agenda`} aria-label="Adicionar à minha agenda" title="Adicionar à minha agenda" className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 grid h-10 w-10 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md active:scale-90">
+          <a href={`${urlRitualGuarnicao(evento)}/agenda`} aria-label="Adicionar à minha agenda" title="Adicionar à minha agenda" className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 grid h-10 w-10 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md active:scale-90">
             <CalendarPlus size={19} />
           </a>
         )}

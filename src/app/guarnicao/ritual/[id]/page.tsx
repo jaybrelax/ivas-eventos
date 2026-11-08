@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import { History } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
-import { getDadosInstituto, getEvento, listar } from "@/lib/data";
+import { getDadosInstituto, getEventoPorIdOuNumero, listar } from "@/lib/data";
 import { TABLES } from "@/lib/config";
 import { Query } from "node-appwrite";
 import type { Candidatura } from "@/lib/types";
@@ -25,9 +26,11 @@ export const metadata = { title: "Ritual" };
 export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/ritual/[id]">) {
   const { id } = await params;
   const { u, visao } = (await contextoGuarnicao(`/guarnicao/ritual/${id}`))!;
-  const [evento, { tipos, enderecos }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
+  const [evento, { tipos, enderecos }, equipe] = await Promise.all([getEventoPorIdOuNumero(id), getDadosInstituto(), listarEquipe()]);
   const tipo = evento ? tipos.find((t) => t.$id === evento.tipo_id) : undefined;
   if (!evento || !temAppGuarnicao(tipo)) notFound();
+  // Endereço do ritual = número geral: link antigo (com o id do evento) segue para ele
+  if (evento.ritual_numero_geral && id !== String(evento.ritual_numero_geral)) redirect(urlRitualGuarnicao(evento));
 
   const end = evento.endereco_id ? enderecos.find((e) => e.$id === evento.endereco_id) : undefined;
   const mestres = (evento.mestres ?? []).map((m) => equipe.find((p) => p.$id === m)).filter((m) => !!m);

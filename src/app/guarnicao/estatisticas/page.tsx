@@ -1,3 +1,4 @@
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertTriangle, CalendarClock, ChevronRight, Flame, Gauge, ShieldCheck, Trophy, UsersRound } from "lucide-react";
@@ -122,7 +123,7 @@ export default async function EstatisticasGuarnicao({ searchParams }: PageProps<
             <ul>
               {atencao.map((r) => (
                 <li key={r.evento.$id}>
-                  <Link href={`/guarnicao/ritual/${r.evento.$id}`} className="flex items-center gap-3 rounded-2xl px-1 py-2.5 active:bg-stone-50">
+                  <Link href={urlRitualGuarnicao(r.evento)} className="flex items-center gap-3 rounded-2xl px-1 py-2.5 active:bg-stone-50">
                     <span className="w-12 shrink-0 text-center">
                       <span className="block text-lg leading-none font-black text-stone-900 tabular-nums">{partesData(r.evento.data).dia}</span>
                       <span className="block text-[10px] font-semibold text-stone-500 uppercase">{partesData(r.evento.data).mesCurto}</span>

@@ -1,3 +1,4 @@
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
 import { CalendarCheck, ChevronRight, History, Hourglass, ShieldCheck } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
@@ -79,7 +80,7 @@ function Item({ e, passado, children }: { e: Evento; passado?: boolean; children
   const d = partesData(e.data);
   const id = formatarIdRitual(e.ritual_numero_geral, null, null);
   return (
-    <Link href={`/guarnicao/ritual/${e.$id}`} className={`flex items-center gap-3 rounded-3xl bg-white p-3 shadow-cartao ring-1 ring-stone-200/70 active:scale-[0.985] ${passado ? "opacity-80" : ""}`}>
+    <Link href={urlRitualGuarnicao(e)} className={`flex items-center gap-3 rounded-3xl bg-white p-3 shadow-cartao ring-1 ring-stone-200/70 active:scale-[0.985] ${passado ? "opacity-80" : ""}`}>
       <div className="relative isolate grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#1c1040] text-white">
         {e.capa_file_id && (
           // eslint-disable-next-line @next/next/no-img-element
