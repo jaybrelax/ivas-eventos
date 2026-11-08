@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, useTransition } from "react";
-import { CircleCheck, Crown, FileText, Pencil, UserCheck, UserX, X } from "lucide-react";
+import { CircleCheck, Crown, FileText, SquarePen, UserCheck, UserX, X } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
@@ -10,7 +10,7 @@ import { incluirGuardiaoNaReuniao, justificarPelaCoordenacao, retirarGuardiaoDaR
 import { Folha } from "../../Folha";
 import { vibrar } from "../../nativo";
 
-const MIN = 30;
+const MIN = 25;
 const MAX = 200;
 
 type Props = {
@@ -26,6 +26,7 @@ type Props = {
 export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
   const [pendente, iniciar] = useTransition();
   const [retirando, setRetirando] = useState<PessoaReuniao | null>(null);
+  const [incluindo, setIncluindo] = useState<PessoaReuniao | null>(null);
   const [justificando, setJustificando] = useState<{ pessoa: PessoaReuniao; texto: string; existe: boolean } | null>(null);
 
   const rodar = (fn: () => Promise<{ ok?: string; erro?: string }>, aoOk?: () => void) =>
@@ -72,12 +73,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
               </span>
               {coordenacao && (
                 <button type="button" onClick={() => setJustificando({ pessoa: p, texto: p.texto, existe: true })} aria-label={`Editar justificativa de ${p.nome}`} className={`${botao} active:bg-stone-100 active:text-stone-700`}>
-                  <Pencil size={16} />
-                </button>
-              )}
-              {gerenciar && (
-                <button type="button" disabled={pendente} onClick={() => rodar(() => incluirGuardiaoNaReuniao(dados.eventoId, p.id))} aria-label={`Marcar ${p.nome} como presente`} title="Marcar como presente" className={`${botao} active:bg-emerald-50 active:text-emerald-700`}>
-                  <UserCheck size={18} />
+                  <SquarePen size={17} />
                 </button>
               )}
             </div>
@@ -96,7 +92,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
               </button>
             )}
             {gerenciar && (
-              <button type="button" disabled={pendente} onClick={() => rodar(() => incluirGuardiaoNaReuniao(dados.eventoId, p.id))} aria-label={`Marcar ${p.nome} como presente`} title="Marcar como presente" className={`${botao} active:bg-emerald-50 active:text-emerald-700`}>
+              <button type="button" disabled={pendente} onClick={() => setIncluindo(p)} aria-label={`Marcar ${p.nome} como presente`} title="Marcar como presente" className={`${botao} active:bg-emerald-50 active:text-emerald-700`}>
                 <UserCheck size={18} />
               </button>
             )}
@@ -146,6 +142,25 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
         )}
       </Folha>
 
+      {/* Confirmar a presença de alguém da lista */}
+      <Folha aberta={!!incluindo} aoFechar={() => setIncluindo(null)} titulo={incluindo ? `Confirmar a presença de ${incluindo.nome.split(" ")[0]}?` : undefined}>
+        <p className="text-sm text-stone-600">A pessoa passa para a lista de confirmados desta reunião.</p>
+        <div className="mt-5 grid gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const p = incluindo!;
+              setIncluindo(null);
+              rodar(() => incluirGuardiaoNaReuniao(dados.eventoId, p.id));
+            }}
+            className="h-12 rounded-2xl bg-emerald-600 text-sm font-bold text-white active:scale-[0.98]"
+          >
+            Sim, confirmar presença
+          </button>
+          <button type="button" onClick={() => setIncluindo(null)} className="h-12 rounded-2xl bg-stone-100 text-sm font-semibold text-stone-700">Voltar</button>
+        </div>
+      </Folha>
+
       {/* Confirmar retirada */}
       <Folha aberta={!!retirando} aoFechar={() => setRetirando(null)} titulo={retirando ? `Retirar ${retirando.nome.split(" ")[0]}?` : undefined}>
         <p className="text-sm text-stone-600">A pessoa sai dos confirmados e passa para “sem resposta”.</p>
@@ -185,7 +200,7 @@ function TextoJustificativa({ texto }: { texto: string }) {
       aria-expanded={aberto}
       className={`mt-2 ml-[3.25rem] block w-[calc(100%-3.25rem)] rounded-2xl bg-amber-50 px-3.5 py-2.5 text-left cursor-pointer active:opacity-80`}
     >
-      <span ref={ref} className={`text-[15px] leading-relaxed whitespace-pre-line break-words text-amber-900 ${aberto ? "block" : "line-clamp-3"}`}>{texto}</span>
+      <span ref={ref} className={`text-[17px] leading-relaxed whitespace-pre-line break-words text-amber-900 ${aberto ? "block" : "line-clamp-3"}`}>{texto}</span>
       {(corta || aberto) && <span className="mt-1 block text-right text-xs font-bold text-emerald-700">{aberto ? "Ver menos" : "Ver mais"}</span>}
     </button>
   );

@@ -9,7 +9,7 @@ import { cancelarPresencaReuniao, ingressarNaReuniao, justificarAusenciaReuniao 
 import { Folha } from "../../Folha";
 import { vibrar } from "../../nativo";
 
-const MIN = 30;
+const MIN = 25;
 const MAX = 200;
 
 type Props = {
