@@ -100,6 +100,10 @@ body {
   scrollbar-color: rgb(0 0 0 / 0.18) transparent;
 }
 
+/* Rolagem sem barra visível (carrosséis). Precisa estar aqui, fora das camadas do Tailwind, para vencer a regra * acima */
+.sem-barra { scrollbar-width: none; }
+.sem-barra::-webkit-scrollbar { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

@@ -42,7 +42,7 @@ export function Carrossel({ rotulo, children }: { rotulo: string; children: Reac
     <nav
       ref={ref}
       aria-label={rotulo}
-      className="relative flex gap-2 overflow-x-auto px-5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="relative flex gap-2 sem-barra overflow-x-auto px-5 pb-3"
     >
       {children}
     </nav>
