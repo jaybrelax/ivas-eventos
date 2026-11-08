@@ -252,7 +252,7 @@ function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuar
   return (
     <Link
       href={urlRitualGuarnicao(e)}
-      className={`borda-animada flex overflow-hidden rounded-3xl bg-white shadow-cartao transition active:scale-[0.985] `}
+      className={`borda-animada borda-animada-grossa flex overflow-hidden rounded-3xl bg-white shadow-cartao transition active:scale-[0.985] `}
     >
       <div className="coluna-data flex w-[6.5rem] shrink-0 flex-col">
         <div className="flex flex-col items-center px-2 pt-3 pb-2.5 text-center">
@@ -307,9 +307,7 @@ function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuar
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800"><FileText size={14} /> Ausência justificada</p>
           ) : !passado && !comecou ? (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white"><Sparkles size={13} /> Confirme sua presença</p>
-          ) : (
-            <p className="mt-3 text-xs font-medium text-stone-400">Sem resposta</p>
-          )
+          ) : null
         ) : null}
       </div>
     </Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { CalendarCheck, Check, Copy, FileText, ShieldCheck, ShieldPlus } from "lucide-react";
 import { toast } from "@/components/Toaster";
@@ -11,8 +11,8 @@ import { vibrar } from "../../nativo";
 
 /** Ilustração do topo das folhas de justificativa (Anúbis com a balança), com um fundo geométrico animado e suave atrás. */
 export const FiguraJustica = (
-  <div aria-hidden className="pointer-events-none relative z-10 mx-auto mt-0 -mb-4 flex h-60 w-full justify-center select-none">
-    <svg viewBox="0 0 300 300" className="absolute top-1/2 left-1/2 h-[19rem] w-[19rem] -translate-x-1/2 -translate-y-1/2 overflow-visible">
+  <div aria-hidden style={{ "--fig": "clamp(3rem,calc(var(--vvh,90dvh) - 25rem),15rem)" } as CSSProperties} className="pointer-events-none relative z-10 mx-auto mt-0 -mb-4 flex h-[var(--fig)] w-full justify-center select-none">
+    <svg viewBox="0 0 300 300" className="absolute top-1/2 left-1/2 h-[calc(var(--fig)*1.27)] w-[calc(var(--fig)*1.27)] -translate-x-1/2 -translate-y-1/2 overflow-visible">
       <defs>
         <radialGradient id="geo-brilho" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.45" />
@@ -42,7 +42,7 @@ export const FiguraJustica = (
       <circle cx="150" cy="150" r="74" fill="none" stroke="#c4b5fd" strokeOpacity="0.2" strokeWidth="0.8" />
     </svg>
     {/* eslint-disable-next-line @next/next/no-img-element */}
-    <img src="/icons/justica-anubis.webp" alt="" width={356} height={450} draggable={false} className="relative h-60 w-auto" />
+    <img src="/icons/justica-anubis.webp" alt="" width={356} height={450} draggable={false} className="relative h-full w-auto" />
   </div>
 );
 
@@ -68,6 +68,8 @@ export function AcaoReuniao({ eventoId, nome, situacao, justificativa, jaComecou
   const [etapa, setEtapa] = useState<1 | 2>(1);
   const [aceito, setAceito] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  // Campo do motivo: não abre focado; enquanto vazio e sem foco, a borda gira para chamar a atenção
+  const [foco, setFoco] = useState(false);
   const [confirmarCancelar, setConfirmarCancelar] = useState(false);
   const [texto, setTexto] = useState(justificativa ?? "");
   // Campo do motivo: começa pequeno e cresce conforme o texto (até um limite, depois rola por dentro)
@@ -214,16 +216,19 @@ export function AcaoReuniao({ eventoId, nome, situacao, justificativa, jaComecou
         {etapa === 1 ? (
           <div>
             <p className="mb-3 text-sm text-stone-600">Conte por que você não vai participar desta reunião. A justificativa aparece para todos os guardiões.</p>
+            <div className={`rounded-2xl ${tamanho === 0 && !foco ? "borda-animada" : ""}`}>
             <textarea
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               ref={campo}
               rows={3}
               maxLength={MAX}
-              autoFocus
+              onFocus={() => setFoco(true)}
+              onBlur={() => setFoco(false)}
               placeholder="Descreva o motivo da sua ausência…"
               className="campo min-h-[5.5rem] w-full resize-none overflow-y-auto rounded-2xl text-base"
             />
+            </div>
             <p className={`mt-1 text-right text-xs tabular-nums ${tamanho > 0 && tamanho < MIN ? "text-red-600" : "text-stone-400"}`}>
               {tamanho}/{MAX}{tamanho < MIN ? ` · mínimo ${MIN}` : ""}
             </p>

@@ -423,6 +423,9 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
   .borda-animada::before { animation: none; }
 }
 
+/* Versão mais grossa da borda animada (card da reunião na página inicial) */
+.borda-animada-grossa::before { padding: 5px; }
+
 /* Contorno com a mesma cor do fundo dos cards (branco no claro; ver .bg-white nos temas escuros). */
 .ring-fundo-card { --tw-ring-color: rgb(255 255 255 / 0.5) !important; }
 
