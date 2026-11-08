@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { CalendarCheck, Check, Copy, FileText, ShieldCheck, ShieldPlus } from "lucide-react";
+import { CalendarCheck, Check, Copy, FileText, ShieldCheck, ShieldPlus, X } from "lucide-react";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import { cancelarPresencaReuniao, ingressarNaReuniao, justificarAusenciaReuniao } from "../../actions";
@@ -155,12 +155,12 @@ export function AcaoReuniao({ eventoId, dataEvento, nome, situacao, justificativ
     "flex h-12 w-full items-center justify-center gap-1.5 rounded-2xl px-2 text-[13px] font-bold transition active:scale-[0.98] disabled:bg-none disabled:bg-stone-300 disabled:text-stone-600 disabled:shadow-none";
   const ouro = "bg-gradient-to-br from-[#e0b04a] to-[#b8862a] text-[#1c1040] shadow-[0_8px_20px_-8px_rgb(184_134_42/0.7)]";
   const neutro = "bg-stone-100 text-stone-700";
+  // Passou o prazo para confirmar e ainda não respondeu: o botão de justificar chama a atenção (fundo animado)
+  const chama = jaComecou && situacao === null;
 
-  return (
+  const inline = situacao !== null;
+  const conteudo = (
     <>
-      {montado && createPortal(
-        <div className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-xl px-4">
-          <div className="borda-animada pointer-events-auto animate-surgir space-y-2.5 rounded-3xl bg-white/60 p-3 shadow-[0_8px_30px_-12px_rgb(0_0_0/0.35)] ring-1 ring-white/70 backdrop-blur-xl backdrop-saturate-150">
             {situacao === "confirmada" && (
               <div className="flex items-center gap-3">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700"><ShieldCheck size={22} /></span>
@@ -168,11 +168,6 @@ export function AcaoReuniao({ eventoId, dataEvento, nome, situacao, justificativ
                   <p className="text-sm font-semibold text-stone-900">Presença confirmada</p>
                   <p className="text-xs text-stone-500">{prazoPassou ? "Prazo para cancelar encerrado" : `Pode cancelar até ${prazoTexto}`}</p>
                 </div>
-                {!prazoPassou && (
-                  <button type="button" onClick={() => setConfirmarCancelar(true)} disabled={pendente} className="h-11 shrink-0 rounded-2xl bg-stone-100 px-4 text-sm font-semibold text-stone-700 active:scale-95">
-                    Cancelar
-                  </button>
-                )}
               </div>
             )}
             {situacao === "justificada" && (
@@ -185,24 +180,48 @@ export function AcaoReuniao({ eventoId, dataEvento, nome, situacao, justificativ
               </div>
             )}
 
-            <div className={`grid gap-2 ${situacao === "confirmada" ? "" : "grid-cols-2"}`}>
-              {situacao !== "confirmada" && (
-                <button
-                  type="button"
-                  disabled={jaComecou || pendente}
-                  onClick={() => rodar(() => ingressarNaReuniao(eventoId))}
-                  className={`${btnPrincipal} ${jaComecou ? ouro : "btn-chama"} order-2`}
-                >
-                  {pendente ? <><Carregando /> Enviando…</> : jaComecou ? "Prazo encerrado" : <><ShieldPlus size={18} /> Confirmar presença</>}
-                </button>
-              )}
-              <button type="button" onClick={abrirJustificativa} disabled={pendente} className={`${btnPrincipal} ${neutro} order-1`}>
-                <FileText size={18} /> {situacao === "justificada" ? "Editar justificativa" : "Justificar ausência"}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
+            {/* Confirmou: em vez de justificar, só faz sentido cancelar a presença (e só até o prazo de cancelamento) */}
+            {(situacao !== "confirmada" || !prazoPassou) && (
+              <div className={`grid gap-2 ${situacao === "confirmada" ? "" : "grid-cols-2"}`}>
+                {situacao !== "confirmada" && (
+                  <button
+                    type="button"
+                    disabled={jaComecou || pendente}
+                    onClick={() => rodar(() => ingressarNaReuniao(eventoId))}
+                    className={`${btnPrincipal} ${jaComecou ? ouro : "btn-chama"} order-2`}
+                  >
+                    {pendente ? <><Carregando /> Enviando…</> : jaComecou ? "Prazo encerrado" : <><ShieldPlus size={18} /> Confirmar presença</>}
+                  </button>
+                )}
+                {situacao === "confirmada" ? (
+                  <button type="button" onClick={() => setConfirmarCancelar(true)} disabled={pendente} className={`${btnPrincipal} ${neutro}`}>
+                    <X size={18} /> Cancelar presença
+                  </button>
+                ) : (
+                  <button type="button" onClick={abrirJustificativa} disabled={pendente} className={`${btnPrincipal} ${chama ? "btn-chama" : neutro} order-1`}>
+                    <FileText size={18} /> {situacao === "justificada" ? "Editar justificativa" : "Justificar ausência"}
+                  </button>
+                )}
+              </div>
+            )}
+    </>
+  );
+
+  return (
+    <>
+      {inline ? (
+        // Já respondeu (confirmou ou justificou): o cartão fica fixo na página, entre os dados do evento e a presença
+        <div className="mt-5 px-5">
+          <div className="space-y-2.5 rounded-3xl bg-white p-3 shadow-cartao ring-1 ring-stone-200/70">{conteudo}</div>
+        </div>
+      ) : (
+        // Ainda sem resposta: o cartão flutua sobre a tela, acima do menu
+        montado && createPortal(
+          <div className="pointer-events-none fixed inset-x-0 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-30 mx-auto max-w-xl px-4">
+            <div className="borda-animada pointer-events-auto animate-surgir space-y-2.5 rounded-3xl bg-white/60 p-3 shadow-[0_8px_30px_-12px_rgb(0_0_0/0.35)] ring-1 ring-white/70 backdrop-blur-xl backdrop-saturate-150">{conteudo}</div>
+          </div>,
+          document.body,
+        )
       )}
 
       <Folha aberta={justificando} aoFechar={() => setJustificando(false)} escuro cheia={etapa === 2} tituloGrande={etapa === 2} topo={etapa === 1 ? FiguraJustica : undefined} titulo={etapa === 1 ? "Justificar ausência" : "Texto legal"}>

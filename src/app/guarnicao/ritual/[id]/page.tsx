@@ -43,15 +43,15 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
     // Guardiões e mestres (inclusive da coordenação) marcam a própria presença ou justificam a ausência
     const participa = u.funcaoRitual === "guardiao" || u.funcaoRitual === "mestre";
     return (
-      <div className={participa ? "pb-48" : "pb-6"}>
+      <div className={participa && !r.eu.situacao ? "pb-48" : "pb-6"}>
         <Topo evento={evento} end={end} mestres={[]} agenda={participa && r.eu.situacao === "confirmada"} />
+        {participa && (
+          <AcaoReuniao eventoId={evento.$id} dataEvento={evento.data} nome={u.nome} situacao={r.eu.situacao} justificativa={r.eu.justificativa} jaComecou={r.presencaEncerrada} prazoPassou={r.prazoPassou} prazoTexto={r.prazoTexto} />
+        )}
         <section className="mt-5 px-5">
           <h2 className="mb-3 text-lg font-semibold text-stone-900">Presença na reunião</h2>
           <ListasReuniao dados={r} meuId={u.id} gerenciar={coord || visao === "mestre"} coordenacao={coord} />
         </section>
-        {participa && (
-          <AcaoReuniao eventoId={evento.$id} dataEvento={evento.data} nome={u.nome} situacao={r.eu.situacao} justificativa={r.eu.justificativa} jaComecou={r.presencaEncerrada} prazoPassou={r.prazoPassou} prazoTexto={r.prazoTexto} />
-        )}
       </div>
     );
   }

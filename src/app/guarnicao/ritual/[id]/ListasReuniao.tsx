@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CircleCheck, Crown, FileText, SquarePen, UserCheck, UserX, X } from "lucide-react";
+import { CircleCheck, Crown, FileText, Shield, ShieldCheck, SquarePen, UserCheck, UserX, X } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import type { DadosReuniao, JustificadoReuniao, PessoaReuniao } from "@/lib/reuniao";
 import { paragrafosTermo } from "@/lib/termo-justificativa";
-import { incluirGuardiaoNaReuniao, justificarPelaCoordenacao, retirarGuardiaoDaReuniao } from "../../actions";
+import { definirGuardiaoDoDia, incluirGuardiaoNaReuniao, justificarPelaCoordenacao, retirarGuardiaoDaReuniao } from "../../actions";
 import { Folha } from "../../Folha";
 import { Popup } from "../../Popup";
 import { FiguraJustica } from "./AcaoReuniao";
@@ -19,7 +19,7 @@ const MAX = 200;
 type Props = {
   dados: DadosReuniao;
   meuId: string;
-  /** Coordenação ou mestre: inclui e retira guardiões da lista. */
+  /** Coordenação ou mestre: inclui e retira guardiões da lista e marca o guardião do dia. */
   gerenciar: boolean;
   /** Coordenação: também registra e edita justificativas pelos guardiões. */
   coordenacao: boolean;
@@ -51,11 +51,24 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
     <div className={`space-y-4 ${pendente ? "opacity-70" : ""}`}>
       <Grupo icone={<CircleCheck size={17} className="text-emerald-600" />} titulo="Confirmados" separar total={dados.confirmados.length} vazio="Ninguém marcou presença ainda." pessoas={dados.confirmados} render={(p) => (
           <li key={p.id} className="flex items-center gap-3 py-1.5">
-            <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="ring-2 ring-emerald-500/80" />
+            <Avatar nome={p.nome} foto={p.foto} tamanho={40} className={`ring-2 ${p.guardiaoDoDia ? "ring-[#e0b04a]" : "ring-emerald-500/80"}`} />
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}<Marca p={p} />{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
             {coordenacao && (
               <button type="button" onClick={() => setJustificando({ pessoa: p, texto: "", existe: false })} aria-label={`Justificar ${p.nome}`} title="Justificar ausência" className={`${botao} active:bg-amber-50 active:text-amber-700`}>
                 <FileText size={17} />
+              </button>
+            )}
+            {gerenciar && !p.mestre && (
+              <button
+                type="button"
+                disabled={pendente}
+                onClick={() => rodar(() => definirGuardiaoDoDia(dados.eventoId, p.id, !p.guardiaoDoDia))}
+                aria-pressed={p.guardiaoDoDia}
+                aria-label={p.guardiaoDoDia ? `Tirar ${p.nome} de guardião do dia` : `Marcar ${p.nome} como guardião do dia`}
+                title={p.guardiaoDoDia ? "Tirar de guardião do dia" : "Marcar como guardião do dia"}
+                className={`${botao} ${p.guardiaoDoDia ? "bg-amber-50 text-amber-700" : "active:bg-amber-50 active:text-amber-700"}`}
+              >
+                {p.guardiaoDoDia ? <ShieldCheck size={18} /> : <Shield size={18} />}
               </button>
             )}
             {gerenciar && (
@@ -225,16 +238,18 @@ function Marca({ p }: { p: PessoaReuniao }) {
   );
 }
 
-/** Lista de pessoas: os mestres sempre vêm primeiro; com `separar`, cada grupo ganha o seu título (Mestres, depois Guardiões). */
+/** Lista de pessoas: os mestres sempre vêm primeiro; com `separar`, cada grupo ganha o seu título (Mestres, Guardiões do dia e, por fim, Guardiões). */
 function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, render, separar = false }: { icone: React.ReactNode; titulo: string; total: number; vazio: string; pessoas: T[]; render: (p: T) => React.ReactNode; separar?: boolean }) {
   const mestres = pessoas.filter((p) => p.mestre);
-  const guardioes = pessoas.filter((p) => !p.mestre);
+  const outros = pessoas.filter((p) => !p.mestre);
+  const doDia = separar ? outros.filter((p) => p.guardiaoDoDia) : [];
+  const guardioes = separar ? outros.filter((p) => !p.guardiaoDoDia) : outros;
   const bloco = (rotulo: string, lista: T[], primeiro: boolean) => (
     <div key={rotulo} className={primeiro ? "mt-3" : "mt-4"}>
       <div className="flex items-center gap-2.5" role="separator" aria-label={rotulo}>
           <span aria-hidden className="h-px flex-1 bg-stone-200" />
           <span className="inline-flex items-center gap-1 text-[11px] font-bold tracking-wider text-stone-500 uppercase">
-            {rotulo === "Mestres" && <Crown size={13} className="text-emerald-700" />} {rotulo} · {lista.length}
+            {rotulo === "Mestres" && <Crown size={13} className="text-emerald-700" />}{rotulo.endsWith("do dia") && <ShieldCheck size={13} className="text-amber-600" />} {rotulo} · {lista.length}
           </span>
           <span aria-hidden className="h-px flex-1 bg-stone-200" />
         </div>
@@ -251,7 +266,8 @@ function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, 
       ) : separar ? (
         <>
           {mestres.length > 0 && bloco("Mestres", mestres, true)}
-          {guardioes.length > 0 && bloco("Guardiões", guardioes, mestres.length === 0)}
+          {doDia.length > 0 && bloco(doDia.length === 1 ? "Guardião do dia" : "Guardiões do dia", doDia, mestres.length === 0)}
+          {guardioes.length > 0 && bloco("Guardiões Participantes", guardioes, mestres.length === 0 && doDia.length === 0)}
         </>
       ) : (
         <ul className="mt-2 divide-y divide-stone-100">{[...mestres, ...guardioes].map((p) => render(p))}</ul>

@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { getDadosInstituto, listarEventos } from "./data";
 import { hoje } from "./format";
-import { inicioDe, temGuarnicao } from "./guarnicao";
+import { ehReuniao, inicioDe, temGuarnicao } from "./guarnicao";
 import { suspensaoAtiva } from "./suspensao-guarnicao";
 import { mapaUsuarios } from "./usuarios";
 import type { Evento, Sexo } from "./types";
@@ -19,8 +19,10 @@ export type LinhaRanking = Guardiao & { total: number; ano: number; ultimo: stri
 export const rituaisPassados = cache(async (): Promise<Evento[]> => {
   const [{ tipos }, eventos] = await Promise.all([getDadosInstituto(), listarEventos({ fim: hoje() })]);
   const ritual = new Set(tipos.filter((t) => temGuarnicao(t)).map((t) => t.$id));
+  // Reunião também conta como ritual servido, mas só quando tem guardião do dia marcado
+  const reuniao = new Set(tipos.filter((t) => ehReuniao(t)).map((t) => t.$id));
   const agora = Date.now();
-  return eventos.filter((e) => ritual.has(e.tipo_id) && inicioDe(e).getTime() <= agora).reverse();
+  return eventos.filter((e) => (ritual.has(e.tipo_id) || (reuniao.has(e.tipo_id) && !!e.guardioes?.length)) && inicioDe(e).getTime() <= agora).reverse();
 });
 
 /** Guardiões e guardiãs ativos. */

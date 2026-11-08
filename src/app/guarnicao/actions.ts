@@ -7,7 +7,7 @@ import { COOKIE_TEMA, COOKIE_VISAO, contextoGuarnicao, type TemaGuarnicao, type 
 import { getEvento, listarTipos } from "@/lib/data";
 import {
   adicionarGuardiao, ajustarGuarnicao, cancelar, cancelarPresenca, candidatar, ehReuniao, incluirNaReuniao, ingressarReuniao, justificarAusencia,
-  removerGuardiao, removerJustificativa, retirarDaReuniao, temGuarnicao, type Resultado,
+  marcarGuardiaoDoDia, removerGuardiao, removerJustificativa, retirarDaReuniao, temGuarnicao, type Resultado,
 } from "@/lib/guarnicao";
 import { createAdminClient } from "@/lib/appwrite";
 import { DB_ID, INSTITUTO_ROW_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
@@ -161,6 +161,17 @@ export async function retirarGuardiaoDaReuniao(eventoId: string, usuarioId: stri
   const r = await reuniao(eventoId);
   if (!r) return { erro: "Reunião não encontrada." };
   const res = await retirarDaReuniao(r.evento, usuarioId, u.id);
+  revalidar(eventoId);
+  return res;
+}
+
+/** Mestre ou coordenação marca (ou desmarca) o guardião do dia entre os confirmados da reunião. */
+export async function definirGuardiaoDoDia(eventoId: string, usuarioId: string, ligado: boolean): Promise<Resultado> {
+  const u = await gestorReuniao();
+  if (!u) return { erro: "Só a coordenação ou um mestre define o guardião do dia." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await marcarGuardiaoDoDia(r.evento, usuarioId, ligado);
   revalidar(eventoId);
   return res;
 }

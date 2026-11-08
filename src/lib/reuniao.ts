@@ -6,7 +6,7 @@ import type { Evento, Sexo } from "./types";
 
 /** Lista de presença de uma reunião, como a página do app a mostra (todos veem as três listas). */
 
-export type PessoaReuniao = { id: string; nome: string; foto: string | null; /** Mestres ficam num bloco à parte em cada lista. */ mestre: boolean; sexo: Sexo | null };
+export type PessoaReuniao = { id: string; nome: string; foto: string | null; /** Mestres ficam num bloco à parte em cada lista. */ mestre: boolean; sexo: Sexo | null; /** Foi guardião do dia (marcado pela coordenação ou por um mestre). */ guardiaoDoDia: boolean };
 export type JustificadoReuniao = PessoaReuniao & { texto: string; /** Quando a justificativa foi registrada (data e hora por extenso). */ quando: string; /** Primeiro nome de quem registrou, se não foi o próprio guardião. */ por: string | null };
 
 export type DadosReuniao = {
@@ -36,7 +36,7 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
   const [candidaturas, usuarios, { horas, horasPresenca }] = await Promise.all([presencasDaReuniao(evento), mapaUsuarios(), regrasGuarnicao()]);
   const pessoa = (id: string): PessoaReuniao => {
     const u = usuarios.get(id);
-    return { id, nome: u?.nome ?? "Usuário removido", foto: u?.foto ?? null, mestre: u?.funcao === "mestre", sexo: u?.sexo ?? null };
+    return { id, nome: u?.nome ?? "Usuário removido", foto: u?.foto ?? null, mestre: u?.funcao === "mestre", sexo: u?.sexo ?? null, guardiaoDoDia: u?.funcao !== "mestre" && (evento.guardioes ?? []).includes(id) };
   };
   // Mestres primeiro; o mestre escalado que já saiu da conta (inativo ou removido) não entra automaticamente
   const confirmados = candidaturas
