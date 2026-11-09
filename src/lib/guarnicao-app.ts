@@ -94,9 +94,8 @@ export async function rituaisComVagas(usuarioId: string | null, dias = 120, ante
   ]);
   const ritual = new Set(tipos.filter((t) => temAppGuarnicao(t)).map((t) => t.$id));
   const reunioes = new Set(tipos.filter((t) => ehReuniao(t)).map((t) => t.$id));
-  const limite = Date.now() - 6 * 3_600_000;
   const rituais = eventos
-    .filter((e) => ritual.has(e.tipo_id) && (anteriores ? inicioDe(e).getTime() <= limite : inicioDe(e).getTime() > limite))
+    .filter((e) => ritual.has(e.tipo_id) && (anteriores ? e.data < hj : e.data >= hj))
     .sort((a, b) => (anteriores ? -1 : 1) * (a.data + a.hora_inicio).localeCompare(b.data + b.hora_inicio))
     // Só os primeiros `maximo` (a tela pede de 12 em 12 ao rolar); sem limite, todos
     .slice(0, maximo);

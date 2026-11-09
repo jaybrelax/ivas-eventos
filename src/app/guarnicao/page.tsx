@@ -2,8 +2,8 @@ import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
 import { CalendarClock, CalendarX2, Clock, FileText, History, Hourglass, MapPin, ShieldCheck, Sparkles, Users, UserRoundPen } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas, type RitualGuarnicao } from "@/lib/guarnicao-app";
-import { fimPrazoPresenca, inicioDe, participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
-import { partesData } from "@/lib/format";
+import { fimPrazoPresenca, participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
+import { hoje, partesData } from "@/lib/format";
 import { concordar } from "@/lib/genero";
 import { urlImagem } from "@/lib/links";
 import { IconeGenero } from "@/components/genero";
@@ -61,8 +61,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   const comVaga = rituais.filter(temVagaPraMim).length;
   const visiveis = lista.slice(0, mostrar);
   const temMais = lista.length > mostrar;
-  const agora = Date.now();
-  const ehPassado = (r: RitualGuarnicao) => (q ? inicioDe(r.evento).getTime() <= agora - 6 * 3_600_000 : anteriores);
+  const ehPassado = (r: RitualGuarnicao) => (q ? r.evento.data < hoje() : anteriores);
   const manter: Record<string, string> = soComVaga && visao === "guardiao" ? { filtro: "vaga" } : anteriores ? { periodo: "anteriores" } : {};
 
   return (

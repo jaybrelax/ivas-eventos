@@ -52,7 +52,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
       <Grupo icone={<CircleCheck size={17} className="text-emerald-600" />} titulo="Confirmados" separar total={dados.confirmados.length} vazio="Ninguém marcou presença ainda." pessoas={dados.confirmados} render={(p) => (
           <li key={p.id} className="flex items-center gap-3 py-1.5">
             <Avatar nome={p.nome} foto={p.foto} tamanho={40} className={`ring-2 ${p.guardiaoDoDia ? "ring-[#e0b04a]" : "ring-emerald-500/80"}`} />
-            <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}<Marca p={p} />{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}<Marca p={p} />{p.guardiaoDoDia && <ShieldCheck size={14} aria-label="Guardião do dia" className="ml-1.5 inline align-middle text-amber-600" />}{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
             {coordenacao && (
               <button type="button" onClick={() => setJustificando({ pessoa: p, texto: "", existe: false })} aria-label={`Justificar ${p.nome}`} title="Justificar ausência" className={`${botao} active:bg-amber-50 active:text-amber-700`}>
                 <FileText size={17} />

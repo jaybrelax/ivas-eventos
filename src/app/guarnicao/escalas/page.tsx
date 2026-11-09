@@ -45,7 +45,7 @@ export default async function EscalasGuarnicao() {
           {proximas.length > 0 && (
             <section>
               <h2 className="mb-2 px-1 text-xs font-semibold tracking-wider text-stone-500 uppercase">Próximas</h2>
-              <ul className="space-y-2.5">
+              <ul className="space-y-1.5">
                 {proximas.map(({ c, e }) => (
                   <li key={c.$id}>
                     <Item e={e}>
@@ -63,7 +63,7 @@ export default async function EscalasGuarnicao() {
           {historico.length > 0 && (
             <section>
               <h2 className="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold tracking-wider text-stone-500 uppercase"><History size={13} /> Histórico · {historico.length}</h2>
-              <ul className="space-y-2.5">
+              <ul className="space-y-1.5">
                 {historico.map(({ c, e }) => (
                   <li key={c.$id}><Item e={e} passado><span className="text-xs text-stone-500">Serviu neste ritual</span></Item></li>
                 ))}
