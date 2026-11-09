@@ -174,12 +174,14 @@ function CartaoRitual({ meuId, participaReuniao, horasPresenca, r, visao, sexo, 
         </p>
 
         {/* Vagas: um círculo por vaga; preenchida mostra a foto de quem está escalado */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="mt-3 flex flex-wrap items-start gap-x-4 gap-y-2">
           {(["masculino", "feminino"] as const).map((s) => {
             const meu = visao === "guardiao" && s === sexo;
             return (
-              <div key={s} className="flex items-center gap-1.5">
-                <IconeGenero genero={s} size={14} />
+              <div key={s}>
+                <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-stone-500">
+                  <IconeGenero genero={s} size={14} /> {s === "masculino" ? "Guardiões" : "Guardiãs"}
+                </p>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: r.vagas[s] }).map((_, i) => {
                     const p = r.escalados[s][i];
@@ -202,7 +204,7 @@ function CartaoRitual({ meuId, participaReuniao, horasPresenca, r, visao, sexo, 
             );
           })}
           {r.espera > 0 && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-500">
+            <span className="inline-flex items-center gap-1 self-end pb-2 text-[11px] font-semibold text-stone-500">
               <Hourglass size={11} /> +{r.espera} na espera
             </span>
           )}
@@ -279,7 +281,9 @@ function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuar
 
         {itens.length > 0 && (
           // Até 14 círculos (13 avatares + "+N"); quebram de linha conforme a largura do card
-          <div className="mt-3 flex flex-wrap gap-y-1" style={{ paddingLeft: 10 }} aria-label={`${r.presentes.length} ${r.presentes.length === 1 ? "confirmado" : "confirmados"}`}>
+          <>
+          <p className="mt-5 mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-stone-500"><Users size={14} /> Participantes da reunião</p>
+          <div className="flex flex-wrap gap-y-1" style={{ paddingLeft: 10 }} aria-label={`${r.presentes.length} ${r.presentes.length === 1 ? "confirmado" : "confirmados"}`}>
             {itens.map((it) => (
               <span key={it.tipo === "pessoa" ? it.p.id : "mais"} style={{ marginLeft: -10 }}>
                 {it.tipo === "pessoa" ? (
@@ -290,6 +294,7 @@ function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuar
               </span>
             ))}
           </div>
+          </>
         )}
         <p className="mt-2 text-xs text-stone-500">
           <strong className="font-semibold text-stone-700 tabular-nums">{r.presentes.length}</strong> {r.presentes.length === 1 ? "confirmado" : "confirmados"}

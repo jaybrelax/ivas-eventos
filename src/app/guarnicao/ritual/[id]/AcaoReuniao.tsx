@@ -258,9 +258,9 @@ export function AcaoReuniao({ eventoId, dataEvento, nome, situacao, justificativ
           </div>
         ) : (
           <>
-            <div className="relative flex-1 space-y-3 rounded-2xl bg-stone-50 p-3 text-[13.5px] leading-snug text-stone-700 ring-1 ring-stone-200/70">
+            <div className="relative flex-1 space-y-3 rounded-2xl bg-stone-50 p-3 text-[17px] leading-snug text-stone-700 ring-1 ring-stone-200/70">
               {paragrafos.map((p, i) => (
-                <p key={i} className={i === 0 ? "text-xs font-bold tracking-tight text-stone-900" : i === paragrafos.length - 1 ? "font-semibold text-stone-900" : i === 2 ? "font-medium break-words whitespace-pre-line text-stone-900" : undefined}>{p}</p>
+                <p key={i} className={i === 0 ? "text-[13px] font-bold tracking-tight text-stone-900" : i === paragrafos.length - 1 ? "font-semibold text-stone-900" : i === 2 ? "font-medium break-words whitespace-pre-line text-stone-900" : undefined}>{p}</p>
               ))}
               <button
                 type="button"
