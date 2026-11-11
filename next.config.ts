@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { resolve } from "node:path";
 
 const nextConfig: NextConfig = {
   // As páginas do app leem a sessão, então ficam dinâmicas.
@@ -28,7 +29,9 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "4.5mb" },
   },
   turbopack: {
-    root: "J:/IVAS/APP",
+    // No Windows, o node_modules local é um junction para o projeto irmão.
+    // Na Vercel, o Next detecta a raiz pelo package-lock.json do próprio projeto.
+    ...(process.platform === "win32" ? { root: resolve("..") } : {}),
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
