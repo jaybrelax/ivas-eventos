@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/appwrite";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { retirarParticipacoesFuturas, type Resultado } from "@/lib/guarnicao";
-import { prefsDe } from "@/lib/usuarios";
+import { funcaoDosLabels, prefsDe } from "@/lib/usuarios";
 import { fimSuspensao, suspensaoAtiva } from "@/lib/suspensao-guarnicao";
 import { sinalizarMudanca } from "@/lib/tempo-real";
 
@@ -15,7 +15,7 @@ async function alvoDoCoordenador(userId: string) {
   if (!userId || userId.length > 64 || userId === ctx.u.id) return { erro: "Guardião inválido." } as const;
   const { users } = createAdminClient();
   const conta = await users.get({ userId }).catch(() => null);
-  if (!conta || !conta.status || prefsDe(conta.prefs).funcao_ritual !== "guardiao") return { erro: "Guardião não encontrado." } as const;
+  if (!conta || !conta.status || funcaoDosLabels(conta.labels) !== "guardiao") return { erro: "Guardião não encontrado." } as const;
   return { users, conta, coordenadorId: ctx.u.id } as const;
 }
 
@@ -63,6 +63,7 @@ export async function retirarCargoGuardiao(userId: string): Promise<Resultado> {
   const alvo = await alvoDoCoordenador(userId);
   if ("erro" in alvo) return { erro: alvo.erro };
   try {
+    await alvo.users.updateLabels({ userId, labels: alvo.conta.labels.filter((label) => label !== "guardiao") });
     await alvo.users.updatePrefs({ userId, prefs: { ...alvo.conta.prefs,
       funcao_ritual: "nenhuma", guarnicao_suspenso_ate: null, guarnicao_cargo_removido: true,
       guarnicao_situacao: null, guarnicao_solicitacao: null, cadastro_guarnicao_incompleto: null,

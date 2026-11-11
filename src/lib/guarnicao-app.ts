@@ -11,8 +11,8 @@ import type { Endereco, Evento, Sexo, SituacaoCandidatura } from "./types";
 /**
  * Quem entra no app da Guarnição e com qual visão:
  * - coordenador: perfil admin ou coordenador (escala, vagas, estatísticas gerais);
- * - guardião: função ritual = guardião (candidata-se às vagas e acompanha o próprio histórico);
- * - mestre: função ritual = mestre (vê os rituais, não se candidata e escala guardiões só nos rituais que conduz).
+ * - guardião: label guardiao (candidata-se às vagas e acompanha o próprio histórico);
+ * - mestre: label mestre (vê os rituais, não se candidata e escala guardiões só nos rituais que conduz).
  * Quem tem mais de uma alterna em Perfil; a escolha fica num cookie.
  */
 export type VisaoGuarnicao = "coordenador" | "guardiao" | "mestre";
@@ -84,18 +84,23 @@ export type RitualGuarnicao = {
 /**
  * Rituais com vagas por gênero, confirmados e espera. Por padrão, os próximos (até `dias` à frente);
  * com `anteriores`, os que já aconteceram no último ano, do mais recente ao mais antigo.
+ * A página exclusiva de reuniões consulta todo o histórico de reuniões anteriores.
  */
-export async function rituaisComVagas(usuarioId: string | null, dias = 120, anteriores = false, maximo?: number): Promise<RitualGuarnicao[]> {
+export async function rituaisComVagas(usuarioId: string | null, dias = 120, anteriores = false, maximo?: number, somenteReunioes = false): Promise<RitualGuarnicao[]> {
   const hj = hoje();
   const deslocar = (n: number) => new Date(Date.parse(`${hj}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
   const [{ tipos, enderecos }, eventos] = await Promise.all([
     getDadosInstituto(),
-    anteriores ? listarEventos({ inicio: deslocar(-365), fim: hj }) : listarEventos({ inicio: hj, fim: deslocar(dias) }),
+    anteriores ? listarEventos({ ...(somenteReunioes ? {} : { inicio: deslocar(-365) }), fim: hj }) : listarEventos({ inicio: hj, fim: deslocar(dias) }),
   ]);
   const ritual = new Set(tipos.filter((t) => temAppGuarnicao(t)).map((t) => t.$id));
   const reunioes = new Set(tipos.filter((t) => ehReuniao(t)).map((t) => t.$id));
   const rituais = eventos
-    .filter((e) => ritual.has(e.tipo_id) && (anteriores ? e.data < hj : e.data >= hj))
+    .filter((e) => ritual.has(e.tipo_id) && (!somenteReunioes || reunioes.has(e.tipo_id)) && (
+      somenteReunioes
+        ? anteriores ? inicioDe(e).getTime() <= Date.now() : inicioDe(e).getTime() > Date.now()
+        : anteriores ? e.data < hj : e.data >= hj
+    ))
     .sort((a, b) => (anteriores ? -1 : 1) * (a.data + a.hora_inicio).localeCompare(b.data + b.hora_inicio))
     // Só os primeiros `maximo` (a tela pede de 12 em 12 ao rolar); sem limite, todos
     .slice(0, maximo);

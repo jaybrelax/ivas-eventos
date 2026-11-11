@@ -4,14 +4,14 @@ import { ChevronLeft, MessageCircle } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { diasDesde, historicoDe } from "@/lib/guarnicao-estatisticas";
 import { createAdminClient } from "@/lib/appwrite";
-import { prefsDe } from "@/lib/usuarios";
+import { funcaoDosLabels, prefsDe } from "@/lib/usuarios";
 import { formatarIdRitual, partesData } from "@/lib/format";
 import { Avatar } from "@/components/Avatar";
 import { GraficoMeses } from "../../estatisticas/blocos";
 import { suspensaoAtiva } from "@/lib/suspensao-guarnicao";
 import { AcoesGuardiao } from "./AcoesGuardiao";
 
-export const metadata = { title: "Guardião" };
+export const metadata = { title: "Soldado" };
 
 function dataDaParticipacao(iso: string) {
   const { dia, mes, ano } = partesData(iso);
@@ -26,10 +26,12 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
   const pessoa = await users.get({ userId: id }).catch(() => null);
   if (!pessoa) notFound();
   const p = prefsDe(pessoa.prefs);
-  // Só perfis de guardiões ativos (nunca de participantes ou de outras contas)
-  if (p.funcao_ritual !== "guardiao" || !pessoa.status) notFound();
+  const funcao = funcaoDosLabels(pessoa.labels);
+  // Só a equipe ativa da Guarnição, nunca participantes ou outras contas.
+  if (funcao === "nenhuma" || !pessoa.status) notFound();
+  const mestre = funcao === "mestre";
   const suspensoAte = suspensaoAtiva(p.guarnicao_suspenso_ate) ? p.guarnicao_suspenso_ate : null;
-  const h = await historicoDe(id);
+  const h = await historicoDe(id, funcao);
   const numero = p.telefone ? p.telefone.replace(/\D/g, "") : "";
   // O WhatsApp é dado de contato: só a coordenação vê; guardiões veem apenas nome, foto e estatísticas
   const whats = visao === "coordenador" && numero ? `https://wa.me/${numero.startsWith("55") ? numero : `55${numero}`}` : null;
@@ -45,13 +47,13 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
         <Link href="/guarnicao/guardioes" aria-label="Voltar" className="grid h-10 w-10 place-items-center rounded-full bg-white shadow-cartao ring-1 ring-stone-200 active:scale-90">
           <ChevronLeft size={22} />
         </Link>
-        {visao === "coordenador" && id !== u.id && <AcoesGuardiao id={id} nome={pessoa.name || pessoa.email} suspensoAte={suspensoAte} />}
+        {!mestre && visao === "coordenador" && id !== u.id && <AcoesGuardiao id={id} nome={pessoa.name || pessoa.email} suspensoAte={suspensoAte} />}
       </div>
       <section className="mt-2 flex flex-col items-center px-5 text-center">
         <Avatar nome={pessoa.name || pessoa.email} foto={p.foto_file_id} tamanho={96} />
         <h1 className="mt-3 text-2xl font-bold text-stone-900">{pessoa.name}</h1>
-        <p className="text-sm text-emerald-700">{p.sexo === "feminino" ? "Guardiã" : "Guardião"}</p>
-        {suspensoAte && visao === "coordenador" && <p className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Candidaturas suspensas</p>}
+        <p className="text-sm text-emerald-700">{mestre ? p.sexo === "feminino" ? "Mestra" : "Mestre" : p.sexo === "feminino" ? "Guardiã" : "Guardião"}</p>
+        {!mestre && suspensoAte && visao === "coordenador" && <p className="mt-2 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Candidaturas suspensas</p>}
         {whats && (
           <a href={whats} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex h-10 items-center gap-2 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white active:scale-95">
             <MessageCircle size={16} /> WhatsApp

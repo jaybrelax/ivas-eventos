@@ -53,7 +53,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   try {
     const u = await users.create({ userId: ID.unique(), email, password: senha, name: nome });
     userId = u.$id;
-    await users.updateLabels({ userId, labels: [LABEL_PARTICIPANTE] });
+    await users.updateLabels({ userId, labels: automatico ? [LABEL_PARTICIPANTE, "guardiao"] : [LABEL_PARTICIPANTE] });
     await users.updatePrefs({ userId, prefs: automatico
       ? { funcao_ritual: "guardiao" }
       : { funcao_ritual: "nenhuma", guarnicao_situacao: "pendente", guarnicao_solicitacao: true } });
@@ -123,6 +123,10 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
       guarnicao_solicitacao: automatico ? null : true,
       cadastro_guarnicao_incompleto: null,
     } });
+    if (automatico) {
+      const conta = await users.get({ userId: u.id });
+      await users.updateLabels({ userId: u.id, labels: [...new Set([...conta.labels.filter((label) => label !== "mestre"), "guardiao"])] });
+    }
     if (!automatico) {
       await users.updateStatus({ userId: u.id, status: false });
       (await cookies()).delete(SESSION_COOKIE);

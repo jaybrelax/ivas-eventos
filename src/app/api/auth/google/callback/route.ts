@@ -4,7 +4,7 @@ import { ID, Query } from "node-appwrite";
 import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { createAdminClient } from "@/lib/appwrite";
 import { BUCKET_ID, LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
-import { ehParticipante, perfilDosLabels } from "@/lib/usuarios";
+import { ehParticipante, funcaoDosLabels, perfilDosLabels } from "@/lib/usuarios";
 import { destinoGuarnicao } from "@/lib/destino-auth";
 
 type PerfilGoogle = { email: string; email_verified: boolean; name?: string; picture?: string };
@@ -121,7 +121,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Conta nova pelo Google: WhatsApp, endereço e nascimento são completados no cadastro antes de seguir.
-    const semAcessoGuarnicao = !prefs.guarnicao_cargo_removido && (perfilAcesso === null || perfilAcesso === "normal") && prefs.funcao_ritual !== "guardiao" && prefs.funcao_ritual !== "mestre";
+    const semAcessoGuarnicao = !prefs.guarnicao_cargo_removido && (perfilAcesso === null || perfilAcesso === "normal") && funcaoDosLabels(contaAtual.labels) === "nenhuma";
     const destino = contaNova || prefs.cadastro_guarnicao_incompleto === true || semAcessoGuarnicao
       ? `/cadastro?completar=1&next=${encodeURIComponent(next)}`
       : next;

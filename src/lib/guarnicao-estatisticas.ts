@@ -46,9 +46,9 @@ export const rankingGuarnicao = cache(async (): Promise<LinhaRanking[]> => {
 });
 
 /** Rituais servidos por uma pessoa (mais recente primeiro) e a contagem por mês do ano atual. */
-export async function historicoDe(usuarioId: string) {
+export async function historicoDe(usuarioId: string, funcao: "guardiao" | "mestre" = "guardiao") {
   const passados = await rituaisPassados();
-  const meus = passados.filter((e) => e.guardioes?.includes(usuarioId));
+  const meus = passados.filter((e) => e.guardioes?.includes(usuarioId) || (funcao === "mestre" && e.mestres?.includes(usuarioId)));
   const ano = hoje().slice(0, 4);
   const porMes = Array.from({ length: 12 }, (_, i) => meus.filter((e) => e.data.startsWith(`${ano}-${String(i + 1).padStart(2, "0")}`)).length);
   return { rituais: meus, total: meus.length, ano: meus.filter((e) => e.data.startsWith(ano)).length, porMes, ultimo: meus[0]?.data ?? null };

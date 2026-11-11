@@ -242,6 +242,7 @@ export async function aprovarGuardiao(userId: string): Promise<Resultado> {
     const prefs = (conta.prefs ?? {}) as Record<string, unknown>;
     if (prefs.guarnicao_situacao !== "pendente" || prefs.guarnicao_solicitacao !== true || !conta.labels.includes(LABEL_PARTICIPANTE))
       return { erro: "Este cadastro não está aguardando aprovação da Guarnição." };
+    await users.updateLabels({ userId, labels: [...new Set([...conta.labels.filter((label) => label !== "mestre"), "guardiao"])] });
     await users.updateStatus({ userId, status: true });
     await users.updatePrefs({ userId, prefs: { ...prefs, funcao_ritual: "guardiao", guarnicao_situacao: null, guarnicao_solicitacao: null, cadastro_guarnicao_incompleto: null } });
   } catch (e) {

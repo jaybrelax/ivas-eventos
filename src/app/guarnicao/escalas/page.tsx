@@ -1,9 +1,10 @@
 import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
-import { CalendarCheck, ChevronRight, History, Hourglass, ShieldCheck } from "lucide-react";
+import { CalendarCheck, ChevronRight, Crown, History, Hourglass, ShieldCheck } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
-import { candidaturasDosEventos, inicioDe, participacoesDe } from "@/lib/guarnicao";
-import { listarEventos } from "@/lib/data";
+import { candidaturasDosEventos, inicioDe, participacoesDe, temGuarnicao } from "@/lib/guarnicao";
+import { listarEventos, listarTipos } from "@/lib/data";
+import type { Usuario } from "@/lib/auth";
 import { formatarIdRitual, partesData } from "@/lib/format";
 import { concordar } from "@/lib/genero";
 import { urlImagem } from "@/lib/links";
@@ -12,9 +13,10 @@ import { CabecalhoApp, Vazio } from "../ui";
 
 export const metadata = { title: "Minhas escalas" };
 
-/** Rituais em que o guardião está escalado ou na espera, e o histórico dos que já serviu. */
+/** Escalas do guardião e rituais em que o mestre foi designado. */
 export default async function EscalasGuarnicao() {
-  const { u } = (await contextoGuarnicao("/guarnicao/escalas"))!;
+  const { u, visao } = (await contextoGuarnicao("/guarnicao/escalas"))!;
+  if (visao === "mestre") return EscalasMestre({ u });
   const minhas = await participacoesDe(u.id);
   const eventos = minhas.length ? await listarEventos({ ids: [...new Set(minhas.map((c) => c.evento_id))] }) : [];
   const porId = new Map(eventos.map((e) => [e.$id, e]));
@@ -67,6 +69,43 @@ export default async function EscalasGuarnicao() {
                 {historico.map(({ c, e }) => (
                   <li key={c.$id}><Item e={e} passado><span className="text-xs text-stone-500">Serviu neste ritual</span></Item></li>
                 ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+async function EscalasMestre({ u }: { u: Usuario }) {
+  const [eventos, tipos] = await Promise.all([listarEventos(), listarTipos()]);
+  const tiposRitual = new Set(tipos.filter(temGuarnicao).map((t) => t.$id));
+  const meus = eventos.filter((e) => tiposRitual.has(e.tipo_id) && (e.mestres ?? []).includes(u.id));
+  const corte = Date.now() - 6 * 3_600_000;
+  const proximas = meus.filter((e) => inicioDe(e).getTime() > corte).sort((a, b) => inicioDe(a).getTime() - inicioDe(b).getTime());
+  const historico = meus.filter((e) => inicioDe(e).getTime() <= corte).sort((a, b) => inicioDe(b).getTime() - inicioDe(a).getTime());
+
+  return (
+    <>
+      <CabecalhoApp u={u} sobre="Mestre" titulo="Minhas escalas" />
+      {!meus.length ? (
+        <Vazio icone={<CalendarCheck size={26} />} titulo="Nenhuma escala ainda" texto="Os rituais em que você for escalado como mestre aparecerão aqui." />
+      ) : (
+        <div className="space-y-6 px-4">
+          {proximas.length > 0 && (
+            <section>
+              <h2 className="mb-2 px-1 text-xs font-semibold tracking-wider text-stone-500 uppercase">Próximas</h2>
+              <ul className="space-y-1.5">
+                {proximas.map((e) => <li key={e.$id}><Item e={e}><span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700"><Crown size={13} /> Mestre escalado</span></Item></li>)}
+              </ul>
+            </section>
+          )}
+          {historico.length > 0 && (
+            <section>
+              <h2 className="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold tracking-wider text-stone-500 uppercase"><History size={13} /> Histórico · {historico.length}</h2>
+              <ul className="space-y-1.5">
+                {historico.map((e) => <li key={e.$id}><Item e={e} passado><span className="text-xs text-stone-500">Conduziu este ritual</span></Item></li>)}
               </ul>
             </section>
           )}

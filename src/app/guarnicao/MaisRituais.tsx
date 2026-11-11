@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Carregando } from "@/components/ui";
 
 /**
@@ -10,6 +10,7 @@ import { Carregando } from "@/components/ui";
  */
 export function MaisRituais({ proximo }: { /** Quantidade total de itens a pedir. */ proximo: number }) {
   const router = useRouter();
+  const caminho = usePathname();
   const ref = useRef<HTMLDivElement>(null);
   const [carregando, iniciar] = useTransition();
   const pedido = useRef(0);
@@ -23,13 +24,13 @@ export function MaisRituais({ proximo }: { /** Quantidade total de itens a pedir
         pedido.current = proximo; // um pedido por quantidade: não repete enquanto a página nova não chega
         const p = new URLSearchParams(window.location.search);
         p.set("n", String(proximo));
-        iniciar(() => router.replace(`/guarnicao?${p}`, { scroll: false }));
+        iniciar(() => router.replace(`${caminho}?${p}`, { scroll: false }));
       },
       { rootMargin: "600px 0px" },
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [proximo, router]);
+  }, [proximo, router, caminho]);
 
   return (
     <div ref={ref} className="grid h-16 place-items-center text-stone-400" aria-live="polite">

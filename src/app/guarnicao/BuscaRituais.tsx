@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
 import { Carregando } from "@/components/ui";
 
@@ -11,6 +11,7 @@ import { Carregando } from "@/components/ui";
  */
 export function BuscaRituais({ inicial, manter }: { inicial: string; /** Outros parâmetros da URL a preservar (ex.: filtro). */ manter: Record<string, string> }) {
   const router = useRouter();
+  const caminho = usePathname();
   const [valor, setValor] = useState(inicial);
   const [buscando, iniciar] = useTransition();
   const primeira = useRef(true);
@@ -24,7 +25,7 @@ export function BuscaRituais({ inicial, manter }: { inicial: string; /** Outros 
       const p = new URLSearchParams(manter);
       if (valor.trim()) p.set("q", valor.trim());
       const qs = p.toString();
-      iniciar(() => router.replace(qs ? `/guarnicao?${qs}` : "/guarnicao", { scroll: false }));
+      iniciar(() => router.replace(qs ? `${caminho}?${qs}` : caminho, { scroll: false }));
     }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps

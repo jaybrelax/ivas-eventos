@@ -9,7 +9,7 @@ import { validarCpf } from "./cpf";
 import { ehExperiencia, ehUf, LIMITE_TEXTO_LONGO, type Experiencia } from "./perfil-extra";
 import type { Funcao, Pessoa, Sexo } from "./types";
 
-/** Função do usuário (Mestre, Guardião ou nenhuma), independente do perfil de acesso (um Admin pode ser Mestre). */
+/** Função registrada nas prefs para interoperar com o app de Eventos; o acesso à Guarnição usa labels do Auth. */
 export type FuncaoRitual = Funcao | "nenhuma";
 
 /** Dados extras de cada usuário, guardados nas preferências (prefs) da conta no Appwrite. */
@@ -75,6 +75,14 @@ export function perfilDosLabels(labels: string[] = []): Perfil | null {
   return (["admin", "coordenador", "normal"] as const).find((p) => labels.includes(p)) ?? null;
 }
 
+/** As labels do Auth são a fonte de acesso aos cargos da Guarnição. */
+export function funcaoDosLabels(labels: string[] = []): FuncaoRitual {
+  const mestre = labels.includes("mestre");
+  const guardiao = labels.includes("guardiao");
+  if (mestre === guardiao) return "nenhuma";
+  return mestre ? "mestre" : "guardiao";
+}
+
 /** Conta de participante (cadastro público, sem acesso ao painel). */
 export function ehParticipante(labels: string[] = []): boolean {
   return labels.includes(LABEL_PARTICIPANTE);
@@ -86,8 +94,9 @@ export const listarEquipe = cache(async (): Promise<Pessoa[]> => {
   const res = await users.list({ queries: [Query.limit(500), Query.orderAsc("name")] });
   return res.users.flatMap((u) => {
     const p = prefsDe(u.prefs);
-    if (p.funcao_ritual === "nenhuma" || !u.status) return [];
-    return [{ $id: u.$id, nome: u.name || u.email, funcao: p.funcao_ritual, sexo: p.sexo, foto: p.foto_file_id }];
+    const funcao = funcaoDosLabels(u.labels);
+    if (funcao === "nenhuma" || !u.status) return [];
+    return [{ $id: u.$id, nome: u.name || u.email, funcao, sexo: p.sexo, foto: p.foto_file_id }];
   });
 });
 
@@ -100,7 +109,7 @@ export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> 
   return new Map(
     res.users.map((u) => {
       const p = prefsDe(u.prefs);
-      return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: p.funcao_ritual, ativo: !!u.status, suspensoAte: p.guarnicao_suspenso_ate }];
+      return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: funcaoDosLabels(u.labels), ativo: !!u.status, suspensoAte: p.guarnicao_suspenso_ate }];
     }),
   );
 });

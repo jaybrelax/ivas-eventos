@@ -28,6 +28,7 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "4.5mb" },
   },
   turbopack: {
+    root: "J:/IVAS/APP",
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],

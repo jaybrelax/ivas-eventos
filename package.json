@@ -8,7 +8,9 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "test:auth": "node --test scripts/auth-guarnicao.test.mjs",
-    "migrate:approval": "node --env-file=.env.local scripts/migrar-aprovacao-guarnicao.mjs"
+    "test:listas": "node --test scripts/listas-guarnicao.test.mjs",
+    "migrate:approval": "node --env-file=.env.local scripts/migrar-aprovacao-guarnicao.mjs",
+    "migrate:labels": "node --env-file=.env.local scripts/migrar-labels-guarnicao.mjs"
   },
   "dependencies": {
     "@fontsource-variable/cinzel": "^5.3.0",

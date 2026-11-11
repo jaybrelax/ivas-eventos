@@ -3,7 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSessionClient } from "./appwrite";
 import type { Perfil } from "./config";
-import { ehParticipante, prefsDe, type FuncaoRitual } from "./usuarios";
+import { ehParticipante, funcaoDosLabels, prefsDe, type FuncaoRitual } from "./usuarios";
 import type { Sexo } from "./types";
 import type { Experiencia } from "./perfil-extra";
 import { suspensaoAtiva } from "./suspensao-guarnicao";
@@ -42,7 +42,7 @@ export const getUsuario = cache(async (): Promise<Usuario | null> => {
     const p = prefsDe(u.prefs);
     return {
       id: u.$id, nome: u.name || u.email, email: u.email, perfil,
-      telefone: p.telefone, foto: p.foto_file_id, funcaoRitual: p.funcao_ritual, sexo: p.sexo, endereco: p.endereco,
+      telefone: p.telefone, foto: p.foto_file_id, funcaoRitual: funcaoDosLabels(u.labels), sexo: p.sexo, endereco: p.endereco,
       cpf: p.cpf, dataNascimento: p.data_nascimento,
       estado: p.estado, cidade: p.cidade, profissao: p.profissao,
       experiencia: p.experiencia_ayahuasca, motivacao: p.motivacao, expectativas: p.expectativas,
