@@ -98,7 +98,7 @@ const TABELAS = {
     colunas: [
       v("titulo", 80, { required: true }), t("descricao"), v("data", 10, { required: true }), v("hora_inicio", 5, { required: true }),
       v("endereco_id", 36), v("endereco_livre", 255), v("tipo_id", 36, { required: true }), ids("tags"),
-      b("destaque"), v("capa_file_id", 36), v("cor_capa", 9), b("mostrar_banner", true), ids("mestres"), ids("guardioes"),
+      b("destaque"), v("capa_file_id", 36), v("cor_capa", 9), b("mostrar_banner", true), ids("mestres"), ids("guardioes"), ids("guardioes_escalados_reuniao"),
       i("ritual_numero_geral", { min: 1 }), i("ritual_ano", { min: 2000 }), i("ritual_numero_ano", { min: 1 }),
       v("criado_por", 36), v("atualizado_por", 36),
       // Guarnição: vagas de guardiões (♂) e guardiãs (♀) e se aceita candidaturas

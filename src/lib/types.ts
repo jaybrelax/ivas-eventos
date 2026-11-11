@@ -69,6 +69,8 @@ export type Evento = {
   cor_capa?: string | null;
   mestres: string[] | null; // IDs de usuários
   guardioes: string[] | null; // preenchido pela guarnição (candidaturas confirmadas)
+  /** Guardiões escalados para uma reunião; `guardioes` registra quem foi guardião do dia. */
+  guardioes_escalados_reuniao?: string[] | null;
   vagas_guardioes: number | null; // vagas masculinas (padrão 2)
   vagas_guardias: number | null; // vagas femininas (padrão 2)
   candidaturas_abertas: boolean | null;

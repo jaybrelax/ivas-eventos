@@ -18,7 +18,7 @@ export const NOME_FUNCAO: Record<Funcao, { um: string; varios: string }> = {
 };
 
 /** Escolha múltipla de mestres ou guardiões, separados em Masculino e Feminino. */
-export function EscolhaEquipe({ funcao, equipe, inicial }: { funcao: Funcao; equipe: Pessoa[]; inicial: string[] }) {
+export function EscolhaEquipe({ funcao, equipe, inicial, campo }: { funcao: Funcao; equipe: Pessoa[]; inicial: string[]; campo?: string }) {
   const [sel, setSel] = useState<Set<string>>(new Set(inicial));
   const [busca, setBusca] = useState("");
   const pessoas = equipe.filter((p) => p.funcao === funcao);
@@ -31,7 +31,7 @@ export function EscolhaEquipe({ funcao, equipe, inicial }: { funcao: Funcao; equ
       else n.add(id);
       return n;
     });
-  const nome = funcao === "mestre" ? "mestres" : "guardioes";
+  const nome = campo ?? (funcao === "mestre" ? "mestres" : "guardioes");
   const rotulo = NOME_FUNCAO[funcao];
 
   return (

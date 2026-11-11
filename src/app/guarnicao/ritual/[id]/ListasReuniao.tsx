@@ -30,6 +30,8 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
   const [pendente, iniciar] = useTransition();
   const [retirando, setRetirando] = useState<PessoaReuniao | null>(null);
   const [incluindo, setIncluindo] = useState<PessoaReuniao | null>(null);
+  const [escolhendo, setEscolhendo] = useState(false);
+  const [busca, setBusca] = useState("");
   const [verTermo, setVerTermo] = useState<JustificadoReuniao | null>(null);
   const [justificando, setJustificando] = useState<{ pessoa: PessoaReuniao; texto: string; existe: boolean } | null>(null);
 
@@ -58,7 +60,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
                 <FileText size={17} />
               </button>
             )}
-            {gerenciar && !p.mestre && (
+            {gerenciar && p.podeSerGuardiaoDoDia && (
               <button
                 type="button"
                 disabled={pendente}
@@ -99,7 +101,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
         )}
       />
 
-      <Grupo icone={<UserX size={17} className="text-stone-500" />} titulo="Sem resposta" total={dados.semResposta.length} vazio="Todos os guardiões responderam." pessoas={dados.semResposta} render={(p) => (
+      <Grupo icone={<UserX size={17} className="text-stone-500" />} titulo="Sem resposta" total={dados.semResposta.length} vazio="Toda a equipe escalada respondeu." pessoas={dados.semResposta} render={(p) => (
           <li key={p.id} className="flex items-center gap-3 py-1.5">
             <Avatar nome={p.nome} foto={p.foto} tamanho={40} />
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-700">{p.nome}<Marca p={p} />{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
@@ -116,6 +118,26 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
           </li>
         )}
       />
+
+      {gerenciar && dados.disponiveis.length > 0 && (
+        <button type="button" onClick={() => setEscolhendo(true)} className="w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-emerald-700 shadow-cartao ring-1 ring-stone-200/70">
+          Adicionar participante à reunião
+        </button>
+      )}
+      <Folha aberta={escolhendo} aoFechar={() => setEscolhendo(false)} titulo="Adicionar participante">
+        <p className="mb-3 text-sm text-stone-600">Escolha alguém para registrar presença nesta reunião{coordenacao ? " ou justificar a ausência" : ""}.</p>
+        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome" aria-label="Buscar participante" className="campo mb-3 w-full" />
+        <div className="max-h-80 overflow-y-auto">
+          {dados.disponiveis.filter((p) => p.nome.toLocaleLowerCase("pt-BR").includes(busca.trim().toLocaleLowerCase("pt-BR"))).map((p) => (
+            <div key={p.id} className="flex items-center gap-2 border-b border-stone-100 py-2 text-sm text-stone-800">
+              <Avatar nome={p.nome} foto={p.foto} tamanho={36} />
+              <span className="min-w-0 flex-1 truncate">{p.nome}</span>
+              <button type="button" onClick={() => { setEscolhendo(false); setIncluindo(p); }} aria-label={`Confirmar presença de ${p.nome}`} className="rounded-full p-2 text-emerald-700"><UserCheck size={18} /></button>
+              {coordenacao && <button type="button" onClick={() => { setEscolhendo(false); setJustificando({ pessoa: p, texto: "", existe: false }); }} aria-label={`Justificar ${p.nome}`} className="rounded-full p-2 text-amber-700"><FileText size={18} /></button>}
+            </div>
+          ))}
+        </div>
+      </Folha>
 
       {/* Justificativa registrada pela coordenação */}
       <Folha aberta={!!justificando} aoFechar={() => setJustificando(null)} topo={FiguraJustica} cheia titulo={justificando ? `Justificativa de ${justificando.pessoa.nome.split(" ")[0]}` : undefined}>
@@ -191,7 +213,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
 
       {/* Confirmar retirada */}
       <Folha aberta={!!retirando} aoFechar={() => setRetirando(null)} titulo={retirando ? `Retirar ${retirando.nome.split(" ")[0]}?` : undefined}>
-        <p className="text-sm text-stone-600">A pessoa sai dos confirmados e passa para “sem resposta”.</p>
+        <p className="text-sm text-stone-600">A pessoa sai dos confirmados. Se estiver escalada, passa para “sem resposta”.</p>
         <div className="mt-5 grid gap-2">
           <button
             type="button"
@@ -238,12 +260,13 @@ function Marca({ p }: { p: PessoaReuniao }) {
   );
 }
 
-/** Lista de pessoas: os mestres sempre vêm primeiro; com `separar`, cada grupo ganha o seu título (Mestres, Guardiões do dia e, por fim, Guardiões). */
+/** Na presença, a equipe do ritual fica separada dos demais participantes. */
 function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, render, separar = false }: { icone: React.ReactNode; titulo: string; total: number; vazio: string; pessoas: T[]; render: (p: T) => React.ReactNode; separar?: boolean }) {
   const mestres = pessoas.filter((p) => p.mestre);
   const outros = pessoas.filter((p) => !p.mestre);
   const doDia = separar ? outros.filter((p) => p.guardiaoDoDia) : [];
-  const guardioes = separar ? outros.filter((p) => !p.guardiaoDoDia) : outros;
+  const guardioes = separar ? outros.filter((p) => !p.guardiaoDoDia && p.escalado) : outros;
+  const participantes = separar ? outros.filter((p) => !p.guardiaoDoDia && !p.escalado) : [];
   const bloco = (rotulo: string, lista: T[], primeiro: boolean) => (
     <div key={rotulo} className={primeiro ? "mt-3" : "mt-4"}>
       <div className="flex items-center gap-2.5" role="separator" aria-label={rotulo}>
@@ -267,7 +290,8 @@ function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, 
         <>
           {mestres.length > 0 && bloco("Mestres", mestres, true)}
           {doDia.length > 0 && bloco(doDia.length === 1 ? "Guardião do dia" : "Guardiões do dia", doDia, mestres.length === 0)}
-          {guardioes.length > 0 && bloco("Guardiões Participantes", guardioes, mestres.length === 0 && doDia.length === 0)}
+          {guardioes.length > 0 && bloco("Guardiões escalados", guardioes, mestres.length === 0 && doDia.length === 0)}
+          {participantes.length > 0 && bloco("Participantes", participantes, mestres.length === 0 && doDia.length === 0 && guardioes.length === 0)}
         </>
       ) : (
         <ul className="mt-2 divide-y divide-stone-100">{[...mestres, ...guardioes].map((p) => render(p))}</ul>

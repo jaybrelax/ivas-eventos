@@ -88,6 +88,7 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     endereco_livre: usaLivre ? d.endereco_livre! : null,
     mostrar_banner: form.get("mostrar_banner") === "on",
     mestres: escalados("mestres", "mestre"),
+    ...(tipo.fechado_guardioes ? { guardioes_escalados_reuniao: escalados("guardioes_escalados_reuniao", "guardiao") } : {}),
     atualizado_por: u.id,
   };
   const ano = Number(d.data.slice(0, 4));

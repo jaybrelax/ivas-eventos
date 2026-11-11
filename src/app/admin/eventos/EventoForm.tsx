@@ -399,6 +399,12 @@ export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar
             <EscolhaEquipe funcao="mestre" equipe={equipe} inicial={evento?.mestres ?? []} />
           </Bloco>
 
+          {tipo?.fechado_guardioes && (
+            <Bloco titulo="Guardiões da reunião" sub="Equipe escalada para esta reunião. Os escolhidos entram como confirmados automaticamente." icone={Shield}>
+              <EscolhaEquipe funcao="guardiao" equipe={equipe} inicial={evento?.guardioes_escalados_reuniao ?? []} campo="guardioes_escalados_reuniao" />
+            </Bloco>
+          )}
+
           {tipo?.conta_como_ritual && (
             <BlocoRecolhivel titulo="Guarnição" icone={Shield} sub="Os guardiões se candidatam na página do evento, por ordem de chegada. Defina quantas vagas há para cada gênero.">
               <div className="grid gap-4 sm:grid-cols-2">

@@ -361,31 +361,31 @@ export const JUSTIFICATIVA_MIN = 30;
 export const JUSTIFICATIVA_MAX = 200;
 
 /**
- * Presenças e justificativas de uma reunião. Os mestres escalados no evento já contam como confirmados,
+ * Presenças e justificativas de uma reunião. A equipe escalada já conta como confirmada,
  * a não ser que tenham algum registro próprio (retirado pela coordenação, cancelou ou justificou).
  */
-export async function presencasDaReuniao(evento: Pick<Evento, "$id" | "mestres">) {
-  return comMestresAutomaticos(evento, await listar<Candidatura>(TABLES.candidaturas, [Query.equal("evento_id", evento.$id), Query.orderAsc("ordem")]));
+export async function presencasDaReuniao(evento: Pick<Evento, "$id" | "mestres" | "guardioes_escalados_reuniao">) {
+  return comEquipeAutomatica(evento, await listar<Candidatura>(TABLES.candidaturas, [Query.equal("evento_id", evento.$id), Query.orderAsc("ordem")]));
 }
 
-/** Todos os registros (de qualquer situação) das reuniões, para saber quais mestres já têm resposta própria. */
+/** Todos os registros das reuniões, inclusive cancelamentos, para respeitar a resposta da equipe escalada. */
 export async function registrosDasReunioes(ids: string[]) {
   const todas: Candidatura[] = [];
   for (let i = 0; i < ids.length; i += 100) todas.push(...(await listar<Candidatura>(TABLES.candidaturas, [Query.equal("evento_id", ids.slice(i, i + 100))])));
   return todas;
 }
 
-/** Dos registros de uma reunião, fica o que vale (confirmados e justificados) mais os mestres escalados que ainda não responderam. */
-export function comMestresAutomaticos(evento: Pick<Evento, "$id" | "mestres">, todas: Candidatura[]) {
+/** Dos registros de uma reunião, fica o que vale (confirmados e justificados) mais a equipe escalada que ainda não respondeu. */
+export function comEquipeAutomatica(evento: Pick<Evento, "$id" | "mestres" | "guardioes_escalados_reuniao">, todas: Candidatura[]) {
   const comRegistro = new Set(todas.map((c) => c.usuario_id));
-  const automaticas = (evento.mestres ?? [])
+  const automaticas = [...new Set([...(evento.mestres ?? []), ...(evento.guardioes_escalados_reuniao ?? [])])]
     .filter((id) => !comRegistro.has(id))
     .map((id) => ({ $id: `auto-${id}`, evento_id: evento.$id, usuario_id: id, sexo: "masculino", situacao: "confirmada", ordem: 0, justificativa: null, alterado_por: null, $createdAt: "", $updatedAt: "" }) as Candidatura);
   return [...automaticas, ...todas.filter((c) => c.situacao === "confirmada" || c.situacao === "justificada")];
 }
 
-/** Tira a presença (cancelou ou foi retirado). O mestre escalado, que ainda não tem registro, ganha um para deixar de contar como confirmado. */
-async function sairDaReuniao(evento: Pick<Evento, "$id" | "mestres" | "guardioes">, usuarioId: string, situacao: "cancelada" | "removida", alteradoPor: string) {
+/** Tira a presença; quem foi confirmado automaticamente ganha um registro para deixar de contar como confirmado. */
+async function sairDaReuniao(evento: Pick<Evento, "$id" | "mestres" | "guardioes" | "guardioes_escalados_reuniao">, usuarioId: string, situacao: "cancelada" | "removida", alteradoPor: string) {
   const { tablesDB } = createAdminClient();
   const existente = await candidaturaDe(evento.$id, usuarioId);
   if (existente) {
@@ -394,9 +394,10 @@ async function sairDaReuniao(evento: Pick<Evento, "$id" | "mestres" | "guardioes
     await tirarDosGuardioesDoDia(evento, usuarioId);
     return true;
   }
-  if (!(evento.mestres ?? []).includes(usuarioId)) return false;
+  if (!(evento.mestres ?? []).includes(usuarioId) && !(evento.guardioes_escalados_reuniao ?? []).includes(usuarioId)) return false;
   const sexo = (await mapaUsuarios()).get(usuarioId)?.sexo ?? "masculino";
   await tablesDB.createRow({ ...base, rowId: ID.unique(), data: { evento_id: evento.$id, usuario_id: usuarioId, sexo, situacao, ordem: Date.now(), alterado_por: alteradoPor } });
+  await tirarDosGuardioesDoDia(evento, usuarioId);
   return true;
 }
 
@@ -499,7 +500,7 @@ export async function marcarGuardiaoDoDia(evento: Evento, usuarioId: string, lig
   }
   const alvo = (await mapaUsuarios()).get(usuarioId);
   if (!alvo || alvo.funcao !== "guardiao") return { erro: "Só guardiões podem ser guardião do dia (os mestres já aparecem como mestres)." };
-  if ((await candidaturaDe(evento.$id, usuarioId))?.situacao !== "confirmada") return { erro: "A pessoa precisa estar entre os confirmados." };
+  if (!(await presencasDaReuniao(evento)).some((c) => c.usuario_id === usuarioId && c.situacao === "confirmada")) return { erro: "A pessoa precisa estar entre os confirmados." };
   if (atuais.includes(usuarioId)) return { erro: "Essa pessoa já é guardião do dia." };
   await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: { guardioes: [...atuais, usuarioId] } });
   await sinalizarMudanca(evento.$id);
