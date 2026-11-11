@@ -59,7 +59,7 @@ function moduloRituais(consultas = [], dados = eventos()) {
     "./guarnicao": {
       temAppGuarnicao: (t) => t.conta_como_ritual || t.fechado_guardioes,
       ehReuniao: (t) => !!t.fechado_guardioes,
-      candidaturasDosEventos: async () => [], registrosDasReunioes: async () => [], comMestresAutomaticos: (_, c) => c,
+      candidaturasDosEventos: async () => [], registrosDasReunioes: async () => [], comEquipeAutomatica: (_, c) => c,
       inicioDe: (e) => new Date(`${e.data}T${e.hora_inicio}:00-03:00`), vagasDe: () => ({ masculino: 2, feminino: 2 }),
     },
   }, { Date: DataFixa });
@@ -96,6 +96,57 @@ test("reunião de hoje passa de próxima para anterior após o horário de iníc
   const { rituaisComVagas } = moduloRituais([], hoje);
   assert.equal((await rituaisComVagas(null, 120, false, 1, true))[0].evento.$id, "tarde");
   assert.equal((await rituaisComVagas(null, 120, true, 4, true))[0].evento.$id, "cedo");
+});
+
+test("a equipe da reunião entra automaticamente, com exceção de quem justificou ou cancelou", () => {
+  const { comEquipeAutomatica } = carregar("src/lib/guarnicao.ts", {
+    "node-appwrite": { ID: {}, Query: {} }, "next/server": {},
+    "./appwrite": {}, "./config": { DB_ID: "ivas", TABLES: { candidaturas: "candidaturas" } }, "./data": {}, "./guarnicao-links": {},
+    "./push": {}, "./genero": {}, "./tempo-real": {}, "./usuarios": {},
+  });
+  const evento = { $id: "r1", mestres: ["m1"], guardioes_escalados_reuniao: ["g1", "g2"] };
+  const registros = [
+    { $id: "c1", usuario_id: "g2", situacao: "justificada" },
+    { $id: "c2", usuario_id: "fora", situacao: "confirmada" },
+    { $id: "c3", usuario_id: "g1", situacao: "cancelada" },
+  ];
+  const presencas = comEquipeAutomatica(evento, registros);
+  assert.deepEqual(Array.from(presencas, (p) => [p.usuario_id, p.situacao]), [
+    ["m1", "confirmada"], ["g2", "justificada"], ["fora", "confirmada"],
+  ]);
+  assert.deepEqual(Array.from(comEquipeAutomatica({ $id: "r2", mestres: ["m2"], guardioes_escalados_reuniao: ["g3"] }, []), (p) => p.usuario_id), ["m2", "g3"]);
+});
+
+test("sem resposta contém só a equipe escalada da própria reunião", async () => {
+  const pessoas = new Map([
+    ["m1", { id: "m1", nome: "Mestre Um", funcao: "mestre", ativo: true }],
+    ["g1", { id: "g1", nome: "Guardião Um", funcao: "guardiao", ativo: true }],
+    ["g2", { id: "g2", nome: "Guardião Dois", funcao: "guardiao", ativo: true }],
+    ["fora", { id: "fora", nome: "Participante", funcao: "guardiao", ativo: true }],
+  ]);
+  const { dadosReuniao } = carregar("src/lib/reuniao.ts", {
+    "./guarnicao": {
+      presencasDaReuniao: async (e) => e.$id === "r1" ? [
+        { $id: "auto-m1", usuario_id: "m1", situacao: "confirmada" },
+        { $id: "c1", usuario_id: "fora", situacao: "confirmada" },
+      ] : [{ $id: "auto-g2", usuario_id: "g2", situacao: "confirmada" }],
+      regrasGuarnicao: async () => ({ horas: 4, horasPresenca: 1 }),
+      inicioDe: () => new Date("2099-01-01"),
+      fimPrazoPresenca: () => new Date("2099-01-01"),
+      prazoCancelamento: () => new Date("2099-01-01"),
+    },
+    "./usuarios": { mapaUsuarios: async () => pessoas },
+    "./termo-justificativa": { dataHoraExtenso: () => "" },
+  });
+  const base = { data: "2099-01-01", hora_inicio: "10:00", guardioes: [] };
+  const primeira = await dadosReuniao({ ...base, $id: "r1", mestres: ["m1"], guardioes_escalados_reuniao: ["g1"] }, "fora", false, true);
+  assert.deepEqual(Array.from(primeira.confirmados, (p) => p.id), ["m1", "fora"]);
+  assert.deepEqual(Array.from(primeira.semResposta, (p) => p.id), ["g1"]);
+  assert.deepEqual(Array.from(primeira.disponiveis, (p) => p.id), ["g2"]);
+  const segunda = await dadosReuniao({ ...base, $id: "r2", mestres: [], guardioes_escalados_reuniao: ["g2"] }, "fora");
+  assert.deepEqual(Array.from(segunda.confirmados, (p) => p.id), ["g2"]);
+  assert.equal(segunda.semResposta.length, 0);
+  assert.equal(segunda.disponiveis.length, 0);
 });
 
 test("escala do mestre mostra só os rituais em que ele foi designado, inclusive o histórico", async () => {

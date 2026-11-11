@@ -6,7 +6,7 @@ import type { Evento, Sexo } from "./types";
 
 /** Lista de presença de uma reunião, como a página do app a mostra (todos veem as três listas). */
 
-export type PessoaReuniao = { id: string; nome: string; foto: string | null; /** Mestres ficam num bloco à parte em cada lista. */ mestre: boolean; sexo: Sexo | null; /** Foi guardião do dia (marcado pela coordenação ou por um mestre). */ guardiaoDoDia: boolean };
+export type PessoaReuniao = { id: string; nome: string; foto: string | null; /** Mestre escalado nesta reunião. */ mestre: boolean; /** Guardião escalado nesta reunião. */ escalado: boolean; podeSerGuardiaoDoDia: boolean; sexo: Sexo | null; /** Foi guardião do dia (marcado pela coordenação ou por um mestre). */ guardiaoDoDia: boolean };
 export type JustificadoReuniao = PessoaReuniao & { texto: string; /** Quando a justificativa foi registrada (data e hora por extenso). */ quando: string; /** Primeiro nome de quem registrou, se não foi o próprio guardião. */ por: string | null };
 
 export type DadosReuniao = {
@@ -15,8 +15,10 @@ export type DadosReuniao = {
   dataEvento: string;
   confirmados: PessoaReuniao[];
   justificados: JustificadoReuniao[];
-  /** Guardiões e mestres ativos que não marcaram presença nem justificaram. */
+  /** Integrantes ativos da equipe escalada que não estão confirmados nem justificados. */
   semResposta: PessoaReuniao[];
+  /** Pessoas fora da escala que o gestor ainda pode incluir na presença. */
+  disponiveis: PessoaReuniao[];
   eu: { situacao: "confirmada" | "justificada" | null; justificativa: string | null };
   jaComecou: boolean;
   /** Passou o prazo para confirmar presença (início + horas configuradas). */
@@ -32,11 +34,11 @@ function quando(d: Date) {
 }
 
 /** `verRegistradoPor`: só a coordenação vê quem registrou cada justificativa. */
-export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPor = false): Promise<DadosReuniao> {
+export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPor = false, verDisponiveis = false): Promise<DadosReuniao> {
   const [candidaturas, usuarios, { horas, horasPresenca }] = await Promise.all([presencasDaReuniao(evento), mapaUsuarios(), regrasGuarnicao()]);
   const pessoa = (id: string): PessoaReuniao => {
     const u = usuarios.get(id);
-    return { id, nome: u?.nome ?? "Usuário removido", foto: u?.foto ?? null, mestre: u?.funcao === "mestre", sexo: u?.sexo ?? null, guardiaoDoDia: u?.funcao !== "mestre" && (evento.guardioes ?? []).includes(id) };
+    return { id, nome: u?.nome ?? "Usuário removido", foto: u?.foto ?? null, mestre: (evento.mestres ?? []).includes(id), escalado: (evento.guardioes_escalados_reuniao ?? []).includes(id), podeSerGuardiaoDoDia: u?.funcao === "guardiao", sexo: u?.sexo ?? null, guardiaoDoDia: u?.funcao === "guardiao" && (evento.guardioes ?? []).includes(id) };
   };
   // Mestres primeiro; o mestre escalado que já saiu da conta (inativo ou removido) não entra automaticamente
   const confirmados = candidaturas
@@ -52,7 +54,9 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
       por: verRegistradoPor && c.alterado_por && c.alterado_por !== c.usuario_id ? (usuarios.get(c.alterado_por)?.nome.split(" ")[0] ?? null) : null,
     }));
   const respondeu = new Set(candidaturas.map((c) => c.usuario_id));
-  const semResposta = [...usuarios.values()].filter((u) => u.ativo && (u.funcao === "guardiao" || u.funcao === "mestre") && !respondeu.has(u.id)).map((u) => pessoa(u.id));
+  const equipe = new Set([...(evento.mestres ?? []), ...(evento.guardioes_escalados_reuniao ?? [])]);
+  const semResposta = [...equipe].filter((id) => usuarios.get(id)?.ativo && !respondeu.has(id)).map(pessoa);
+  const disponiveis = verDisponiveis ? [...usuarios.values()].filter((u) => u.ativo && (u.funcao === "guardiao" || u.funcao === "mestre") && !equipe.has(u.id) && !respondeu.has(u.id)).map((u) => pessoa(u.id)) : [];
   const minha = candidaturas.find((c) => c.usuario_id === euId);
   const agora = Date.now();
   return {
@@ -61,6 +65,7 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
     confirmados,
     justificados,
     semResposta,
+    disponiveis,
     eu: { situacao: minha?.situacao === "confirmada" || minha?.situacao === "justificada" ? minha.situacao : null, justificativa: minha?.situacao === "justificada" ? (minha.justificativa ?? "") : null },
     jaComecou: inicioDe(evento).getTime() <= agora,
     presencaEncerrada: fimPrazoPresenca(evento, horasPresenca).getTime() < agora,

@@ -89,12 +89,6 @@ function participaDaReuniao(funcao: string | undefined) {
   return funcao === "guardiao" || funcao === "mestre";
 }
 
-/** Coordenação ou qualquer mestre: gerencia a lista de presença de qualquer reunião. */
-async function gestorReuniao() {
-  const ctx = await contextoGuarnicao();
-  return ctx && (ctx.visoes.includes("coordenador") || ctx.visoes.includes("mestre")) ? ctx.u : null;
-}
-
 /** O guardião marca a própria presença (só antes de a reunião começar). */
 export async function ingressarNaReuniao(eventoId: string): Promise<Resultado> {
   const ctx = await contextoGuarnicao();
@@ -143,10 +137,10 @@ export async function justificarPelaCoordenacao(eventoId: string, usuarioId: str
 
 /** Mestre ou coordenação inclui um guardião na lista de presença. */
 export async function incluirGuardiaoNaReuniao(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const u = await gestorReuniao();
-  if (!u) return { erro: "Só a coordenação ou um mestre gerencia a presença." };
   const [r, usuarios] = await Promise.all([reuniao(eventoId), mapaUsuarios()]);
   if (!r) return { erro: "Reunião não encontrada." };
+  const u = await escalador(r.evento);
+  if (!u) return { erro: "Só a coordenação ou um mestre desta reunião gerencia a presença." };
   const alvo = usuarios.get(usuarioId);
   if (!alvo || !participaDaReuniao(alvo.funcao)) return { erro: "Escolha um guardião ou mestre." };
   const res = await incluirNaReuniao(r.evento, { id: alvo.id, sexo: alvo.sexo }, u.id);
@@ -156,10 +150,10 @@ export async function incluirGuardiaoNaReuniao(eventoId: string, usuarioId: stri
 
 /** Mestre ou coordenação tira um guardião da lista de presença. */
 export async function retirarGuardiaoDaReuniao(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const u = await gestorReuniao();
-  if (!u) return { erro: "Só a coordenação ou um mestre gerencia a presença." };
   const r = await reuniao(eventoId);
   if (!r) return { erro: "Reunião não encontrada." };
+  const u = await escalador(r.evento);
+  if (!u) return { erro: "Só a coordenação ou um mestre desta reunião gerencia a presença." };
   const res = await retirarDaReuniao(r.evento, usuarioId, u.id);
   revalidar(eventoId);
   return res;
@@ -167,10 +161,10 @@ export async function retirarGuardiaoDaReuniao(eventoId: string, usuarioId: stri
 
 /** Mestre ou coordenação marca (ou desmarca) o guardião do dia entre os confirmados da reunião. */
 export async function definirGuardiaoDoDia(eventoId: string, usuarioId: string, ligado: boolean): Promise<Resultado> {
-  const u = await gestorReuniao();
-  if (!u) return { erro: "Só a coordenação ou um mestre define o guardião do dia." };
   const r = await reuniao(eventoId);
   if (!r) return { erro: "Reunião não encontrada." };
+  const u = await escalador(r.evento);
+  if (!u) return { erro: "Só a coordenação ou um mestre desta reunião define o guardião do dia." };
   const res = await marcarGuardiaoDoDia(r.evento, usuarioId, ligado);
   revalidar(eventoId);
   return res;
