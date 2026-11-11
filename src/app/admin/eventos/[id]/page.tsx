@@ -36,7 +36,7 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const idRitual = formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano);
   const guarnicao = temGuarnicao(tipo) ? await dadosGuarnicao(evento, u, pode(u, PODE.editarEventos)) : null;
-  const reuniao = ehReuniao(tipo) ? await dadosReuniao(evento, u.id) : null;
+  const reuniao = ehReuniao(tipo) ? await dadosReuniao(evento, u.id, true) : null;
   const participantes = await dadosParticipantes(evento, tipo, instituto.valor_contribuicao, pode(u, PODE.editarEventos));
   const voltar = (
     <Link href={`/admin/eventos?mes=${evento.data.slice(0, 7)}`} className="inline-flex items-center gap-1.5 hover:text-ouro-700">

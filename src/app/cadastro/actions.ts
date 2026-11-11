@@ -5,12 +5,13 @@ import { redirect } from "next/navigation";
 import { ID } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
 import { LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
-import { exigirSessao } from "@/lib/auth";
-import { salvarContato, validarTelefone } from "@/lib/usuarios";
+import { exigirSessao, podeSolicitarGuarnicao } from "@/lib/auth";
+import { labelsComFuncao, salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Sexo } from "@/lib/types";
 import { ehUf } from "@/lib/perfil-extra";
 import { destinoAposCadastro } from "@/lib/destino-auth";
 import { conferirDadosObrigatorios } from "./dados-obrigatorios";
+import { aprovacaoAutomaticaGuarnicao } from "@/lib/aprovacao-guarnicao";
 
 export type ResultadoCadastro = { erro?: string } | undefined;
 
@@ -43,13 +44,22 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   const faltando = conferirDadosObrigatorios(form);
   if (faltando) return { erro: faltando };
 
+  let automatico = true;
+  if (guardiao) {
+    try { automatico = await aprovacaoAutomaticaGuarnicao(); }
+    catch { return { erro: "Não foi possível consultar a aprovação da Guarnição. Tente novamente." }; }
+  }
+
   const { account, users } = createAdminClient();
   let userId: string | null = null;
   try {
     const u = await users.create({ userId: ID.unique(), email, password: senha, name: nome });
     userId = u.$id;
-    await users.updateLabels({ userId, labels: [LABEL_PARTICIPANTE] });
-    await users.updatePrefs({ userId, prefs: { funcao_ritual: guardiao ? "guardiao" : "nenhuma" } });
+    await users.updateLabels({ userId, labels: guardiao && automatico ? [LABEL_PARTICIPANTE, "guardiao"] : [LABEL_PARTICIPANTE] });
+    await users.updatePrefs({ userId, prefs: {
+      funcao_ritual: guardiao && automatico ? "guardiao" : "nenhuma",
+      ...(guardiao && !automatico ? { guarnicao_situacao: "pendente", guarnicao_solicitacao: true } : {}),
+    } });
     const r = await salvarContato(userId, form);
     if (r.erro) {
       await users.delete({ userId }).catch(() => {});
@@ -85,6 +95,9 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
   const sexo = String(form.get("sexo") ?? "") as Sexo;
   // Link da divulgação para guardiões (/cadastro?guardiao): o cadastro já nasce como guardião
   const guardiao = form.get("guardiao") === "1";
+  if (guardiao && u.funcaoRitual !== "guardiao" && !podeSolicitarGuarnicao(u))
+    return { erro: "Esta conta não pode solicitar a função de guardião. Fale com a coordenação." };
+  const solicitarGuardiao = guardiao && u.funcaoRitual !== "guardiao";
 
   if (sexo !== "masculino" && sexo !== "feminino") return { erro: "Escolha o gênero." };
   const tel = validarTelefone(String(form.get("telefone") ?? ""));
@@ -95,14 +108,28 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
   const faltando = conferirDadosObrigatorios(form);
   if (faltando) return { erro: faltando };
 
+  let automatico = true;
+  if (solicitarGuardiao) {
+    try { automatico = await aprovacaoAutomaticaGuarnicao(); }
+    catch { return { erro: "Não foi possível consultar a aprovação da Guarnição. Tente novamente." }; }
+  }
+
   const r = await salvarContato(u.id, form);
   if (r.erro) return { erro: r.erro };
 
-  if (guardiao) {
+  if (solicitarGuardiao) {
     const { users } = createAdminClient();
     // updatePrefs substitui tudo: mescla com o que o formulário acabou de salvar (gênero, telefone, endereço…)
     const atuais = await users.getPrefs({ userId: u.id });
-    await users.updatePrefs({ userId: u.id, prefs: { ...atuais, funcao_ritual: "guardiao" } });
+    await users.updatePrefs({ userId: u.id, prefs: { ...atuais,
+      funcao_ritual: automatico ? "guardiao" : "nenhuma",
+      guarnicao_situacao: automatico ? null : "pendente",
+      guarnicao_solicitacao: automatico ? null : true,
+    } });
+    if (automatico) {
+      const conta = await users.get({ userId: u.id });
+      await users.updateLabels({ userId: u.id, labels: labelsComFuncao(conta.labels, "guardiao") });
+    }
   }
   redirect(destinoAposCadastro(form.get("next"), guardiao, "/minha-conta?aba=proximos"));
 }

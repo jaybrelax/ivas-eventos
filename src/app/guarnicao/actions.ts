@@ -7,11 +7,11 @@ import { COOKIE_TEMA, COOKIE_VISAO, contextoGuarnicao, type TemaGuarnicao, type 
 import { getEvento, listarTipos } from "@/lib/data";
 import {
   adicionarGuardiao, ajustarGuarnicao, cancelar, cancelarPresenca, candidatar, ehReuniao, incluirNaReuniao, ingressarReuniao, justificarAusencia,
-  removerGuardiao, removerJustificativa, retirarDaReuniao, temGuarnicao, type Resultado,
+  marcarGuardiaoDoDia, removerGuardiao, removerJustificativa, retirarDaReuniao, temGuarnicao, type Resultado,
 } from "@/lib/guarnicao";
 import { createAdminClient } from "@/lib/appwrite";
 import { DB_ID, INSTITUTO_ROW_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
-import { mapaUsuarios, salvarContato } from "@/lib/usuarios";
+import { labelsComFuncao, mapaUsuarios, salvarContato } from "@/lib/usuarios";
 import { suspensaoAtiva } from "@/lib/suspensao-guarnicao";
 import { sinalizarMudanca } from "@/lib/tempo-real";
 import { enviarPush, removerInscricao, salvarInscricao } from "@/lib/push";
@@ -165,6 +165,17 @@ export async function retirarGuardiaoDaReuniao(eventoId: string, usuarioId: stri
   return res;
 }
 
+/** Mestre ou coordenação marca (ou desmarca) o guardião do dia entre os confirmados da reunião. */
+export async function definirGuardiaoDoDia(eventoId: string, usuarioId: string, ligado: boolean): Promise<Resultado> {
+  const u = await gestorReuniao();
+  if (!u) return { erro: "Só a coordenação ou um mestre define o guardião do dia." };
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const res = await marcarGuardiaoDoDia(r.evento, usuarioId, ligado);
+  revalidar(eventoId);
+  return res;
+}
+
 export async function colocarGuardiao(eventoId: string, usuarioId: string): Promise<Resultado> {
   const [{ evento, tipo }, usuarios] = await Promise.all([ritual(eventoId), mapaUsuarios()]);
   if (!evento || !temGuarnicao(tipo)) return { erro: "Ritual não encontrado." };
@@ -198,17 +209,19 @@ export async function ajustarVagas(eventoId: string, mudar: { masculino?: number
 }
 
 /** Coordenação: prazo de cancelamento (horas antes do início) e limite de participações por mês. */
-export async function salvarConfigGuarnicao(dados: { horas: number; limiteMes: number; aprovacaoAutomatica: boolean }): Promise<Resultado> {
+export async function salvarConfigGuarnicao(dados: { horas: number; limiteMes: number; horasPresenca: number; aprovacaoAutomatica: boolean }): Promise<Resultado> {
   const u = await coordenador();
   if (!u) return { erro: "Só a coordenação pode mudar as configurações." };
   const horas = Math.round(Number(dados.horas));
   const limite = Math.round(Number(dados.limiteMes));
+  const horasPresenca = Math.round(Number(dados.horasPresenca));
   if (!Number.isFinite(horas) || horas < 0 || horas > 72) return { erro: "O prazo deve ficar entre 0 e 72 horas." };
   if (!Number.isFinite(limite) || limite < 0 || limite > 31) return { erro: "O limite deve ficar entre 0 e 31 por mês." };
+  if (!Number.isFinite(horasPresenca) || horasPresenca < 0 || horasPresenca > 24) return { erro: "O prazo para confirmar presença deve ficar entre 0 e 24 horas." };
   if (typeof dados.aprovacaoAutomatica !== "boolean") return { erro: "Escolha uma opção válida para a aprovação automática." };
   const { tablesDB } = createAdminClient();
   try {
-    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { guarnicao_horas_cancelamento: horas, guarnicao_limite_mes: limite, guarnicao_aprovacao_automatica: dados.aprovacaoAutomatica } });
+    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { guarnicao_horas_cancelamento: horas, guarnicao_limite_mes: limite, guarnicao_horas_presenca: horasPresenca, guarnicao_aprovacao_automatica: dados.aprovacaoAutomatica } });
   } catch (e) {
     console.error(e);
     return { erro: "Não foi possível salvar. Tente de novo." };
@@ -229,6 +242,7 @@ export async function aprovarGuardiao(userId: string): Promise<Resultado> {
     const prefs = (conta.prefs ?? {}) as Record<string, unknown>;
     if (prefs.guarnicao_situacao !== "pendente" || prefs.guarnicao_solicitacao !== true || !conta.labels.includes(LABEL_PARTICIPANTE))
       return { erro: "Este cadastro não está aguardando aprovação da Guarnição." };
+    await users.updateLabels({ userId, labels: labelsComFuncao(conta.labels, "guardiao") });
     await users.updateStatus({ userId, status: true });
     await users.updatePrefs({ userId, prefs: { ...prefs, funcao_ritual: "guardiao", guarnicao_situacao: null, guarnicao_solicitacao: null, cadastro_guarnicao_incompleto: null } });
   } catch (e) {

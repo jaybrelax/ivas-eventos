@@ -1,13 +1,16 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, useTransition } from "react";
-import { CircleCheck, Crown, FileText, Pencil, UserCheck, UserX, X } from "lucide-react";
+import { useState, useTransition } from "react";
+import { CircleCheck, Crown, FileText, Shield, ShieldCheck, SquarePen, UserCheck, UserX, X } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
-import type { DadosReuniao, PessoaReuniao } from "@/lib/reuniao";
-import { incluirGuardiaoNaReuniao, justificarPelaCoordenacao, retirarGuardiaoDaReuniao } from "../../actions";
+import type { DadosReuniao, JustificadoReuniao, PessoaReuniao } from "@/lib/reuniao";
+import { paragrafosTermo } from "@/lib/termo-justificativa";
+import { definirGuardiaoDoDia, incluirGuardiaoNaReuniao, justificarPelaCoordenacao, retirarGuardiaoDaReuniao } from "../../actions";
 import { Folha } from "../../Folha";
+import { Popup } from "../../Popup";
+import { FiguraJustica } from "./AcaoReuniao";
 import { vibrar } from "../../nativo";
 
 const MIN = 30;
@@ -16,7 +19,7 @@ const MAX = 200;
 type Props = {
   dados: DadosReuniao;
   meuId: string;
-  /** Coordenação ou mestre: inclui e retira guardiões da lista. */
+  /** Coordenação ou mestre: inclui e retira guardiões da lista e marca o guardião do dia. */
   gerenciar: boolean;
   /** Coordenação: também registra e edita justificativas pelos guardiões. */
   coordenacao: boolean;
@@ -26,6 +29,8 @@ type Props = {
 export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
   const [pendente, iniciar] = useTransition();
   const [retirando, setRetirando] = useState<PessoaReuniao | null>(null);
+  const [incluindo, setIncluindo] = useState<PessoaReuniao | null>(null);
+  const [verTermo, setVerTermo] = useState<JustificadoReuniao | null>(null);
   const [justificando, setJustificando] = useState<{ pessoa: PessoaReuniao; texto: string; existe: boolean } | null>(null);
 
   const rodar = (fn: () => Promise<{ ok?: string; erro?: string }>, aoOk?: () => void) =>
@@ -46,11 +51,24 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
     <div className={`space-y-4 ${pendente ? "opacity-70" : ""}`}>
       <Grupo icone={<CircleCheck size={17} className="text-emerald-600" />} titulo="Confirmados" separar total={dados.confirmados.length} vazio="Ninguém marcou presença ainda." pessoas={dados.confirmados} render={(p) => (
           <li key={p.id} className="flex items-center gap-3 py-1.5">
-            <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="ring-2 ring-emerald-500/80" />
-            <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}<Marca p={p} />{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
+            <Avatar nome={p.nome} foto={p.foto} tamanho={40} className={`ring-2 ${p.guardiaoDoDia ? "ring-[#e0b04a]" : "ring-emerald-500/80"}`} />
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}<Marca p={p} />{p.guardiaoDoDia && <ShieldCheck size={14} aria-label="Guardião do dia" className="ml-1.5 inline align-middle text-amber-600" />}{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
             {coordenacao && (
               <button type="button" onClick={() => setJustificando({ pessoa: p, texto: "", existe: false })} aria-label={`Justificar ${p.nome}`} title="Justificar ausência" className={`${botao} active:bg-amber-50 active:text-amber-700`}>
                 <FileText size={17} />
+              </button>
+            )}
+            {gerenciar && !p.mestre && (
+              <button
+                type="button"
+                disabled={pendente}
+                onClick={() => rodar(() => definirGuardiaoDoDia(dados.eventoId, p.id, !p.guardiaoDoDia))}
+                aria-pressed={p.guardiaoDoDia}
+                aria-label={p.guardiaoDoDia ? `Tirar ${p.nome} de guardião do dia` : `Marcar ${p.nome} como guardião do dia`}
+                title={p.guardiaoDoDia ? "Tirar de guardião do dia" : "Marcar como guardião do dia"}
+                className={`${botao} ${p.guardiaoDoDia ? "bg-amber-50 text-amber-700" : "active:bg-amber-50 active:text-amber-700"}`}
+              >
+                {p.guardiaoDoDia ? <ShieldCheck size={18} /> : <Shield size={18} />}
               </button>
             )}
             {gerenciar && (
@@ -72,16 +90,11 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
               </span>
               {coordenacao && (
                 <button type="button" onClick={() => setJustificando({ pessoa: p, texto: p.texto, existe: true })} aria-label={`Editar justificativa de ${p.nome}`} className={`${botao} active:bg-stone-100 active:text-stone-700`}>
-                  <Pencil size={16} />
-                </button>
-              )}
-              {gerenciar && (
-                <button type="button" disabled={pendente} onClick={() => rodar(() => incluirGuardiaoNaReuniao(dados.eventoId, p.id))} aria-label={`Marcar ${p.nome} como presente`} title="Marcar como presente" className={`${botao} active:bg-emerald-50 active:text-emerald-700`}>
-                  <UserCheck size={18} />
+                  <SquarePen size={17} />
                 </button>
               )}
             </div>
-            <TextoJustificativa texto={p.texto} />
+            <TextoJustificativa texto={p.texto} aoAbrir={() => setVerTermo(p)} />
           </li>
         )}
       />
@@ -96,7 +109,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
               </button>
             )}
             {gerenciar && (
-              <button type="button" disabled={pendente} onClick={() => rodar(() => incluirGuardiaoNaReuniao(dados.eventoId, p.id))} aria-label={`Marcar ${p.nome} como presente`} title="Marcar como presente" className={`${botao} active:bg-emerald-50 active:text-emerald-700`}>
+              <button type="button" disabled={pendente} onClick={() => setIncluindo(p)} aria-label={`Marcar ${p.nome} como presente`} title="Marcar como presente" className={`${botao} active:bg-emerald-50 active:text-emerald-700`}>
                 <UserCheck size={18} />
               </button>
             )}
@@ -105,7 +118,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
       />
 
       {/* Justificativa registrada pela coordenação */}
-      <Folha aberta={!!justificando} aoFechar={() => setJustificando(null)} titulo={justificando ? `Justificativa de ${justificando.pessoa.nome.split(" ")[0]}` : undefined}>
+      <Folha aberta={!!justificando} aoFechar={() => setJustificando(null)} topo={FiguraJustica} cheia titulo={justificando ? `Justificativa de ${justificando.pessoa.nome.split(" ")[0]}` : undefined}>
         {justificando && (
           <>
             <p className="mb-3 text-sm text-stone-600">Registre o motivo da ausência. Ele aparece para todos os guardiões.</p>
@@ -146,6 +159,36 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
         )}
       </Folha>
 
+      {/* Texto legal completo da justificativa de quem foi tocado */}
+      <Popup aberto={!!verTermo} aoFechar={() => setVerTermo(null)} titulo="Texto legal">
+        {verTermo && (
+          <div className="space-y-3 rounded-2xl bg-stone-50 p-4 text-sm leading-snug text-stone-700 ring-1 ring-stone-200/70">
+            {paragrafosTermo({ nome: verTermo.nome, dataEvento: dados.dataEvento, motivo: verTermo.texto, quando: verTermo.quando }).map((p, i) => (
+              <p key={i} className={i === 0 ? "text-xs font-bold tracking-tight text-stone-900" : i === 2 ? "font-medium break-words whitespace-pre-line text-stone-900" : p.startsWith("Data:") ? "font-semibold text-stone-900" : undefined}>{p}</p>
+            ))}
+          </div>
+        )}
+      </Popup>
+
+      {/* Confirmar a presença de alguém da lista */}
+      <Folha aberta={!!incluindo} aoFechar={() => setIncluindo(null)} titulo={incluindo ? `Confirmar a presença de ${incluindo.nome.split(" ")[0]}?` : undefined}>
+        <p className="text-sm text-stone-600">A pessoa passa para a lista de confirmados desta reunião.</p>
+        <div className="mt-5 grid gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const p = incluindo!;
+              setIncluindo(null);
+              rodar(() => incluirGuardiaoNaReuniao(dados.eventoId, p.id));
+            }}
+            className="h-12 rounded-2xl bg-emerald-600 text-sm font-bold text-white active:scale-[0.98]"
+          >
+            Sim, confirmar presença
+          </button>
+          <button type="button" onClick={() => setIncluindo(null)} className="h-12 rounded-2xl bg-stone-100 text-sm font-semibold text-stone-700">Voltar</button>
+        </div>
+      </Folha>
+
       {/* Confirmar retirada */}
       <Folha aberta={!!retirando} aoFechar={() => setRetirando(null)} titulo={retirando ? `Retirar ${retirando.nome.split(" ")[0]}?` : undefined}>
         <p className="text-sm text-stone-600">A pessoa sai dos confirmados e passa para “sem resposta”.</p>
@@ -168,25 +211,19 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
   );
 }
 
-/** Justificativa recolhida em 3 linhas; tocando, abre o texto completo (e tocando de novo, recolhe). */
-function TextoJustificativa({ texto }: { texto: string }) {
-  const ref = useRef<HTMLParagraphElement>(null);
-  const [aberto, setAberto] = useState(false);
-  const [corta, setCorta] = useState(false);
-  // Só vira "tocável" se o texto realmente passa de 3 linhas
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (el && !aberto) setCorta(el.scrollHeight > el.clientHeight + 1);
-  }, [texto, aberto]);
+/** Justificativa recolhida em 2 linhas; o card todo é clicável e abre o texto legal completo num pop-up. */
+function TextoJustificativa({ texto, aoAbrir }: { texto: string; aoAbrir: () => void }) {
   return (
     <button
       type="button"
-      onClick={() => setAberto((a) => !a)}
-      aria-expanded={aberto}
-      className={`mt-2 ml-[3.25rem] block w-[calc(100%-3.25rem)] rounded-2xl bg-amber-50 px-3.5 py-2.5 text-left cursor-pointer active:opacity-80`}
+      onClick={aoAbrir}
+      aria-haspopup="dialog"
+      className="mt-2 ml-[3.25rem] block w-[calc(100%-3.25rem)] cursor-pointer rounded-2xl bg-amber-50 px-3.5 py-2.5 text-left active:opacity-80"
     >
-      <span ref={ref} className={`text-[15px] leading-relaxed whitespace-pre-line break-words text-amber-900 ${aberto ? "block" : "line-clamp-3"}`}>{texto}</span>
-      {(corta || aberto) && <span className="mt-1 block text-right text-xs font-bold text-emerald-700">{aberto ? "Ver menos" : "Ver mais"}</span>}
+      <span className="line-clamp-2 text-[15px] leading-snug whitespace-pre-line break-words text-amber-900">{texto}</span>
+      <span className="mt-2 flex justify-end">
+        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-200">Ver justificativa</span>
+      </span>
     </button>
   );
 }
@@ -201,16 +238,18 @@ function Marca({ p }: { p: PessoaReuniao }) {
   );
 }
 
-/** Lista de pessoas: os mestres sempre vêm primeiro; com `separar`, cada grupo ganha o seu título (Mestres, depois Guardiões). */
+/** Lista de pessoas: os mestres sempre vêm primeiro; com `separar`, cada grupo ganha o seu título (Mestres, Guardiões do dia e, por fim, Guardiões). */
 function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, render, separar = false }: { icone: React.ReactNode; titulo: string; total: number; vazio: string; pessoas: T[]; render: (p: T) => React.ReactNode; separar?: boolean }) {
   const mestres = pessoas.filter((p) => p.mestre);
-  const guardioes = pessoas.filter((p) => !p.mestre);
+  const outros = pessoas.filter((p) => !p.mestre);
+  const doDia = separar ? outros.filter((p) => p.guardiaoDoDia) : [];
+  const guardioes = separar ? outros.filter((p) => !p.guardiaoDoDia) : outros;
   const bloco = (rotulo: string, lista: T[], primeiro: boolean) => (
     <div key={rotulo} className={primeiro ? "mt-3" : "mt-4"}>
       <div className="flex items-center gap-2.5" role="separator" aria-label={rotulo}>
           <span aria-hidden className="h-px flex-1 bg-stone-200" />
           <span className="inline-flex items-center gap-1 text-[11px] font-bold tracking-wider text-stone-500 uppercase">
-            {rotulo === "Mestres" && <Crown size={13} className="text-emerald-700" />} {rotulo} · {lista.length}
+            {rotulo === "Mestres" && <Crown size={13} className="text-emerald-700" />}{rotulo.endsWith("do dia") && <ShieldCheck size={13} className="text-amber-600" />} {rotulo} · {lista.length}
           </span>
           <span aria-hidden className="h-px flex-1 bg-stone-200" />
         </div>
@@ -227,7 +266,8 @@ function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, 
       ) : separar ? (
         <>
           {mestres.length > 0 && bloco("Mestres", mestres, true)}
-          {guardioes.length > 0 && bloco("Guardiões", guardioes, mestres.length === 0)}
+          {doDia.length > 0 && bloco(doDia.length === 1 ? "Guardião do dia" : "Guardiões do dia", doDia, mestres.length === 0)}
+          {guardioes.length > 0 && bloco("Guardiões Participantes", guardioes, mestres.length === 0 && doDia.length === 0)}
         </>
       ) : (
         <ul className="mt-2 divide-y divide-stone-100">{[...mestres, ...guardioes].map((p) => render(p))}</ul>

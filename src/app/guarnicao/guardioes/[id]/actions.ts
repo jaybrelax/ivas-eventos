@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/appwrite";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { retirarParticipacoesFuturas, type Resultado } from "@/lib/guarnicao";
-import { prefsDe } from "@/lib/usuarios";
+import { labelsComFuncao, prefsDe } from "@/lib/usuarios";
 import { fimSuspensao, suspensaoAtiva } from "@/lib/suspensao-guarnicao";
 import { sinalizarMudanca } from "@/lib/tempo-real";
 
@@ -63,6 +63,7 @@ export async function retirarCargoGuardiao(userId: string): Promise<Resultado> {
   const alvo = await alvoDoCoordenador(userId);
   if ("erro" in alvo) return { erro: alvo.erro };
   try {
+    await alvo.users.updateLabels({ userId, labels: labelsComFuncao(alvo.conta.labels, "nenhuma") });
     await alvo.users.updatePrefs({ userId, prefs: { ...alvo.conta.prefs,
       funcao_ritual: "nenhuma", guarnicao_suspenso_ate: null, guarnicao_cargo_removido: true,
       guarnicao_situacao: null, guarnicao_solicitacao: null, cadastro_guarnicao_incompleto: null,

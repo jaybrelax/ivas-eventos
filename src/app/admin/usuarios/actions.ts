@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { ID } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
-import { apagarFotoDe, ehParticipante, salvarContato, validarTelefone } from "@/lib/usuarios";
-import type { Perfil } from "@/lib/config";
+import { apagarFotoDe, ehParticipante, labelsComFuncao, labelsComPerfil, salvarContato, validarTelefone } from "@/lib/usuarios";
+import { LABEL_PARTICIPANTE, type Perfil } from "@/lib/config";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
 const PERFIS_VALIDOS: Perfil[] = ["admin", "coordenador", "normal"];
@@ -42,7 +42,8 @@ export async function alterarPerfil(userId: string, perfil: Perfil) {
   if (!PERFIS_VALIDOS.includes(perfil)) return { erro: "Perfil inválido." };
   if (userId === eu.id && perfil !== "admin") return { erro: "Você não pode tirar o seu próprio perfil de Admin." };
   const { users } = createAdminClient();
-  await users.updateLabels({ userId, labels: [perfil] });
+  const conta = await users.get({ userId });
+  await users.updateLabels({ userId, labels: labelsComPerfil(conta.labels, perfil) });
   revalidatePath("/admin/usuarios");
   return { ok: "Perfil alterado." };
 }
@@ -84,7 +85,8 @@ export async function salvarDadosPessoais(_: Resultado, form: FormData): Promise
   if (eu.perfil === "admin" && PERFIS_VALIDOS.includes(novoPerfil)) {
     if (userId === eu.id && novoPerfil !== "admin") return { erro: "Você não pode tirar o seu próprio perfil de Admin." };
     try {
-      await users.updateLabels({ userId, labels: [novoPerfil] });
+      const conta = await users.get({ userId });
+      await users.updateLabels({ userId, labels: labelsComPerfil(conta.labels, novoPerfil) });
     } catch (e) {
       console.error(e);
       return { erro: "Não foi possível alterar o perfil de acesso." };
@@ -103,9 +105,10 @@ export async function aprovarCadastro(userId: string, funcao: "mestre" | "guardi
   if (!["mestre", "guardiao", "nenhuma"].includes(funcao)) return { erro: "Função inválida." };
   const { users } = createAdminClient();
   try {
-    const prefs = (await users.getPrefs({ userId })) as Record<string, unknown>;
+    const conta = await users.get({ userId });
+    const prefs = (conta.prefs ?? {}) as Record<string, unknown>;
     await users.updatePrefs({ userId, prefs: { ...prefs, funcao_ritual: funcao, situacao: null } });
-    await users.updateLabels({ userId, labels: [perfil] });
+    await users.updateLabels({ userId, labels: labelsComFuncao(labelsComPerfil(conta.labels, perfil), funcao) });
     await users.updateStatus({ userId, status: true });
   } catch (e) {
     console.error("Aprovar cadastro:", e instanceof Error ? e.message : e);
@@ -129,7 +132,7 @@ export async function converterParticipante(userId: string, funcao: "mestre" | "
     if (!ehParticipante(conta.labels)) return { erro: "Essa conta não é mais um participante." };
     const prefs = (await users.getPrefs({ userId })) as Record<string, unknown>;
     await users.updatePrefs({ userId, prefs: { ...prefs, funcao_ritual: funcao } });
-    await users.updateLabels({ userId, labels: [perfil] });
+    await users.updateLabels({ userId, labels: labelsComFuncao(labelsComPerfil(conta.labels.filter((label) => label !== LABEL_PARTICIPANTE), perfil), funcao) });
   } catch (e) {
     console.error("Converter participante:", e instanceof Error ? e.message : e);
     return { erro: "Não foi possível converter agora. Tente de novo." };

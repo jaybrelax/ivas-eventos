@@ -1,3 +1,4 @@
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
 import { CalendarCheck, ChevronRight, History, Hourglass, ShieldCheck } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
@@ -44,7 +45,7 @@ export default async function EscalasGuarnicao() {
           {proximas.length > 0 && (
             <section>
               <h2 className="mb-2 px-1 text-xs font-semibold tracking-wider text-stone-500 uppercase">Próximas</h2>
-              <ul className="space-y-2.5">
+              <ul className="space-y-1.5">
                 {proximas.map(({ c, e }) => (
                   <li key={c.$id}>
                     <Item e={e}>
@@ -62,7 +63,7 @@ export default async function EscalasGuarnicao() {
           {historico.length > 0 && (
             <section>
               <h2 className="mb-2 flex items-center gap-1.5 px-1 text-xs font-semibold tracking-wider text-stone-500 uppercase"><History size={13} /> Histórico · {historico.length}</h2>
-              <ul className="space-y-2.5">
+              <ul className="space-y-1.5">
                 {historico.map(({ c, e }) => (
                   <li key={c.$id}><Item e={e} passado><span className="text-xs text-stone-500">Serviu neste ritual</span></Item></li>
                 ))}
@@ -79,7 +80,7 @@ function Item({ e, passado, children }: { e: Evento; passado?: boolean; children
   const d = partesData(e.data);
   const id = formatarIdRitual(e.ritual_numero_geral, null, null);
   return (
-    <Link href={`/guarnicao/ritual/${e.$id}`} className={`flex items-center gap-3 rounded-3xl bg-white p-3 shadow-cartao ring-1 ring-stone-200/70 active:scale-[0.985] ${passado ? "opacity-80" : ""}`}>
+    <Link href={urlRitualGuarnicao(e)} className={`flex items-center gap-3 rounded-3xl bg-white p-3 shadow-cartao ring-1 ring-stone-200/70 active:scale-[0.985] ${passado ? "opacity-80" : ""}`}>
       <div className="relative isolate grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[#1c1040] text-white">
         {e.capa_file_id && (
           // eslint-disable-next-line @next/next/no-img-element

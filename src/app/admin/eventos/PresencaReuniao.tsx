@@ -1,4 +1,4 @@
-import { CircleCheck, Crown, FileText, UserX } from "lucide-react";
+import { CircleCheck, Crown, FileText, UserX, ShieldCheck } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import type { DadosReuniao, PessoaReuniao } from "@/lib/reuniao";
 
@@ -36,11 +36,12 @@ function Coluna({ icone, titulo, total, vazio, children }: { icone: React.ReactN
   );
 }
 
-/** Mestres primeiro e, separados, os guardiões. */
+/** Mestres primeiro e, separados, os guardiões do dia e os demais guardiões. */
 function Divisao<T extends PessoaReuniao>({ pessoas, detalhe }: { pessoas: T[]; detalhe?: (p: T) => React.ReactNode }) {
   const grupos = [
     { rotulo: "Mestres", lista: pessoas.filter((p) => p.mestre) },
-    { rotulo: "Guardiões", lista: pessoas.filter((p) => !p.mestre) },
+    { rotulo: "Guardiões do dia", lista: pessoas.filter((p) => !p.mestre && p.guardiaoDoDia) },
+    { rotulo: "Guardiões Participantes", lista: pessoas.filter((p) => !p.mestre && !p.guardiaoDoDia) },
   ].filter((g) => g.lista.length);
   return (
     <div className="mt-3 space-y-4">
@@ -49,7 +50,7 @@ function Divisao<T extends PessoaReuniao>({ pessoas, detalhe }: { pessoas: T[]; 
           <div className="flex items-center gap-2.5" role="separator" aria-label={g.rotulo}>
           <span aria-hidden className="h-px flex-1 bg-stone-200" />
           <span className="inline-flex items-center gap-1 text-[11px] font-bold tracking-wider text-stone-500 uppercase">
-            {g.rotulo === "Mestres" && <Crown size={12} className="text-emerald-700" />} {g.rotulo} · {g.lista.length}
+            {g.rotulo === "Mestres" && <Crown size={12} className="text-emerald-700" />}{g.rotulo === "Guardiões do dia" && <ShieldCheck size={12} className="text-amber-600" />} {g.rotulo} · {g.lista.length}
           </span>
           <span aria-hidden className="h-px flex-1 bg-stone-200" />
         </div>

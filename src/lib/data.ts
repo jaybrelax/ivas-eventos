@@ -20,6 +20,7 @@ export const INSTITUTO_PADRAO: Instituto = {
   valor_contribuicao: null,
   guarnicao_horas_cancelamento: 4,
   guarnicao_limite_mes: 2,
+  guarnicao_horas_presenca: 1,
   guarnicao_aprovacao_automatica: true,
   estado: null,
   cidade: null,
@@ -128,4 +129,13 @@ export async function getEventoPorNumero(numero: number): Promise<Evento | null>
 
 export async function listarModelos() {
   return listar<ModeloBanner>(TABLES.modelos, [Query.orderAsc("nome")]);
+}
+
+/** Evento pelo trecho da URL do app da Guarnição: número geral do ritual ou, como antes, o id do evento. */
+export async function getEventoPorIdOuNumero(trecho: string): Promise<Evento | null> {
+  if (/^\d{1,7}$/.test(trecho)) {
+    const porNumero = await getEventoPorNumero(Number(trecho));
+    if (porNumero) return porNumero;
+  }
+  return getEvento(trecho);
 }

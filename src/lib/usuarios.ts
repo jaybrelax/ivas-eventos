@@ -78,6 +78,17 @@ export function perfilDosLabels(labels: string[] = []): Perfil | null {
   return (["admin", "coordenador", "normal"] as const).find((p) => labels.includes(p)) ?? null;
 }
 
+/** Preserva as labels de outros módulos ao trocar o perfil do painel. */
+export function labelsComPerfil(labels: string[], perfil: Perfil): string[] {
+  return [...new Set([...labels.filter((label) => !["admin", "coordenador", "normal"].includes(label)), perfil])];
+}
+
+/** A função ritual é exclusiva; as demais labels continuam na conta. */
+export function labelsComFuncao(labels: string[], funcao: FuncaoRitual): string[] {
+  const outras = labels.filter((label) => label !== "mestre" && label !== "guardiao");
+  return funcao === "nenhuma" ? outras : [...outras, funcao];
+}
+
 /** Conta de participante (cadastro público, sem acesso ao painel). */
 export function ehParticipante(labels: string[] = []): boolean {
   return labels.includes(LABEL_PARTICIPANTE);
@@ -255,6 +266,10 @@ export async function salvarContato(userId: string, form: FormData, podeFuncao =
       if (FUNCOES.includes(f)) extra.funcao_ritual = f;
     }
     await users.updatePrefs({ userId, prefs: { ...atuais, ...extra, telefone: tel.valor, foto_file_id: foto } });
+    if (extra.funcao_ritual) {
+      const conta = await users.get({ userId });
+      await users.updateLabels({ userId, labels: labelsComFuncao(conta.labels, extra.funcao_ritual) });
+    }
   } catch (e) {
     console.error(e);
     if (foto && foto !== antiga) await storage.deleteFile({ bucketId: BUCKET_ID, fileId: foto }).catch(() => {});

@@ -4,6 +4,7 @@ import { createAdminClient } from "./appwrite";
 import { DB_ID, TABLES } from "./config";
 import { after } from "next/server";
 import { getDadosInstituto, getInstituto, listar, listarEventos } from "./data";
+import { urlRitualGuarnicao } from "./guarnicao-links";
 import { enviarPush } from "./push";
 import { concordar } from "./genero";
 import { sinalizarMudanca } from "./tempo-real";
@@ -21,6 +22,8 @@ import type { Candidatura, Evento, Sexo, TipoEvento } from "./types";
 
 export const VAGAS_PADRAO = 2;
 export const HORAS_LIMITE_CANCELAMENTO = 4;
+/** Reunião: horas depois do início em que o guardião ainda pode confirmar presença. */
+export const HORAS_PRESENCA_PADRAO = 1;
 const ATIVAS = ["confirmada", "espera"] as const;
 
 export function vagasDe(e: Pick<Evento, "vagas_guardioes" | "vagas_guardias">): Record<Sexo, number> {
@@ -32,6 +35,11 @@ export function inicioDe(e: Pick<Evento, "data" | "hora_inicio">) {
   return new Date(`${e.data}T${e.hora_inicio}:00-03:00`);
 }
 
+/** Fim do prazo para confirmar presença numa reunião: o início mais `horas`. */
+export function fimPrazoPresenca(e: Pick<Evento, "data" | "hora_inicio">, horas = HORAS_PRESENCA_PADRAO) {
+  return new Date(inicioDe(e).getTime() + horas * 3_600_000);
+}
+
 export function prazoCancelamento(e: Pick<Evento, "data" | "hora_inicio">, horas = HORAS_LIMITE_CANCELAMENTO) {
   return new Date(inicioDe(e).getTime() - horas * 3_600_000);
 }
@@ -41,7 +49,8 @@ export async function regrasGuarnicao() {
   const i = await getInstituto();
   const horas = i.guarnicao_horas_cancelamento ?? HORAS_LIMITE_CANCELAMENTO;
   const limiteMes = i.guarnicao_limite_mes ?? 2;
-  return { horas: Math.max(0, horas), limiteMes: Math.max(0, limiteMes), aprovacaoAutomatica: i.guarnicao_aprovacao_automatica !== false };
+  const horasPresenca = i.guarnicao_horas_presenca ?? HORAS_PRESENCA_PADRAO;
+  return { horas: Math.max(0, horas), limiteMes: Math.max(0, limiteMes), horasPresenca: Math.max(0, horasPresenca), aprovacaoAutomatica: i.guarnicao_aprovacao_automatica !== false };
 }
 
 const MESES_NOME = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -177,7 +186,7 @@ function avisarMudancas(evento: Evento, promovidos: string[], livres: Record<Sex
   const aberto = evento.candidaturas_abertas !== false && inicioDe(evento).getTime() > Date.now();
   if (!aberto || (!promovidos.length && !(livres && (livres.masculino || livres.feminino)))) return;
   const nome = evento.ritual_numero_geral ? `Ritual Nº ${evento.ritual_numero_geral}` : evento.titulo;
-  const url = `/guarnicao/ritual/${evento.$id}`;
+  const url = urlRitualGuarnicao(evento);
   after(async () => {
     if (promovidos.length) {
       await enviarPush(promovidos, { titulo: "Você entrou na guarnição!", corpo: `Abriu vaga no ${nome} (${quandoCurto(evento)}) e você saiu da lista de espera.`, url, tag: `promovido-${evento.$id}` });
@@ -376,12 +385,13 @@ export function comMestresAutomaticos(evento: Pick<Evento, "$id" | "mestres">, t
 }
 
 /** Tira a presença (cancelou ou foi retirado). O mestre escalado, que ainda não tem registro, ganha um para deixar de contar como confirmado. */
-async function sairDaReuniao(evento: Pick<Evento, "$id" | "mestres">, usuarioId: string, situacao: "cancelada" | "removida", alteradoPor: string) {
+async function sairDaReuniao(evento: Pick<Evento, "$id" | "mestres" | "guardioes">, usuarioId: string, situacao: "cancelada" | "removida", alteradoPor: string) {
   const { tablesDB } = createAdminClient();
   const existente = await candidaturaDe(evento.$id, usuarioId);
   if (existente) {
     if (existente.situacao !== "confirmada") return false;
     await tablesDB.updateRow({ ...base, rowId: existente.$id, data: { situacao, alterado_por: alteradoPor } });
+    await tirarDosGuardioesDoDia(evento, usuarioId);
     return true;
   }
   if (!(evento.mestres ?? []).includes(usuarioId)) return false;
@@ -401,7 +411,7 @@ async function gravarPresenca(evento: Evento, usuarioId: string, sexo: Sexo | nu
   return true;
 }
 
-/** O próprio guardião marca presença na reunião (só antes de ela começar). */
+/** O próprio guardião marca presença na reunião (até o prazo configurado depois do início). */
 export async function ingressarReuniao(
   evento: Evento,
   tipo: TipoEvento | undefined,
@@ -409,7 +419,8 @@ export async function ingressarReuniao(
 ): Promise<Resultado> {
   if (!ehReuniao(tipo)) return { erro: "Este evento não é uma reunião." };
   if (usuario.funcaoRitual !== "guardiao" && usuario.funcaoRitual !== "mestre") return { erro: "Só guardiões e mestres marcam presença." };
-  if (inicioDe(evento).getTime() <= Date.now()) return { erro: "Esta reunião já começou." };
+  const { horasPresenca } = await regrasGuarnicao();
+  if (Date.now() > fimPrazoPresenca(evento, horasPresenca).getTime()) return { erro: "O prazo para confirmar presença nesta reunião já encerrou." };
   const novo = await gravarPresenca(evento, usuario.id, usuario.sexo, usuario.id);
   await sinalizarMudanca(evento.$id);
   return novo ? { ok: "Presença confirmada." } : { erro: "Sua presença já está confirmada." };
@@ -450,6 +461,7 @@ export async function justificarAusencia(evento: Evento, usuario: { id: string; 
   const dados = { sexo: usuario.sexo ?? existente?.sexo ?? "masculino", situacao: "justificada" as const, justificativa: limpo, ordem: Date.now(), alterado_por: porId };
   if (existente) await tablesDB.updateRow({ ...base, rowId: existente.$id, data: dados });
   else await tablesDB.createRow({ ...base, rowId: ID.unique(), data: { ...dados, evento_id: evento.$id, usuario_id: usuario.id } });
+  await tirarDosGuardioesDoDia(evento, usuario.id);
   await sinalizarMudanca(evento.$id);
   return { ok: "Justificativa registrada." };
 }
@@ -462,4 +474,34 @@ export async function removerJustificativa(evento: Evento, usuarioId: string, po
   await tablesDB.updateRow({ ...base, rowId: existente.$id, data: { situacao: "removida", justificativa: null, alterado_por: porId } });
   await sinalizarMudanca(evento.$id);
   return { ok: "Justificativa removida." };
+}
+
+/** Tira a pessoa da lista de guardiões do dia da reunião (ela saiu dos confirmados). */
+async function tirarDosGuardioesDoDia(evento: Pick<Evento, "$id" | "guardioes">, usuarioId: string) {
+  const atuais = evento.guardioes ?? [];
+  if (!atuais.includes(usuarioId)) return;
+  const { tablesDB } = createAdminClient();
+  await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: { guardioes: atuais.filter((id) => id !== usuarioId) } });
+}
+
+/**
+ * Mestre ou coordenação marca (ou desmarca) quem foi guardião do dia numa reunião. Fica em `evento.guardioes`,
+ * a mesma lista que as estatísticas leem para saber quem serviu. Só vale para confirmados; mestres não entram.
+ */
+export async function marcarGuardiaoDoDia(evento: Evento, usuarioId: string, ligado: boolean): Promise<Resultado> {
+  const atuais = evento.guardioes ?? [];
+  const { tablesDB } = createAdminClient();
+  if (!ligado) {
+    if (!atuais.includes(usuarioId)) return { erro: "Essa pessoa não é guardião do dia." };
+    await tirarDosGuardioesDoDia(evento, usuarioId);
+    await sinalizarMudanca(evento.$id);
+    return { ok: "Guardião do dia removido." };
+  }
+  const alvo = (await mapaUsuarios()).get(usuarioId);
+  if (!alvo || alvo.funcao !== "guardiao") return { erro: "Só guardiões podem ser guardião do dia (os mestres já aparecem como mestres)." };
+  if ((await candidaturaDe(evento.$id, usuarioId))?.situacao !== "confirmada") return { erro: "A pessoa precisa estar entre os confirmados." };
+  if (atuais.includes(usuarioId)) return { erro: "Essa pessoa já é guardião do dia." };
+  await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: { guardioes: [...atuais, usuarioId] } });
+  await sinalizarMudanca(evento.$id);
+  return { ok: "Guardião do dia marcado." };
 }

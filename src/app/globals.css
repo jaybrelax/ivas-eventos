@@ -100,6 +100,10 @@ body {
   scrollbar-color: rgb(0 0 0 / 0.18) transparent;
 }
 
+/* Rolagem sem barra visível (carrosséis). Precisa estar aqui, fora das camadas do Tailwind, para vencer a regra * acima */
+.sem-barra { scrollbar-width: none; }
+.sem-barra::-webkit-scrollbar { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
@@ -141,7 +145,7 @@ body {
   @apply inline-flex h-9 items-center gap-1.5 rounded-full bg-white px-3.5 text-[13px] font-semibold text-stone-600 shadow-2xs ring-1 ring-stone-200 transition active:scale-95;
 }
 .chip-app-on {
-  @apply bg-[#1c1040] text-white ring-[#1c1040];
+  @apply bg-[#3b2790] text-white ring-[#3b2790];
 }
 
 /* Campo com problema (obrigatório vazio, valor inválido): borda vermelha */
@@ -280,13 +284,11 @@ select.campo {
 .dock-app { background-image: linear-gradient(135deg, rgb(38 22 90 / 0.78) 0%, rgb(20 11 48 / 0.82) 100%); box-shadow: 0 14px 32px -10px rgb(20 11 48 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.22), inset 0 0 0 1px rgb(255 255 255 / 0.1); }
 .tema-escuro .dock-app { background-image: linear-gradient(135deg, rgb(96 58 200 / 0.72) 0%, rgb(52 28 120 / 0.8) 100%); box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.22), inset 0 0 0 1px rgb(255 255 255 / 0.1); }
 
-/* Coluna da data dos cartões de ritual: clara no tema claro, roxo-profundo no escuro */
-.coluna-data { background-color: #d5c6fb; color: var(--color-emerald-900); }
-.coluna-data .data-mes { color: var(--color-emerald-900); }
-.coluna-data .data-sem { color: var(--color-emerald-700); }
-.tema-escuro .coluna-data { background-color: #2b1b63; color: #fff; }
-.tema-escuro .coluna-data .data-mes { color: #fff; }
-.tema-escuro .coluna-data .data-sem { color: var(--color-emerald-300); }
+/* Coluna da data dos cartões de ritual: textos sempre claros; fundo roxo um pouco mais claro no tema claro e roxo-profundo no escuro */
+.coluna-data { background-color: #4a31a6; color: #fff; }
+.coluna-data .data-mes { color: #fff; }
+.coluna-data .data-sem { color: var(--color-emerald-300); }
+.tema-escuro .coluna-data { background-color: #2b1b63; }
 
 /* ───────── App da Guarnição: tema escuro ─────────
  * Aplicado pela classe no <html> e no contêiner do app (cookie "ivas-guarnicao-tema"):
@@ -311,6 +313,7 @@ select.campo {
   --shadow-elevado: 0 2px 4px rgb(0 0 0 / 0.4), 0 18px 40px -16px rgb(0 0 0 / 0.7);
 }
 .tema-escuro .bg-white, .tema-escuro .campo, .tema-escuro .chip-app:not(.chip-app-on) { background-color: #1a1428; }
+.tema-escuro .ring-fundo-card { --tw-ring-color: rgb(26 20 40 / 0.5) !important; }
 .tema-escuro .bg-white\/95 { background-color: rgb(26 20 40 / 0.95); }
 .tema-escuro .bg-white\/90 { background-color: rgb(26 20 40 / 0.9); }
 .tema-escuro .bg-white\/85 { background-color: rgb(21 16 34 / 0.85); }
@@ -338,10 +341,8 @@ select.campo {
 
 /* Automático: o mesmo tema escuro quando o celular está no modo escuro */
 @media (prefers-color-scheme: dark) {
+.tema-auto .coluna-data { background-color: #2b1b63; }
 .tema-auto .dock-app { background-image: linear-gradient(135deg, rgb(96 58 200 / 0.72) 0%, rgb(52 28 120 / 0.8) 100%); box-shadow: 0 14px 36px -10px rgb(0 0 0 / 0.8), inset 0 1px 0 rgb(255 255 255 / 0.22), inset 0 0 0 1px rgb(255 255 255 / 0.1); }
-.tema-auto .coluna-data { background-color: #2b1b63; color: #fff; }
-.tema-auto .coluna-data .data-mes { color: #fff; }
-.tema-auto .coluna-data .data-sem { color: var(--color-emerald-300); }
 .tema-auto {
   color-scheme: dark;
   --color-stone-50: #0e0a1a;
@@ -359,6 +360,7 @@ select.campo {
   --shadow-elevado: 0 2px 4px rgb(0 0 0 / 0.4), 0 18px 40px -16px rgb(0 0 0 / 0.7);
 }
 .tema-auto .bg-white, .tema-auto .campo, .tema-auto .chip-app:not(.chip-app-on) { background-color: #1a1428; }
+.tema-auto .ring-fundo-card { --tw-ring-color: rgb(26 20 40 / 0.5) !important; }
 .tema-auto .bg-white\/95 { background-color: rgb(26 20 40 / 0.95); }
 .tema-auto .bg-white\/90 { background-color: rgb(26 20 40 / 0.9); }
 .tema-auto .bg-white\/85 { background-color: rgb(21 16 34 / 0.85); }
@@ -405,7 +407,7 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
   position: absolute;
   inset: 0;
   z-index: 1;
-  padding: 1px;
+  padding: 2px;
   border-radius: inherit;
   background: conic-gradient(from var(--borda-angulo), transparent 0deg, #e0b04a 50deg, #f8566b 110deg, #a78bfa 170deg, transparent 230deg, transparent 360deg);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -419,4 +421,35 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
 }
 @media (prefers-reduced-motion: reduce) {
   .borda-animada::before { animation: none; }
+}
+
+/* Versão mais grossa da borda animada (card da reunião na página inicial) */
+.borda-animada-grossa::before { padding: 5px; }
+
+/* Contorno com a mesma cor do fundo dos cards (branco no claro; ver .bg-white nos temas escuros). */
+.ring-fundo-card { --tw-ring-color: rgb(255 255 255 / 0.5) !important; }
+
+/* Fundo animado da figura da justiça: formas geométricas girando e brilho pulsando, tudo bem devagar. */
+@keyframes geo-girar { to { transform: rotate(360deg); } }
+@keyframes geo-pulsar { 0%, 100% { opacity: 0.55; transform: scale(0.94); } 50% { opacity: 1; transform: scale(1.04); } }
+.geo-peca { transform-box: fill-box; transform-origin: center; }
+.geo-girar-60 { animation: geo-girar 60s linear infinite; }
+.geo-girar-90r { animation: geo-girar 90s linear infinite reverse; }
+.geo-girar-40 { animation: geo-girar 40s linear infinite; }
+.geo-girar-120r { animation: geo-girar 120s linear infinite reverse; }
+.geo-pulsar { animation: geo-pulsar 8s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .geo-girar-60, .geo-girar-90r, .geo-girar-40, .geo-girar-120r, .geo-pulsar { animation: none; }
+}
+
+/* Botão "Confirmar presença" chamando a atenção enquanto o prazo está aberto: fundo em movimento */
+@keyframes chama-fundo { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.btn-chama {
+  background-image: linear-gradient(110deg, #fde68a, #fdba74, #fda4af, #c4b5fd, #fde68a);
+  background-size: 300% 100%;
+  color: #1c1040;
+  animation: chama-fundo 4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-chama { animation: none; }
 }

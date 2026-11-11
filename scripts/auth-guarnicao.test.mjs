@@ -42,6 +42,30 @@ const { conferirDadosObrigatorios } = carregar("src/app/cadastro-guarnicao/dados
 const { fimSuspensao, suspensaoAtiva } = carregar("src/lib/suspensao-guarnicao.ts");
 const ritual = "/guarnicao/ritual/ritual-123?origem=escala";
 
+test("trocar perfil preserva a função da Guarnição e trocar função preserva o perfil", () => {
+  const { labelsComPerfil, labelsComFuncao } = carregar("src/lib/usuarios.ts", {
+    "server-only": {}, react: { cache: (f) => f }, "node-appwrite": {},
+    "@/lib/imagem-servidor": {}, "./appwrite": {}, "./config": {},
+    "./imagem": {}, "./cpf": {}, "./perfil-extra": {},
+  });
+  assert.equal(labelsComPerfil(["normal", "guardiao", "participante"], "coordenador").join(","), "guardiao,participante,coordenador");
+  assert.equal(labelsComFuncao(["coordenador", "guardiao", "participante"], "mestre").join(","), "coordenador,participante,mestre");
+  assert.equal(labelsComFuncao(["admin", "mestre"], "nenhuma").join(","), "admin");
+});
+
+test("cadastro público de guardião aguarda aprovação sem conceder a label", async () => {
+  const env = ambiente({ automatico: false });
+  const { cadastrarParticipante } = carregar("src/app/cadastro/actions.ts", env.mocks, env.globals);
+  const form = new FormData();
+  for (const [chave, valor] of Object.entries({ nome: "Guardião Teste", email: "guardiao@example.com", senha: "senha-teste", confirmar: "senha-teste", sexo: "masculino", telefone: "62999999999", estado: "GO", cidade: "Goiânia", guardiao: "1" })) form.set(chave, valor);
+  await assert.rejects(cadastrarParticipante(undefined, form), (e) => !!e.destino);
+  assert.equal(env.conta.status, true);
+  assert.equal(env.conta.labels.includes("guardiao"), false);
+  assert.equal(env.prefs.funcao_ritual, "nenhuma");
+  assert.equal(env.prefs.guarnicao_situacao, "pendente");
+  assert.equal(env.prefs.guarnicao_solicitacao, true);
+});
+
 test("cadastro é concluído sem CPF; endereço e nascimento continuam obrigatórios", () => {
   const form = new FormData();
   form.set("endereco", "Rua das Flores, 123");
@@ -113,6 +137,7 @@ function ambiente({ nova = false, next = ritual, guardiao = false, perfil = "nor
     "@/lib/usuarios": {
       ehParticipante: (labels) => labels.includes("participante"),
       perfilDosLabels: (labels) => labels.find((p) => ["admin", "coordenador", "normal"].includes(p)) ?? null,
+      labelsComFuncao: (labels, funcao) => [...labels.filter((label) => label !== "mestre" && label !== "guardiao"), ...(funcao === "nenhuma" ? [] : [funcao])],
       validarTelefone: () => ({ valor: "5562999999999" }), salvarContato: async () => ({}),
     },
     "@/lib/perfil-extra": { ehUf: () => true },
@@ -271,9 +296,10 @@ function ambienteCoordenacao(coordenador = true) {
       get: async () => conta,
       updateStatus: async ({ status }) => { chamadas.status++; conta.status = status; },
       updatePrefs: async ({ prefs: novos }) => { chamadas.prefs++; Object.assign(prefs, novos); },
+      updateLabels: async ({ labels }) => { conta.labels = labels; },
     }, tablesDB: { updateRow: async ({ data }) => { chamadas.config = data; } } }) },
     "@/lib/config": { DB_ID: "ivas", INSTITUTO_ROW_ID: "principal", LABEL_PARTICIPANTE: "participante", TABLES: { instituto: "instituto" } },
-    "@/lib/usuarios": {},
+    "@/lib/usuarios": { labelsComFuncao: (labels, funcao) => [...labels.filter((label) => label !== "mestre" && label !== "guardiao"), funcao] },
     "@/lib/push": {},
   };
   return { mocks, prefs, conta, chamadas };
@@ -282,12 +308,12 @@ function ambienteCoordenacao(coordenador = true) {
 test("somente a coordenação pode alterar a aprovação automática", async () => {
   const negado = ambienteCoordenacao(false);
   const acoesNegadas = carregar("src/app/guarnicao/actions.ts", negado.mocks);
-  assert.ok((await acoesNegadas.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, aprovacaoAutomatica: false })).erro);
+  assert.ok((await acoesNegadas.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, horasPresenca: 1, aprovacaoAutomatica: false })).erro);
   assert.equal(negado.chamadas.config, null);
 
   const aceito = ambienteCoordenacao();
   const acoes = carregar("src/app/guarnicao/actions.ts", aceito.mocks);
-  assert.ok((await acoes.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, aprovacaoAutomatica: false })).ok);
+  assert.ok((await acoes.salvarConfigGuarnicao({ horas: 4, limiteMes: 2, horasPresenca: 1, aprovacaoAutomatica: false })).ok);
   assert.equal(aceito.chamadas.config.guarnicao_aprovacao_automatica, false);
 });
 
@@ -313,19 +339,20 @@ test("coordenador aprova apenas solicitação pendente da Guarnição", async ()
 
 function ambienteSuspensao(perfil = "coordenador") {
   const prefs = { funcao_ritual: "guardiao" };
-  const conta = { $id: "guardiao-123", status: true, prefs };
+  const conta = { $id: "guardiao-123", labels: ["participante", "guardiao"], status: true, prefs };
   const escalas = [];
   let gravacoes = 0;
   const users = {
     get: async () => conta,
     updatePrefs: async ({ prefs: novos }) => { Object.assign(prefs, novos); gravacoes++; },
+    updateLabels: async ({ labels }) => { conta.labels = labels; },
   };
   const mocks = {
     "next/cache": { revalidatePath() {} },
     "@/lib/appwrite": { createAdminClient: () => ({ users }) },
     "@/lib/guarnicao-app": { contextoGuarnicao: async () => ({ u: { id: "coordenador-123", perfil } }) },
     "@/lib/guarnicao": { retirarParticipacoesFuturas: async (...args) => escalas.push(args) },
-    "@/lib/usuarios": { prefsDe: (p) => p },
+    "@/lib/usuarios": { prefsDe: (p) => p, labelsComFuncao: (labels, funcao) => labels.filter((label) => label !== "guardiao" && label !== "mestre").concat(funcao === "nenhuma" ? [] : [funcao]) },
   };
   return { mocks, prefs, escalas, get gravacoes() { return gravacoes; } };
 }

@@ -1,8 +1,9 @@
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
 import { CalendarClock, CalendarX2, Clock, FileText, History, Hourglass, MapPin, ShieldCheck, Sparkles, Users, UserRoundPen } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas, type RitualGuarnicao } from "@/lib/guarnicao-app";
-import { inicioDe, participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
-import { partesData } from "@/lib/format";
+import { fimPrazoPresenca, participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
+import { hoje, partesData } from "@/lib/format";
 import { concordar } from "@/lib/genero";
 import { urlImagem } from "@/lib/links";
 import { IconeGenero } from "@/components/genero";
@@ -43,7 +44,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   const mostrar = Number.isFinite(pedido) ? Math.min(Math.max(pedido, PAGINA), 480) : PAGINA;
   // Guardião nos próximos precisa de todos para contar "com vaga para mim"; nos demais, busca só o que vai aparecer
   const limite = q || (visao === "guardiao" && !anteriores) ? undefined : mostrar + 1;
-  const [rituais, { limiteMes }, porMes] = await Promise.all([
+  const [rituais, { limiteMes, horasPresenca }, porMes] = await Promise.all([
     q
       ? Promise.all([rituaisComVagas(u.id, 120), rituaisComVagas(u.id, 120, true)]).then(([prox, ant]) => [...prox, ...ant].filter((r) => casaBusca(r, q)))
       : rituaisComVagas(u.id, 120, anteriores, limite),
@@ -60,8 +61,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   const comVaga = rituais.filter(temVagaPraMim).length;
   const visiveis = lista.slice(0, mostrar);
   const temMais = lista.length > mostrar;
-  const agora = Date.now();
-  const ehPassado = (r: RitualGuarnicao) => (q ? inicioDe(r.evento).getTime() <= agora - 6 * 3_600_000 : anteriores);
+  const ehPassado = (r: RitualGuarnicao) => (q ? r.evento.data < hoje() : anteriores);
   const manter: Record<string, string> = soComVaga && visao === "guardiao" ? { filtro: "vaga" } : anteriores ? { periodo: "anteriores" } : {};
 
   return (
@@ -117,7 +117,7 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
         <ul className="space-y-3 px-4">
           {visiveis.map((r) => (
             <li key={r.evento.$id}>
-              <CartaoRitual meuId={u.id} participaReuniao={participaReuniao} r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={ehPassado(r)} limite={noLimite(r) && r.aberto ? limiteMes : null} />
+              <CartaoRitual meuId={u.id} participaReuniao={participaReuniao} horasPresenca={horasPresenca} r={r} visao={visao} sexo={sexo} vagaPraMim={temVagaPraMim(r)} passado={ehPassado(r)} limite={noLimite(r) && r.aberto ? limiteMes : null} />
             </li>
           ))}
         </ul>
@@ -128,17 +128,17 @@ export default async function RituaisGuarnicao({ searchParams }: PageProps<"/gua
   );
 }
 
-function CartaoRitual({ meuId, participaReuniao, r, visao, sexo, vagaPraMim, passado = false, limite = null }: { meuId: string; participaReuniao: boolean; r: RitualGuarnicao; visao: "coordenador" | "guardiao" | "mestre"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
+function CartaoRitual({ meuId, participaReuniao, horasPresenca, r, visao, sexo, vagaPraMim, passado = false, limite = null }: { meuId: string; participaReuniao: boolean; horasPresenca: number; r: RitualGuarnicao; visao: "coordenador" | "guardiao" | "mestre"; sexo: Sexo | null; vagaPraMim: boolean; passado?: boolean; limite?: number | null }) {
   const e = r.evento;
   const d = partesData(e.data);
   const faltam = (s: Sexo) => Math.max(0, r.vagas[s] - r.confirmados[s]);
   const completo = !faltam("masculino") && !faltam("feminino");
 
-  if (r.reuniao) return <CartaoReuniao r={r} participa={participaReuniao} passado={passado} />;
+  if (r.reuniao) return <CartaoReuniao r={r} participa={participaReuniao} passado={passado} horasPresenca={horasPresenca} />;
 
   return (
     <Link
-      href={`/guarnicao/ritual/${e.$id}`}
+      href={urlRitualGuarnicao(e)}
       className={`flex overflow-hidden rounded-3xl bg-white shadow-cartao transition active:scale-[0.985] ${
         // Guardião escalado neste ritual: borda coral-rosada (entre o laranja e o rosa do escudo)
         visao === "guardiao" && r.minha === "confirmada" ? "ring-2 ring-[#f8566b]" : "ring-1 ring-stone-200/70"
@@ -167,19 +167,21 @@ function CartaoRitual({ meuId, participaReuniao, r, visao, sexo, vagaPraMim, pas
       </div>
 
       <div className="min-w-0 flex-1 p-4">
-        <h2 className="line-clamp-2 text-base leading-snug font-semibold text-stone-900">{e.titulo}</h2>
-        <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-stone-500">
-          <Clock size={12} className="shrink-0" /> <span className="shrink-0 font-semibold text-stone-600 tabular-nums">{e.hora_inicio}</span>
-          {r.local && <><MapPin size={12} className="ml-1.5 shrink-0" /> <span className="truncate">{r.local}</span></>}
+        <h2 className="line-clamp-2 text-xl leading-snug font-semibold text-stone-900">{e.titulo}</h2>
+        <p className="mt-1.5 flex min-w-0 items-center gap-1 text-sm text-stone-500">
+          <Clock size={14} className="shrink-0" /> <span className="shrink-0 font-semibold text-stone-600 tabular-nums">{e.hora_inicio}</span>
+          {r.local && <><MapPin size={14} className="ml-2 shrink-0" /> <span className="truncate">{r.local}</span></>}
         </p>
 
         {/* Vagas: um círculo por vaga; preenchida mostra a foto de quem está escalado */}
-        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="mt-3 flex flex-wrap items-start gap-x-4 gap-y-2">
           {(["masculino", "feminino"] as const).map((s) => {
             const meu = visao === "guardiao" && s === sexo;
             return (
-              <div key={s} className="flex items-center gap-1.5">
-                <IconeGenero genero={s} size={14} />
+              <div key={s}>
+                <p className="mb-1 flex items-center gap-1 text-xs font-semibold text-stone-500">
+                  <IconeGenero genero={s} size={14} /> {s === "masculino" ? "Guardiões" : "Guardiãs"}
+                </p>
                 <div className="flex items-center gap-1">
                   {Array.from({ length: r.vagas[s] }).map((_, i) => {
                     const p = r.escalados[s][i];
@@ -202,7 +204,7 @@ function CartaoRitual({ meuId, participaReuniao, r, visao, sexo, vagaPraMim, pas
             );
           })}
           {r.espera > 0 && (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-stone-500">
+            <span className="inline-flex items-center gap-1 self-end pb-2 text-[11px] font-semibold text-stone-500">
               <Hourglass size={11} /> +{r.espera} na espera
             </span>
           )}
@@ -236,15 +238,20 @@ function CartaoRitual({ meuId, participaReuniao, r, visao, sexo, vagaPraMim, pas
 }
 
 /** Reunião: sem vagas; mostra quem já marcou presença e a situação de quem está vendo. */
-function CartaoReuniao({ r, participa, passado }: { r: RitualGuarnicao; participa: boolean; passado: boolean }) {
+function CartaoReuniao({ r, participa, passado, horasPresenca }: { r: RitualGuarnicao; participa: boolean; passado: boolean; horasPresenca: number }) {
   const e = r.evento;
   const d = partesData(e.data);
-  const comecou = inicioDe(e).getTime() <= Date.now();
-  const VER = 6;
+  const comecou = fimPrazoPresenca(e, horasPresenca).getTime() < Date.now(); // prazo para confirmar já encerrou
+  // Avatares sobrepostos: no máximo 14 círculos. Com mais de 14 presenças, o 14º mostra quantos passam disso ("+N").
+  const TOTAL = 14;
+  const excedem = r.presentes.length > TOTAL;
+  const mostrados = excedem ? r.presentes.slice(0, TOTAL - 1) : r.presentes;
+  const outros = r.presentes.length - mostrados.length;
+  const itens: ({ tipo: "pessoa"; p: (typeof mostrados)[number] } | { tipo: "mais" })[] = [...mostrados.map((p) => ({ tipo: "pessoa" as const, p })), ...(excedem ? [{ tipo: "mais" as const }] : [])];
   return (
     <Link
-      href={`/guarnicao/ritual/${e.$id}`}
-      className={`borda-animada flex overflow-hidden rounded-3xl bg-white shadow-cartao transition active:scale-[0.985] `}
+      href={urlRitualGuarnicao(e)}
+      className={`borda-animada borda-animada-grossa flex overflow-hidden rounded-3xl bg-white shadow-cartao transition active:scale-[0.985] `}
     >
       <div className="coluna-data flex w-[6.5rem] shrink-0 flex-col">
         <div className="flex flex-col items-center px-2 pt-3 pb-2.5 text-center">
@@ -266,23 +273,33 @@ function CartaoReuniao({ r, participa, passado }: { r: RitualGuarnicao; particip
       </div>
 
       <div className="min-w-0 flex-1 p-4">
-        <h2 className="line-clamp-2 text-base leading-snug font-semibold text-stone-900">{e.titulo}</h2>
-        <p className="mt-1 flex min-w-0 items-center gap-1 text-xs text-stone-500">
-          <Clock size={12} className="shrink-0" /> <span className="shrink-0 font-semibold text-stone-600 tabular-nums">{e.hora_inicio}</span>
-          {r.local && <><MapPin size={12} className="ml-1.5 shrink-0" /> <span className="truncate">{r.local}</span></>}
+        <h2 className="line-clamp-2 text-xl leading-snug font-semibold text-stone-900">{e.titulo}</h2>
+        <p className="mt-1.5 flex min-w-0 items-center gap-1 text-sm text-stone-500">
+          <Clock size={14} className="shrink-0" /> <span className="shrink-0 font-semibold text-stone-600 tabular-nums">{e.hora_inicio}</span>
+          {r.local && <><MapPin size={14} className="ml-2 shrink-0" /> <span className="truncate">{r.local}</span></>}
         </p>
 
-        <div className="mt-3 flex items-center">
-          {r.presentes.slice(0, VER).map((p, i) => (
-            <span key={p.id} className={i ? "-ml-2" : ""}>
-              <Avatar nome={p.nome} foto={p.foto} tamanho={32} className="ring-2 ring-white" />
-            </span>
-          ))}
-          {r.presentes.length > VER && <span className="ml-1.5 text-xs font-semibold text-stone-500 tabular-nums">+{r.presentes.length - VER}</span>}
-        </div>
+        {itens.length > 0 && (
+          // Até 14 círculos (13 avatares + "+N"); quebram de linha conforme a largura do card
+          <>
+          <p className="mt-5 mb-1.5 flex items-center gap-1.5 text-xs font-semibold text-stone-500"><Users size={14} /> Participantes da reunião</p>
+          <div className="flex flex-wrap gap-y-1" style={{ paddingLeft: 10 }} aria-label={`${r.presentes.length} ${r.presentes.length === 1 ? "confirmado" : "confirmados"}`}>
+            {itens.map((it) => (
+              <span key={it.tipo === "pessoa" ? it.p.id : "mais"} style={{ marginLeft: -10 }}>
+                {it.tipo === "pessoa" ? (
+                  <Avatar nome={it.p.nome} foto={it.p.foto} tamanho={40} leve className="ring-2 ring-fundo-card" />
+                ) : (
+                  <span className="grid h-10 w-10 place-items-center rounded-full bg-emerald-600 text-sm font-bold text-white ring-2 ring-fundo-card tabular-nums">+{outros}</span>
+                )}
+              </span>
+            ))}
+          </div>
+          </>
+        )}
         <p className="mt-2 text-xs text-stone-500">
-          <strong className="font-semibold text-stone-700 tabular-nums">{r.presentes.length}</strong> {r.presentes.length === 1 ? "presente" : "presentes"}
+          <strong className="font-semibold text-stone-700 tabular-nums">{r.presentes.length}</strong> {r.presentes.length === 1 ? "confirmado" : "confirmados"}
           {r.justificados > 0 && <> · <strong className="font-semibold text-stone-700 tabular-nums">{r.justificados}</strong> {r.justificados === 1 ? "justificou" : "justificaram"}</>}
+          {r.semResposta > 0 && <span className="mt-0.5 block"><strong className="font-semibold text-stone-700 tabular-nums">{r.semResposta}</strong> {r.semResposta === 1 ? "não respondeu" : "não responderam"}</span>}
         </p>
 
         {participa ? (
@@ -292,9 +309,7 @@ function CartaoReuniao({ r, participa, passado }: { r: RitualGuarnicao; particip
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800"><FileText size={14} /> Ausência justificada</p>
           ) : !passado && !comecou ? (
             <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white"><Sparkles size={13} /> Confirme sua presença</p>
-          ) : (
-            <p className="mt-3 text-xs font-medium text-stone-400">Sem resposta</p>
-          )
+          ) : null
         ) : null}
       </div>
     </Link>

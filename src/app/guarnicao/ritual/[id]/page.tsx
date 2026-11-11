@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import { History } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
-import { getDadosInstituto, getEvento, listar } from "@/lib/data";
+import { getDadosInstituto, getEventoPorIdOuNumero, listar } from "@/lib/data";
 import { TABLES } from "@/lib/config";
 import { Query } from "node-appwrite";
 import type { Candidatura } from "@/lib/types";
@@ -25,9 +26,11 @@ export const metadata = { title: "Ritual" };
 export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/ritual/[id]">) {
   const { id } = await params;
   const { u, visao } = (await contextoGuarnicao(`/guarnicao/ritual/${id}`))!;
-  const [evento, { tipos, enderecos }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
+  const [evento, { tipos, enderecos }, equipe] = await Promise.all([getEventoPorIdOuNumero(id), getDadosInstituto(), listarEquipe()]);
   const tipo = evento ? tipos.find((t) => t.$id === evento.tipo_id) : undefined;
   if (!evento || !temAppGuarnicao(tipo)) notFound();
+  // Endereço do ritual = número geral: link antigo (com o id do evento) segue para ele
+  if (evento.ritual_numero_geral && id !== String(evento.ritual_numero_geral)) redirect(urlRitualGuarnicao(evento));
 
   const end = evento.endereco_id ? enderecos.find((e) => e.$id === evento.endereco_id) : undefined;
   const mestres = (evento.mestres ?? []).map((m) => equipe.find((p) => p.$id === m)).filter((m) => !!m);
@@ -36,19 +39,19 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
   // Reunião: todos os guardiões marcam presença ou justificam; as três listas são iguais para todos.
   // Os mestres escalados já entram como confirmados (e ficam no topo da lista), por isso o cartão de mestres não aparece.
   if (ehReuniao(tipo)) {
-    const r = await dadosReuniao(evento, u.id);
+    const r = await dadosReuniao(evento, u.id, coord);
     // Guardiões e mestres (inclusive da coordenação) marcam a própria presença ou justificam a ausência
     const participa = u.funcaoRitual === "guardiao" || u.funcaoRitual === "mestre";
     return (
-      <div className={participa ? "pb-48" : "pb-6"}>
+      <div className={participa && !r.eu.situacao ? "pb-48" : "pb-6"}>
         <Topo evento={evento} end={end} mestres={[]} agenda={participa && r.eu.situacao === "confirmada"} />
+        {participa && (
+          <AcaoReuniao eventoId={evento.$id} dataEvento={evento.data} nome={u.nome} situacao={r.eu.situacao} justificativa={r.eu.justificativa} jaComecou={r.presencaEncerrada} prazoPassou={r.prazoPassou} prazoTexto={r.prazoTexto} />
+        )}
         <section className="mt-5 px-5">
           <h2 className="mb-3 text-lg font-semibold text-stone-900">Presença na reunião</h2>
           <ListasReuniao dados={r} meuId={u.id} gerenciar={coord || visao === "mestre"} coordenacao={coord} />
         </section>
-        {participa && (
-          <AcaoReuniao eventoId={evento.$id} situacao={r.eu.situacao} justificativa={r.eu.justificativa} jaComecou={r.jaComecou} prazoPassou={r.prazoPassou} prazoTexto={r.prazoTexto} />
-        )}
       </div>
     );
   }

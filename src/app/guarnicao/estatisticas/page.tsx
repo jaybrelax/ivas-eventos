@@ -1,5 +1,5 @@
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { AlertTriangle, CalendarClock, ChevronRight, Flame, Gauge, ShieldCheck, Trophy, UsersRound } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas } from "@/lib/guarnicao-app";
 import { MARCOS, diasDesde, historicoDe, rankingGuarnicao, rituaisPassados } from "@/lib/guarnicao-estatisticas";
@@ -13,8 +13,7 @@ export const metadata = { title: "Estatísticas" };
 
 export default async function EstatisticasGuarnicao({ searchParams }: PageProps<"/guarnicao/estatisticas">) {
   const { u, visao } = (await contextoGuarnicao("/guarnicao/estatisticas"))!;
-  // As estatísticas gerais são da coordenação e os números pessoais, dos guardiões
-  if (visao === "mestre") redirect("/guarnicao");
+  // Guardião vê os números pessoais; coordenação e mestre veem as estatísticas gerais
   const periodo = (await searchParams).periodo === "total" ? "total" : "ano";
   const ranking = await rankingGuarnicao();
 
@@ -102,7 +101,7 @@ export default async function EstatisticasGuarnicao({ searchParams }: PageProps<
 
   return (
     <>
-      <CabecalhoApp u={u} sobre="Coordenação" titulo="Estatísticas" />
+      <CabecalhoApp u={u} sobre={visao === "mestre" ? "Mestres" : "Coordenação"} titulo="Estatísticas" />
       <div className="space-y-4 px-4">
         <div className="grid grid-cols-2 gap-3">
           {kpis.map(({ rotulo, valor, Icone, cor }) => (
@@ -122,7 +121,7 @@ export default async function EstatisticasGuarnicao({ searchParams }: PageProps<
             <ul>
               {atencao.map((r) => (
                 <li key={r.evento.$id}>
-                  <Link href={`/guarnicao/ritual/${r.evento.$id}`} className="flex items-center gap-3 rounded-2xl px-1 py-2.5 active:bg-stone-50">
+                  <Link href={urlRitualGuarnicao(r.evento)} className="flex items-center gap-3 rounded-2xl px-1 py-2.5 active:bg-stone-50">
                     <span className="w-12 shrink-0 text-center">
                       <span className="block text-lg leading-none font-black text-stone-900 tabular-nums">{partesData(r.evento.data).dia}</span>
                       <span className="block text-[10px] font-semibold text-stone-500 uppercase">{partesData(r.evento.data).mesCurto}</span>

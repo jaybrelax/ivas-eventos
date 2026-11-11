@@ -1,3 +1,4 @@
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
 import { candidaturasDosEventos, temGuarnicao } from "@/lib/guarnicao";
 import { hoje } from "@/lib/format";
@@ -26,7 +27,7 @@ export async function GET(req: Request) {
     enviados += await enviarPush(confirmados, {
       titulo: `Amanhã: ${nome}`,
       corpo: `Você está na guarnição · ${e.hora_inicio}${end ? ` · ${end.apelido}` : ""}.`,
-      url: `/guarnicao/ritual/${e.$id}`,
+      url: urlRitualGuarnicao(e),
       tag: `lembrete-${e.$id}`,
     });
   }

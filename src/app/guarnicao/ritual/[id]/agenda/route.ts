@@ -1,4 +1,5 @@
-import { getDadosInstituto, getEvento } from "@/lib/data";
+import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
+import { getDadosInstituto, getEventoPorIdOuNumero } from "@/lib/data";
 import { getUsuario } from "@/lib/auth";
 import { inicioDe } from "@/lib/guarnicao";
 import { SITE_URL } from "@/lib/site";
@@ -15,7 +16,7 @@ const escapar = (t: string) =>
 export async function GET(_req: Request, ctx: RouteContext<"/guarnicao/ritual/[id]/agenda">) {
   if (!(await getUsuario())) return new Response("Entre na sua conta.", { status: 401 });
   const { id } = await ctx.params;
-  const [evento, { enderecos }] = await Promise.all([getEvento(id), getDadosInstituto()]);
+  const [evento, { enderecos }] = await Promise.all([getEventoPorIdOuNumero(id), getDadosInstituto()]);
   if (!evento) return new Response("Não encontrado", { status: 404 });
   const end = evento.endereco_id ? enderecos.find((e) => e.$id === evento.endereco_id) : undefined;
   const inicio = inicioDe(evento);
@@ -35,8 +36,8 @@ export async function GET(_req: Request, ctx: RouteContext<"/guarnicao/ritual/[i
     `DTEND:${ics(fim)}`,
     `SUMMARY:${escapar(titulo)}`,
     local && `LOCATION:${escapar(local)}`,
-    `DESCRIPTION:${escapar(`Você está na guarnição deste ritual.${QUEBRA}${SITE_URL}/guarnicao/ritual/${evento.$id}`)}`,
-    `URL:${SITE_URL}/guarnicao/ritual/${evento.$id}`,
+    `DESCRIPTION:${escapar(`Você está na guarnição deste ritual.${QUEBRA}${SITE_URL}${urlRitualGuarnicao(evento)}`)}`,
+    `URL:${SITE_URL}${urlRitualGuarnicao(evento)}`,
     "BEGIN:VALARM",
     "TRIGGER:-PT3H",
     "ACTION:DISPLAY",

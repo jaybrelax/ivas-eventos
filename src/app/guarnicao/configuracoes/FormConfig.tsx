@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { CalendarRange, Check, Clock, Minus, Plus, ShieldCheck } from "lucide-react";
+import { CalendarRange, Check, Clock, Minus, Plus, ShieldCheck, UserCheck } from "lucide-react";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import { salvarConfigGuarnicao } from "../actions";
@@ -22,18 +22,19 @@ function Passo({ valor, min, max, aoMudar, rotulo }: { valor: number; min: numbe
   );
 }
 
-export function FormConfig({ horasInicial, limiteInicial, aprovacaoAutomaticaInicial }: { horasInicial: number; limiteInicial: number; aprovacaoAutomaticaInicial: boolean }) {
+export function FormConfig({ horasInicial, limiteInicial, horasPresencaInicial, aprovacaoAutomaticaInicial }: { horasInicial: number; limiteInicial: number; horasPresencaInicial: number; aprovacaoAutomaticaInicial: boolean }) {
   const [horas, setHoras] = useState(horasInicial);
   const [limite, setLimite] = useState(limiteInicial);
+  const [horasPresenca, setHorasPresenca] = useState(horasPresencaInicial);
   const [aprovacaoAutomatica, setAprovacaoAutomatica] = useState(aprovacaoAutomaticaInicial);
   const [pendente, iniciar] = useTransition();
   const [estado, setEstado] = useState<"salvo" | "salvando" | "erro">("salvo");
-  const salvo = useRef({ horas: horasInicial, limiteMes: limiteInicial, aprovacaoAutomatica: aprovacaoAutomaticaInicial });
+  const salvo = useRef({ horas: horasInicial, limiteMes: limiteInicial, horasPresenca: horasPresencaInicial, aprovacaoAutomatica: aprovacaoAutomaticaInicial });
   const versao = useRef(0);
 
   useEffect(() => {
-    const atual = { horas, limiteMes: limite, aprovacaoAutomatica };
-    if (atual.horas === salvo.current.horas && atual.limiteMes === salvo.current.limiteMes && atual.aprovacaoAutomatica === salvo.current.aprovacaoAutomatica) return;
+    const atual = { horas, limiteMes: limite, horasPresenca, aprovacaoAutomatica };
+    if (atual.horas === salvo.current.horas && atual.limiteMes === salvo.current.limiteMes && atual.horasPresenca === salvo.current.horasPresenca && atual.aprovacaoAutomatica === salvo.current.aprovacaoAutomatica) return;
     const estaVersao = ++versao.current;
     setEstado("salvando");
     const espera = window.setTimeout(() => {
@@ -51,10 +52,24 @@ export function FormConfig({ horasInicial, limiteInicial, aprovacaoAutomaticaIni
       });
     }, 450);
     return () => window.clearTimeout(espera);
-  }, [horas, limite, aprovacaoAutomatica]);
+  }, [horas, limite, horasPresenca, aprovacaoAutomatica]);
 
   return (
     <div className="space-y-4 px-4">
+      <section className="rounded-3xl bg-white p-5 shadow-cartao ring-1 ring-stone-200/70">
+        <div className="flex items-start gap-3">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><CalendarRange size={21} /></span>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-stone-900">Participações por mês</h2>
+            <p className="mt-0.5 text-sm leading-snug text-stone-500">Quantos rituais cada guardião pode assumir no mesmo mês pelo app. A coordenação pode escalar além do limite.</p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <span className="text-sm font-medium text-stone-700">{limite === 0 ? "Sem limite" : `${limite} por mês`}</span>
+          <Passo valor={limite} min={0} max={31} aoMudar={setLimite} rotulo="o limite" />
+        </div>
+      </section>
+
       <section className="rounded-3xl bg-white p-5 shadow-cartao ring-1 ring-stone-200/70">
         <div className="flex items-start gap-3">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><Clock size={21} /></span>
@@ -71,15 +86,15 @@ export function FormConfig({ horasInicial, limiteInicial, aprovacaoAutomaticaIni
 
       <section className="rounded-3xl bg-white p-5 shadow-cartao ring-1 ring-stone-200/70">
         <div className="flex items-start gap-3">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><CalendarRange size={21} /></span>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-700"><UserCheck size={21} /></span>
           <div className="min-w-0">
-            <h2 className="text-base font-semibold text-stone-900">Participações por mês</h2>
-            <p className="mt-0.5 text-sm leading-snug text-stone-500">Quantos rituais cada guardião pode assumir no mesmo mês pelo app. A coordenação pode escalar além do limite.</p>
+            <h2 className="text-base font-semibold text-stone-900">Prazo para confirmar presença</h2>
+            <p className="mt-0.5 text-sm leading-snug text-stone-500">Por quantas horas depois do início da reunião o guardião ainda pode confirmar a presença pelo app.</p>
           </div>
         </div>
         <div className="mt-4 flex items-center justify-between gap-3">
-          <span className="text-sm font-medium text-stone-700">{limite === 0 ? "Sem limite" : `${limite} por mês`}</span>
-          <Passo valor={limite} min={0} max={31} aoMudar={setLimite} rotulo="o limite" />
+          <span className="text-sm font-medium text-stone-700">{horasPresenca === 0 ? "Só até o início da reunião" : `${horasPresenca} ${horasPresenca === 1 ? "hora" : "horas"} depois do início`}</span>
+          <Passo valor={horasPresenca} min={0} max={24} aoMudar={setHorasPresenca} rotulo="o prazo de confirmação" />
         </div>
       </section>
 
