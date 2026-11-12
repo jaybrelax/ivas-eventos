@@ -141,7 +141,7 @@ test("sem resposta contém só a equipe escalada da própria reunião", async ()
   });
   const base = { data: "2099-01-01", hora_inicio: "10:00", guardioes: [] };
   const primeira = await dadosReuniao({ ...base, $id: "r1", mestres: ["m1"], guardioes_escalados_reuniao: ["g1"] }, "fora", false, true);
-  assert.deepEqual(Array.from(primeira.confirmados, (p) => p.id), ["fora", "m1"]);
+  assert.deepEqual(Array.from(primeira.confirmados, (p) => p.id), ["m1", "fora"]);
   assert.deepEqual(Array.from(primeira.semResposta, (p) => p.id), ["g1"]);
   assert.deepEqual(Array.from(primeira.disponiveis, (p) => p.id), ["g2"]);
   const segunda = await dadosReuniao({ ...base, $id: "r2", mestres: [], guardioes_escalados_reuniao: ["g2"] }, "fora");
@@ -153,7 +153,7 @@ test("sem resposta contém só a equipe escalada da própria reunião", async ()
 test("escala unifica guardiões antigos, permite mestre e preserva resposta anterior", async () => {
   const registros = [];
   const alteracoes = [];
-  const { marcarGuardiaoDoDia, guardioesDaReuniao } = carregar("src/lib/guarnicao.ts", {
+  const { marcarMestreDaReuniao, marcarGuardiaoDoDia, guardioesDaReuniao } = carregar("src/lib/guarnicao.ts", {
     "node-appwrite": { ID: { unique: () => "novo" }, Query: { equal: () => "", orderAsc: () => "" } }, "next/server": {},
     "./appwrite": { createAdminClient: () => ({ tablesDB: {
       createRow: async ({ data }) => { registros.push({ ...data, $id: "novo" }); },
@@ -182,6 +182,14 @@ test("escala unifica guardiões antigos, permite mestre e preserva resposta ante
   registros.length = 0;
   await marcarGuardiaoDoDia({ ...evento, mestres: ["m1"] }, "m1", true, "coord");
   assert.equal(registros[0].ordem, 0, "a função no ritual não muda a confirmação antiga do mestre");
+  registros.length = 0;
+  assert.ok((await marcarMestreDaReuniao(evento, "m1", true, "coord")).ok);
+  assert.ok(alteracoes.at(-1).data.mestres.includes("m1"));
+  assert.ok(registros[0].ordem > 0);
+  assert.ok((await marcarMestreDaReuniao({ ...evento, mestres: ["m1"] }, "m1", false, "coord")).ok);
+  assert.equal(alteracoes.at(-1).data.mestres.includes("m1"), false);
+  assert.equal(registros[0].situacao, "confirmada");
+  assert.ok((await marcarMestreDaReuniao(evento, "inexistente", true, "coord")).erro);
 });
 
 test("escala do mestre mostra só os rituais em que ele foi designado, inclusive o histórico", async () => {

@@ -4,7 +4,7 @@ import { listarSoldados } from "@/lib/soldados";
 import { CabecalhoApp } from "../ui";
 import { ListaSoldados } from "./ListaSoldados";
 
-export const metadata = { title: "Soldados" };
+export const metadata = { title: "Soldados da Luz" };
 
 /** Mantém os endereços existentes dos perfis, agora reunindo guardiões e mestres. */
 export default async function SoldadosGuarnicao() {
@@ -13,7 +13,7 @@ export default async function SoldadosGuarnicao() {
 
   return (
     <>
-      <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : undefined} titulo="Soldados" />
+      <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : undefined} titulo="Soldados da Luz" />
       <ListaSoldados pessoas={pessoas.map((p) => ({
         id: p.id, nome: p.nome, foto: p.foto, sexo: p.sexo, funcao: p.funcao, total: p.total,
         ultimoTexto: p.ultimo ? `Último há ${diasDesde(p.ultimo)} dias` : "Ainda não serviu",

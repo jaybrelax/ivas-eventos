@@ -399,6 +399,23 @@ export async function registrarConfirmacoesDaEquipe(evento: Evento, ids: string[
   }
 }
 
+/** Gerencia quem conduz esta reunião, sem mudar as labels do usuário. */
+export async function marcarMestreDaReuniao(evento: Evento, usuarioId: string, incluir: boolean, porId: string): Promise<Resultado> {
+  const atuais = evento.mestres ?? [];
+  if (incluir) {
+    const pessoa = (await mapaUsuarios()).get(usuarioId);
+    if (!pessoa?.ativo || pessoa.funcao !== "mestre") return { erro: "Escolha um mestre ativo." };
+    await registrarConfirmacoesDaEquipe(evento, [usuarioId], porId, guardioesDaReuniao(evento).includes(usuarioId) || atuais.includes(usuarioId) ? 0 : undefined);
+  } else {
+    if (!atuais.includes(usuarioId)) return { erro: "Essa pessoa não é mestre desta reunião." };
+    await registrarConfirmacoesDaEquipe(evento, [usuarioId], porId, 0);
+  }
+  const mestres = incluir ? [...new Set([...atuais, usuarioId])] : atuais.filter((id) => id !== usuarioId);
+  await createAdminClient().tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: { mestres } });
+  await sinalizarMudanca(evento.$id);
+  return { ok: incluir ? "Mestre incluído no ritual." : "Mestre retirado do ritual. A presença foi mantida." };
+}
+
 /** Tira a presença; quem foi confirmado automaticamente ganha um registro para deixar de contar como confirmado. */
 async function sairDaReuniao(evento: Pick<Evento, "$id" | "mestres" | "guardioes" | "guardioes_escalados_reuniao">, usuarioId: string, situacao: "cancelada" | "removida", alteradoPor: string) {
   const { tablesDB } = createAdminClient();

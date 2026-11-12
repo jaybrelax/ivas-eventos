@@ -55,11 +55,6 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
           <li key={p.id} className="flex items-center gap-3 py-1.5">
             <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="ring-2 ring-emerald-500/80" />
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}<Marca p={p} />{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
-            {coordenacao && (
-              <button type="button" onClick={() => setJustificando({ pessoa: p, texto: "", existe: false })} aria-label={`Justificar ${p.nome}`} title="Justificar ausência" className={`${botao} active:bg-amber-50 active:text-amber-700`}>
-                <FileText size={17} />
-              </button>
-            )}
             {gerenciar && (
               <button type="button" onClick={() => setRetirando(p)} aria-label={`Retirar ${p.nome}`} className={`${botao} active:bg-red-50 active:text-red-600`}>
                 <X size={18} />
