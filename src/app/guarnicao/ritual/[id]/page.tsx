@@ -15,6 +15,7 @@ import { dadosGuarnicao } from "@/app/admin/eventos/guarnicao-dados";
 import type { Sexo } from "@/lib/types";
 import { AcaoGuardiao } from "./AcaoGuardiao";
 import { AcaoReuniao } from "./AcaoReuniao";
+import { GuardioesReuniao } from "./GuardioesReuniao";
 import { ListasReuniao } from "./ListasReuniao";
 import { Topo } from "./Topo";
 import { VagaLivre } from "../../ui";
@@ -41,27 +42,12 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
     const mestreDaReuniao = visao === "mestre" && (evento.mestres ?? []).includes(u.id);
     const gerenciar = coord || mestreDaReuniao;
     const r = await dadosReuniao(evento, u.id, coord, gerenciar);
-    const guardioesReuniao = (evento.guardioes_escalados_reuniao ?? []).map((id) => equipe.find((p) => p.$id === id)).filter((p) => !!p);
     // Guardiões e mestres (inclusive da coordenação) marcam a própria presença ou justificam a ausência
     const participa = u.funcaoRitual === "guardiao" || u.funcaoRitual === "mestre";
     return (
       <div className={participa && !r.eu.situacao ? "pb-48" : "pb-6"}>
         <Topo evento={evento} end={end} mestres={mestres} agenda={participa && r.eu.situacao === "confirmada"} />
-        <section className="mt-5 px-5">
-          <h2 className="mb-3 text-lg font-semibold text-stone-900">Guardiões da reunião</h2>
-          <div className="rounded-3xl bg-white p-4 shadow-cartao ring-1 ring-stone-200/70">
-            {guardioesReuniao.length ? (
-              <div className="flex flex-wrap gap-4">
-                {guardioesReuniao.map((p) => (
-                  <div key={p.$id} className="flex w-16 flex-col items-center gap-1 text-center">
-                    <Avatar nome={p.nome} foto={p.foto} tamanho={48} />
-                    <span className="w-full truncate text-xs font-medium text-stone-700">{p.nome.split(" ")[0]}</span>
-                  </div>
-                ))}
-              </div>
-            ) : <p className="text-sm text-stone-500">Nenhum guardião escalado.</p>}
-          </div>
-        </section>
+        <GuardioesReuniao dados={r} gerenciar={gerenciar} />
         {participa && (
           <AcaoReuniao eventoId={evento.$id} dataEvento={evento.data} nome={u.nome} situacao={r.eu.situacao} justificativa={r.eu.justificativa} jaComecou={r.presencaEncerrada} prazoPassou={r.prazoPassou} prazoTexto={r.prazoTexto} />
         )}

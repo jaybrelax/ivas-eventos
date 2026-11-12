@@ -14,7 +14,7 @@ import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { listarEquipe } from "@/lib/usuarios";
 import type { Pessoa } from "@/lib/types";
 import { comNumeracao, isConflito } from "@/lib/ritual";
-import { VAGAS_PADRAO, reorganizar } from "@/lib/guarnicao";
+import { registrarConfirmacoesDaEquipe, VAGAS_PADRAO, reorganizar } from "@/lib/guarnicao";
 import { aplicarRenumeracao, planejarRenumeracao } from "@/lib/renumerar";
 
 const esquema = z.object({
@@ -50,8 +50,8 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
   const tipo = tipos.find((t) => t.$id === d.tipo_id);
   if (!tipo) return { erro: "Tipo de evento não encontrado" };
   // Só aceita usuários que existem e têm a função certa nos rituais.
-  const escalados = (campo: string, funcao: Pessoa["funcao"]) => {
-    const validos = new Set(equipe.filter((p) => p.funcao === funcao).map((p) => p.$id));
+  const escalados = (campo: string, funcao?: Pessoa["funcao"]) => {
+    const validos = new Set(equipe.filter((p) => !funcao || p.funcao === funcao).map((p) => p.$id));
     return [...new Set(form.getAll(campo).map(String))].filter((id) => validos.has(id));
   };
 
@@ -88,7 +88,7 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     endereco_livre: usaLivre ? d.endereco_livre! : null,
     mostrar_banner: form.get("mostrar_banner") === "on",
     mestres: escalados("mestres", "mestre"),
-    ...(tipo.fechado_guardioes ? { guardioes_escalados_reuniao: escalados("guardioes_escalados_reuniao", "guardiao") } : {}),
+    ...(tipo.fechado_guardioes ? { guardioes_escalados_reuniao: escalados("guardioes_escalados_reuniao") } : {}),
     atualizado_por: u.id,
   };
   const ano = Number(d.data.slice(0, 4));
@@ -96,6 +96,13 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
   const base = { databaseId: DB_ID, tableId: TABLES.eventos };
   const atual = id ? await getEvento(id) : null;
   if (id && !atual) return { erro: "Evento não encontrado" };
+
+  if (tipo.fechado_guardioes && atual) {
+    const selecionados = new Set(dados.guardioes_escalados_reuniao ?? []);
+    Object.assign(dados, { guardioes: (atual.guardioes ?? []).filter((id) => selecionados.has(id)) });
+    const removidos = [...(atual.mestres ?? []), ...(atual.guardioes_escalados_reuniao ?? []), ...(atual.guardioes ?? [])].filter((id) => !dados.mestres.includes(id) && !selecionados.has(id));
+    await registrarConfirmacoesDaEquipe(atual, removidos, u.id, 0);
+  }
 
   // Imagem de capa: nova, removida ou mantida.
   const capa = form.get("capa");
@@ -121,9 +128,11 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     capaApagar = capaAntiga;
   }
 
+  let salvoId = id;
   try {
     if (!id) {
       const rowId = ID.unique();
+      salvoId = rowId;
       const criar = (extra: object = {}) =>
         tablesDB.createRow({ ...base, rowId, data: { ...dados, ...extra, criado_por: u.id } });
       if (tipo.conta_como_ritual) await comNumeracao(ano, (n) => criar(n));
@@ -159,12 +168,17 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     console.error(e);
     return { erro: "Não foi possível salvar. Tente de novo." };
   }
+  if (tipo.fechado_guardioes && salvoId) {
+    const salvo = await getEvento(salvoId);
+    const anteriores = new Set([...(atual?.mestres ?? []), ...(atual?.guardioes_escalados_reuniao ?? []), ...(atual?.guardioes ?? [])]);
+    if (salvo) await registrarConfirmacoesDaEquipe(salvo, [...(salvo.mestres ?? []), ...(salvo.guardioes_escalados_reuniao ?? [])].filter((id) => !anteriores.has(id)), u.id).catch((e) => console.error("Confirmações automáticas da escala", e));
+  }
   if (capaApagar) await storage.deleteFile({ bucketId: BUCKET_ID, fileId: capaApagar }).catch(() => {});
 
   // Mudou o limite de vagas: confirma da lista de espera ou devolve o excedente para a espera.
   if (id) {
     const salvo = await getEvento(id);
-    if (salvo) await reorganizar(salvo, u.id).catch((e) => console.error(e));
+    if (salvo && !tipo.fechado_guardioes) await reorganizar(salvo, u.id).catch((e) => console.error(e));
     revalidatePath(`/admin/eventos/${id}`);
     revalidatePath("/admin/guarnicao");
   }

@@ -18,10 +18,10 @@ export const NOME_FUNCAO: Record<Funcao, { um: string; varios: string }> = {
 };
 
 /** Escolha múltipla de mestres ou guardiões, separados em Masculino e Feminino. */
-export function EscolhaEquipe({ funcao, equipe, inicial, campo }: { funcao: Funcao; equipe: Pessoa[]; inicial: string[]; campo?: string }) {
+export function EscolhaEquipe({ funcao, equipe, inicial, campo, todaEquipe = false }: { funcao: Funcao; equipe: Pessoa[]; inicial: string[]; campo?: string; todaEquipe?: boolean }) {
   const [sel, setSel] = useState<Set<string>>(new Set(inicial));
   const [busca, setBusca] = useState("");
-  const pessoas = equipe.filter((p) => p.funcao === funcao);
+  const pessoas = equipe.filter((p) => todaEquipe || p.funcao === funcao);
   const termo = busca.trim().toLowerCase();
   const visiveis = termo ? pessoas.filter((p) => p.nome.toLowerCase().includes(termo)) : pessoas;
   const alternar = (id: string) =>

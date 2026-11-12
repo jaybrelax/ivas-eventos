@@ -1,5 +1,5 @@
 import "server-only";
-import { fimPrazoPresenca, inicioDe, prazoCancelamento, presencasDaReuniao, regrasGuarnicao } from "./guarnicao";
+import { guardioesDaReuniao, fimPrazoPresenca, inicioDe, prazoCancelamento, presencasDaReuniao, regrasGuarnicao } from "./guarnicao";
 import { mapaUsuarios } from "./usuarios";
 import { dataHoraExtenso } from "./termo-justificativa";
 import type { Evento, Sexo } from "./types";
@@ -14,6 +14,8 @@ export type DadosReuniao = {
   /** Data do ritual (AAAA-MM-DD). */
   dataEvento: string;
   confirmados: PessoaReuniao[];
+  guardioesRitual: PessoaReuniao[];
+  membrosDisponiveis: PessoaReuniao[];
   justificados: JustificadoReuniao[];
   /** Integrantes ativos da equipe escalada que não estão confirmados nem justificados. */
   semResposta: PessoaReuniao[];
@@ -38,13 +40,13 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
   const [candidaturas, usuarios, { horas, horasPresenca }] = await Promise.all([presencasDaReuniao(evento), mapaUsuarios(), regrasGuarnicao()]);
   const pessoa = (id: string): PessoaReuniao => {
     const u = usuarios.get(id);
-    return { id, nome: u?.nome ?? "Usuário removido", foto: u?.foto ?? null, mestre: (evento.mestres ?? []).includes(id), escalado: (evento.guardioes_escalados_reuniao ?? []).includes(id), podeSerGuardiaoDoDia: u?.funcao === "guardiao", sexo: u?.sexo ?? null, guardiaoDoDia: u?.funcao === "guardiao" && (evento.guardioes ?? []).includes(id) };
+    return { id, nome: u?.nome ?? "Usuário removido", foto: u?.foto ?? null, mestre: u?.funcao === "mestre", escalado: guardioesDaReuniao(evento).includes(id), podeSerGuardiaoDoDia: u?.funcao === "guardiao", sexo: u?.sexo ?? null, guardiaoDoDia: u?.funcao === "guardiao" && (evento.guardioes ?? []).includes(id) };
   };
-  // Mestres primeiro; o mestre escalado que já saiu da conta (inativo ou removido) não entra automaticamente
+  // Confirmações antigas sem horário mantêm ordem estável; novas escalas têm registro real.
   const confirmados = candidaturas
     .filter((c) => c.situacao === "confirmada" && (!c.$id.startsWith("auto-") || usuarios.get(c.usuario_id)?.ativo))
-    .map((c) => pessoa(c.usuario_id))
-    .sort((a, b) => Number(b.mestre) - Number(a.mestre));
+    .sort((a, b) => a.ordem - b.ordem || (a.$createdAt ?? "").localeCompare(b.$createdAt ?? "") || a.usuario_id.localeCompare(b.usuario_id))
+    .map((c) => pessoa(c.usuario_id));
   const justificados = candidaturas
     .filter((c) => c.situacao === "justificada")
     .map((c): JustificadoReuniao => ({
@@ -54,7 +56,7 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
       por: verRegistradoPor && c.alterado_por && c.alterado_por !== c.usuario_id ? (usuarios.get(c.alterado_por)?.nome.split(" ")[0] ?? null) : null,
     }));
   const respondeu = new Set(candidaturas.map((c) => c.usuario_id));
-  const equipe = new Set([...(evento.mestres ?? []), ...(evento.guardioes_escalados_reuniao ?? [])]);
+  const equipe = new Set([...(evento.mestres ?? []), ...guardioesDaReuniao(evento)]);
   const semResposta = [...equipe].filter((id) => usuarios.get(id)?.ativo && !respondeu.has(id)).map(pessoa);
   const disponiveis = verDisponiveis ? [...usuarios.values()].filter((u) => u.ativo && (u.funcao === "guardiao" || u.funcao === "mestre") && !equipe.has(u.id) && !respondeu.has(u.id)).map((u) => pessoa(u.id)) : [];
   const minha = candidaturas.find((c) => c.usuario_id === euId);
@@ -63,6 +65,8 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
     eventoId: evento.$id,
     dataEvento: evento.data,
     confirmados,
+    guardioesRitual: guardioesDaReuniao(evento).map(pessoa),
+    membrosDisponiveis: verDisponiveis ? [...usuarios.values()].filter((u) => u.ativo && (u.funcao === "mestre" || u.funcao === "guardiao") && !guardioesDaReuniao(evento).includes(u.id)).map((u) => pessoa(u.id)) : [],
     justificados,
     semResposta,
     disponiveis,

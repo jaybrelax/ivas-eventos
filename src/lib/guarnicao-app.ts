@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUsuario, podeSolicitarGuarnicao, type Usuario } from "./auth";
 import { getDadosInstituto, listarEventos } from "./data";
-import { candidaturasDosEventos, comEquipeAutomatica, ehReuniao, inicioDe, registrosDasReunioes, temAppGuarnicao, vagasDe } from "./guarnicao";
+import { candidaturasDosEventos, guardioesDaReuniao, comEquipeAutomatica, ehReuniao, inicioDe, registrosDasReunioes, temAppGuarnicao, vagasDe } from "./guarnicao";
 import { hoje } from "./format";
 import { mapaUsuarios } from "./usuarios";
 import type { Endereco, Evento, Sexo, SituacaoCandidatura } from "./types";
@@ -112,12 +112,12 @@ export async function rituaisComVagas(usuarioId: string | null, dias = 120, ante
       : cand.filter((c) => c.evento_id === e.$id);
     const conf = (s: Sexo) => doEvento.filter((c) => c.sexo === s && c.situacao === "confirmada").length;
     const end = e.endereco_id ? endPorId.get(e.endereco_id) : undefined;
-    const presentes = reuniao ? doEvento.filter((c) => c.situacao === "confirmada").sort((a, b) => a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)).sort((a, b) => Number((e.mestres ?? []).includes(b.id)) - Number((e.mestres ?? []).includes(a.id))) : [];
+    const presentes = reuniao ? doEvento.filter((c) => c.situacao === "confirmada").sort((a, b) => a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)) : [];
     return {
       reuniao,
       presentes,
       justificados: reuniao ? doEvento.filter((c) => c.situacao === "justificada").length : 0,
-      semResposta: reuniao ? [...new Set([...(e.mestres ?? []), ...(e.guardioes_escalados_reuniao ?? [])])].filter((id) => usuarios.get(id)?.ativo && !doEvento.some((c) => c.usuario_id === id)).length : 0,
+      semResposta: reuniao ? [...new Set([...(e.mestres ?? []), ...guardioesDaReuniao(e)])].filter((id) => usuarios.get(id)?.ativo && !doEvento.some((c) => c.usuario_id === id)).length : 0,
       evento: e,
       local: end ? end.apelido : e.endereco_livre,
       vagas: reuniao ? { masculino: 0, feminino: 0 } : vagasDe(e),

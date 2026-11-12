@@ -401,7 +401,7 @@ export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar
 
           {tipo?.fechado_guardioes && (
             <Bloco titulo="Guardiões da reunião" sub="Equipe escalada para esta reunião. Os escolhidos entram como confirmados automaticamente." icone={Shield}>
-              <EscolhaEquipe funcao="guardiao" equipe={equipe} inicial={evento?.guardioes_escalados_reuniao ?? []} campo="guardioes_escalados_reuniao" />
+              <EscolhaEquipe funcao="guardiao" equipe={equipe} inicial={[...new Set([...(evento?.guardioes_escalados_reuniao ?? []), ...(evento?.guardioes ?? [])])]} campo="guardioes_escalados_reuniao" todaEquipe />
             </Bloco>
           )}
 

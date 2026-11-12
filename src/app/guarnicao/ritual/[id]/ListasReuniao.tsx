@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CircleCheck, Crown, FileText, Shield, ShieldCheck, SquarePen, UserCheck, UserX, X } from "lucide-react";
+import { CircleCheck, Crown, FileText, Shield, SquarePen, UserCheck, UserX, X } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import type { DadosReuniao, JustificadoReuniao, PessoaReuniao } from "@/lib/reuniao";
 import { paragrafosTermo } from "@/lib/termo-justificativa";
-import { definirGuardiaoDoDia, incluirGuardiaoNaReuniao, justificarPelaCoordenacao, retirarGuardiaoDaReuniao } from "../../actions";
+import { incluirGuardiaoNaReuniao, justificarPelaCoordenacao, retirarGuardiaoDaReuniao } from "../../actions";
 import { Folha } from "../../Folha";
 import { Popup } from "../../Popup";
 import { FiguraJustica } from "./AcaoReuniao";
@@ -51,26 +51,13 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
 
   return (
     <div className={`space-y-4 ${pendente ? "opacity-70" : ""}`}>
-      <Grupo icone={<CircleCheck size={17} className="text-emerald-600" />} titulo="Confirmados" separar total={dados.confirmados.length} vazio="Ninguém marcou presença ainda." pessoas={dados.confirmados} render={(p) => (
+      <Grupo icone={<CircleCheck size={17} className="text-emerald-600" />} titulo="Confirmados" total={dados.confirmados.length} vazio="Ninguém marcou presença ainda." pessoas={dados.confirmados} render={(p) => (
           <li key={p.id} className="flex items-center gap-3 py-1.5">
-            <Avatar nome={p.nome} foto={p.foto} tamanho={40} className={`ring-2 ${p.guardiaoDoDia ? "ring-[#e0b04a]" : "ring-emerald-500/80"}`} />
-            <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}<Marca p={p} />{p.guardiaoDoDia && <ShieldCheck size={14} aria-label="Guardião do dia" className="ml-1.5 inline align-middle text-amber-600" />}{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
+            <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="ring-2 ring-emerald-500/80" />
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}<Marca p={p} />{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
             {coordenacao && (
               <button type="button" onClick={() => setJustificando({ pessoa: p, texto: "", existe: false })} aria-label={`Justificar ${p.nome}`} title="Justificar ausência" className={`${botao} active:bg-amber-50 active:text-amber-700`}>
                 <FileText size={17} />
-              </button>
-            )}
-            {gerenciar && p.podeSerGuardiaoDoDia && (
-              <button
-                type="button"
-                disabled={pendente}
-                onClick={() => rodar(() => definirGuardiaoDoDia(dados.eventoId, p.id, !p.guardiaoDoDia))}
-                aria-pressed={p.guardiaoDoDia}
-                aria-label={p.guardiaoDoDia ? `Tirar ${p.nome} de guardião do dia` : `Marcar ${p.nome} como guardião do dia`}
-                title={p.guardiaoDoDia ? "Tirar de guardião do dia" : "Marcar como guardião do dia"}
-                className={`${botao} ${p.guardiaoDoDia ? "bg-amber-50 text-amber-700" : "active:bg-amber-50 active:text-amber-700"}`}
-              >
-                {p.guardiaoDoDia ? <ShieldCheck size={18} /> : <Shield size={18} />}
               </button>
             )}
             {gerenciar && (
@@ -250,52 +237,14 @@ function TextoJustificativa({ texto, aoAbrir }: { texto: string; aoAbrir: () => 
   );
 }
 
-/** Identifica o mestre ao lado do nome: ícone da coroa e (Mestre) ou (Mestra). */
+/** Ícone da função do membro; servir como guardião não altera sua label. */
 function Marca({ p }: { p: PessoaReuniao }) {
-  if (!p.mestre) return null;
-  return (
-    <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle text-xs font-semibold text-emerald-700">
-      <Crown size={12} /> ({p.sexo === "feminino" ? "Mestra" : "Mestre"})
-    </span>
-  );
+  return <span className="ml-1.5 inline-flex align-middle text-emerald-700" aria-label={p.mestre ? "Mestre" : "Guardião"}>{p.mestre ? <Crown size={14} /> : <Shield size={14} />}</span>;
 }
 
-/** Na presença, a equipe do ritual fica separada dos demais participantes. */
-function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, render, separar = false }: { icone: React.ReactNode; titulo: string; total: number; vazio: string; pessoas: T[]; render: (p: T) => React.ReactNode; separar?: boolean }) {
-  const mestres = pessoas.filter((p) => p.mestre);
-  const outros = pessoas.filter((p) => !p.mestre);
-  const doDia = separar ? outros.filter((p) => p.guardiaoDoDia) : [];
-  const guardioes = separar ? outros.filter((p) => !p.guardiaoDoDia && p.escalado) : outros;
-  const participantes = separar ? outros.filter((p) => !p.guardiaoDoDia && !p.escalado) : [];
-  const bloco = (rotulo: string, lista: T[], primeiro: boolean) => (
-    <div key={rotulo} className={primeiro ? "mt-3" : "mt-4"}>
-      <div className="flex items-center gap-2.5" role="separator" aria-label={rotulo}>
-          <span aria-hidden className="h-px flex-1 bg-stone-200" />
-          <span className="inline-flex items-center gap-1 text-[11px] font-bold tracking-wider text-stone-500 uppercase">
-            {rotulo === "Mestres" && <Crown size={13} className="text-emerald-700" />}{rotulo.endsWith("do dia") && <ShieldCheck size={13} className="text-amber-600" />} {rotulo} · {lista.length}
-          </span>
-          <span aria-hidden className="h-px flex-1 bg-stone-200" />
-        </div>
-      <ul className="mt-1 divide-y divide-stone-100">{lista.map((p) => render(p))}</ul>
-    </div>
-  );
-  return (
-    <section className="rounded-3xl bg-white p-4 shadow-cartao ring-1 ring-stone-200/70">
-      <h3 className="flex items-center gap-2 text-base font-semibold text-stone-900">
-        {icone} {titulo} <span className="text-sm font-medium text-stone-500 tabular-nums">· {total}</span>
-      </h3>
-      {total === 0 ? (
-        <p className="mt-2 text-sm text-stone-400">{vazio}</p>
-      ) : separar ? (
-        <>
-          {mestres.length > 0 && bloco("Mestres", mestres, true)}
-          {doDia.length > 0 && bloco(doDia.length === 1 ? "Guardião do dia" : "Guardiões do dia", doDia, mestres.length === 0)}
-          {guardioes.length > 0 && bloco("Guardiões escalados", guardioes, mestres.length === 0 && doDia.length === 0)}
-          {participantes.length > 0 && bloco("Participantes", participantes, mestres.length === 0 && doDia.length === 0 && guardioes.length === 0)}
-        </>
-      ) : (
-        <ul className="mt-2 divide-y divide-stone-100">{[...mestres, ...guardioes].map((p) => render(p))}</ul>
-      )}
-    </section>
-  );
+function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, render }: { icone: React.ReactNode; titulo: string; total: number; vazio: string; pessoas: T[]; render: (p: T) => React.ReactNode }) {
+  return <section className="rounded-3xl bg-white p-4 shadow-cartao ring-1 ring-stone-200/70">
+    <h3 className="flex items-center gap-2 text-base font-semibold text-stone-900">{icone} {titulo} <span className="text-sm font-medium text-stone-500 tabular-nums">· {total}</span></h3>
+    {total === 0 ? <p className="mt-2 text-sm text-stone-400">{vazio}</p> : <ul className="mt-2 divide-y divide-stone-100">{pessoas.map(render)}</ul>}
+  </section>;
 }
