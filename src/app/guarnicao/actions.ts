@@ -7,7 +7,7 @@ import { COOKIE_TEMA, COOKIE_VISAO, contextoGuarnicao, type TemaGuarnicao, type 
 import { getEvento, listarTipos } from "@/lib/data";
 import {
   adicionarGuardiao, ajustarGuarnicao, cancelar, cancelarPresenca, candidatar, ehReuniao, incluirNaReuniao, ingressarReuniao, justificarAusencia,
-  marcarGuardiaoDoDia, removerGuardiao, removerJustificativa, retirarDaReuniao, temGuarnicao, type Resultado,
+  marcarMestreDaReuniao, marcarGuardiaoDoDia, removerGuardiao, removerJustificativa, retirarDaReuniao, temGuarnicao, type Resultado,
 } from "@/lib/guarnicao";
 import { createAdminClient } from "@/lib/appwrite";
 import { DB_ID, INSTITUTO_ROW_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
@@ -169,6 +169,17 @@ export async function definirGuardiaoDoDia(eventoId: string, usuarioId: string, 
   revalidar(eventoId);
   return res;
 }
+
+export async function definirMestreDaReuniao(eventoId: string, usuarioId: string, incluir: boolean): Promise<Resultado> {
+  const r = await reuniao(eventoId);
+  if (!r) return { erro: "Reunião não encontrada." };
+  const u = await escalador(r.evento);
+  if (!u) return { erro: "Só a coordenação ou um mestre desta reunião pode alterar a escala." };
+  const res = await marcarMestreDaReuniao(r.evento, usuarioId, incluir, u.id);
+  revalidar(eventoId);
+  return res;
+}
+
 
 export async function colocarGuardiao(eventoId: string, usuarioId: string): Promise<Resultado> {
   const [{ evento, tipo }, usuarios] = await Promise.all([ritual(eventoId), mapaUsuarios()]);

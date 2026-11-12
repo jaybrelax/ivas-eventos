@@ -112,7 +112,7 @@ export async function rituaisComVagas(usuarioId: string | null, dias = 120, ante
       : cand.filter((c) => c.evento_id === e.$id);
     const conf = (s: Sexo) => doEvento.filter((c) => c.sexo === s && c.situacao === "confirmada").length;
     const end = e.endereco_id ? endPorId.get(e.endereco_id) : undefined;
-    const presentes = reuniao ? doEvento.filter((c) => c.situacao === "confirmada").sort((a, b) => a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)) : [];
+    const presentes = reuniao ? doEvento.filter((c) => c.situacao === "confirmada").sort((a, b) => Number(usuarios.get(b.usuario_id)?.funcao === "mestre") - Number(usuarios.get(a.usuario_id)?.funcao === "mestre") || a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)) : [];
     return {
       reuniao,
       presentes,

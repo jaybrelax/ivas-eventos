@@ -7,7 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import type { Endereco, Evento, Pessoa } from "@/lib/types";
 
 /** Capa, data, local e mestres: o topo da página de um ritual ou de uma reunião. */
-export function Topo({ evento, end, mestres, agenda }: { evento: Evento; end: Endereco | undefined; mestres: Pessoa[]; /** Mostra o atalho para a agenda do celular. */ agenda: boolean }) {
+export function Topo({ evento, end, mestres, agenda, equipeReuniao }: { evento: Evento; end: Endereco | undefined; mestres: Pessoa[]; /** Mostra o atalho para a agenda do celular. */ agenda: boolean; equipeReuniao?: React.ReactNode }) {
   return (
     <>
       {/* Capa */}
@@ -43,7 +43,7 @@ export function Topo({ evento, end, mestres, agenda }: { evento: Evento; end: En
             <MapPin size={17} className="shrink-0 text-emerald-700" />
             <span className="min-w-0 flex-1 truncate">{end ? `${end.apelido} — ${end.endereco}` : evento.endereco_livre}</span>
           </p>
-          {mestres.length > 0 && (
+          {equipeReuniao ?? (mestres.length > 0 && (
             <div className="border-t border-stone-200/70 pt-3">
               <p className="flex items-center gap-2 text-xs font-semibold tracking-wider text-stone-500 uppercase">
                 <Crown size={14} className="text-emerald-700" /> {mestres.length > 1 ? "Mestres" : "Mestre"}
@@ -58,7 +58,7 @@ export function Topo({ evento, end, mestres, agenda }: { evento: Evento; end: En
                 ))}
               </div>
             </div>
-          )}
+          ))}
         </div>
       </section>
     </>

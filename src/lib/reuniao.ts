@@ -14,6 +14,8 @@ export type DadosReuniao = {
   /** Data do ritual (AAAA-MM-DD). */
   dataEvento: string;
   confirmados: PessoaReuniao[];
+  mestresRitual: PessoaReuniao[];
+  mestresDisponiveis: PessoaReuniao[];
   guardioesRitual: PessoaReuniao[];
   membrosDisponiveis: PessoaReuniao[];
   justificados: JustificadoReuniao[];
@@ -45,7 +47,7 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
   // Confirmações antigas sem horário mantêm ordem estável; novas escalas têm registro real.
   const confirmados = candidaturas
     .filter((c) => c.situacao === "confirmada" && (!c.$id.startsWith("auto-") || usuarios.get(c.usuario_id)?.ativo))
-    .sort((a, b) => a.ordem - b.ordem || (a.$createdAt ?? "").localeCompare(b.$createdAt ?? "") || a.usuario_id.localeCompare(b.usuario_id))
+    .sort((a, b) => Number(usuarios.get(b.usuario_id)?.funcao === "mestre") - Number(usuarios.get(a.usuario_id)?.funcao === "mestre") || a.ordem - b.ordem || (a.$createdAt ?? "").localeCompare(b.$createdAt ?? "") || a.usuario_id.localeCompare(b.usuario_id))
     .map((c) => pessoa(c.usuario_id));
   const justificados = candidaturas
     .filter((c) => c.situacao === "justificada")
@@ -65,6 +67,8 @@ export async function dadosReuniao(evento: Evento, euId: string, verRegistradoPo
     eventoId: evento.$id,
     dataEvento: evento.data,
     confirmados,
+    mestresRitual: (evento.mestres ?? []).map(pessoa),
+    mestresDisponiveis: verDisponiveis ? [...usuarios.values()].filter((u) => u.ativo && u.funcao === "mestre" && !(evento.mestres ?? []).includes(u.id)).map((u) => pessoa(u.id)) : [],
     guardioesRitual: guardioesDaReuniao(evento).map(pessoa),
     membrosDisponiveis: verDisponiveis ? [...usuarios.values()].filter((u) => u.ativo && (u.funcao === "mestre" || u.funcao === "guardiao") && !guardioesDaReuniao(evento).includes(u.id)).map((u) => pessoa(u.id)) : [],
     justificados,

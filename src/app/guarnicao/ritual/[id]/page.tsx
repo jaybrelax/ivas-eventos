@@ -46,7 +46,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
     const participa = u.funcaoRitual === "guardiao" || u.funcaoRitual === "mestre";
     return (
       <div className={participa && !r.eu.situacao ? "pb-48" : "pb-6"}>
-        <Topo evento={evento} end={end} mestres={mestres} agenda={participa && r.eu.situacao === "confirmada"} />
+        <Topo evento={evento} end={end} mestres={mestres} agenda={participa && r.eu.situacao === "confirmada"} equipeReuniao={<GuardioesReuniao dados={r} gerenciar={gerenciar} funcao="mestre" />} />
         <GuardioesReuniao dados={r} gerenciar={gerenciar} />
         {participa && (
           <AcaoReuniao eventoId={evento.$id} dataEvento={evento.data} nome={u.nome} situacao={r.eu.situacao} justificativa={r.eu.justificativa} jaComecou={r.presencaEncerrada} prazoPassou={r.prazoPassou} prazoTexto={r.prazoTexto} />
