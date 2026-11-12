@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CircleCheck, Crown, FileText, Shield, SquarePen, UserCheck, UserX, X } from "lucide-react";
+import { ChevronDown, CircleCheck, Crown, FileText, Plus, Shield, SquarePen, UserCheck, UserX, X } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
@@ -65,8 +65,8 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
       />
 
       {gerenciar && dados.disponiveis.length > 0 && (
-        <button type="button" onClick={() => setEscolhendo(true)} className="w-full borda-participante rounded-2xl border border-emerald-300 bg-white px-4 py-3 text-sm font-semibold text-emerald-700 shadow-cartao">
-          Adicionar participante à reunião
+        <button type="button" onClick={() => setEscolhendo(true)} className="flex w-full items-center justify-center gap-1 rounded-full bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+          <Plus size={16} /> Adicionar participante à reunião
         </button>
       )}
 
@@ -90,8 +90,8 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
         )}
       />
 
-      <Grupo icone={<UserX size={17} className="text-stone-500" />} titulo="Sem resposta" total={dados.semResposta.length} vazio="Todos os membros responderam." pessoas={dados.semResposta} render={(p) => (
-          <li key={p.id} className="flex items-center gap-3 py-1.5">
+      <Grupo recolhivel id="lista-sem-resposta" icone={<UserX size={17} className="text-stone-500" />} titulo="Sem resposta" total={dados.semResposta.length} vazio="Todos os membros responderam." pessoas={dados.semResposta} render={(p, i) => (
+          <li key={p.id} style={{ animationDelay: `${Math.min(i * 18, 180)}ms` }} className="animate-surgir flex items-center gap-3 py-1.5">
             <Avatar nome={p.nome} foto={p.foto} tamanho={40} />
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-700">{p.nome}<Marca p={p} />{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
             {coordenacao && (
@@ -239,9 +239,21 @@ function Marca({ p }: { p: PessoaReuniao }) {
   return <span className="ml-1.5 inline-flex align-middle text-emerald-700" aria-label={p.mestre ? "Mestre" : "Guardião"}>{p.mestre ? <Crown size={14} /> : <Shield size={14} />}</span>;
 }
 
-function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, render }: { icone: React.ReactNode; titulo: string; total: number; vazio: string; pessoas: T[]; render: (p: T) => React.ReactNode }) {
+function Grupo<T extends PessoaReuniao>({ icone, titulo, total, vazio, pessoas, render, recolhivel = false, id }: { icone: React.ReactNode; titulo: string; total: number; vazio: string; pessoas: T[]; render: (p: T, index: number) => React.ReactNode; recolhivel?: boolean; id?: string }) {
+  const [aberto, setAberto] = useState(false);
   return <section className="rounded-3xl bg-white p-4 shadow-cartao ring-1 ring-stone-200/70">
-    <h3 className="flex items-center gap-2 text-base font-semibold text-stone-900">{icone} {titulo} <span className="text-sm font-medium text-stone-500 tabular-nums">· {total}</span></h3>
-    {total === 0 ? <p className="mt-2 text-sm text-stone-400">{vazio}</p> : <ul className="mt-2 divide-y divide-stone-100">{pessoas.map(render)}</ul>}
+    {recolhivel ? (
+      <button type="button" aria-expanded={aberto} aria-controls={id} onClick={() => setAberto((v) => !v)} className="flex w-full items-center gap-2 text-left text-base font-semibold text-stone-900">
+        {icone} {titulo} <span className="text-sm font-medium text-stone-500 tabular-nums">· {total}</span>
+        <span className="ml-auto flex w-9 shrink-0 justify-center"><ChevronDown size={18} className={`text-stone-400 transition-transform ${aberto ? "rotate-180" : ""}`} aria-hidden /></span>
+      </button>
+    ) : (
+      <h3 className="flex items-center gap-2 text-base font-semibold text-stone-900">{icone} {titulo} <span className="text-sm font-medium text-stone-500 tabular-nums">· {total}</span></h3>
+    )}
+    <div className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${recolhivel && !aberto ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"}`}>
+      <div id={id} className="min-h-0 overflow-hidden">
+        {total === 0 ? <p className="mt-2 text-sm text-stone-400">{vazio}</p> : <ul key={recolhivel ? (aberto ? "aberto" : "fechado") : undefined} className="mt-2 divide-y divide-stone-100">{pessoas.map((p, i) => render(p, i))}</ul>}
+      </div>
+    </div>
   </section>;
 }

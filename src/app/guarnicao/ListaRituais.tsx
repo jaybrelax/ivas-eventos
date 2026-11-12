@@ -1,6 +1,6 @@
 import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
-import { CalendarClock, CalendarX2, Clock, FileText, History, Hourglass, Info, MapPin, ShieldCheck, Sparkles, Users, UserRoundPen } from "lucide-react";
+import { CalendarClock, CalendarX2, Clock, FileText, History, Hourglass, MapPin, ShieldCheck, Sparkles, Users, UserRoundPen } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas, type RitualGuarnicao } from "@/lib/guarnicao-app";
 import { fimPrazoPresenca, inicioDe, participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
 import { hoje, partesData } from "@/lib/format";
@@ -157,9 +157,8 @@ export async function ListaReunioes({ searchParams }: { searchParams: PageProps<
   return (
     <>
       <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : visao === "mestre" ? "Mestre" : undefined} titulo="Reuniões" />
-      <div className="mx-5 mb-5 flex items-start gap-2.5 rounded-2xl bg-white/60 px-4 py-3 text-sm leading-relaxed text-stone-600 ring-1 ring-stone-200/60 backdrop-blur-sm">
-        <Info size={17} className="mt-0.5 shrink-0 text-emerald-700" />
-        <p>Na próxima reunião, confira o tipo de ritual previsto no evento. Confirme sua participação ou justifique caso não possa comparecer.</p>
+      <div className="mx-5 mb-5 border-l-2 border-mata-400/70 py-1 pl-3.5 text-sm leading-relaxed text-stone-600">
+        <p>Rituais de reunião dos mestres e guardiões. Confirme sua participação ou justifique sua ausência.</p>
       </div>
       <div className="space-y-7">
         <section aria-labelledby="proxima-reuniao-titulo">

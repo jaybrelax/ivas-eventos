@@ -14,7 +14,7 @@ export function CabecalhoApp({ titulo, sobre, u, direita, saudacao, aposTitulo, 
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 items-end gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icons/guarnicao-192.png" alt="Guarnição IVAS" width={38} height={38} className="mb-0.5 h-[38px] w-[38px] shrink-0 object-contain" />
+          <img src="/icons/guarnicao-192.png" alt="Guarnição IVAS" width={42} height={42} className="mb-0.5 h-[42px] w-[42px] shrink-0 object-contain" />
           <div className="min-w-0">
             {sobre && <p className="text-xs font-semibold tracking-[0.14em] text-emerald-700 uppercase">{sobre}</p>}
             <h1 className="truncate text-[28px] leading-tight font-bold tracking-tight text-stone-900">{titulo}</h1>

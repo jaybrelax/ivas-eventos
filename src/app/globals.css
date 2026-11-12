@@ -392,6 +392,41 @@ select.campo {
 /* O chip ativo e o botão "vidro" escuro precisam continuar contrastando */
 .tema-auto .chip-app-on { background-color: #7a52e3; color: #fff; --tw-ring-color: #7a52e3; }
 }
+
+/* A busca de rituais usa uma superfície roxa própria para combinar com o tema noturno. */
+.tema-escuro .campo-busca-rituais {
+  background-color: #211733;
+  border-color: #3b2a5d;
+  color: #f4efff;
+}
+.tema-escuro button.campo-busca-rituais {
+  color: #b9a5e8;
+}
+.tema-escuro .campo-busca-rituais:hover {
+  background-color: #2a1d45;
+  border-color: #513b79;
+}
+.tema-escuro .campo-busca-rituais:focus,
+.tema-escuro .campo-busca-rituais:focus-visible {
+  border-color: #8b6bd1 !important;
+  outline-color: #9b7ce3 !important;
+  box-shadow: 0 0 0 2px rgb(139 92 246 / 0.2) !important;
+}
+@media (prefers-color-scheme: dark) {
+  .tema-auto .campo-busca-rituais {
+    background-color: #211733;
+    border-color: #3b2a5d;
+    color: #f4efff;
+  }
+  .tema-auto button.campo-busca-rituais { color: #b9a5e8; }
+  .tema-auto .campo-busca-rituais:hover { background-color: #2a1d45; border-color: #513b79; }
+  .tema-auto .campo-busca-rituais:focus,
+  .tema-auto .campo-busca-rituais:focus-visible {
+    border-color: #8b6bd1 !important;
+    outline-color: #9b7ce3 !important;
+    box-shadow: 0 0 0 2px rgb(139 92 246 / 0.2) !important;
+  }
+}
 /* Fundo atrás do app (ao puxar a tela além do fim) também escuro */
 .editor-evento {
   color-scheme: inherit;
