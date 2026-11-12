@@ -12,7 +12,7 @@ import type { Evento, Sexo } from "./types";
  * (lista mantida igual às candidaturas confirmadas e que também traz o histórico importado).
  */
 
-export type Guardiao = { id: string; nome: string; foto: string | null; sexo: Sexo | null; suspensoAte: string | null };
+export type Guardiao = { id: string; nome: string; foto: string | null; sexo: Sexo | null; suspensoAte: string | null; first?: boolean };
 export type LinhaRanking = Guardiao & { total: number; ano: number; ultimo: string | null };
 
 /** Rituais que já aconteceram (com a guarnição registrada), do mais recente ao mais antigo. */
@@ -26,16 +26,16 @@ export const rituaisPassados = cache(async (): Promise<Evento[]> => {
 });
 
 /** Guardiões e guardiãs ativos. */
-export const guardioesAtivos = cache(async (): Promise<Guardiao[]> => {
+export const guardioesAtivos = cache(async (incluirMockId?: string): Promise<Guardiao[]> => {
   const usuarios = await mapaUsuarios();
   return [...usuarios.values()]
-    .filter((u) => u.ativo && u.funcao === "guardiao")
-    .map((u) => ({ id: u.id, nome: u.nome, foto: u.foto, sexo: u.sexo, suspensoAte: suspensaoAtiva(u.suspensoAte) ? u.suspensoAte : null }));
+    .filter((u) => u.ativo && (!u.mock || u.id === incluirMockId) && u.funcao === "guardiao")
+    .map((u) => ({ id: u.id, nome: u.nome, foto: u.foto, sexo: u.sexo, first: u.first, suspensoAte: suspensaoAtiva(u.suspensoAte) ? u.suspensoAte : null }));
 });
 
 /** Ranking de quem mais serviu (no total e no ano), com a data do último ritual. */
-export const rankingGuarnicao = cache(async (): Promise<LinhaRanking[]> => {
-  const [passados, guardioes] = await Promise.all([rituaisPassados(), guardioesAtivos()]);
+export const rankingGuarnicao = cache(async (incluirMockId?: string): Promise<LinhaRanking[]> => {
+  const [passados, guardioes] = await Promise.all([rituaisPassados(), guardioesAtivos(incluirMockId)]);
   const ano = hoje().slice(0, 4);
   return guardioes
     .map((g) => {

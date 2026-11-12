@@ -117,12 +117,13 @@ test("a equipe da reunião entra automaticamente, com exceção de quem justific
   assert.deepEqual(Array.from(comEquipeAutomatica({ $id: "r2", mestres: ["m2"], guardioes_escalados_reuniao: ["g3"] }, []), (p) => p.usuario_id), ["m2", "g3"]);
 });
 
-test("sem resposta contém só a equipe escalada da própria reunião", async () => {
+test("sem resposta inclui membros ativos fora da escala e exclui os confirmados", async () => {
   const pessoas = new Map([
-    ["m1", { id: "m1", nome: "Mestre Um", funcao: "mestre", ativo: true }],
+    ["m1", { id: "m1", nome: "Mestre Um", funcao: "mestre", ativo: true, first: true, sexo: "masculino" }],
     ["g1", { id: "g1", nome: "Guardião Um", funcao: "guardiao", ativo: true }],
     ["g2", { id: "g2", nome: "Guardião Dois", funcao: "guardiao", ativo: true }],
-    ["fora", { id: "fora", nome: "Participante", funcao: "guardiao", ativo: true }],
+    ["fora", { id: "fora", nome: "Participante", funcao: "guardiao", ativo: true, first: true, sexo: "feminino" }],
+    ["mock", { id: "mock", nome: "Usuário de teste", funcao: "guardiao", ativo: true, mock: true, sexo: "masculino" }],
   ]);
   const { dadosReuniao } = carregar("src/lib/reuniao.ts", {
     "./guarnicao": {
@@ -130,7 +131,8 @@ test("sem resposta contém só a equipe escalada da própria reunião", async ()
       presencasDaReuniao: async (e) => e.$id === "r1" ? [
         { $id: "auto-m1", usuario_id: "m1", situacao: "confirmada", ordem: 20 },
         { $id: "c1", usuario_id: "fora", situacao: "confirmada", ordem: 10 },
-      ] : [{ $id: "auto-g2", usuario_id: "g2", situacao: "confirmada" }],
+        { $id: "mock-c", usuario_id: "mock", situacao: "confirmada", ordem: 11 },
+      ] : [{ $id: "auto-g2", usuario_id: "g2", situacao: "confirmada" }, { $id: "mock-j", usuario_id: "mock", situacao: "justificada", justificativa: "Ausência", ordem: 12 }],
       regrasGuarnicao: async () => ({ horas: 4, horasPresenca: 1 }),
       inicioDe: () => new Date("2099-01-01"),
       fimPrazoPresenca: () => new Date("2099-01-01"),
@@ -142,12 +144,22 @@ test("sem resposta contém só a equipe escalada da própria reunião", async ()
   const base = { data: "2099-01-01", hora_inicio: "10:00", guardioes: [] };
   const primeira = await dadosReuniao({ ...base, $id: "r1", mestres: ["m1"], guardioes_escalados_reuniao: ["g1"] }, "fora", false, true);
   assert.deepEqual(Array.from(primeira.confirmados, (p) => p.id), ["m1", "fora"]);
-  assert.deepEqual(Array.from(primeira.semResposta, (p) => p.id), ["g1"]);
-  assert.deepEqual(Array.from(primeira.disponiveis, (p) => p.id), ["g2"]);
+  assert.deepEqual(Array.from(primeira.semResposta, (p) => p.id), ["g1", "g2"]);
+  assert.deepEqual(Array.from(primeira.disponiveis, (p) => p.id), ["g1", "g2"]);
+  assert.ok(!primeira.membrosDisponiveis.some((p) => p.id === "mock"));
+  const euMock = await dadosReuniao({ ...base, $id: "r1", mestres: ["m1", "mock"], guardioes_escalados_reuniao: ["mock"] }, "mock", false, true);
+  assert.equal(euMock.eu.situacao, "confirmada");
+  for (const lista of [euMock.confirmados, euMock.mestresRitual, euMock.guardioesRitual, euMock.membrosDisponiveis, euMock.semResposta, euMock.disponiveis]) assert.ok(!lista.some((p) => p.id === "mock"));
+  const equipe = await dadosReuniao({ ...base, $id: "r1", mestres: ["fora", "m1"], guardioes_escalados_reuniao: [] }, "fora");
+  assert.deepEqual(Array.from(equipe.mestresRitual, (p) => p.id), ["m1", "fora"]);
   const segunda = await dadosReuniao({ ...base, $id: "r2", mestres: [], guardioes_escalados_reuniao: ["g2"] }, "fora");
   assert.deepEqual(Array.from(segunda.confirmados, (p) => p.id), ["g2"]);
-  assert.equal(segunda.semResposta.length, 0);
+  assert.deepEqual(Array.from(segunda.semResposta, (p) => p.id), ["m1", "fora", "g1"]);
   assert.equal(segunda.disponiveis.length, 0);
+  const justificativaMock = await dadosReuniao({ ...base, $id: "r2", mestres: [], guardioes_escalados_reuniao: ["g2"] }, "mock");
+  assert.equal(justificativaMock.eu.situacao, "justificada");
+  assert.equal(justificativaMock.eu.justificativa, "Ausência");
+  assert.ok(!justificativaMock.justificados.some((p) => p.id === "mock"));
 });
 
 test("escala unifica guardiões antigos, permite mestre e preserva resposta anterior", async () => {
@@ -190,6 +202,46 @@ test("escala unifica guardiões antigos, permite mestre e preserva resposta ante
   assert.equal(alteracoes.at(-1).data.mestres.includes("m1"), false);
   assert.equal(registros[0].situacao, "confirmada");
   assert.ok((await marcarMestreDaReuniao(evento, "inexistente", true, "coord")).erro);
+});
+
+test("mock aparece no card do ritual, mas fica invisível no card de reunião sem perder a própria presença", async () => {
+  const registros = [
+    { $id: "a", evento_id: "ritual", usuario_id: "mock", sexo: "masculino", situacao: "confirmada", ordem: 1 },
+    { $id: "b", evento_id: "reuniao", usuario_id: "mock", sexo: "masculino", situacao: "confirmada", ordem: 1 },
+    { $id: "c", evento_id: "reuniao", usuario_id: "real", sexo: "masculino", situacao: "confirmada", ordem: 2 },
+  ];
+  const pessoas = new Map([
+    ["mock", { id: "mock", nome: "Teste", funcao: "guardiao", ativo: true, mock: true, sexo: "masculino" }],
+    ["real", { id: "real", nome: "Real", funcao: "guardiao", ativo: true, sexo: "masculino" }],
+  ]);
+  const { rituaisComVagas } = carregar("src/lib/guarnicao-app.ts", {
+    "next/headers": {}, "next/navigation": {}, "./auth": {}, "./format": { hoje: () => "2026-11-11" },
+    "./data": { getDadosInstituto: async () => ({ tipos: [{ $id: "t1", conta_como_ritual: true }, { $id: "t2", fechado_guardioes: true }], enderecos: [] }), listarEventos: async () => [
+      { $id: "ritual", tipo_id: "t1", data: "2099-01-01", hora_inicio: "10:00", mestres: [], guardioes: [] },
+      { $id: "reuniao", tipo_id: "t2", data: "2099-01-02", hora_inicio: "10:00", mestres: [], guardioes: [] },
+    ] },
+    "./usuarios": { mapaUsuarios: async () => pessoas },
+    "./guarnicao": { temAppGuarnicao: () => true, ehReuniao: (t) => !!t.fechado_guardioes, guardioesDaReuniao: () => [], candidaturasDosEventos: async () => registros, registrosDasReunioes: async () => registros, comEquipeAutomatica: (_, c) => c, inicioDe: () => new Date("2099-01-01"), vagasDe: () => ({ masculino: 2, feminino: 2 }) },
+  });
+  const lista = await rituaisComVagas("mock");
+  assert.ok(lista.find((r) => !r.reuniao).escalados.masculino.some((p) => p.id === "mock"));
+  const reuniao = lista.find((r) => r.reuniao);
+  assert.deepEqual(Array.from(reuniao.presentes, (p) => p.id), ["real"]);
+  assert.equal(reuniao.minha, "confirmada");
+});
+
+test("inscrição mock mantém a vaga ocupada e a própria situação sem expor a identidade", async () => {
+  const usuarios = new Map([["mock", { id: "mock", nome: "Conta secreta", funcao: "guardiao", ativo: true, mock: true, sexo: "masculino" }]]);
+  const { dadosGuarnicao } = carregar("src/lib/guarnicao-dados.ts", {
+    "@/lib/usuarios": { mapaUsuarios: async () => usuarios },
+    "@/lib/guarnicao": { candidaturasDoEvento: async () => [{ usuario_id: "mock", sexo: "masculino", situacao: "confirmada" }], regrasGuarnicao: async () => ({ horas: 4 }), vagasDe: () => ({ masculino: 1, feminino: 0 }), inicioDe: () => new Date("2099-01-01"), prazoCancelamento: () => new Date("2099-01-01") },
+  });
+  const r = await dadosGuarnicao({ $id: "r", candidaturas_abertas: true }, { id: "mock", funcaoRitual: "guardiao", sexo: "masculino" }, true);
+  assert.equal(r.confirmados.masculino.length, 1);
+  assert.equal(r.confirmados.masculino[0].oculto, true);
+  assert.equal(r.confirmados.masculino[0].nome, "Participação reservada");
+  assert.equal(r.eu.situacao, "confirmada");
+  assert.equal(r.disponiveis.length, 0);
 });
 
 test("escala do mestre mostra só os rituais em que ele foi designado, inclusive o histórico", async () => {
@@ -289,9 +341,10 @@ test("busca ocupa a linha ao abrir e cancelar limpa a pesquisa, restaurando os f
 
 test("lista inclui mestres e guardiões ativos, preserva histórico e conta uma vez quem tem os dois papéis no evento", async () => {
   const usuarios = new Map([
-    ...pessoas.map((p) => [p.id, { ...p, ativo: true, suspensoAte: p.id === "ana" ? "2099-01-01T00:00:00Z" : null }]),
+    ...pessoas.map((p) => [p.id, { ...p, ativo: true, first: p.id === "ana" || p.id === "jose", suspensoAte: p.id === "ana" ? "2099-01-01T00:00:00Z" : null }]),
     ["inativo", { id: "inativo", funcao: "guardiao", ativo: false }],
     ["participante", { id: "participante", funcao: "nenhuma", ativo: true }],
+    ["mock", { id: "mock", nome: "Conta de teste", funcao: "guardiao", ativo: true, mock: true }],
   ]);
   const { listarSoldados } = carregar("src/lib/soldados.ts", {
     react: { cache: (f) => f },
@@ -302,6 +355,7 @@ test("lista inclui mestres e guardiões ativos, preserva histórico e conta uma 
     ] },
   });
   const resultado = await listarSoldados();
+  assert.deepEqual(Array.from(resultado.slice(0, 2), (p) => p.id), ["jose", "ana"]);
   assert.equal(resultado.length, 5);
   assert.equal(resultado.find((p) => p.id === "maria").total, 2);
   assert.equal(resultado.find((p) => p.id === "ana").total, 1);
@@ -344,10 +398,12 @@ test("busca de reuniões mantém a página e o período, reiniciando a paginaç�
 
 test("mestre abre seu perfil sem ações de suspensão; contas fora da equipe permanecem bloqueadas", async () => {
   let funcao = "mestre";
+  let mock = false;
+  let usuarioAtual = "coord";
   const { default: Perfil } = carregar("src/app/guarnicao/guardioes/[id]/page.tsx", {
     "next/navigation": { notFound() { throw new Error("404"); } },
-    "@/lib/guarnicao-app": { contextoGuarnicao: async () => ({ u: { id: "coord" }, visao: "coordenador" }) },
-    "@/lib/appwrite": { createAdminClient: () => ({ users: { get: async () => ({ name: "Maria", status: true, labels: funcao === "nenhuma" ? [] : [funcao], prefs: { funcao_ritual: "guardiao", sexo: "feminino" } }) } }) },
+    "@/lib/guarnicao-app": { contextoGuarnicao: async () => ({ u: { id: usuarioAtual }, visao: "coordenador" }) },
+    "@/lib/appwrite": { createAdminClient: () => ({ users: { get: async () => ({ name: "Maria", status: true, labels: [...(funcao === "nenhuma" ? [] : [funcao]), ...(mock ? ["mock"] : [])], prefs: { funcao_ritual: "guardiao", sexo: "feminino" } }) } }) },
     "@/lib/guarnicao-estatisticas": { diasDesde: () => 1, historicoDe: async (_, papel) => { assert.equal(papel, "mestre"); return { rituais: [], total: 0, ano: 0, ultimo: null, porMes: Array(12).fill(0) }; } },
     "@/lib/usuarios": { prefsDe: (p) => p, funcaoDosLabels: (labels) => labels.includes("mestre") ? "mestre" : labels.includes("guardiao") ? "guardiao" : "nenhuma" },
     "../../estatisticas/blocos": { GraficoMeses: () => null },
@@ -356,6 +412,11 @@ test("mestre abre seu perfil sem ações de suspensão; contas fora da equipe pe
   const html = renderToStaticMarkup(await Perfil({ params: Promise.resolve({ id: "maria" }) }));
   assert.match(html, /Mestra/);
   assert.doesNotMatch(html, /SUSPENDER/);
+  mock = true;
+  await assert.rejects(Perfil({ params: Promise.resolve({ id: "maria" }) }), /404/);
+  usuarioAtual = "maria";
+  assert.match(renderToStaticMarkup(await Perfil({ params: Promise.resolve({ id: "maria" }) })), /Mestra/);
+  mock = false;
   funcao = "nenhuma";
   await assert.rejects(Perfil({ params: Promise.resolve({ id: "participante" }) }), /404/);
 });

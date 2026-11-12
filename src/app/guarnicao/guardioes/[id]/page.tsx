@@ -24,7 +24,7 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
   const { u, visao } = (await contextoGuarnicao(`/guarnicao/guardioes/${id}`))!;
   const { users } = createAdminClient();
   const pessoa = await users.get({ userId: id }).catch(() => null);
-  if (!pessoa) notFound();
+  if (!pessoa || (pessoa.labels?.includes("mock") && id !== u.id)) notFound();
   const p = prefsDe(pessoa.prefs);
   const funcao = funcaoDosLabels(pessoa.labels);
   // Só a equipe ativa da Guarnição, nunca participantes ou outras contas.

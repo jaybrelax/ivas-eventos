@@ -1,3 +1,4 @@
+import { compararFirst } from "@/lib/ordenacao-first";
 import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
 import { AlertTriangle, CalendarClock, ChevronRight, Flame, Gauge, ShieldCheck, Trophy, UsersRound } from "lucide-react";
@@ -15,7 +16,7 @@ export default async function EstatisticasGuarnicao({ searchParams }: PageProps<
   const { u, visao } = (await contextoGuarnicao("/guarnicao/estatisticas"))!;
   // Guardião vê os números pessoais; coordenação e mestre veem as estatísticas gerais
   const periodo = (await searchParams).periodo === "total" ? "total" : "ano";
-  const ranking = await rankingGuarnicao();
+  const ranking = await rankingGuarnicao(u.id);
 
   if (visao === "guardiao") {
     const h = await historicoDe(u.id);
@@ -90,8 +91,8 @@ export default async function EstatisticasGuarnicao({ searchParams }: PageProps<
     ...passados.filter((e) => e.data.startsWith(mesAtual)).flatMap((e) => e.guardioes ?? []),
     ...proximos.filter((r) => r.evento.data.startsWith(mesAtual)).flatMap((r) => [...r.escalados.masculino, ...r.escalados.feminino].map((p) => p.id)),
   ]);
-  const semRitualNoMes = [...ranking].filter((g) => !comRitualNoMes.has(g.id)).sort((a, b) => a.nome.localeCompare(b.nome));
-  const semServir = [...ranking].sort((a, b) => (a.ultimo ?? "").localeCompare(b.ultimo ?? "")).slice(0, 5);
+  const semRitualNoMes = [...ranking].filter((g) => !comRitualNoMes.has(g.id)).sort((a, b) => compararFirst(a, b) || a.nome.localeCompare(b.nome));
+  const semServir = [...ranking].sort((a, b) => (a.ultimo ?? "").localeCompare(b.ultimo ?? "")).slice(0, 5).sort(compararFirst);
   const kpis = [
     { rotulo: "Próximos rituais", valor: proximos.length, Icone: CalendarClock, cor: "bg-sky-50 text-sky-700" },
     { rotulo: "Vagas em aberto", valor: abertas, Icone: AlertTriangle, cor: "bg-amber-50 text-amber-700" },

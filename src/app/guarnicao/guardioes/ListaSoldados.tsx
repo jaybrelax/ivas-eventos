@@ -3,7 +3,7 @@
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { ChevronRight, Mars, Search, UsersRound, Venus, X } from "lucide-react";
+import { ChevronRight, Crown, Mars, Search, Shield, UsersRound, Venus, X } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
 import type { Funcao, Sexo } from "@/lib/types";
@@ -118,7 +118,10 @@ export function ListaSoldados({ pessoas }: { pessoas: Pessoa[] }) {
                 <Avatar nome={p.nome} foto={p.foto} tamanho={44} />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1 text-sm font-semibold text-stone-900"><span className="truncate">{p.nome}</span>{p.sexo && <IconeGenero genero={p.sexo} size={12} />}</span>
-                  <span className="block text-xs font-medium text-emerald-700">{p.funcao === "mestre" ? p.sexo === "feminino" ? "Mestra" : "Mestre" : p.sexo === "feminino" ? "Guardiã" : "Guardião"}</span>
+                  <span className="flex items-center gap-1 text-xs font-medium text-emerald-700">
+                    {p.funcao === "mestre" ? <Crown aria-hidden size={13} /> : <Shield aria-hidden size={13} />}
+                    {p.funcao === "mestre" ? p.sexo === "feminino" ? "Mestra" : "Mestre" : p.sexo === "feminino" ? "Guardiã" : "Guardião"}
+                  </span>
                   <span className="block text-xs text-stone-500">{p.suspenso ? "Suspenso · " : ""}{p.ultimoTexto}</span>
                 </span>
                 <span className="shrink-0 text-right">

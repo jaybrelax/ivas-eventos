@@ -1,9 +1,10 @@
 import "server-only";
+import { compararFirst } from "@/lib/ordenacao-first";
 import { candidaturasDoEvento, inicioDe, prazoCancelamento, regrasGuarnicao, vagasDe } from "@/lib/guarnicao";
 import { mapaUsuarios } from "@/lib/usuarios";
 import type { Evento, Sexo } from "@/lib/types";
 
-export type PessoaGuarnicao = { id: string; nome: string; foto: string | null };
+export type PessoaGuarnicao = { id: string; nome: string; foto: string | null; oculto?: boolean };
 export type DadosGuarnicao = {
   eventoId: string;
   vagas: Record<Sexo, number>;
@@ -32,14 +33,18 @@ export async function dadosGuarnicao(
   eu: { id: string; funcaoRitual: string; sexo: Sexo | null },
   gerenciar: boolean,
 ): Promise<DadosGuarnicao> {
+  const ocultarMocks = true;
   const [candidaturas, usuarios, { horas }] = await Promise.all([candidaturasDoEvento(evento.$id), mapaUsuarios(), regrasGuarnicao()]);
   const pessoa = (id: string): PessoaGuarnicao => {
     const u = usuarios.get(id);
+    if (ocultarMocks && u?.mock) return { id, nome: "Participação reservada", foto: null, oculto: true };
     return { id, nome: u?.nome ?? "Usuário removido", foto: u?.foto ?? null };
   };
   const confirmados = Object.fromEntries(SEXOS.map((s) => [s, [] as PessoaGuarnicao[]])) as Record<Sexo, PessoaGuarnicao[]>;
   const espera = Object.fromEntries(SEXOS.map((s) => [s, [] as PessoaGuarnicao[]])) as Record<Sexo, PessoaGuarnicao[]>;
   for (const c of candidaturas) (c.situacao === "confirmada" ? confirmados : espera)[c.sexo].push(pessoa(c.usuario_id));
+
+  for (const sexo of SEXOS) confirmados[sexo].sort((a, b) => compararFirst(usuarios.get(a.id), usuarios.get(b.id)));
 
   const minha = candidaturas.find((c) => c.usuario_id === eu.id);
   const inscritos = new Set(candidaturas.map((c) => c.usuario_id));
@@ -63,7 +68,8 @@ export async function dadosGuarnicao(
     gerenciar,
     disponiveis: gerenciar
       ? [...usuarios.values()]
-          .filter((u) => u.ativo && u.funcao === "guardiao" && u.sexo && !inscritos.has(u.id))
+          .filter((u) => u.ativo && (!ocultarMocks || !u.mock) && u.funcao === "guardiao" && u.sexo && !inscritos.has(u.id))
+          .sort(compararFirst)
           .map((u) => ({ id: u.id, nome: u.nome, foto: u.foto, sexo: u.sexo! }))
       : [],
   };

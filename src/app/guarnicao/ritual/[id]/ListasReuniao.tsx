@@ -64,6 +64,13 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
         )}
       />
 
+      {gerenciar && dados.disponiveis.length > 0 && (
+        <button type="button" onClick={() => setEscolhendo(true)} className="w-full borda-participante rounded-2xl border border-emerald-300 bg-white px-4 py-3 text-sm font-semibold text-emerald-700 shadow-cartao">
+          Adicionar participante à reunião
+        </button>
+      )}
+
+
       <Grupo icone={<FileText size={17} className="text-amber-600" />} titulo="Justificaram" total={dados.justificados.length} vazio="Ninguém justificou ausência." pessoas={dados.justificados} render={(p) => (
           <li key={p.id} className="py-2">
             <div className="flex items-center gap-3">
@@ -83,7 +90,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
         )}
       />
 
-      <Grupo icone={<UserX size={17} className="text-stone-500" />} titulo="Sem resposta" total={dados.semResposta.length} vazio="Toda a equipe escalada respondeu." pessoas={dados.semResposta} render={(p) => (
+      <Grupo icone={<UserX size={17} className="text-stone-500" />} titulo="Sem resposta" total={dados.semResposta.length} vazio="Todos os membros responderam." pessoas={dados.semResposta} render={(p) => (
           <li key={p.id} className="flex items-center gap-3 py-1.5">
             <Avatar nome={p.nome} foto={p.foto} tamanho={40} />
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-700">{p.nome}<Marca p={p} />{p.id === meuId && <span className="font-normal text-stone-400"> · você</span>}</span>
@@ -101,11 +108,6 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
         )}
       />
 
-      {gerenciar && dados.disponiveis.length > 0 && (
-        <button type="button" onClick={() => setEscolhendo(true)} className="w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-emerald-700 shadow-cartao ring-1 ring-stone-200/70">
-          Adicionar participante à reunião
-        </button>
-      )}
       <Folha aberta={escolhendo} aoFechar={() => setEscolhendo(false)} titulo="Adicionar participante">
         <p className="mb-3 text-sm text-stone-600">Escolha alguém para registrar presença nesta reunião{coordenacao ? " ou justificar a ausência" : ""}.</p>
         <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome" aria-label="Buscar participante" className="campo mb-3 w-full" />
@@ -195,7 +197,7 @@ export function ListasReuniao({ dados, meuId, gerenciar, coordenacao }: Props) {
 
       {/* Confirmar retirada */}
       <Folha aberta={!!retirando} aoFechar={() => setRetirando(null)} titulo={retirando ? `Retirar ${retirando.nome.split(" ")[0]}?` : undefined}>
-        <p className="text-sm text-stone-600">A pessoa sai dos confirmados. Se estiver escalada, passa para “sem resposta”.</p>
+        <p className="text-sm text-stone-600">A pessoa sai dos confirmados e passa para “sem resposta”.</p>
         <div className="mt-5 grid gap-2">
           <button
             type="button"

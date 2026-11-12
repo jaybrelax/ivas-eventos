@@ -1,9 +1,10 @@
 import "server-only";
+import { compararFirst } from "./ordenacao-first";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUsuario, podeSolicitarGuarnicao, type Usuario } from "./auth";
 import { getDadosInstituto, listarEventos } from "./data";
-import { candidaturasDosEventos, guardioesDaReuniao, comEquipeAutomatica, ehReuniao, inicioDe, registrosDasReunioes, temAppGuarnicao, vagasDe } from "./guarnicao";
+import { candidaturasDosEventos, comEquipeAutomatica, ehReuniao, inicioDe, registrosDasReunioes, temAppGuarnicao, vagasDe } from "./guarnicao";
 import { hoje } from "./format";
 import { mapaUsuarios } from "./usuarios";
 import type { Endereco, Evento, Sexo, SituacaoCandidatura } from "./types";
@@ -107,7 +108,7 @@ export async function rituaisComVagas(usuarioId: string | null, dias = 120, ante
   const idsReunioes = rituais.filter((e) => reunioes.has(e.tipo_id)).map((e) => e.$id);
   const [cand, usuarios, registrosReunioes] = await Promise.all([candidaturasDosEventos(rituais.map((e) => e.$id), true), mapaUsuarios(), registrosDasReunioes(idsReunioes)]);
   const pessoa = (id: string) => ({ id, nome: usuarios.get(id)?.nome ?? "Guardião", foto: usuarios.get(id)?.foto ?? null });
-  const doGenero = (e: Evento, s: Sexo) => (e.guardioes ?? []).filter((id) => usuarios.get(id)?.sexo === s).map(pessoa);
+  const doGenero = (e: Evento, s: Sexo) => (e.guardioes ?? []).filter((id) => usuarios.get(id)?.sexo === s).sort((a, b) => compararFirst(usuarios.get(a), usuarios.get(b))).map(pessoa);
   const endPorId = new Map<string, Endereco>(enderecos.map((e) => [e.$id, e]));
   return rituais.map((e) => {
     const reuniao = reunioes.has(e.tipo_id);
@@ -117,12 +118,12 @@ export async function rituaisComVagas(usuarioId: string | null, dias = 120, ante
       : cand.filter((c) => c.evento_id === e.$id);
     const conf = (s: Sexo) => doEvento.filter((c) => c.sexo === s && c.situacao === "confirmada").length;
     const end = e.endereco_id ? endPorId.get(e.endereco_id) : undefined;
-    const presentes = reuniao ? doEvento.filter((c) => c.situacao === "confirmada").sort((a, b) => Number(usuarios.get(b.usuario_id)?.funcao === "mestre") - Number(usuarios.get(a.usuario_id)?.funcao === "mestre") || a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)) : [];
+    const presentes = reuniao ? doEvento.filter((c) => c.situacao === "confirmada" && !usuarios.get(c.usuario_id)?.mock).sort((a, b) => compararFirst(usuarios.get(a.usuario_id), usuarios.get(b.usuario_id)) || Number(usuarios.get(b.usuario_id)?.funcao === "mestre") - Number(usuarios.get(a.usuario_id)?.funcao === "mestre") || a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)) : [];
     return {
       reuniao,
       presentes,
-      justificados: reuniao ? doEvento.filter((c) => c.situacao === "justificada").length : 0,
-      semResposta: reuniao ? [...new Set([...(e.mestres ?? []), ...guardioesDaReuniao(e)])].filter((id) => usuarios.get(id)?.ativo && !doEvento.some((c) => c.usuario_id === id)).length : 0,
+      justificados: reuniao ? doEvento.filter((c) => c.situacao === "justificada" && !usuarios.get(c.usuario_id)?.mock).length : 0,
+      semResposta: reuniao ? [...usuarios.values()].filter((u) => u.ativo && !u.mock && (u.funcao === "mestre" || u.funcao === "guardiao") && !doEvento.some((c) => c.usuario_id === u.id)).length : 0,
       evento: e,
       local: end ? end.apelido : e.endereco_livre,
       vagas: reuniao ? { masculino: 0, feminino: 0 } : vagasDe(e),
@@ -131,7 +132,7 @@ export async function rituaisComVagas(usuarioId: string | null, dias = 120, ante
       escalados: reuniao ? { masculino: [], feminino: [] } : anteriores
         ? { masculino: doGenero(e, "masculino"), feminino: doGenero(e, "feminino") }
         : {
-            masculino: doEvento.filter((c) => c.sexo === "masculino" && c.situacao === "confirmada").sort((a, b) => a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)),
+            masculino: doEvento.filter((c) => c.sexo === "masculino" && c.situacao === "confirmada").sort((a, b) => compararFirst(usuarios.get(a.usuario_id), usuarios.get(b.usuario_id)) || a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)),
             feminino: doEvento.filter((c) => c.sexo === "feminino" && c.situacao === "confirmada").sort((a, b) => a.ordem - b.ordem).map((c) => pessoa(c.usuario_id)),
           },
       espera: doEvento.filter((c) => c.situacao === "espera").length,

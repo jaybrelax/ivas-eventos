@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { compararFirst } from "@/lib/ordenacao-first";
 import { Crown, Medal } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
@@ -33,7 +34,8 @@ export function GraficoMeses({ porMes, titulo, compacto = false }: { porMes: num
 /** Ranking de quem mais serviu, com troca entre "este ano" e "todos". `destacar`: a linha de quem está vendo. */
 export function Ranking({ linhas, periodo, destacar, base, linkPerfil }: { linhas: LinhaRanking[]; periodo: "ano" | "total"; destacar?: string; base: string; linkPerfil?: boolean }) {
   const ordenadas = [...linhas].sort((a, b) => b[periodo] - a[periodo] || b.total - a.total || a.nome.localeCompare(b.nome)).filter((l) => l[periodo] > 0);
-  const top = ordenadas.slice(0, 10);
+  const posicoes = new Map(ordenadas.map((l, i) => [l.id, i]));
+  const top = ordenadas.slice(0, 10).sort(compararFirst);
   const minhaPos = destacar ? ordenadas.findIndex((l) => l.id === destacar) : -1;
   const eu = minhaPos >= 10 ? ordenadas[minhaPos] : null;
 
@@ -74,7 +76,7 @@ export function Ranking({ linhas, periodo, destacar, base, linkPerfil }: { linha
         <p className="py-6 text-center text-sm text-stone-500">Ninguém serviu {periodo === "ano" ? "neste ano" : ""} ainda.</p>
       ) : (
         <ol className="space-y-0.5">
-          {top.map((l, i) => <li key={l.id}>{linha(l, i)}</li>)}
+          {top.map((l) => <li key={l.id}>{linha(l, posicoes.get(l.id)!)}</li>)}
           {eu && (
             <>
               <li aria-hidden className="py-1 text-center text-stone-300">⋯</li>
