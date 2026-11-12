@@ -153,6 +153,12 @@ body {
   @apply border-red-500 bg-red-50/40 hover:border-red-500 focus:border-red-500 focus:ring-red-100;
   outline-color: var(--color-red-400);
 }
+.campo-busca-rituais:focus-visible {
+  outline: 1px solid var(--color-mata-400) !important;
+  outline-offset: 1px;
+  border-color: var(--color-mata-300) !important;
+  box-shadow: 0 0 0 1px rgb(139 92 246 / 0.12) !important;
+}
 textarea.campo {
   @apply h-auto py-2.5 leading-relaxed;
 }
@@ -387,6 +393,72 @@ select.campo {
 .tema-auto .chip-app-on { background-color: #7a52e3; color: #fff; --tw-ring-color: #7a52e3; }
 }
 /* Fundo atrás do app (ao puxar a tela além do fim) também escuro */
+.editor-evento {
+  color-scheme: inherit;
+}
+.editor-evento-cabecalho-vidro {
+  background-color: rgb(255 255 255 / 0.72);
+  border-color: transparent;
+  box-shadow: 0 8px 30px rgb(34 26 58 / 0.08);
+}
+.editor-evento-botao-vidro {
+  background-color: rgb(255 255 255 / 0.58);
+  color: #4f7f57;
+  --tw-ring-color: rgb(255 255 255 / 0.78);
+  box-shadow: 0 8px 24px rgb(30 24 45 / 0.2), inset 0 1px 0 rgb(255 255 255 / 0.72);
+}
+.editor-evento-botao-vidro:hover {
+  background-color: rgb(255 255 255 / 0.95);
+}
+.tema-escuro .editor-evento-cabecalho-vidro {
+  background-color: rgb(24 18 39 / 0.72);
+  border-color: transparent;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.18);
+}
+.tema-escuro .editor-evento-botao-vidro {
+  background-color: rgb(37 28 58 / 0.54);
+  color: #e5dcff;
+  --tw-ring-color: rgb(255 255 255 / 0.38);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.32);
+}
+.tema-escuro .editor-evento-botao-vidro:hover {
+  background-color: rgb(56 42 85 / 0.88);
+}
+.tema-auto .editor-evento-cabecalho-vidro {
+  background-color: rgb(255 255 255 / 0.72);
+  border-color: transparent;
+}
+.tema-auto .editor-evento-botao-vidro {
+  background-color: rgb(255 255 255 / 0.58);
+  color: #4f7f57;
+  --tw-ring-color: rgb(255 255 255 / 0.78);
+  box-shadow: 0 8px 24px rgb(30 24 45 / 0.2), inset 0 1px 0 rgb(255 255 255 / 0.72);
+}
+@media (prefers-color-scheme: dark) {
+  .tema-auto .editor-evento-cabecalho-vidro {
+    background-color: rgb(24 18 39 / 0.72);
+    border-color: transparent;
+    box-shadow: 0 8px 30px rgb(0 0 0 / 0.18);
+  }
+  .tema-auto .editor-evento-botao-vidro {
+    background-color: rgb(37 28 58 / 0.54);
+    color: #e5dcff;
+    --tw-ring-color: rgb(255 255 255 / 0.38);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.32);
+  }
+  .tema-auto .editor-evento-botao-vidro:hover {
+    background-color: rgb(56 42 85 / 0.88);
+  }
+}
+.editor-evento .campo::placeholder {
+  color: var(--color-stone-500);
+  opacity: 1;
+}
+.editor-evento :is(button, input, select, textarea, label:has(input[type="radio"])):focus-visible {
+  outline: 2px solid var(--color-emerald-400);
+  outline-offset: 3px;
+}
+
 html.tema-escuro, html.tema-escuro body { background-color: #151022; }
 @media (prefers-color-scheme: dark) {
   html.tema-auto, html.tema-auto body { background-color: #151022; }

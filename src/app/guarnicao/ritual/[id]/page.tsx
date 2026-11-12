@@ -21,8 +21,11 @@ import { ListasReuniao } from "./ListasReuniao";
 import { Topo } from "./Topo";
 import { VagaLivre } from "../../ui";
 import { PainelEscala } from "./PainelEscala";
+import { MenuEvento } from "./MenuEvento";
+import { podeEditarRitual } from "@/lib/permissao-edicao-ritual";
 
 export const metadata = { title: "Ritual" };
+export const maxDuration = 300;
 
 /** Detalhe do ritual (ou da reunião) no app: dados, quem está escalado e a ação de cada perfil. */
 export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/ritual/[id]">) {
@@ -37,6 +40,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
   const end = evento.endereco_id ? enderecos.find((e) => e.$id === evento.endereco_id) : undefined;
   const mestres = (evento.mestres ?? []).map((m) => equipe.find((p) => p.$id === m)).filter((m): m is NonNullable<typeof m> => !!m && !m.mock).sort(compararFirst);
   const coord = visao === "coordenador";
+  const menu = podeEditarRitual(u) ? <MenuEvento evento={evento} tipos={tipos.filter(t => temAppGuarnicao(t) && (t.ativo || t.$id === evento.tipo_id))} enderecos={enderecos} /> : undefined;
 
   // A reunião tem sua equipe escalada e uma lista de presença própria deste evento.
   if (ehReuniao(tipo)) {
@@ -47,7 +51,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
     const participa = u.funcaoRitual === "guardiao" || u.funcaoRitual === "mestre";
     return (
       <div className={participa && !r.eu.situacao ? "pb-48" : "pb-6"}>
-        <Topo evento={evento} end={end} mestres={mestres} agenda={participa && r.eu.situacao === "confirmada"} equipeReuniao={<><GuardioesReuniao dados={r} gerenciar={gerenciar} funcao="mestre" /><GuardioesReuniao dados={r} gerenciar={gerenciar} /></>} />
+        <Topo evento={evento} end={end} mestres={mestres} menu={menu} agenda={participa && r.eu.situacao === "confirmada"} equipeReuniao={<><GuardioesReuniao dados={r} gerenciar={gerenciar} funcao="mestre" /><GuardioesReuniao dados={r} gerenciar={gerenciar} /></>} />
         {participa && (
           <AcaoReuniao eventoId={evento.$id} dataEvento={evento.data} nome={u.nome} situacao={r.eu.situacao} justificativa={r.eu.justificativa} jaComecou={r.presencaEncerrada} prazoPassou={r.prazoPassou} prazoTexto={r.prazoTexto} />
         )}
@@ -85,7 +89,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
 
   return (
     <div className={visao === "guardiao" ? "pb-32" : "pb-6"}>
-      <Topo evento={evento} end={end} mestres={mestres} agenda={visao === "guardiao" && g.eu.situacao === "confirmada"} />
+      <Topo evento={evento} end={end} mestres={mestres} menu={menu} agenda={visao === "guardiao" && g.eu.situacao === "confirmada"} />
 
       {/* Guarnição */}
       <section className="mt-5 px-5">

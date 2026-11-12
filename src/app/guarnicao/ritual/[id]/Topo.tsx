@@ -5,32 +5,31 @@ import { dataPorExtenso } from "@/lib/format";
 import { urlImagem } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
 import type { Endereco, Evento, Pessoa } from "@/lib/types";
+import { CapaRitual } from "./CapaRitual";
 
 /** Capa, data, local e mestres: o topo da página de um ritual ou de uma reunião. */
-export function Topo({ evento, end, mestres, agenda, equipeReuniao }: { evento: Evento; end: Endereco | undefined; mestres: Pessoa[]; /** Mostra o atalho para a agenda do celular. */ agenda: boolean; equipeReuniao?: React.ReactNode }) {
+export function Topo({ evento, end, mestres, agenda, equipeReuniao, menu }: { evento: Evento; end: Endereco | undefined; mestres: Pessoa[]; /** Mostra o atalho para a agenda do celular. */ agenda: boolean; equipeReuniao?: React.ReactNode; menu?: React.ReactNode }) {
   return (
     <>
       {/* Capa */}
-      <div className="relative -mb-px h-64 overflow-hidden bg-stone-50">
-        {evento.capa_file_id && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={urlImagem(evento.capa_file_id, 960)} alt="" fetchPriority="high" className="absolute inset-0 h-full w-full object-cover opacity-80" />
-        )}
-        <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-stone-50 from-0% to-transparent to-50%" />
+      <CapaRitual key={evento.capa_file_id || "sem-capa"} src={evento.capa_file_id ? urlImagem(evento.capa_file_id, 960) : undefined}>
         <Link href="/guarnicao" aria-label="Voltar" className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 grid h-10 w-10 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md active:scale-90">
           <ChevronLeft size={22} />
         </Link>
         {/* Guardião presente: levar para a agenda do celular (ícone, canto superior direito da capa) */}
+        <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 z-20 flex items-center gap-2">
         {agenda && (
-          <a href={`${urlRitualGuarnicao(evento)}/agenda`} aria-label="Adicionar à minha agenda" title="Adicionar à minha agenda" className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 grid h-10 w-10 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md active:scale-90">
+          <a href={`${urlRitualGuarnicao(evento)}/agenda`} aria-label="Adicionar à minha agenda" title="Adicionar à minha agenda" className="grid h-10 w-10 place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md active:scale-90">
             <CalendarPlus size={19} />
           </a>
         )}
+        {menu}
+        </div>
         {/* Sobe o título para ficar acima do card que flutua sobre a capa */}
         <div className="absolute inset-x-0 bottom-12 px-5 pt-5 pb-3 text-stone-950">
           <h1 className="text-xl leading-tight font-bold">{evento.titulo}</h1>
         </div>
-      </div>
+      </CapaRitual>
 
       {/* Quando e onde */}
       <section className="relative z-10 -mt-12 px-4">

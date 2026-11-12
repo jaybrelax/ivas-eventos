@@ -5,20 +5,21 @@ import { UserRound } from "lucide-react";
 import type { Usuario } from "@/lib/auth";
 
 /**
- * Cabeçalho grande das telas do app (estilo "large title" do iOS): símbolo do IVAS ao lado do título
+ * Cabeçalho grande das telas do app: logo da Guarnição ao lado do título
  * e, à direita, a saudação (opcional) junto do avatar, que leva ao perfil.
  */
-export function CabecalhoApp({ titulo, sobre, u, direita, saudacao }: { titulo: string; sobre?: ReactNode; u: Usuario; direita?: ReactNode; saudacao?: string }) {
+export function CabecalhoApp({ titulo, sobre, u, direita, saudacao, aposTitulo, espacoAbaixo = false }: { titulo: string; sobre?: ReactNode; u: Usuario; direita?: ReactNode; saudacao?: string; aposTitulo?: ReactNode; espacoAbaixo?: boolean }) {
   return (
-    <header className="sticky top-0 z-30 bg-stone-50/85 px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-3 backdrop-blur-xl">
+    <header className={`sticky top-0 z-30 bg-stone-50/85 px-5 pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur-xl ${espacoAbaixo ? "pb-5" : "pb-3"}`}>
       <div className="flex items-end justify-between gap-3">
         <div className="flex min-w-0 items-end gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icons/simbolo-ivas.webp" alt="IVAS" width={38} height={38} className="mb-0.5 h-[38px] w-[38px] shrink-0 object-contain" />
+          <img src="/icons/guarnicao-192.png" alt="Guarnição IVAS" width={38} height={38} className="mb-0.5 h-[38px] w-[38px] shrink-0 object-contain" />
           <div className="min-w-0">
             {sobre && <p className="text-xs font-semibold tracking-[0.14em] text-emerald-700 uppercase">{sobre}</p>}
             <h1 className="truncate text-[28px] leading-tight font-bold tracking-tight text-stone-900">{titulo}</h1>
           </div>
+          {aposTitulo}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {direita}

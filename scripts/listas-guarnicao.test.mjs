@@ -29,6 +29,7 @@ function carregar(arquivo, mocks = {}, globals = {}) {
       if (Object.hasOwn(mocks, id)) return mocks[id];
       if (id === "server-only") return {};
       if (id === "next/link") return { default: Link, useLinkStatus: () => ({ pending: false }) };
+      if (id === "react-dom") return { flushSync: fn => fn() };
       if (["react", "react/jsx-runtime", "lucide-react"].includes(id)) return require(id);
       if (id.startsWith("@/")) return ler(path.join(root, "src", id.slice(2)));
       if (id.startsWith(".")) return ler(path.resolve(path.dirname(filename), id));
@@ -387,7 +388,7 @@ test("busca de reuniões mantém a página e o período, reiniciando a paginaç�
   const efeitos = [];
   const chamadas = [];
   const { BuscaRituais } = carregar("src/app/guarnicao/BuscaRituais.tsx", {
-    react: { ...React, useEffect: (f) => efeitos.push(f), useRef: () => ({ current: false }), useState: (v) => [v, () => {}], useTransition: () => [false, (f) => f()] },
+    react: { ...React, useEffect: (f) => efeitos.push(f), useLayoutEffect() {}, useContext: () => null, useRef: () => ({ current: false }), useState: (v) => [v, () => {}], useTransition: () => [false, (f) => f()] },
     "next/navigation": { usePathname: () => "/guarnicao/reunioes", useRouter: () => ({ replace: (href) => chamadas.push(href) }) },
     "@/components/ui": { Carregando: () => null },
   }, { setTimeout: (f) => { f(); return 1; }, clearTimeout() {} });

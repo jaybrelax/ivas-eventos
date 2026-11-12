@@ -1,6 +1,6 @@
 import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
-import { CalendarClock, CalendarX2, Clock, FileText, History, Hourglass, MapPin, ShieldCheck, Sparkles, Users, UserRoundPen } from "lucide-react";
+import { CalendarClock, CalendarX2, Clock, FileText, History, Hourglass, Info, MapPin, ShieldCheck, Sparkles, Users, UserRoundPen } from "lucide-react";
 import { contextoGuarnicao, rituaisComVagas, type RitualGuarnicao } from "@/lib/guarnicao-app";
 import { fimPrazoPresenca, inicioDe, participacoesPorMes, regrasGuarnicao } from "@/lib/guarnicao";
 import { hoje, partesData } from "@/lib/format";
@@ -10,7 +10,7 @@ import { IconeGenero } from "@/components/genero";
 import { Avatar } from "@/components/Avatar";
 import type { Sexo } from "@/lib/types";
 import { AvatarEscalado, CabecalhoApp, Vazio, VagaLivre } from "./ui";
-import { BuscaRituais } from "./BuscaRituais";
+import { AbrirBuscaRituais, BuscaRecolhivel, BuscaRituais } from "./BuscaRituais";
 import { Carrossel } from "./Carrossel";
 import { MaisRituais } from "./MaisRituais";
 import { CarregarMaisReunioes } from "./CarregarMaisReunioes";
@@ -68,10 +68,11 @@ export async function ListaRituais({ searchParams, somenteReunioes = false }: {
   const temMais = lista.length > mostrar;
   const ehPassado = (r: RitualGuarnicao) => (q ? r.evento.data < hoje() : anteriores);
   const manter: Record<string, string> = soComVaga && visao === "guardiao" ? { filtro: "vaga" } : anteriores ? { periodo: "anteriores" } : {};
+  const buscaRecolhivel = !somenteReunioes && visao === "guardiao";
 
-  return (
+  const tela = (
     <NavegacaoRituais>
-      <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : visao === "mestre" ? "Mestre" : undefined} saudacao={somenteReunioes ? undefined : `Olá, ${u.nome.split(" ")[0]}`} titulo={titulo} />
+      <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : visao === "mestre" ? "Mestre" : undefined} saudacao={somenteReunioes ? undefined : `Olá, ${u.nome.split(" ")[0]}`} titulo={titulo} aposTitulo={buscaRecolhivel ? <AbrirBuscaRituais /> : undefined} espacoAbaixo={buscaRecolhivel} />
 
       {!somenteReunioes && visao === "guardiao" && u.suspensoAte && (
         <div className="mx-5 mb-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
@@ -87,7 +88,7 @@ export async function ListaRituais({ searchParams, somenteReunioes = false }: {
       )}
 
       {/* Busca à esquerda e, para a coordenação, o atalho dos rituais anteriores na mesma linha (mesma altura) */}
-      <div className="flex items-center gap-2 px-5 pt-[calc(0.25rem+5px)] pb-3">
+      {buscaRecolhivel ? <BuscaRituais inicial={q} manter={manter} /> : <div className="flex items-center gap-2 px-5 pt-[calc(0.25rem+5px)] pb-3">
         <BuscaRituais inicial={q} manter={manter} />
         {visao === "coordenador" && (
           <ChipFiltro href={anteriores ? caminho : `${caminho}?periodo=anteriores`} ativo={false} className="shrink-0 whitespace-nowrap">
@@ -95,7 +96,7 @@ export async function ListaRituais({ searchParams, somenteReunioes = false }: {
             <span className="sr-only min-[420px]:not-sr-only">{anteriores ? somenteReunioes ? "Ver próximas reuniões" : "Ver próximos rituais" : somenteReunioes ? "Ver reuniões anteriores" : "Ver rituais anteriores"}</span>
           </ChipFiltro>
         )}
-      </div>
+      </div>}
 
       {/* Guardião: filtros num carrossel que rola de lado, como nos apps nativos */}
       {visao === "guardiao" && (
@@ -132,6 +133,7 @@ export async function ListaRituais({ searchParams, somenteReunioes = false }: {
       </AreaLista>
     </NavegacaoRituais>
   );
+  return buscaRecolhivel ? <BuscaRecolhivel inicial={q}>{tela}</BuscaRecolhivel> : tela;
 }
 
 /** Reuniões: a próxima em destaque, seguida do histórico, carregado de quatro em quatro. */
@@ -155,8 +157,9 @@ export async function ListaReunioes({ searchParams }: { searchParams: PageProps<
   return (
     <>
       <CabecalhoApp u={u} sobre={visao === "coordenador" ? "Coordenação" : visao === "mestre" ? "Mestre" : undefined} titulo="Reuniões" />
-      <div className="px-5 pt-2 pb-4">
-        <BuscaRituais inicial={q} manter={{}} />
+      <div className="mx-5 mb-5 flex items-start gap-2.5 rounded-2xl bg-white/60 px-4 py-3 text-sm leading-relaxed text-stone-600 ring-1 ring-stone-200/60 backdrop-blur-sm">
+        <Info size={17} className="mt-0.5 shrink-0 text-emerald-700" />
+        <p>Na próxima reunião, confira o tipo de ritual previsto no evento. Confirme sua participação ou justifique caso não possa comparecer.</p>
       </div>
       <div className="space-y-7">
         <section aria-labelledby="proxima-reuniao-titulo">

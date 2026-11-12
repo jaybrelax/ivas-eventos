@@ -24,7 +24,8 @@ export function PuxarAtualizar({ children }: { children: ReactNode }) {
   useEffect(() => {
     const comecar = (e: TouchEvent) => {
       // Só quando a página está no topo e nenhum painel está aberto
-      inicio.current = window.scrollY <= 0 && !document.querySelector('[role="dialog"]') ? e.touches[0].clientY : null;
+      // Na capa do ritual, puxar revela a imagem. Esse gesto não deve também atualizar a página.
+      inicio.current = window.scrollY <= 0 && !document.querySelector('[role="dialog"], dialog[open], [data-capa-expansivel]') ? e.touches[0].clientY : null;
     };
     const mover = (e: TouchEvent) => {
       if (inicio.current === null) return;

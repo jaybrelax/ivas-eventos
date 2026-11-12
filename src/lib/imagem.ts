@@ -10,6 +10,7 @@ const MB = 1024 * 1024;
 
 /** Lado maior (px) e tamanho máximo do arquivo já reduzido, por uso. */
 export const LIMITES_IMAGEM = {
+  capa: { lado: 1600, maxBytes: 3.5 * MB },
   foto: { lado: 600, maxBytes: 2 * MB },
 } as const;
 
