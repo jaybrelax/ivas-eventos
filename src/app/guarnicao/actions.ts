@@ -165,7 +165,7 @@ export async function definirGuardiaoDoDia(eventoId: string, usuarioId: string, 
   if (!r) return { erro: "Reunião não encontrada." };
   const u = await escalador(r.evento);
   if (!u) return { erro: "Só a coordenação ou um mestre desta reunião define o guardião do dia." };
-  const res = await marcarGuardiaoDoDia(r.evento, usuarioId, ligado);
+  const res = await marcarGuardiaoDoDia(r.evento, usuarioId, ligado, u.id);
   revalidar(eventoId);
   return res;
 }

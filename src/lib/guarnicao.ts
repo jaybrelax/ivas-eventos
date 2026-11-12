@@ -364,7 +364,7 @@ export const JUSTIFICATIVA_MAX = 200;
  * Presenças e justificativas de uma reunião. A equipe escalada já conta como confirmada,
  * a não ser que tenham algum registro próprio (retirado pela coordenação, cancelou ou justificou).
  */
-export async function presencasDaReuniao(evento: Pick<Evento, "$id" | "mestres" | "guardioes_escalados_reuniao">) {
+export async function presencasDaReuniao(evento: EquipeReuniao) {
   return comEquipeAutomatica(evento, await listar<Candidatura>(TABLES.candidaturas, [Query.equal("evento_id", evento.$id), Query.orderAsc("ordem")]));
 }
 
@@ -376,12 +376,27 @@ export async function registrosDasReunioes(ids: string[]) {
 }
 
 /** Dos registros de uma reunião, fica o que vale (confirmados e justificados) mais a equipe escalada que ainda não respondeu. */
-export function comEquipeAutomatica(evento: Pick<Evento, "$id" | "mestres" | "guardioes_escalados_reuniao">, todas: Candidatura[]) {
+type EquipeReuniao = Pick<Evento, "$id" | "mestres" | "guardioes_escalados_reuniao"> & Partial<Pick<Evento, "guardioes">>;
+
+export function guardioesDaReuniao(evento: Pick<Evento, "guardioes_escalados_reuniao"> & Partial<Pick<Evento, "guardioes">>) {
+  return [...new Set([...(evento.guardioes_escalados_reuniao ?? []), ...(evento.guardioes ?? [])])];
+}
+
+export function comEquipeAutomatica(evento: EquipeReuniao, todas: Candidatura[]) {
   const comRegistro = new Set(todas.map((c) => c.usuario_id));
-  const automaticas = [...new Set([...(evento.mestres ?? []), ...(evento.guardioes_escalados_reuniao ?? [])])]
+  const automaticas = [...new Set([...(evento.mestres ?? []), ...guardioesDaReuniao(evento)])]
     .filter((id) => !comRegistro.has(id))
     .map((id) => ({ $id: `auto-${id}`, evento_id: evento.$id, usuario_id: id, sexo: "masculino", situacao: "confirmada", ordem: 0, justificativa: null, alterado_por: null, $createdAt: "", $updatedAt: "" }) as Candidatura);
   return [...automaticas, ...todas.filter((c) => c.situacao === "confirmada" || c.situacao === "justificada")];
+}
+
+/** Novas escalas recebem um registro real; respostas anteriores continuam valendo. */
+export async function registrarConfirmacoesDaEquipe(evento: Evento, ids: string[], porId: string, ordem?: number) {
+  const usuarios = await mapaUsuarios();
+  for (const id of new Set(ids)) {
+    const pessoa = usuarios.get(id);
+    if (pessoa?.ativo && !(await candidaturaDe(evento.$id, id))) await gravarPresenca(evento, id, pessoa.sexo, porId, ordem);
+  }
 }
 
 /** Tira a presença; quem foi confirmado automaticamente ganha um registro para deixar de contar como confirmado. */
@@ -394,7 +409,7 @@ async function sairDaReuniao(evento: Pick<Evento, "$id" | "mestres" | "guardioes
     await tirarDosGuardioesDoDia(evento, usuarioId);
     return true;
   }
-  if (!(evento.mestres ?? []).includes(usuarioId) && !(evento.guardioes_escalados_reuniao ?? []).includes(usuarioId)) return false;
+  if (!(evento.mestres ?? []).includes(usuarioId) && !guardioesDaReuniao(evento).includes(usuarioId)) return false;
   const sexo = (await mapaUsuarios()).get(usuarioId)?.sexo ?? "masculino";
   await tablesDB.createRow({ ...base, rowId: ID.unique(), data: { evento_id: evento.$id, usuario_id: usuarioId, sexo, situacao, ordem: Date.now(), alterado_por: alteradoPor } });
   await tirarDosGuardioesDoDia(evento, usuarioId);
@@ -402,11 +417,11 @@ async function sairDaReuniao(evento: Pick<Evento, "$id" | "mestres" | "guardioes
 }
 
 /** Grava a presença (cria a candidatura ou reativa uma cancelada, retirada ou justificada). */
-async function gravarPresenca(evento: Evento, usuarioId: string, sexo: Sexo | null, porId: string) {
+async function gravarPresenca(evento: Evento, usuarioId: string, sexo: Sexo | null, porId: string, ordem = Date.now()) {
   const { tablesDB } = createAdminClient();
   const existente = await candidaturaDe(evento.$id, usuarioId);
   if (existente?.situacao === "confirmada") return false;
-  const dados = { sexo: sexo ?? existente?.sexo ?? "masculino", situacao: "confirmada" as const, ordem: Date.now(), justificativa: null, alterado_por: porId };
+  const dados = { sexo: sexo ?? existente?.sexo ?? "masculino", situacao: "confirmada" as const, ordem, justificativa: null, alterado_por: porId };
   if (existente) await tablesDB.updateRow({ ...base, rowId: existente.$id, data: dados });
   else await tablesDB.createRow({ ...base, rowId: ID.unique(), data: { ...dados, evento_id: evento.$id, usuario_id: usuarioId } });
   return true;
@@ -487,22 +502,24 @@ async function tirarDosGuardioesDoDia(evento: Pick<Evento, "$id" | "guardioes">,
 
 /**
  * Mestre ou coordenação marca (ou desmarca) quem foi guardião do dia numa reunião. Fica em `evento.guardioes`,
- * a mesma lista que as estatísticas leem para saber quem serviu. Só vale para confirmados; mestres não entram.
+ * a mesma lista que as estatísticas leem para saber quem serviu. Mestres também podem servir como guardiões.
  */
-export async function marcarGuardiaoDoDia(evento: Evento, usuarioId: string, ligado: boolean): Promise<Resultado> {
+export async function marcarGuardiaoDoDia(evento: Evento, usuarioId: string, ligado: boolean, porId: string): Promise<Resultado> {
   const atuais = evento.guardioes ?? [];
   const { tablesDB } = createAdminClient();
   if (!ligado) {
-    if (!atuais.includes(usuarioId)) return { erro: "Essa pessoa não é guardião do dia." };
-    await tirarDosGuardioesDoDia(evento, usuarioId);
+    if (!guardioesDaReuniao(evento).includes(usuarioId)) return { erro: "Essa pessoa não está na escala." };
+    await registrarConfirmacoesDaEquipe(evento, [usuarioId], porId, 0);
+    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: { guardioes: atuais.filter((id) => id !== usuarioId), guardioes_escalados_reuniao: guardioesDaReuniao(evento).filter((id) => id !== usuarioId) } });
     await sinalizarMudanca(evento.$id);
-    return { ok: "Guardião do dia removido." };
+    return { ok: "Pessoa retirada da escala. A presença foi mantida." };
   }
   const alvo = (await mapaUsuarios()).get(usuarioId);
-  if (!alvo || alvo.funcao !== "guardiao") return { erro: "Só guardiões podem ser guardião do dia (os mestres já aparecem como mestres)." };
-  if (!(await presencasDaReuniao(evento)).some((c) => c.usuario_id === usuarioId && c.situacao === "confirmada")) return { erro: "A pessoa precisa estar entre os confirmados." };
-  if (atuais.includes(usuarioId)) return { erro: "Essa pessoa já é guardião do dia." };
-  await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: { guardioes: [...atuais, usuarioId] } });
+  if (!alvo?.ativo || (alvo.funcao !== "guardiao" && alvo.funcao !== "mestre")) return { erro: "Escolha um membro ativo da equipe." };
+  const jaConfirmadoAutomaticamente = [...(evento.mestres ?? []), ...guardioesDaReuniao(evento)].includes(usuarioId);
+  await registrarConfirmacoesDaEquipe(evento, [usuarioId], porId, jaConfirmadoAutomaticamente ? 0 : undefined);
+  const confirmada = (await presencasDaReuniao(evento)).some((c) => c.usuario_id === usuarioId && c.situacao === "confirmada");
+  await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: evento.$id, data: { guardioes_escalados_reuniao: [...new Set([...guardioesDaReuniao(evento), usuarioId])], guardioes: confirmada ? [...new Set([...atuais, usuarioId])] : atuais } });
   await sinalizarMudanca(evento.$id);
-  return { ok: "Guardião do dia marcado." };
+  return { ok: "Guardião incluído na escala." };
 }

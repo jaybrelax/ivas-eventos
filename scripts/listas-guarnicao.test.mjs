@@ -59,7 +59,7 @@ function moduloRituais(consultas = [], dados = eventos()) {
     "./guarnicao": {
       temAppGuarnicao: (t) => t.conta_como_ritual || t.fechado_guardioes,
       ehReuniao: (t) => !!t.fechado_guardioes,
-      candidaturasDosEventos: async () => [], registrosDasReunioes: async () => [], comEquipeAutomatica: (_, c) => c,
+      candidaturasDosEventos: async () => [], registrosDasReunioes: async () => [], comEquipeAutomatica: (_, c) => c, guardioesDaReuniao: (e) => [...new Set([...(e.guardioes ?? []), ...(e.guardioes_escalados_reuniao ?? [])])],
       inicioDe: (e) => new Date(`${e.data}T${e.hora_inicio}:00-03:00`), vagasDe: () => ({ masculino: 2, feminino: 2 }),
     },
   }, { Date: DataFixa });
@@ -126,9 +126,10 @@ test("sem resposta contém só a equipe escalada da própria reunião", async ()
   ]);
   const { dadosReuniao } = carregar("src/lib/reuniao.ts", {
     "./guarnicao": {
+      guardioesDaReuniao: (e) => [...new Set([...(e.guardioes ?? []), ...(e.guardioes_escalados_reuniao ?? [])])],
       presencasDaReuniao: async (e) => e.$id === "r1" ? [
-        { $id: "auto-m1", usuario_id: "m1", situacao: "confirmada" },
-        { $id: "c1", usuario_id: "fora", situacao: "confirmada" },
+        { $id: "auto-m1", usuario_id: "m1", situacao: "confirmada", ordem: 20 },
+        { $id: "c1", usuario_id: "fora", situacao: "confirmada", ordem: 10 },
       ] : [{ $id: "auto-g2", usuario_id: "g2", situacao: "confirmada" }],
       regrasGuarnicao: async () => ({ horas: 4, horasPresenca: 1 }),
       inicioDe: () => new Date("2099-01-01"),
@@ -140,13 +141,47 @@ test("sem resposta contém só a equipe escalada da própria reunião", async ()
   });
   const base = { data: "2099-01-01", hora_inicio: "10:00", guardioes: [] };
   const primeira = await dadosReuniao({ ...base, $id: "r1", mestres: ["m1"], guardioes_escalados_reuniao: ["g1"] }, "fora", false, true);
-  assert.deepEqual(Array.from(primeira.confirmados, (p) => p.id), ["m1", "fora"]);
+  assert.deepEqual(Array.from(primeira.confirmados, (p) => p.id), ["fora", "m1"]);
   assert.deepEqual(Array.from(primeira.semResposta, (p) => p.id), ["g1"]);
   assert.deepEqual(Array.from(primeira.disponiveis, (p) => p.id), ["g2"]);
   const segunda = await dadosReuniao({ ...base, $id: "r2", mestres: [], guardioes_escalados_reuniao: ["g2"] }, "fora");
   assert.deepEqual(Array.from(segunda.confirmados, (p) => p.id), ["g2"]);
   assert.equal(segunda.semResposta.length, 0);
   assert.equal(segunda.disponiveis.length, 0);
+});
+
+test("escala unifica guardiões antigos, permite mestre e preserva resposta anterior", async () => {
+  const registros = [];
+  const alteracoes = [];
+  const { marcarGuardiaoDoDia, guardioesDaReuniao } = carregar("src/lib/guarnicao.ts", {
+    "node-appwrite": { ID: { unique: () => "novo" }, Query: { equal: () => "", orderAsc: () => "" } }, "next/server": {},
+    "./appwrite": { createAdminClient: () => ({ tablesDB: {
+      createRow: async ({ data }) => { registros.push({ ...data, $id: "novo" }); },
+      updateRow: async (r) => { alteracoes.push(r); },
+    } }) },
+    "./config": { DB_ID: "ivas", TABLES: { candidaturas: "candidaturas", eventos: "eventos" } },
+    "./data": { listar: async () => registros }, "./guarnicao-links": {}, "./push": {}, "./genero": {},
+    "./tempo-real": { sinalizarMudanca: async () => {} },
+    "./usuarios": { mapaUsuarios: async () => new Map([["m1", { id: "m1", funcao: "mestre", ativo: true, sexo: "feminino" }]]) },
+  });
+  const evento = { $id: "r1", mestres: [], guardioes: ["antigo"], guardioes_escalados_reuniao: ["antigo", "outro"] };
+  assert.deepEqual(Array.from(guardioesDaReuniao(evento)), ["antigo", "outro"]);
+  assert.ok((await marcarGuardiaoDoDia(evento, "m1", true, "coord")).ok);
+  assert.equal(registros[0].usuario_id, "m1");
+  assert.equal(registros[0].situacao, "confirmada");
+  assert.ok(registros[0].ordem > 0);
+  assert.ok(alteracoes.at(-1).data.guardioes_escalados_reuniao.includes("m1"));
+  registros[0].situacao = "justificada";
+  registros[0].justificativa = "Ausência já justificada";
+  await marcarGuardiaoDoDia(evento, "m1", true, "coord");
+  assert.equal(registros[0].situacao, "justificada");
+  assert.equal(alteracoes.at(-1).data.guardioes.includes("m1"), false);
+  await marcarGuardiaoDoDia({ ...evento, guardioes_escalados_reuniao: ["m1"] }, "m1", false, "coord");
+  assert.equal(registros[0].situacao, "justificada");
+  assert.equal(alteracoes.at(-1).data.guardioes_escalados_reuniao.includes("m1"), false);
+  registros.length = 0;
+  await marcarGuardiaoDoDia({ ...evento, mestres: ["m1"] }, "m1", true, "coord");
+  assert.equal(registros[0].ordem, 0, "a função no ritual não muda a confirmação antiga do mestre");
 });
 
 test("escala do mestre mostra só os rituais em que ele foi designado, inclusive o histórico", async () => {
