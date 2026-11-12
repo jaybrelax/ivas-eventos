@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Plus, Crown, X } from "lucide-react";
+import { Plus, Crown, Shield, X } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { toast } from "@/components/Toaster";
 import type { DadosReuniao } from "@/lib/reuniao";
@@ -12,7 +12,7 @@ export function GuardioesReuniao({ dados, gerenciar, funcao = "guardiao" }: { da
   const mestre = funcao === "mestre";
   const pessoas = mestre ? dados.mestresRitual : dados.guardioesRitual;
   const disponiveis = mestre ? dados.mestresDisponiveis : dados.membrosDisponiveis;
-  const titulo = mestre ? "Mestres do ritual" : "Guardiões do ritual";
+  const titulo = mestre ? "Mestres do ritual" : "Guardiões do Ritual";
   const [aberta, setAberta] = useState(false);
   const [busca, setBusca] = useState("");
   const [pendente, iniciar] = useTransition();
@@ -21,12 +21,12 @@ export function GuardioesReuniao({ dados, gerenciar, funcao = "guardiao" }: { da
     if (r.erro) toast(r.erro);
     else { if (r.ok) toast(r.ok, "ok"); setAberta(false); }
   });
-  return <section className={mestre ? "border-t border-stone-200/70 pt-3" : "mt-5 px-5"}>
+  return <section className="border-t border-stone-200/70 pt-3">
     <div className="mb-3 flex items-center justify-between gap-2">
-      <h2 className={mestre ? "flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-500" : "text-lg font-semibold text-stone-900"}>{mestre && <Crown size={14} className="text-emerald-700" />}{titulo}</h2>
+      <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-stone-500">{mestre ? <Crown size={14} className="text-emerald-700" /> : <Shield size={14} className="text-emerald-700" />}{titulo}</h2>
       {gerenciar && <button type="button" disabled={pendente} onClick={() => { setBusca(""); setAberta(true); }} className="flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700"><Plus size={16} /> Adicionar</button>}
     </div>
-    <div className={mestre ? "" : "rounded-3xl bg-white p-4 shadow-cartao ring-1 ring-stone-200/70"}>
+    <div>
       {!pessoas.length ? <p className="text-sm text-stone-500">{mestre ? "Nenhum mestre escalado." : "Nenhum guardião escalado."}</p> : <ul className="flex flex-nowrap gap-2 overflow-x-auto py-1">
         {pessoas.map((p) => <li key={p.id} className="relative flex w-16 shrink-0 flex-col items-center gap-1 pt-1 text-center">
           <Avatar nome={p.nome} foto={p.foto} tamanho={44} className={mestre ? "ring-2 ring-ouro-300" : "ring-2 ring-emerald-300"} /><span title={p.nome} className="w-full truncate text-xs font-medium text-stone-700">{p.nome.split(" ")[0]}</span>
