@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+// O app dos guardiões é um sistema à parte (repositório guarnicao-ivas), com deploy e domínio próprios.
+// O Eventos só encaminha os endereços antigos para lá.
+const GUARNICAO_URL = (process.env.GUARNICAO_URL ?? "https://guarnicao.virtudes.net.br").replace(/\/+$/, "");
+
 const nextConfig: NextConfig = {
   // Painel interno: todas as páginas leem a sessão, então ficam dinâmicas.
   cacheComponents: false,
@@ -14,13 +18,21 @@ const nextConfig: NextConfig = {
       { source: "/evento", destination: "/eventos", permanent: true },
       { source: "/evento/:id", destination: "/eventos/:id", permanent: true },
     ];
-    // (a "guarnicao" saiu desta lista: /guarnicao agora é o app da Guarnição)
+    // Rotas que existiam aqui e hoje pertencem ao app da Guarnição (outro sistema, mesmo banco)
+    const guarnicao = [
+      { source: "/guarnicao", destination: `${GUARNICAO_URL}/guarnicao`, permanent: false },
+      { source: "/guarnicao/:resto*", destination: `${GUARNICAO_URL}/guarnicao/:resto*`, permanent: false },
+      { source: "/login-guarnicao", destination: `${GUARNICAO_URL}/login-guarnicao`, permanent: false },
+      { source: "/cadastro-guarnicao", destination: `${GUARNICAO_URL}/cadastro`, permanent: false },
+      { source: "/guarnicao-suspensa", destination: `${GUARNICAO_URL}/guarnicao-suspensa`, permanent: false },
+      { source: "/guarnicao-app.webmanifest", destination: `${GUARNICAO_URL}/guarnicao-app.webmanifest`, permanent: false },
+    ];
     const painel = ["usuarios", "configuracoes", "banners", "perfil", "resumo"].map((r) => ({
       source: `/${r}/:resto*`,
       destination: `/admin/${r}/:resto*`,
       permanent: true,
     }));
-    return [...publicas, ...painel];
+    return [...guarnicao, ...publicas, ...painel];
   },
   // O service worker nunca pode ficar preso no cache do navegador, senão as atualizações do app não chegam
   async headers() {

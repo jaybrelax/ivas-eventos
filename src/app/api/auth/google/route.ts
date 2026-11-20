@@ -11,6 +11,13 @@ export async function GET(req: NextRequest) {
   const retorno = destinoSeguro(req.nextUrl.searchParams.get("next"));
   const guardiao = req.nextUrl.searchParams.get("guardiao") === "1";
   const doApp = guardiao || ehDestinoGuarnicao(retorno);
+  // A Guarnição é outro sistema (outro domínio e outra sessão): o Google dos guardiões é feito lá.
+  if (doApp) {
+    const base = (process.env.GUARNICAO_URL ?? "https://guarnicao.virtudes.net.br").replace(/\/+$/, "");
+    const destino = new URL(`${base}/api/auth/google`);
+    if (retorno) destino.searchParams.set("next", retorno);
+    return NextResponse.redirect(destino);
+  }
   const next = doApp ? destinoGuarnicao(retorno) : retorno;
   const login = doApp ? "/login-guarnicao" : "/login";
   const clientId = process.env.GOOGLE_CLIENT_ID;

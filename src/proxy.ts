@@ -7,10 +7,8 @@ export function proxy(request: NextRequest) {
   if (request.nextUrl.pathname === "/") return NextResponse.next();
   const temSessao = request.cookies.has("ivas-session");
   if (!temSessao) {
-    // Volta para a página pedida depois de entrar (ex.: o app da Guarnição instalado na tela inicial)
-    // O app da Guarnição tem o seu próprio login
-    const doApp = request.nextUrl.pathname.startsWith("/guarnicao");
-    const login = new URL(doApp ? "/login-guarnicao" : "/login", request.url);
+    // Volta para a página pedida depois de entrar. O app da Guarnição é outro sistema, com login próprio.
+    const login = new URL("/login", request.url);
     const destino = request.nextUrl.pathname + request.nextUrl.search;
     if (destino !== "/") login.searchParams.set("next", destino);
     return NextResponse.redirect(login);
@@ -19,5 +17,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!login|cadastro|aguardando-aprovacao|guarnicao-suspensa|_next|favicon.ico|icon|apple-icon|api/arquivo|api/og|api/auth|api/cron|evento|ritual|privacidade|termos|fundo_login|manifest.webmanifest|admin-app.webmanifest|guarnicao-app.webmanifest|sw.js|offline).*)"],
+  matcher: ["/((?!login|cadastro|aguardando-aprovacao|_next|favicon.ico|icon|apple-icon|api/arquivo|api/og|api/auth|api/cron|evento|ritual|privacidade|termos|fundo_login|manifest.webmanifest|admin-app.webmanifest|sw.js|offline).*)"],
 };
