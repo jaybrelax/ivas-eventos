@@ -10,6 +10,7 @@ import type { Endereco } from "@/lib/types";
 import { montarPromptIA, dataParaPrompt, horarioParaPrompt } from "@/lib/ia-prompt";
 import { listarTipos, listar } from "@/lib/data";
 import { getConfigIA, prepararLogosIA } from "@/lib/ia";
+import { funcaoImagemId, gerarCapaViaFuncao } from "@/lib/ia-remota";
 
 export type ResultadoImagemIA = { ok: true; base64: string; tipo: string; nome: string } | { ok: false; erro: string };
 
@@ -34,6 +35,12 @@ function mensagemDeErro(status: number, texto: string) {
 /** O chamador deve autorizar o editor e carregar o evento no servidor. */
 export async function gerarImagemRitual(evento: Evento, ajustes = "", usarAtual = false): Promise<ResultadoImagemIA> {
   const entrada = { titulo: evento.titulo, descricao: evento.descricao, tipoId: evento.tipo_id, data: evento.data, horaInicio: evento.hora_inicio, numeroGeral: evento.ritual_numero_geral, enderecoId: evento.endereco_id, enderecoLivre: evento.endereco_livre };
+  // Com a Appwrite Function compartilhada configurada, ela faz todo o trabalho (chave, prompt, logos e OpenAI).
+  if (funcaoImagemId()) {
+    const tipoNome = (await listarTipos()).find((t) => t.$id === entrada.tipoId)?.nome;
+    const remoto = await gerarCapaViaFuncao({ titulo: entrada.titulo, descricao: entrada.descricao, tipo: tipoNome, data: entrada.data, horaInicio: entrada.horaInicio, numeroGeral: entrada.numeroGeral, enderecoId: entrada.enderecoId, enderecoLivre: entrada.enderecoLivre, ajustes, capaFileId: usarAtual ? evento.capa_file_id ?? undefined : undefined });
+    if (remoto) return remoto;
+  }
   const { chave, prompt, opcoes } = await getConfigIA();
   if (!chave) return { ok: false, erro: "Cadastre a chave da OpenAI em Configurações › Chaves API." };
 
