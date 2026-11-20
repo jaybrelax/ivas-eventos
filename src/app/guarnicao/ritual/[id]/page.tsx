@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { compararFirst } from "@/lib/ordenacao-first";
 import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import { History } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
@@ -34,7 +35,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
   if (evento.ritual_numero_geral && id !== String(evento.ritual_numero_geral)) redirect(urlRitualGuarnicao(evento));
 
   const end = evento.endereco_id ? enderecos.find((e) => e.$id === evento.endereco_id) : undefined;
-  const mestres = (evento.mestres ?? []).map((m) => equipe.find((p) => p.$id === m)).filter((m) => !!m);
+  const mestres = (evento.mestres ?? []).map((m) => equipe.find((p) => p.$id === m)).filter((m): m is NonNullable<typeof m> => !!m && !m.mock).sort(compararFirst);
   const coord = visao === "coordenador";
 
   // A reunião tem sua equipe escalada e uma lista de presença própria deste evento.
@@ -61,7 +62,7 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
   // Mestre só escala nos rituais em que é um dos mestres; nos outros vê a guarnição sem poder mudar nada
   const mestreDoRitual = visao === "mestre" && (evento.mestres ?? []).includes(u.id);
   const podeEscalar = coord || mestreDoRitual;
-  const g = await dadosGuarnicao(evento, { id: u.id, funcaoRitual: u.funcaoRitual, sexo: u.sexo }, podeEscalar);
+  const g = await dadosGuarnicao(evento, { id: u.id, funcaoRitual: u.funcaoRitual, sexo: u.sexo }, podeEscalar, true);
   // Coordenação: tudo o que mudou na guarnição deste ritual (quem entrou, saiu, foi retirado e por quem)
   const [historico, usuarios] = coord
     ? await Promise.all([listar<Candidatura>(TABLES.candidaturas, [Query.equal("evento_id", evento.$id)]), mapaUsuarios()])
@@ -121,13 +122,13 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
         )}
       </section>
 
-      {coord && historico.length > 0 && (
+      {coord && historico.some((c) => !usuarios.get(c.usuario_id)?.mock) && (
         <section className="mt-5 px-5">
           <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold text-stone-900"><History size={18} className="text-emerald-700" /> Histórico de alterações</h2>
           <ol className="space-y-0.5 rounded-3xl bg-white p-3 shadow-cartao ring-1 ring-stone-200/70">
-            {[...historico].sort((a, b) => b.$updatedAt.localeCompare(a.$updatedAt)).slice(0, 30).map((c) => {
+            {[...historico].filter((c) => !usuarios.get(c.usuario_id)?.mock).sort((a, b) => b.$updatedAt.localeCompare(a.$updatedAt)).slice(0, 30).map((c) => {
               const pessoa = usuarios.get(c.usuario_id)?.nome ?? "Guardião";
-              const por = c.alterado_por && c.alterado_por !== c.usuario_id ? usuarios.get(c.alterado_por)?.nome?.split(" ")[0] : null;
+              const por = c.alterado_por && c.alterado_por !== c.usuario_id && !usuarios.get(c.alterado_por)?.mock ? usuarios.get(c.alterado_por)?.nome?.split(" ")[0] : null;
               const acao = { confirmada: "confirmado(a)", espera: "na lista de espera", cancelada: "cancelou", removida: "retirado(a)", justificada: "justificou a ausência" }[c.situacao];
               const quando = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(c.$updatedAt)).replace(",", " às");
               return (

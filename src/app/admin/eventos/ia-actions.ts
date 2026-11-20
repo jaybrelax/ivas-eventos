@@ -2,14 +2,16 @@
 
 import { prepararImagem } from "@/lib/imagem-servidor";
 import { exigir } from "@/lib/auth";
-import { PODE } from "@/lib/config";
-import { listarTipos } from "@/lib/data";
-import { getConfigIA } from "@/lib/ia";
+import { PODE, TABLES } from "@/lib/config";
+import type { Endereco } from "@/lib/types";
+import { montarPromptIA, dataParaPrompt, horarioParaPrompt } from "@/lib/ia-prompt";
+import { listarTipos, listar } from "@/lib/data";
+import { getConfigIA, prepararLogosIA } from "@/lib/ia";
 
 export type ResultadoImagemIA = { ok: true; base64: string; tipo: string; nome: string } | { ok: false; erro: string };
 
 const PROMPT_PADRAO =
-  "Ilustração artística e elegante para divulgar um evento espiritual, em composição quadrada, com luz suave e cores harmoniosas. Sem texto, letras ou logotipos.";
+  "Ilustração artística e elegante para divulgar um evento espiritual, com luz suave e cores harmoniosas. Sem texto, letras ou logotipos.";
 
 /** Traduz os erros mais comuns da OpenAI para uma mensagem que o usuário entende. */
 function mensagemDeErro(status: number, texto: string) {
@@ -26,9 +28,9 @@ function mensagemDeErro(status: number, texto: string) {
  * ao título, tipo e descrição do evento. Devolve a imagem já reduzida e em WEBP; o formulário
  * a coloca como capa e ela é salva junto com o evento.
  */
-export async function gerarCapaComIA(entrada: { titulo: string; descricao: string; tipoId: string }): Promise<ResultadoImagemIA> {
+export async function gerarCapaComIA(entrada: { titulo: string; descricao: string; tipoId: string; data?: string; horaInicio?: string; numeroGeral?: string; enderecoId?: string; enderecoLivre?: string }): Promise<ResultadoImagemIA> {
   await exigir(PODE.editarEventos);
-  const { chave, prompt } = await getConfigIA();
+  const { chave, prompt, opcoes } = await getConfigIA();
   if (!chave) return { ok: false, erro: "Cadastre a chave da OpenAI em Configurações › Chaves API." };
 
   const titulo = String(entrada.titulo ?? "").trim().slice(0, 120);
@@ -41,14 +43,29 @@ export async function gerarCapaComIA(entrada: { titulo: string; descricao: strin
     tipo && `Tipo: ${tipo}`,
     descricao && `Descrição do evento:\n${descricao}`,
   ].filter(Boolean);
-  const pedido = `${prompt || PROMPT_PADRAO}\n\n${detalhes.join("\n")}`;
+  const end = entrada.enderecoId && entrada.enderecoId !== "__livre" ? (await listar<Endereco>(TABLES.enderecos)).find(e => e.$id === entrada.enderecoId) : null;
+  const local = end ? [end.apelido, end.endereco, end.cidade].filter(Boolean).join(" — ") : String(entrada.enderecoLivre ?? "").trim().slice(0, 500);
+  const numero = Number(entrada.numeroGeral);
+  let comando: string;
+  let images: { file_id: string }[] = [];
+  const valores = { art_direction: opcoes.art_direction, titulo_ritual: titulo, data_ritual: dataParaPrompt(String(entrada.data ?? "")), horario_ritual: horarioParaPrompt(String(entrada.horaInicio ?? "")), numero_ritual: Number.isSafeInteger(numero) && numero > 0 ? String(numero) : "", local_ritual: local };
+  try {
+    montarPromptIA(prompt, valores); // Valida os dados antes de sincronizar qualquer arquivo.
+    const logos = await prepararLogosIA(prompt, chave, opcoes.logo_openai_file_id);
+    comando = montarPromptIA(logos.prompt, valores);
+    images = logos.images;
+  } catch (e) { return { ok: false, erro: e instanceof Error ? e.message : "Não foi possível preparar os dados e as logos do ritual." }; }
+  const usaLogo = images.length > 0;
+  const pedido = (comando || PROMPT_PADRAO) + "\n\n" + detalhes.join("\n") + (usaLogo ? "\nCrie uma nova arte e incorpore a logo fornecida, preservando sua identidade visual e seguindo a posição descrita." : "");
+  const parametros = { model: opcoes.model, prompt: pedido, size: opcoes.size, quality: opcoes.quality, output_format: opcoes.output_format, background: opcoes.background, moderation: opcoes.moderation, n: 1 };
+  const corpoPedido = JSON.stringify({ ...parametros, ...(usaLogo ? { images } : {}) });
 
   let resp: Response;
   try {
-    resp = await fetch("https://api.openai.com/v1/images/generations", {
+    resp = await fetch(`https://api.openai.com/v1/images/${usaLogo ? "edits" : "generations"}`, {
       method: "POST",
       headers: { Authorization: `Bearer ${chave}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: "gpt-image-2.5-flare", prompt: pedido, size: "1024x1024", quality: "low", n: 1 }),
+      body: corpoPedido,
       signal: AbortSignal.timeout(150_000),
     });
   } catch (e) {
@@ -65,7 +82,7 @@ export async function gerarCapaComIA(entrada: { titulo: string; descricao: strin
   try {
     const b64 = (JSON.parse(corpo) as { data?: { b64_json?: string }[] }).data?.[0]?.b64_json;
     if (!b64) throw new Error("sem imagem na resposta");
-    const { bytes: otimizada } = await prepararImagem(Buffer.from(b64, "base64"), "capa-ia.png", "capa");
+    const { bytes: otimizada } = await prepararImagem(Buffer.from(b64, "base64"), `capa-ia.${opcoes.output_format}`, "capa");
     return { ok: true, base64: otimizada.toString("base64"), tipo: "image/webp", nome: "capa-ia.webp" };
   } catch (e) {
     console.error("OpenAI (resposta):", e instanceof Error ? e.message : e);

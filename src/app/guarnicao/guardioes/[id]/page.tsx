@@ -24,7 +24,7 @@ export default async function PerfilGuardiao({ params }: PageProps<"/guarnicao/g
   const { u, visao } = (await contextoGuarnicao(`/guarnicao/guardioes/${id}`))!;
   const { users } = createAdminClient();
   const pessoa = await users.get({ userId: id }).catch(() => null);
-  if (!pessoa) notFound();
+  if (!pessoa || (pessoa.labels?.includes("mock") && id !== u.id)) notFound();
   const p = prefsDe(pessoa.prefs);
   // Só perfis de guardiões ativos (nunca de participantes ou de outras contas)
   if (p.funcao_ritual !== "guardiao" || !pessoa.status) notFound();

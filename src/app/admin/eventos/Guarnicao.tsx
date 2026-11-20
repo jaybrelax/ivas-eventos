@@ -9,7 +9,7 @@ import { BotaoConfirmar } from "@/components/Confirmar";
 import { IconeGenero } from "@/components/genero";
 import { adicionarGuardiaoAction, cancelarAction, candidatarAction, removerGuardiaoAction } from "./guarnicao-actions";
 
-export type PessoaGuarnicao = { id: string; nome: string; foto: string | null };
+export type PessoaGuarnicao = { id: string; nome: string; foto: string | null; oculto?: boolean };
 
 export type DadosGuarnicao = {
   eventoId: string;

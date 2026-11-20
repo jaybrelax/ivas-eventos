@@ -52,7 +52,7 @@ const TABELAS = {
       // Tipografia da página pública
       v("fonte_publica_titulo", 60), v("fonte_publica_texto", 60),
       // Capas com IA (linha própria "ia" da tabela; nunca vai para o navegador)
-      v("openai_api_key", 255), t("prompt_imagem"),
+      v("openai_api_key", 255), t("prompt_imagem"), t("config_imagem"),
       // Contribuição sugerida aos participantes (um valor só, vale para todos os rituais)
       f("valor_contribuicao", { min: 0 }),
       // Estado (sigla) e cidade do Instituto: vêm já escolhidos nos formulários de cadastro

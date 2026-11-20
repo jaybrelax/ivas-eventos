@@ -453,3 +453,12 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
 @media (prefers-reduced-motion: reduce) {
   .btn-chama { animation: none; }
 }
+
+/* Destaque discreto para a inclusão de participantes. */
+@keyframes participante-borda {
+  0%, 100% { border-color: #a7d5c3; }
+  50% { border-color: #438c70; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .borda-participante { animation: participante-borda 3.6s ease-in-out infinite; }
+}

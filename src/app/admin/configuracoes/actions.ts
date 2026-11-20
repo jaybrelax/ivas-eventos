@@ -95,11 +95,24 @@ export async function salvarTipografia(_: Resultado, form: FormData): Promise<Re
 /** Chave da OpenAI e prompt das capas geradas por IA. Chave em branco mantém a atual. */
 export async function salvarChavesApi(_: Resultado, form: FormData): Promise<Resultado> {
   await exigir(["admin"]);
-  const { tablesDB } = createAdminClient();
+  const { tablesDB, storage } = createAdminClient();
   const nova = String(form.get("openai_api_key") ?? "").trim();
   if (nova && !/^sk-[A-Za-z0-9_-]{20,250}$/.test(nova)) return { erro: "Essa chave não parece válida. Ela começa com “sk-” e não pode ter espaços." };
   const atual = await getConfigIA();
-  const dados: Record<string, unknown> = { prompt_imagem: String(form.get("prompt_imagem") ?? "").trim().slice(0, 3000) || null };
+  const permitidos: Record<string, string[]> = {
+    model: ["gpt-image-2.5-flare", "gpt-image-2.5-sunburst", "gpt-image-2", "gpt-image-1.5", "gpt-image-1-mini", "chatgpt-image-latest"],
+    size: ["auto", "1024x1024", "1536x1024", "1024x1536"], quality: ["auto", "low", "medium", "high"],
+    output_format: ["png", "jpeg", "webp"], background: ["auto", "opaque", "transparent"], moderation: ["auto", "low"],
+  };
+  const opcoes = Object.fromEntries(Object.entries(permitidos).map(([k, valores]) => [k, valores.includes(String(form.get(k))) ? String(form.get(k)) : null]));
+  if (Object.values(opcoes).some((v) => v === null)) return { erro: "Confira as opções de geração de imagem." };
+  if (opcoes.background === "transparent" && opcoes.output_format === "jpeg") return { erro: "Fundo transparente exige PNG ou WebP." };
+  const direcao = String(form.get("art_direction") ?? "").trim();
+  const estrutura = String(form.get("prompt_imagem") ?? "").trim();
+  if (direcao.length > 6000 || estrutura.length > 12000) return { erro: "A estrutura aceita até 12.000 caracteres e a direção artística até 6.000." };
+  if (estrutura.includes("{{art_direction}}") && !direcao) return { erro: "Preencha Art direction para usar {{art_direction}} na estrutura do prompt." };
+  // Referências manuais antigas são preservadas para compatibilidade com prompts já salvos.
+  const dados: Record<string, unknown> = { prompt_imagem: estrutura || null, config_imagem: JSON.stringify({ ...opcoes, art_direction: direcao, logo_file_id: atual.opcoes.logo_file_id, logo_openai_file_id: atual.opcoes.logo_openai_file_id, logo_origem_file_id: atual.opcoes.logo_origem_file_id }) };
   if (nova) dados.openai_api_key = nova;
   else if (form.get("remover_chave") === "on") dados.openai_api_key = null;
   else if (atual.chave) dados.openai_api_key = atual.chave;
@@ -111,7 +124,7 @@ export async function salvarChavesApi(_: Resultado, form: FormData): Promise<Res
   }
   revalidatePath("/admin/configuracoes");
   revalidatePath("/admin/eventos", "layout");
-  return { ok: nova ? "Chave e prompt salvos." : "Prompt salvo." };
+  return { ok: "Configurações de IA salvas." };
 }
 
 /** Textos fixos que aparecem na página de todo ritual: informações gerais e contribuição. */

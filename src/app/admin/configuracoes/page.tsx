@@ -84,7 +84,7 @@ export default async function Configuracoes({ searchParams }: PageProps<"/admin/
           {atual === "telefones" && <ListaEditavel tabela="telefones" itens={limpo(d.telefones)} />}
           {atual === "redes" && <ListaEditavel tabela="redes" itens={limpo(d.redes)} />}
           {atual === "pix" && <ListaEditavel tabela="pix" itens={limpo(d.pix)} />}
-          {atual === "chaves" && ia && <ChavesApiForm chaveMascarada={mascararChave(ia.chave)} prompt={ia.prompt} />}
+          {atual === "chaves" && ia && <ChavesApiForm chaveMascarada={mascararChave(ia.chave)} prompt={ia.prompt} opcoes={ia.opcoes} />}
           {atual === "tipos" && (
             <div className="space-y-6">
               <TiposEvento itens={limpo(d.tipos) as unknown as TipoItem[]} contagem={contagem} />

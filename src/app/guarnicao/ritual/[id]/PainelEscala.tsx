@@ -10,7 +10,7 @@ import { ajustarVagas, colocarGuardiao, retirarGuardiao } from "../../actions";
 import { Folha } from "../../Folha";
 import { vibrar } from "../../nativo";
 
-type Pessoa = { id: string; nome: string; foto: string | null };
+type Pessoa = { id: string; nome: string; foto: string | null; oculto?: boolean };
 
 type Props = {
   eventoId: string;
@@ -95,9 +95,9 @@ export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, di
                 <li key={p.id} className="flex items-center gap-3 rounded-2xl px-1 py-1.5">
                   <Avatar nome={p.nome} foto={p.foto} tamanho={40} />
                   <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{p.nome}</span>
-                  <button type="button" onClick={() => setRetirando(p)} aria-label={`Retirar ${p.nome}`} className="grid h-9 w-9 place-items-center rounded-full text-stone-400 active:scale-90 active:bg-red-50 active:text-red-600">
+                  {!p.oculto && <button type="button" onClick={() => setRetirando(p)} aria-label={`Retirar ${p.nome}`} className="grid h-9 w-9 place-items-center rounded-full text-stone-400 active:scale-90 active:bg-red-50 active:text-red-600">
                     <X size={18} />
-                  </button>
+                  </button>}
                 </li>
               ))}
               {Array.from({ length: Math.max(0, vagas[s] - conf.length) }).map((_, i) => (
@@ -119,9 +119,9 @@ export function PainelEscala({ eventoId, vagas, abertas, confirmados, espera, di
                       <span className="w-5 text-center text-xs font-bold text-stone-400 tabular-nums">{i + 1}º</span>
                       <Avatar nome={p.nome} foto={p.foto} tamanho={32} />
                       <span className="min-w-0 flex-1 truncate text-sm text-stone-700">{p.nome}</span>
-                      <button type="button" onClick={() => setRetirando(p)} aria-label={`Retirar ${p.nome}`} className="grid h-8 w-8 place-items-center rounded-full text-stone-400 active:bg-red-50 active:text-red-600">
+                      {!p.oculto && <button type="button" onClick={() => setRetirando(p)} aria-label={`Retirar ${p.nome}`} className="grid h-8 w-8 place-items-center rounded-full text-stone-400 active:bg-red-50 active:text-red-600">
                         <X size={16} />
-                      </button>
+                      </button>}
                     </li>
                   ))}
                 </ul>

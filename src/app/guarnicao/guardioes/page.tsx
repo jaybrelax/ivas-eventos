@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { compararFirst } from "@/lib/ordenacao-first";
 import { UsersRound } from "lucide-react";
+import { mapaUsuarios } from "@/lib/usuarios";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { diasDesde, rankingGuarnicao } from "@/lib/guarnicao-estatisticas";
 import { CabecalhoApp, Vazio } from "../ui";
@@ -12,7 +14,8 @@ export default async function GuardioesGuarnicao({ searchParams }: PageProps<"/g
   const { u, visao } = (await contextoGuarnicao("/guarnicao/guardioes"))!;
   const g = (await searchParams).genero;
   const filtro = g === "masculino" || g === "feminino" ? g : null;
-  const todos = [...(await rankingGuarnicao())].sort((a, b) => a.nome.localeCompare(b.nome));
+  const [ranking, usuarios] = await Promise.all([rankingGuarnicao(), mapaUsuarios()]);
+  const todos = [...ranking].sort((a, b) => compararFirst(usuarios.get(a.id), usuarios.get(b.id)) || a.nome.localeCompare(b.nome, "pt-BR"));
   const lista = filtro ? todos.filter((p) => p.sexo === filtro) : todos;
   const conta = (s: "masculino" | "feminino") => todos.filter((p) => p.sexo === s).length;
 

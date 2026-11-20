@@ -39,7 +39,7 @@ export type ChavePix = { $id: string; tipo: TipoPix; chave: string; favorecido: 
 export type Funcao = "mestre" | "guardiao";
 export type Sexo = "masculino" | "feminino";
 /** Usuário do painel que pode ser escalado nos eventos como mestre ou guardião. */
-export type Pessoa = { $id: string; nome: string; funcao: Funcao; sexo: Sexo | null; foto: string | null };
+export type Pessoa = { $id: string; nome: string; funcao: Funcao; sexo: Sexo | null; foto: string | null; first?: boolean; mock?: boolean };
 
 /** `icone`: nome de um ícone da biblioteca Lucide (ex.: "flame"); `descricao`: texto que acompanha os eventos desse tipo. */
 export type TipoEvento = {
