@@ -23,9 +23,9 @@ type ResultadoEdicao = { ok: true; destino: string } | { ok: false; erro: string
 
 async function editor(eventoId: string) {
   const u = await getUsuario();
-  if (!podeEditarRitual(u)) throw new Error("Somente coordenadores e mestres podem editar este evento.");
   const [evento, tipos] = await Promise.all([getEvento(eventoId), listarTipos()]);
   if (!evento || !temAppGuarnicao(tipos.find(t => t.$id === evento.tipo_id))) throw new Error("Evento não encontrado no app Guardião.");
+  if (!podeEditarRitual(u, evento)) throw new Error("Somente admins, coordenadores e mestres deste ritual podem editar o evento.");
   return { u: u!, evento, tipos };
 }
 

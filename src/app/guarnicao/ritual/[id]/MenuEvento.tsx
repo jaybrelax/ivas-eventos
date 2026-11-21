@@ -3,14 +3,15 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { EllipsisVertical, SquarePen, ImagePlus, ChevronDown, LoaderCircle, Sparkles, Upload, X } from "lucide-react";
+import { EllipsisVertical, SquarePen, ImagePlus, Link2, ChevronDown, LoaderCircle, Sparkles, Upload, X } from "lucide-react";
 import { useImagem } from "@/components/useImagem";
 import { toast } from "@/components/Toaster";
 import { IconeTipo } from "@/components/IconeTipo";
 import type { Endereco, Evento, TipoEvento } from "@/lib/types";
 import { gerarDescricaoRitual, gerarImagemEvento, salvarImagemEvento, salvarInformacoesRitual } from "./editar-actions";
 
-type Props = { evento: Evento; tipos: TipoEvento[]; enderecos: Endereco[] };
+type DadosEditor = { evento: Evento; tipos: TipoEvento[]; enderecos: Endereco[] };
+type Props = { editor?: DadosEditor; linkPublico: string };
 const botao = "inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-50";
 
 /** O dialog nativo mantém o foco, bloqueia a página e permite navegação por teclado. */
@@ -40,7 +41,7 @@ function Erro({ texto }: { texto: string | null }) {
   return texto ? <p role="alert" className="rounded-2xl bg-red-50 p-4 text-sm text-red-700">{texto}</p> : null;
 }
 
-export function MenuEvento({ evento, tipos, enderecos }: Props) {
+export function MenuEvento({ editor, linkPublico }: Props) {
   const [modal, setModal] = useState<"informacoes" | "imagem" | null>(null);
   const menu = useRef<HTMLDetailsElement>(null);
   const router = useRouter();
@@ -53,20 +54,38 @@ export function MenuEvento({ evento, tipos, enderecos }: Props) {
   const abrir = (qual: "informacoes" | "imagem") => { if (menu.current) menu.current.open = false; setModal(qual); };
   const fechar = () => { setModal(null); menu.current?.querySelector("summary")?.focus(); };
   const salvo = (destino: string) => { fechar(); toast("Evento atualizado.", "ok"); router.replace(destino, { scroll: false }); router.refresh(); };
+  async function copiarLink() {
+    if (menu.current) menu.current.open = false;
+    let copiado = false;
+    try { await navigator.clipboard.writeText(linkPublico); copiado = true; } catch { /* Usa o método antigo abaixo. */ }
+    if (!copiado) {
+      const campo = document.createElement("textarea");
+      campo.value = linkPublico;
+      campo.style.position = "fixed";
+      campo.style.opacity = "0";
+      document.body.appendChild(campo);
+      try { campo.select(); copiado = document.execCommand("copy"); } catch { /* O navegador não permitiu copiar. */ }
+      campo.remove();
+    }
+    toast(copiado ? "Link público copiado." : "Não foi possível copiar o link. Tente novamente.", copiado ? "ok" : "erro");
+  }
   return <>
     <details ref={menu} className="relative">
       <summary aria-label="Opções do evento" className="grid h-10 w-10 cursor-pointer list-none place-items-center rounded-full bg-black/35 text-white ring-1 ring-white/30 backdrop-blur-md [&::-webkit-details-marker]:hidden"><EllipsisVertical size={22} /></summary>
       <div className="absolute right-0 top-12 z-30 w-60 overflow-hidden rounded-2xl bg-white p-1.5 text-stone-900 shadow-xl ring-1 ring-stone-200">
-        <button type="button" onClick={() => abrir("informacoes")} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm hover:bg-stone-100"><SquarePen size={18} className="text-emerald-700" />Editar informações</button>
-        <button type="button" onClick={() => abrir("imagem")} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm hover:bg-stone-100"><ImagePlus size={18} className="text-emerald-700" />{evento.capa_file_id ? "Editar imagem" : "Criar imagem"}</button>
+        {editor && <>
+          <button type="button" onClick={() => abrir("informacoes")} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm hover:bg-stone-100"><SquarePen size={18} className="text-emerald-700" />Editar informações</button>
+          <button type="button" onClick={() => abrir("imagem")} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm hover:bg-stone-100"><ImagePlus size={18} className="text-emerald-700" />{editor.evento.capa_file_id ? "Editar imagem" : "Criar imagem"}</button>
+        </>}
+        <button type="button" onClick={() => void copiarLink()} className="flex min-h-12 w-full items-center gap-3 rounded-xl px-3 text-left text-sm hover:bg-stone-100"><Link2 size={18} className="text-emerald-700" />Copiar link</button>
       </div>
     </details>
-    {modal === "informacoes" && <EditorInformacoes evento={evento} tipos={tipos} enderecos={enderecos} aoFechar={fechar} aoSalvar={salvo} />}
-    {modal === "imagem" && <EditorImagem evento={evento} aoFechar={fechar} aoSalvar={salvo} />}
+    {editor && modal === "informacoes" && <EditorInformacoes {...editor} aoFechar={fechar} aoSalvar={salvo} />}
+    {editor && modal === "imagem" && <EditorImagem evento={editor.evento} aoFechar={fechar} aoSalvar={salvo} />}
   </>;
 }
 
-function EditorInformacoes({ evento, tipos, enderecos, aoFechar, aoSalvar }: Props & { aoFechar: () => void; aoSalvar: (destino: string) => void }) {
+function EditorInformacoes({ evento, tipos, enderecos, aoFechar, aoSalvar }: DadosEditor & { aoFechar: () => void; aoSalvar: (destino: string) => void }) {
   const [original] = useState(evento);
   const [ocupado, setOcupado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);

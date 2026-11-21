@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { compararFirst } from "@/lib/ordenacao-first";
-import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
+import { urlPublicaEvento, urlRitualGuarnicao } from "@/lib/guarnicao-links";
+import { EVENTOS_URL } from "@/lib/site";
 import { History } from "lucide-react";
 import { contextoGuarnicao } from "@/lib/guarnicao-app";
 import { getDadosInstituto, getEventoPorIdOuNumero, listar } from "@/lib/data";
@@ -40,7 +41,8 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
   const end = evento.endereco_id ? enderecos.find((e) => e.$id === evento.endereco_id) : undefined;
   const mestres = (evento.mestres ?? []).map((m) => equipe.find((p) => p.$id === m)).filter((m): m is NonNullable<typeof m> => !!m && !m.mock).sort(compararFirst);
   const coord = visao === "coordenador";
-  const menu = podeEditarRitual(u) ? <MenuEvento evento={evento} tipos={tipos.filter(t => temAppGuarnicao(t) && (t.ativo || t.$id === evento.tipo_id))} enderecos={enderecos} /> : undefined;
+  const editor = podeEditarRitual(u, evento) ? { evento, tipos: tipos.filter(t => temAppGuarnicao(t) && (t.ativo || t.$id === evento.tipo_id)), enderecos } : undefined;
+  const menu = <MenuEvento editor={editor} linkPublico={`${EVENTOS_URL}${urlPublicaEvento(evento, tipo)}`} />;
 
   // A reunião tem sua equipe escalada e uma lista de presença própria deste evento.
   if (ehReuniao(tipo)) {
