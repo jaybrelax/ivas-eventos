@@ -185,7 +185,44 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
           </div>
 
           {/* Quando, onde e numeração do ritual */}
-          <div className="hidden flex-col items-start gap-2.5 px-5 py-2.5 md:flex lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+          {/* Tablet: 3 cards (data, ritual, do ano), endereço e mestres; sem guardiões */}
+          <div className="hidden space-y-3 px-4 py-3 md:block lg:hidden">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl bg-white/70 px-2 py-2 text-center shadow-sm ring-1 ring-white/70">
+                <p className="text-[9px] font-semibold tracking-wider text-mata-600 uppercase">{data.diaSemana.split("-")[0]}</p>
+                <p className="mt-0.5 text-xl leading-none font-bold text-stone-900 tabular-nums">{data.dia} <span className="text-sm font-semibold text-mata-700 uppercase">{data.mesCurto}</span></p>
+                <p className="mt-1 flex items-center justify-center gap-1 text-[11px] font-medium text-stone-600 tabular-nums"><Clock size={11} aria-hidden /> {evento.hora_inicio}</p>
+              </div>
+              <div className="grid place-content-center rounded-xl bg-gradient-to-br from-mata-50 to-white px-2 py-2 text-center shadow-sm ring-1 ring-mata-200/80">
+                <p className="text-[9px] font-semibold tracking-wider text-mata-600 uppercase">Ritual</p>
+                <p className="mt-0.5 font-mono text-xl leading-none font-bold text-mata-800 tabular-nums">{evento.ritual_numero_geral ? `Nº ${evento.ritual_numero_geral}` : "–"}</p>
+              </div>
+              <div className="grid place-content-center rounded-xl bg-gradient-to-br from-mata-50 to-white px-2 py-2 text-center shadow-sm ring-1 ring-mata-200/80">
+                <p className="text-[9px] font-semibold tracking-wider text-mata-600 uppercase">Do ano</p>
+                <p className="mt-0.5 font-mono text-xl leading-none font-bold text-mata-800 tabular-nums">{evento.ritual_numero_ano ? `${evento.ritual_numero_ano}/${evento.ritual_ano}` : "–"}</p>
+              </div>
+            </div>
+            <p className="flex min-w-0 items-center gap-2 text-sm text-stone-800">
+              <MapPin size={15} className="shrink-0 text-mata-600" aria-hidden />
+              <span className="truncate font-medium" title={end?.endereco}>{end ? end.apelido : (evento.endereco_livre || "Local a definir")}</span>
+              {end?.link_maps && (
+                <a href={end.link_maps} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-mata-700 hover:underline">Mapa <ExternalLink size={11} aria-hidden /></a>
+              )}
+            </p>
+            {temEquipe && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wider text-mata-700 uppercase"><Crown size={13} aria-hidden /> Mestres</span>
+                {mestres.length ? mestres.map((m) => (
+                  <span key={m.id} className="flex items-center gap-1.5 text-sm font-medium text-stone-800">
+                    <Avatar nome={m.nome} foto={m.foto} tamanho={28} className="ring-2 ring-mata-300" /> {m.nome.split(" ")[0]}
+                  </span>
+                )) : <span className="text-xs text-stone-400">Ninguém escalado.</span>}
+                {gerenciar && <GerenciarMestres eventoId={evento.$id} equipe={equipe.filter((p) => !p.mock)} inicial={evento.mestres ?? []} />}
+              </div>
+            )}
+          </div>
+
+          <div className="hidden flex-col items-start gap-2.5 px-5 py-2.5 lg:flex lg:flex-row lg:items-center lg:justify-between lg:gap-4">
             <ul className="flex min-w-0 flex-col gap-1 text-sm">
               <li className="flex items-center gap-4">
                 <span className="flex items-center gap-2 text-stone-800">
@@ -227,7 +264,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
 
           {/* Equipe */}
           {temEquipe && (
-            <div className="hidden min-h-0 flex-1 flex-row flex-wrap md:flex md:max-lg:py-3 content-start items-start gap-x-4 gap-y-2 md:gap-x-0 overflow-hidden px-4 pt-2.5 pb-3 md:px-5 md:pt-2.5 md:pb-2">
+            <div className="hidden min-h-0 flex-1 flex-row flex-wrap lg:flex content-start items-start gap-x-4 gap-y-2 md:gap-x-0 overflow-hidden px-4 pt-2.5 pb-3 md:px-5 md:pt-2.5 md:pb-2">
               <GrupoCompacto
                 titulo="Mestres" Icone={Crown} cor="text-mata-700" anel="ring-mata-300" pessoas={mestres}
                 acao={gerenciar ? <GerenciarMestres eventoId={evento.$id} equipe={equipe.filter((p) => !p.mock)} inicial={evento.mestres ?? []} /> : undefined}
