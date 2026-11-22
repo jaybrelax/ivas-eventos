@@ -3,7 +3,7 @@
 import { useContext, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Crown, MoreVertical, Pencil, Shield, SlidersHorizontal, X } from "lucide-react";
+import { ClipboardCheck, Crown, MoreVertical, Pencil, Shield, SlidersHorizontal, X } from "lucide-react";
 import { AcoesListaContexto } from "../Participantes";
 import type { Pessoa } from "@/lib/types";
 import { Aviso, Carregando } from "@/components/ui";
@@ -137,8 +137,8 @@ export function MenuEquipeMobile({ mestres, guarnicao }: {
     return () => { document.removeEventListener("pointerdown", fora); document.removeEventListener("keydown", tecla); };
   }, [menu]);
 
-  const { abrirFiltro } = useContext(AcoesListaContexto);
-  if (!mestres && !guarnicao && !abrirFiltro) return null;
+  const { abrirFiltro, chamada } = useContext(AcoesListaContexto);
+  if (!mestres && !guarnicao && !abrirFiltro && !chamada) return null;
   const item = "flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium text-stone-700 hover:bg-stone-50 active:bg-stone-100";
 
   return (
@@ -151,6 +151,7 @@ export function MenuEquipeMobile({ mestres, guarnicao }: {
         <div role="menu" className="absolute top-full right-0 z-30 mt-1 w-56 rounded-xl border border-stone-200 bg-white p-1.5 shadow-elevado">
           {mestres && <button role="menuitem" type="button" className={item} onClick={() => { setMenu(false); setEditMestres(true); }}><Crown size={16} className="text-mata-600" aria-hidden /> Editar mestres</button>}
           {guarnicao && <button role="menuitem" type="button" className={item} onClick={() => { setMenu(false); setEditGuardioes(true); }}><Shield size={16} className="text-sky-600" aria-hidden /> Editar guardiões</button>}
+          {chamada && <button role="menuitem" type="button" className={item} onClick={() => { setMenu(false); chamada.alternar(); }}><ClipboardCheck size={16} className="text-emerald-600" aria-hidden /> {chamada.ativa ? "Encerrar chamada" : "Ativar chamada"}</button>}
           {abrirFiltro && <button role="menuitem" type="button" className={item} onClick={() => { setMenu(false); abrirFiltro(); }}><SlidersHorizontal size={16} className="text-stone-500" aria-hidden /> Filtrar</button>}
         </div>
       )}

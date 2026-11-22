@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, TriangleAlert } from "lucide-react";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, getEvento } from "@/lib/data";
 import { urlPublicaEvento } from "@/lib/links";
+import { podeGerenciarEvento } from "@/lib/gestao-evento";
 import { listarEquipe } from "@/lib/usuarios";
 import { getConfigIA } from "@/lib/ia";
 import { formatarIdRitual } from "@/lib/format";
@@ -23,10 +24,11 @@ export const maxDuration = 180;
  * página de visualização (aba Gestão); aqui ficam só os campos do evento.
  */
 export default async function EditarEvento({ params }: PageProps<"/admin/eventos/[id]/editar">) {
-  const u = await exigir(PODE.editarEventos);
+  const u = await exigir();
   const { id } = await params;
   const [evento, { tipos, tags, enderecos, instituto }, equipe, ia] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe(), getConfigIA()]);
   if (!evento) notFound();
+  if (!podeGerenciarEvento(u, evento)) redirect(`/admin/eventos/${id}?erro=sem-permissao`);
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const caminhoPublico = urlPublicaEvento(evento, tipo);
   const idRitual = formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano);

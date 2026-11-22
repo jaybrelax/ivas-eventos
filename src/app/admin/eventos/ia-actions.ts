@@ -1,7 +1,8 @@
 "use server";
 
 import { prepararImagem } from "@/lib/imagem-servidor";
-import { exigir } from "@/lib/auth";
+import { exigir, pode } from "@/lib/auth";
+import { exigirGestaoDoEvento } from "@/lib/gestao-evento";
 import { PODE, TABLES } from "@/lib/config";
 import type { Endereco } from "@/lib/types";
 import { montarPromptIA, dataParaPrompt, horarioParaPrompt } from "@/lib/ia-prompt";
@@ -29,8 +30,13 @@ function mensagemDeErro(status: number, texto: string) {
  * ao título, tipo e descrição do evento. Devolve a imagem já reduzida e em WEBP; o formulário
  * a coloca como capa e ela é salva junto com o evento.
  */
-export async function gerarCapaComIA(entrada: { titulo: string; descricao: string; tipoId: string; data?: string; horaInicio?: string; numeroGeral?: string; enderecoId?: string; enderecoLivre?: string }): Promise<ResultadoImagemIA> {
-  await exigir(PODE.editarEventos);
+export async function gerarCapaComIA(entrada: { eventoId?: string; titulo: string; descricao: string; tipoId: string; data?: string; horaInicio?: string; numeroGeral?: string; enderecoId?: string; enderecoLivre?: string }): Promise<ResultadoImagemIA> {
+  // Coordenação e admin; o mestre só na edição do evento em que está escalado
+  const u = await exigir();
+  if (!pode(u, PODE.editarEventos)) {
+    const g = entrada.eventoId ? await exigirGestaoDoEvento(entrada.eventoId) : null;
+    if (!g || g.erro !== undefined) return { ok: false, erro: "Você não tem permissão para gerar a capa." };
+  }
   // Com a Appwrite Function compartilhada configurada, ela faz todo o trabalho (chave, prompt, logos e OpenAI).
   if (funcaoImagemId()) {
     const tipoNome = (await listarTipos()).find((t) => t.$id === entrada.tipoId)?.nome;

@@ -140,7 +140,7 @@ export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar
     setOkIA(false);
     setGerando(true);
     try {
-      const r = await gerarCapaComIA({ titulo: valor("titulo"), descricao: valor("descricao"), tipoId, data: valor("data"), horaInicio: valor("hora_inicio"), numeroGeral: valor("ritual_numero_geral") || String(evento?.ritual_numero_geral ?? ""), enderecoId: endSel, enderecoLivre: valor("endereco_livre") });
+      const r = await gerarCapaComIA({ eventoId: evento?.$id, titulo: valor("titulo"), descricao: valor("descricao"), tipoId, data: valor("data"), horaInicio: valor("hora_inicio"), numeroGeral: valor("ritual_numero_geral") || String(evento?.ritual_numero_geral ?? ""), enderecoId: endSel, enderecoLivre: valor("endereco_livre") });
       if (!r.ok) {
         setErroIA(r.erro);
         return;

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { exigir } from "@/lib/auth";
-import { PODE } from "@/lib/config";
+import { exigirGestaoDoEvento } from "@/lib/gestao-evento";
 import { getEvento, listarTipos } from "@/lib/data";
 import { adicionarGuardiao, cancelar, candidatar, removerGuardiao, type Resultado } from "@/lib/guarnicao";
 import { mapaUsuarios } from "@/lib/usuarios";
@@ -43,11 +43,12 @@ export async function cancelarAction(eventoId: string): Promise<Resultado> {
   return r;
 }
 
-/** Coordenador inclui um guardião no evento. */
+/** Coordenação (ou o mestre do evento) inclui um guardião. */
 export async function adicionarGuardiaoAction(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const u = await exigir(PODE.editarEventos);
-  const [{ evento }, usuarios] = await Promise.all([contexto(eventoId), mapaUsuarios()]);
-  if (!evento) return { erro: "Evento não encontrado." };
+  const g = await exigirGestaoDoEvento(eventoId);
+  if (g.erro !== undefined) return { erro: g.erro };
+  const { u, evento } = g;
+  const usuarios = await mapaUsuarios();
   const alvo = usuarios.get(usuarioId);
   if (!alvo || alvo.funcao !== "guardiao") return { erro: "Escolha uma pessoa com a função Guardião." };
   const r = await adicionarGuardiao(evento, { id: alvo.id, sexo: alvo.sexo }, u.id);
@@ -55,11 +56,11 @@ export async function adicionarGuardiaoAction(eventoId: string, usuarioId: strin
   return r;
 }
 
-/** Coordenador retira um guardião do evento. */
+/** Coordenação (ou o mestre do evento) retira um guardião. */
 export async function removerGuardiaoAction(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const u = await exigir(PODE.editarEventos);
-  const { evento } = await contexto(eventoId);
-  if (!evento) return { erro: "Evento não encontrado." };
+  const g = await exigirGestaoDoEvento(eventoId);
+  if (g.erro !== undefined) return { erro: g.erro };
+  const { u, evento } = g;
   const r = await removerGuardiao(evento, usuarioId, u.id);
   revalidar(eventoId);
   return r;

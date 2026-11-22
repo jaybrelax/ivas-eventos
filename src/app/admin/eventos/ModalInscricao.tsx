@@ -1,21 +1,31 @@
 "use client";
 
-import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { createPortal, flushSync } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  CalendarClock, CalendarX2, CheckCircle2, ChevronDown, ExternalLink, IdCard, FileImage, Hourglass, Lock, Mail, MapPin,
-  MessageCircle, Receipt, ShieldCheck, Undo2, UserRound, X, ZoomIn,
+  Camera, CalendarClock, CalendarX2, Check, CheckCircle2, ChevronDown, ExternalLink, IdCard, Pencil, FileImage, Hourglass, Lock, Mail, MapPin,
+  ImagePlus, GlassWater, MessageCircle, Receipt, ShieldCheck, Undo2, UserRound, X, ZoomIn,
 } from "lucide-react";
 import type { SituacaoInscricao, SituacaoPagamento } from "@/lib/types";
 import { urlImagem } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
 import { Carregando } from "@/components/ui";
-import { confirmarPagamentoAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction } from "./participantes-actions";
+import { anexarComprovanteAction, salvarDosesAction, confirmarPagamentoAction, informarDadosAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction } from "./participantes-actions";
+import { InputTelefone } from "@/components/InputTelefone";
+import { useImagem } from "@/components/useImagem";
+import { Dosagem } from "./Dosagem";
+import type { Dose } from "@/lib/doses";
+import { UFS } from "@/lib/perfil-extra";
+import { mascararCpf } from "@/lib/cpf";
 import type { DadosParticipantes, ItemParticipanteInscrito } from "./Participantes";
 
 type Resultado = { ok?: string; erro?: string };
+
+/** Campo de edição que parece o próprio texto exibido: sem borda nem fundo, só o cursor. */
+const CAMPO_INLINE = "block w-full min-w-0 rounded-sm border-0 bg-transparent p-0 text-sm font-medium text-stone-800 caret-mata-600 outline-none placeholder:font-normal placeholder:text-stone-400 focus:ring-0 focus-visible:outline-none!";
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const quando = (iso: string) =>
@@ -25,12 +35,12 @@ const quando = (iso: string) =>
 const dia = (iso: string) => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(iso));
 
 /** Situação da contribuição como a coordenação vê (inclui o que o próprio participante avisou). */
-const SITUACAO_CONTRIBUICAO: Record<SituacaoPagamento, { rotulo: string; detalhe: string; cor: string; Icone: typeof CheckCircle2 }> = {
-  pendente: { rotulo: "Pendente", detalhe: "O participante ainda não avisou a contribuição.", cor: "bg-stone-100 text-stone-700 ring-stone-200", Icone: Hourglass },
-  informado: { rotulo: "Informada", detalhe: "O participante avisou que contribuiu. Confira o comprovante e confirme.", cor: "bg-amber-50 text-amber-800 ring-amber-200", Icone: Receipt },
-  na_hora: { rotulo: "Na hora", detalhe: "O participante vai contribuir no dia do ritual.", cor: "bg-ouro-100 text-ouro-700 ring-ouro-200", Icone: CalendarClock },
-  pago: { rotulo: "Confirmada", detalhe: "Contribuição confirmada pela coordenação.", cor: "bg-emerald-50 text-emerald-800 ring-emerald-200", Icone: CheckCircle2 },
-  isento: { rotulo: "Isento", detalhe: "Participação isenta de contribuição.", cor: "bg-sky-50 text-sky-800 ring-sky-200", Icone: ShieldCheck },
+const SITUACAO_CONTRIBUICAO: Record<SituacaoPagamento, { rotulo: string; detalhe: string; cor: string; /** bloco de situação: fundo, faixa lateral e ícone */ bloco: string; Icone: typeof CheckCircle2 }> = {
+  pendente: { rotulo: "Pendente", detalhe: "O participante ainda não avisou a contribuição.", cor: "bg-yellow-50 text-yellow-800 ring-yellow-200", bloco: "bg-yellow-50/80 border-yellow-400 text-yellow-900 [&_svg]:text-yellow-600", Icone: Hourglass },
+  informado: { rotulo: "Informada", detalhe: "O participante avisou que contribuiu. Confira o comprovante e confirme.", cor: "bg-amber-50 text-amber-800 ring-amber-200", bloco: "bg-amber-50/80 border-amber-500 text-amber-900 [&_svg]:text-amber-600", Icone: Receipt },
+  na_hora: { rotulo: "Na hora", detalhe: "O participante vai contribuir no dia do ritual.", cor: "bg-ouro-100 text-ouro-700 ring-ouro-200", bloco: "bg-ouro-100/60 border-ouro-500 text-ouro-700 [&_svg]:text-ouro-600", Icone: CalendarClock },
+  pago: { rotulo: "Confirmada", detalhe: "Contribuição confirmada pela coordenação.", cor: "bg-emerald-50 text-emerald-800 ring-emerald-200", bloco: "bg-emerald-50 border-emerald-500 text-emerald-900 [&_svg]:text-emerald-600", Icone: CheckCircle2 },
+  isento: { rotulo: "Isento", detalhe: "Participação isenta de contribuição.", cor: "bg-sky-50 text-sky-800 ring-sky-200", bloco: "bg-sky-50 border-sky-400 text-sky-900 [&_svg]:text-sky-600", Icone: ShieldCheck },
 };
 
 /** Evento da inscrição, quando o modal é aberto a partir da ficha do participante. */
@@ -49,7 +59,7 @@ export function ModalInscricao({
   situacaoInscricao?: SituacaoInscricao;
   /** Posição na lista de espera. */
   posicaoEspera?: number;
-  dados: Pick<DadosParticipantes, "eventoId" | "temContribuicao" | "valorContribuicao" | "gerenciar">;
+  dados: Pick<DadosParticipantes, "eventoId" | "temContribuicao" | "valorContribuicao" | "gerenciar" | "linkPerfil" | "localPadrao">;
   /** Com o evento, o cabeçalho mostra o evento em vez da pessoa (ficha do participante). */
   evento?: EventoDoModal;
   /** Eventos já realizados não têm cancelamento. */
@@ -64,6 +74,12 @@ export function ModalInscricao({
   const [confirmando, setConfirmando] = useState(false);
   const [pedirValor, setPedirValor] = useState(false);
   const [verDados, setVerDados] = useState(false);
+  // Doses como a tela mostra (atualizadas na hora pelo card Dosagem), para a linha do tempo
+  const [dosesTela, setDosesTela] = useState<Dose[]>(p.doses ?? []);
+  const [editando, setEditando] = useState(false);
+  // "Informar dados": abre a lista (se estiver só nos ícones) e deixa os textos editáveis ali mesmo
+  const informar = () => { setMsg(undefined); setVerDados(true); setEditando(true); };
+  const router = useRouter();
   // Contribuição já resolvida (confirmada ou isenta) começa recolhida; pendente/informada começa aberta
   const [contribAberta, setContribAberta] = useState(p.pagamento !== "pago" && p.pagamento !== "isento");
   // Os ícones "viajam" da linha para a coluna: View Transitions quando o navegador suporta
@@ -78,7 +94,7 @@ export function ModalInscricao({
 
   useEffect(() => {
     // Esc fecha primeiro o que estiver por cima: comprovante ampliado, confirmação e, por fim, o modal
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && (ampliado ? setAmpliado(false) : confirmando ? setConfirmando(false) : pedirValor ? setPedirValor(false) : fechar());
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && (ampliado ? setAmpliado(false) : confirmando ? setConfirmando(false) : pedirValor ? setPedirValor(false) : editando ? setEditando(false) : fechar());
     document.addEventListener("keydown", esc);
     const rolagem = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -86,7 +102,7 @@ export function ModalInscricao({
       document.removeEventListener("keydown", esc);
       document.body.style.overflow = rolagem;
     };
-  }, [fechar, ampliado, confirmando, pedirValor]);
+  }, [fechar, ampliado, confirmando, pedirValor, editando]);
 
   const c = p.contato;
   const situacao = SITUACAO_CONTRIBUICAO[p.pagamento];
@@ -99,6 +115,19 @@ export function ModalInscricao({
     { chave: "cidade", ordem: 2, Icone: MapPin, rotulo: "Cidade", valor: local || null, href: null, externo: false, vazio: "Não informada" },
     { chave: "cpf", ordem: 3, Icone: IdCard, rotulo: "CPF", valor: c.cpf, href: null, externo: false, vazio: "Não informado" },
   ] : [];
+  // Linha do tempo: doses, contribuição, inscrição e cadastro, do mais recente ao mais antigo
+  const linhaDoTempo = ([
+    ...dosesTela.filter((d) => d.ml > 0 && d.em).map((d) => ({
+      chave: `dose-${d.n}`, em: d.em!, Icone: GlassWater, cor: "text-white", fundo: "linear-gradient(180deg, #8a4b26 0%, #2a1308 100%)",
+      titulo: `${d.n}ª dose`, detalhe: `${d.ml} ml`,
+    })),
+    ...(pago && p.pagoEm ? [{ chave: "pago", em: p.pagoEm, Icone: CheckCircle2, cor: "bg-emerald-100 text-emerald-700", fundo: undefined, titulo: "Contribuição confirmada", detalhe: p.valor != null ? formatoReal(p.valor) : undefined }] : []),
+    ...(p.informadoEm ? [{ chave: "informado", em: p.informadoEm, Icone: Receipt, cor: "bg-amber-100 text-amber-700", fundo: undefined, titulo: "Contribuição informada", detalhe: undefined }] : []),
+    { chave: "inscricao", em: p.inscritoEm, Icone: CalendarClock, cor: "bg-mata-100 text-mata-700", fundo: undefined, titulo: "Inscrição", detalhe: undefined },
+    ...(c ? [{ chave: "cadastro", em: c.desde, Icone: UserRound, cor: "bg-stone-100 text-stone-600", fundo: undefined, titulo: "Cadastro", detalhe: undefined }] : []),
+  ] as { chave: string; em: string; Icone: typeof Mail; cor: string; fundo?: string; titulo: string; detalhe?: string }[])
+    .sort((a, b) => Date.parse(b.em) - Date.parse(a.em))
+    .map((x) => ({ ...x, quando: x.chave === "cadastro" ? dia(x.em) : quando(x.em) }));
   const comprovante = p.comprovante ? `/api/comprovante/${p.comprovante}` : null;
   const inscricao = situacaoInscricao ?? (posicaoEspera ? "espera" : "confirmada");
   const chipInscricao =
@@ -140,13 +169,22 @@ export function ModalInscricao({
             </Link>
           ) : (
             <div className="flex items-center gap-3.5 pr-8">
-              <Link href={`/admin/participantes/${p.id}`} title="Ver perfil completo" aria-label={`Ver perfil completo de ${p.nome}`} className="shrink-0 rounded-full ring-offset-2 transition hover:ring-2 hover:ring-mata-300 focus-visible:ring-2 focus-visible:ring-mata-500">
+              {dados.linkPerfil !== false ? (
+                <Link href={`/admin/participantes/${p.id}`} title="Ver perfil completo" aria-label={`Ver perfil completo de ${p.nome}`} className="shrink-0 rounded-full ring-offset-2 transition hover:ring-2 hover:ring-mata-300 focus-visible:ring-2 focus-visible:ring-mata-500">
+                  <Avatar nome={p.nome} foto={p.foto} tamanho={56} />
+                </Link>
+              ) : (
                 <Avatar nome={p.nome} foto={p.foto} tamanho={56} />
-              </Link>
+              )}
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold tracking-wider text-mata-600 uppercase">Inscrição do participante</p>
                 <h3 className="flex min-w-0 items-center gap-1.5 text-lg font-semibold text-stone-900">
-                  <span className="truncate">{p.nome}</span>
+                  {editando ? (
+                    <input name="nome" form={`dados-${p.id}`} defaultValue={p.nome} aria-label="Nome do participante" maxLength={128}
+                      className="min-w-0 flex-1 rounded-md border-0 bg-mata-50/70 px-1 -mx-1 text-lg font-semibold text-stone-900 caret-mata-600 outline-none focus-visible:outline-none! focus:bg-mata-100/70" />
+                  ) : (
+                    <span className="truncate">{p.nome}</span>
+                  )}
                   {c?.sexo && <IconeGenero genero={c.sexo} size={16} className="shrink-0" />}
                 </h3>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
@@ -169,16 +207,49 @@ export function ModalInscricao({
           <section>
             <h4 className="mb-2 text-[11px] font-semibold tracking-wider text-stone-400 uppercase">Participante</h4>
             {c ? (
-              <div className={verDados ? "flex flex-col gap-2" : "flex items-center gap-2"}>
-                {/* Os mesmos ícones: em linha (só ícones) ou em coluna com o dado ao lado; a troca anima (View Transitions) */}
-                <ul className={verDados ? "divide-y divide-stone-100 rounded-2xl border border-stone-200/80" : "flex items-center gap-2"}>
+              <form
+                id={`dados-${p.id}`}
+                className={verDados ? "flex flex-col gap-2" : "flex items-center gap-2"}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!editando) return;
+                  const fd = new FormData(e.currentTarget);
+                  iniciar(async () => {
+                    const r = await informarDadosAction(dados.eventoId, p.id, fd);
+                    setMsg(r);
+                    if (r.ok) { setEditando(false); router.refresh(); }
+                  });
+                }}
+              >
+                {/* Os mesmos ícones: em linha (só ícones) ou em coluna com o dado ao lado; a troca anima (View Transitions).
+                    Em "Informar dados", o próprio texto vira campo editável, sem mudar o layout. */}
+                <ul className={verDados ? `divide-y divide-stone-100 rounded-2xl border transition-colors ${editando ? "border-mata-200" : "border-stone-200/80"}` : "flex items-center gap-2"}>
                   {contatos.map((x) => (
-                    <li key={x.chave} className={verDados ? "flex items-center gap-3 px-3.5 py-2.5" : ""}>
-                      <IconeContato Icone={x.Icone} rotulo={x.rotulo} valor={x.valor} href={x.href} externo={x.externo} nome={`contato-${x.chave}`} />
+                    <li key={x.chave} className={verDados ? `flex items-center gap-3 px-3.5 py-2.5 transition-colors ${editando ? "cursor-text focus-within:bg-mata-50/60 hover:bg-stone-50/80" : ""}` : ""}>
+                      <IconeContato Icone={x.Icone} rotulo={x.rotulo} valor={x.valor} href={editando ? null : x.href} externo={x.externo} nome={`contato-${x.chave}`}
+                        aoInformar={dados.gerenciar && !editando ? informar : undefined} />
                       {verDados && (
-                        <div className="min-w-0 flex-1 animate-surgir" style={{ animationDelay: `${150 + x.ordem * 60}ms` }}>
+                        <div className="min-w-0 flex-1 animate-surgir" style={{ animationDelay: editando ? undefined : `${150 + x.ordem * 60}ms` }}>
                           <p className="text-[11px] text-stone-400">{x.rotulo}</p>
-                          {x.valor && x.href ? (
+                          {editando ? (
+                            x.chave === "email" ? (
+                              <input name="email" type="email" inputMode="email" autoComplete="off" defaultValue={c.email} placeholder="Informar e-mail" aria-label="E-mail" className={CAMPO_INLINE} autoFocus />
+                            ) : x.chave === "whatsapp" ? (
+                              <InputTelefone name="telefone" defaultValue={c.telefone} placeholder="Informar WhatsApp" aria-label="WhatsApp" className={CAMPO_INLINE} />
+                            ) : x.chave === "cidade" ? (
+                              <span className="flex items-center gap-1.5">
+                                <input name="cidade" defaultValue={c.cidade || (!c.estado ? dados.localPadrao?.cidade : "") || ""} placeholder="Informar cidade" aria-label="Cidade" className={CAMPO_INLINE} />
+                                <span className="text-stone-300">—</span>
+                                <select name="estado" defaultValue={c.estado || (!c.cidade ? dados.localPadrao?.estado : "") || ""} aria-label="Estado" className="shrink-0 cursor-pointer appearance-none bg-transparent p-0 text-sm font-medium text-stone-800 outline-none focus-visible:outline-none!">
+                                  <option value="">UF</option>
+                                  {UFS.map((u) => <option key={u.uf} value={u.uf}>{u.uf}</option>)}
+                                </select>
+                              </span>
+                            ) : (
+                              <input name="cpf" inputMode="numeric" maxLength={14} defaultValue={c.cpf ?? ""} placeholder="Informar CPF" aria-label="CPF"
+                                onChange={(e) => { e.currentTarget.value = mascararCpf(e.currentTarget.value); }} className={`${CAMPO_INLINE} tabular-nums`} />
+                            )
+                          ) : x.valor && x.href ? (
                             <a href={x.href} {...(x.externo ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="block truncate text-sm font-medium text-stone-800 hover:text-mata-700 hover:underline">{x.valor}</a>
                           ) : (
                             <p className={`truncate text-sm font-medium ${x.valor ? "text-stone-800" : "text-stone-400"}`}>{x.valor ?? x.vazio}</p>
@@ -188,43 +259,70 @@ export function ModalInscricao({
                     </li>
                   ))}
                 </ul>
-                <button
-                  type="button"
-                  onClick={alternarDados}
-                  aria-expanded={verDados}
-                  style={{ viewTransitionName: "contato-botao" }}
-                  className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50 ${verDados ? "self-end" : "ml-auto"}`}
-                >
-                  {verDados ? "Ocultar dados" : "Exibir dados"} <ChevronDown size={14} className={`transition duration-300 ${verDados ? "rotate-180" : ""}`} aria-hidden />
-                </button>
-              </div>
+                <div className={`flex items-center gap-2 ${verDados ? "justify-between" : "ml-auto"}`}>
+                  {editando ? (
+                    <>
+                      <button type="button" disabled={pendente} onClick={() => setEditando(false)} className="inline-flex h-9 items-center rounded-lg px-3 text-xs font-semibold text-stone-600 ring-1 ring-stone-200 transition hover:bg-stone-50">Cancelar</button>
+                      <button type="submit" disabled={pendente} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-mata-700 px-3.5 text-xs font-semibold text-white transition hover:bg-mata-800 disabled:opacity-60">
+                        {pendente ? <><Carregando tamanho={13} /> Salvando…</> : <><Check size={14} aria-hidden /> Salvar dados</>}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {verDados && dados.gerenciar && (
+                        <button type="button" onClick={informar} className="inline-flex h-9 animate-surgir items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-stone-600 ring-1 ring-stone-200 transition hover:bg-stone-50">
+                          <Pencil size={13} aria-hidden /> Informar dados
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={alternarDados}
+                        aria-expanded={verDados}
+                        style={{ viewTransitionName: "contato-botao" }}
+                        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50"
+                      >
+                        {verDados ? "Ocultar dados" : "Exibir dados"} <ChevronDown size={14} className={`transition duration-300 ${verDados ? "rotate-180" : ""}`} aria-hidden />
+                      </button>
+                    </>
+                  )}
+                </div>
+              </form>
             ) : (
               <p className="rounded-2xl border border-stone-200/80 px-3.5 py-3 text-sm text-stone-500">Dados de contato indisponíveis.</p>
             )}
           </section>
           )}
 
+          {/* Dosagem: ml de cada dose consumida (só quem gerencia, pela lista do evento) */}
+          {dados.gerenciar && !evento && inscricao !== "cancelada" && (
+            <Dosagem salvarDoses={(l) => salvarDosesAction(dados.eventoId, p.inscricaoId, l)} inicial={p.doses ?? []} aoSalvar={setMsg} aoMudarDoses={setDosesTela} />
+          )}
+
           {/* Contribuição: situação, comprovante e o que a coordenação pode marcar */}
           {dados.temContribuicao && (
-            <section>
-              <button
-                type="button"
-                onClick={() => setContribAberta((v) => !v)}
-                aria-expanded={contribAberta}
-                className="mb-2 flex w-full items-center gap-2 text-left"
-              >
-                <span className="text-[11px] font-semibold tracking-wider text-stone-400 uppercase">Contribuição</span>
-                {!contribAberta && (
-                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}>
-                    <situacao.Icone size={11} aria-hidden /> {situacao.rotulo}
-                    {(p.valor ?? dados.valorContribuicao) != null && <span className="tabular-nums">· {formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
-                  </span>
-                )}
-                <ChevronDown size={15} className={`ml-auto text-stone-400 transition duration-300 ${contribAberta ? "rotate-180" : ""}`} aria-hidden />
-              </button>
+            <section className="overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50/40 shadow-sm">
+              <div className="flex items-center gap-3 px-3.5 py-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm shadow-emerald-700/25"><Receipt size={17} aria-hidden /></span>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-semibold text-emerald-950">Contribuição</h4>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}><situacao.Icone size={11} aria-hidden /> {situacao.rotulo}</span>
+                    {(p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-emerald-900">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setContribAberta((v) => !v)}
+                  aria-expanded={contribAberta}
+                  className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-semibold transition ${contribAberta ? "text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100/60" : "bg-emerald-700 text-white shadow-sm hover:bg-emerald-800"}`}
+                >
+                  {contribAberta ? "Ocultar" : "Exibir"} <ChevronDown size={14} className={`transition duration-300 ${contribAberta ? "rotate-180" : ""}`} aria-hidden />
+                </button>
+              </div>
               <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${contribAberta ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                 <div className="min-h-0 overflow-hidden" inert={!contribAberta}>
-              <div className={`flex items-start gap-3 rounded-2xl px-3.5 py-3 ring-1 ${situacao.cor}`}>
+                <div className="border-t border-emerald-100 px-3.5 pt-3 pb-3.5">
+              <div className={`flex items-start gap-3 rounded-xl border-l-4 px-3.5 py-3 ${situacao.bloco}`}>
                 <situacao.Icone size={20} className="mt-0.5 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm font-bold">
@@ -246,7 +344,7 @@ export function ModalInscricao({
               {/* Comprovante anexado */}
               <div className="mt-3">
                 {comprovante ? (
-                  <div className="flex items-center gap-3.5 rounded-2xl border border-stone-200/80 bg-white p-2.5">
+                  <div className="flex items-center gap-3.5 rounded-xl border border-emerald-100 bg-white p-2.5 shadow-sm shadow-emerald-900/5">
                     {/* Miniatura quadrada: mostra sempre o topo da imagem, qualquer que seja a proporção */}
                     <button type="button" onClick={() => setAmpliado(true)} className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-stone-100 ring-1 ring-stone-200" aria-label="Ampliar comprovante">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -254,31 +352,36 @@ export function ModalInscricao({
                     </button>
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center gap-1.5 text-sm font-semibold text-stone-900">
-                        <FileImage size={15} className="shrink-0 text-mata-600" /> Comprovante anexado
+                        <FileImage size={15} className="shrink-0 text-emerald-600" /> Comprovante anexado
                       </p>
                       <button
                         type="button"
                         onClick={() => setAmpliado(true)}
-                        className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50"
+                        className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-50"
                       >
                         <ZoomIn size={13} /> Ampliar
                       </button>
+                      {dados.gerenciar && <AnexarComprovante eventoId={dados.eventoId} inscricaoId={p.inscricaoId} trocar aoSalvar={setMsg} />}
                     </div>
                   </div>
                 ) : (
-                  <p className="flex items-center gap-2 rounded-2xl border border-dashed border-stone-200 px-3.5 py-3 text-xs text-stone-500">
-                    <FileImage size={15} className="shrink-0 text-stone-400" /> Nenhum comprovante anexado.
-                  </p>
+                  <div className="flex items-center gap-3.5 rounded-xl border border-dashed border-emerald-200 bg-white/50 p-3">
+                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-emerald-100/70 text-emerald-500"><FileImage size={30} strokeWidth={1.6} aria-hidden /></span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-medium whitespace-nowrap text-emerald-900/70">Nenhum comprovante anexado.</p>
+                      {dados.gerenciar && <AnexarComprovante eventoId={dados.eventoId} inscricaoId={p.inscricaoId} aoSalvar={setMsg} semMargem />}
+                    </div>
+                  </div>
                 )}
               </div>
 
               {dados.gerenciar && (
                 <div className="mt-3">
-                  <p className="mb-1.5 text-xs font-medium text-stone-500">Marcar a contribuição como</p>
+                  <p className="mb-1.5 text-xs font-medium text-emerald-900/70">Marcar a contribuição como</p>
                   <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Situação da contribuição">
-                    <Opcao ativa={pago || pedirValor} Icone={CheckCircle2} rotulo="Confirmada" disabled={pendente || pago} aoEscolher={() => { setMsg(undefined); setPedirValor(true); }} />
-                    <Opcao ativa={p.pagamento === "isento"} Icone={ShieldCheck} rotulo="Isento" disabled={pendente} aoEscolher={() => rodar(() => isentarPagamentoAction(dados.eventoId, p.inscricaoId))} />
-                    <Opcao ativa={p.pagamento === "pendente"} Icone={Undo2} rotulo="Pendente" disabled={pendente} aoEscolher={() => rodar(() => reabrirPagamentoAction(dados.eventoId, p.inscricaoId))} />
+                    <Opcao tom="emerald" ativa={pago || pedirValor} Icone={CheckCircle2} rotulo="Confirmada" disabled={pendente || pago} aoEscolher={() => { setMsg(undefined); setPedirValor(true); }} />
+                    <Opcao tom="sky" ativa={p.pagamento === "isento"} Icone={ShieldCheck} rotulo="Isento" disabled={pendente} aoEscolher={() => rodar(() => isentarPagamentoAction(dados.eventoId, p.inscricaoId))} />
+                    <Opcao tom="yellow" ativa={p.pagamento === "pendente"} Icone={Undo2} rotulo="Pendente" disabled={pendente} aoEscolher={() => rodar(() => reabrirPagamentoAction(dados.eventoId, p.inscricaoId))} />
                   </div>
                   {/* Confirmar pede o valor recebido (já vem preenchido com o valor informado ou o padrão do Instituto) */}
                   {pedirValor && !pago && (
@@ -313,15 +416,30 @@ export function ModalInscricao({
                 </div>
               )}
                 </div>
+                </div>
               </div>
             </section>
           )}
 
-          {!evento && (
-            <div className="space-y-1.5 border-t border-stone-100 pt-3.5 text-[13px] text-stone-500">
-              {c && <p className="flex items-center gap-2"><UserRound size={15} className="shrink-0 text-stone-400" aria-hidden /> Cadastro desde <span className="font-medium text-stone-700">{dia(c.desde)}</span></p>}
-              <p className="flex items-center gap-2"><CalendarClock size={15} className="shrink-0 text-stone-400" aria-hidden /> Inscrição em <span className="font-medium text-stone-700">{quando(p.inscritoEm)}</span></p>
-            </div>
+          {!evento && linhaDoTempo.length > 0 && (
+            <section className="border-t border-stone-100 pt-4">
+              <h4 className="mb-3 text-[11px] font-semibold tracking-wider text-stone-400 uppercase">Histórico</h4>
+              {/* Mais recente no topo; de baixo para cima, na ordem em que aconteceu (o cadastro fica por último) */}
+              <ol className="relative space-y-3.5 before:absolute before:top-3 before:bottom-3 before:left-[13px] before:w-px before:bg-stone-200">
+                {linhaDoTempo.map((x) => (
+                  <li key={x.chave} className="relative flex items-center gap-3">
+                    <span className={`relative z-10 grid h-[27px] w-[27px] shrink-0 place-items-center rounded-full ring-4 ring-white ${x.cor}`} style={x.fundo ? { background: x.fundo } : undefined}>
+                      <x.Icone size={13} aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1 text-[13px] leading-tight">
+                      <span className="block font-semibold text-stone-800">{x.titulo}</span>
+                      {x.detalhe && <span className="block text-xs text-stone-500">{x.detalhe}</span>}
+                    </span>
+                    <time dateTime={x.em} className="shrink-0 text-xs text-stone-500 tabular-nums">{x.quando}</time>
+                  </li>
+                ))}
+              </ol>
+            </section>
           )}
         </div>
 
@@ -421,10 +539,17 @@ function Info({ Icone, rotulo, valor, href, externo }: { Icone: typeof Mail; rot
 }
 
 /** Ícone de um dado de contato: destacado quando existe (e clicável se tiver link), apagado quando falta. */
-function IconeContato({ Icone, rotulo, valor, href, externo, nome }: { Icone: typeof Mail; rotulo: string; valor: string | null; href?: string | null; externo?: boolean; /** view-transition-name: o mesmo ícone se move entre linha e coluna. */ nome?: string }) {
+function IconeContato({ Icone, rotulo, valor, href, externo, nome, aoInformar }: { Icone: typeof Mail; rotulo: string; valor: string | null; href?: string | null; externo?: boolean; /** view-transition-name: o mesmo ícone se move entre linha e coluna. */ nome?: string; /** Sem o dado: tocar no ícone abre o formulário para informar. */ aoInformar?: () => void }) {
   const tem = !!valor;
   const classe = `grid h-10 w-10 place-items-center rounded-xl transition ${tem ? "bg-mata-50 text-mata-700 ring-1 ring-mata-200" : "bg-stone-50 text-stone-300 ring-1 ring-stone-100"}`;
   const dica = tem ? `${rotulo}: ${valor}` : `${rotulo}: não informado`;
+  if (!tem && aoInformar) {
+    return (
+      <button type="button" onClick={aoInformar} className={`${classe} shrink-0 hover:bg-stone-100 hover:text-stone-500`} title={`${rotulo}: não informado. Toque para informar.`} aria-label={`Informar ${rotulo}`} style={{ viewTransitionName: nome }}>
+        <Icone size={17} />
+      </button>
+    );
+  }
   return tem && href ? (
     <a href={href} {...(externo ? { target: "_blank", rel: "noopener noreferrer" } : {})} className={`${classe} shrink-0 hover:bg-mata-100`} title={dica} aria-label={dica} style={{ viewTransitionName: nome }}><Icone size={17} /></a>
   ) : (
@@ -432,7 +557,88 @@ function IconeContato({ Icone, rotulo, valor, href, externo, nome }: { Icone: ty
   );
 }
 
-function Opcao({ ativa, Icone, rotulo, disabled, aoEscolher }: { ativa: boolean; Icone: typeof Mail; rotulo: string; disabled: boolean; aoEscolher: () => void }) {
+const TOM_OPCAO = {
+  emerald: { ativa: "border-emerald-600 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-600", hover: "hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-800" },
+  sky: { ativa: "border-sky-500 bg-sky-50 text-sky-800 ring-1 ring-sky-500", hover: "hover:border-sky-300 hover:bg-sky-50/70 hover:text-sky-800" },
+  yellow: { ativa: "border-yellow-500 bg-yellow-50 text-yellow-800 ring-1 ring-yellow-500", hover: "hover:border-yellow-300 hover:bg-yellow-50/70 hover:text-yellow-800" },
+} as const;
+
+/**
+ * Anexar ou trocar o comprovante: escolher da galeria ou tirar a foto na hora (câmera traseira).
+ * A imagem é reduzida no navegador (useImagem), aparece em prévia e só vai ao enviar.
+ */
+function AnexarComprovante({ eventoId, inscricaoId, trocar = false, semMargem = false, aoSalvar }: {
+  eventoId: string; inscricaoId: string; trocar?: boolean; semMargem?: boolean; aoSalvar: (r: Resultado) => void;
+}) {
+  const router = useRouter();
+  const [enviando, iniciar] = useTransition();
+  const { local, erro, otimizando, escolher } = useImagem("comprovante");
+  const galeria = useRef<HTMLInputElement>(null);
+  const camera = useRef<HTMLInputElement>(null);
+  const form = useRef<HTMLFormElement>(null);
+
+  function limpar() {
+    for (const i of [galeria.current, camera.current]) if (i) { i.value = ""; escolher(i, null); }
+  }
+  // Escolher um arquivo (galeria ou câmera) passa o arquivo para o campo que o formulário envia
+  function aoEscolher(i: HTMLInputElement) {
+    const outro = i === galeria.current ? camera.current : galeria.current;
+    if (outro) outro.value = "";
+    escolher(i, i.files?.[0]);
+  }
+  const arquivoEscolhido = !!local;
+  const botao = "inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition disabled:opacity-60";
+
+  return (
+    <form
+      ref={form}
+      className={semMargem ? "mt-2" : trocar ? "mt-2" : "mt-3"}
+      onSubmit={(e) => {
+        e.preventDefault();
+        const arquivo = galeria.current?.files?.[0] ?? camera.current?.files?.[0];
+        if (!arquivo) return;
+        const fd = new FormData();
+        fd.set("comprovante", arquivo);
+        iniciar(async () => {
+          const r = await anexarComprovanteAction(eventoId, inscricaoId, fd);
+          aoSalvar(r);
+          if (r.ok) { limpar(); router.refresh(); }
+        });
+      }}
+    >
+      <input ref={galeria} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => aoEscolher(e.currentTarget)} />
+      <input ref={camera} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => aoEscolher(e.currentTarget)} />
+
+      {arquivoEscolhido ? (
+        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-white p-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={local!} alt="Prévia do comprovante" className="h-16 w-16 shrink-0 rounded-lg object-cover object-top ring-1 ring-stone-200" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-emerald-800">{otimizando ? "Preparando a imagem…" : "Pronto para enviar"}</p>
+            <div className="mt-1.5 flex gap-2">
+              <button type="button" disabled={enviando} onClick={limpar} className={`${botao} text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50`}>Descartar</button>
+              <button type="submit" disabled={enviando || otimizando} className={`${botao} bg-emerald-700 text-white hover:bg-emerald-800`}>
+                {enviando ? <><Carregando tamanho={13} /> Enviando…</> : <><Check size={14} aria-hidden /> Enviar</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          <button type="button" onClick={() => galeria.current?.click()} className={`${botao} text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-50`}>
+            <ImagePlus size={14} aria-hidden /> {trocar ? "Trocar da galeria" : "Galeria"}
+          </button>
+          <button type="button" onClick={() => camera.current?.click()} className={`${botao} text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-50`}>
+            <Camera size={14} aria-hidden /> Câmera
+          </button>
+        </div>
+      )}
+      {erro && <p role="alert" className="mt-1.5 text-xs font-medium text-red-700">{erro}</p>}
+    </form>
+  );
+}
+
+function Opcao({ ativa, Icone, rotulo, disabled, aoEscolher, tom }: { ativa: boolean; Icone: typeof Mail; rotulo: string; disabled: boolean; aoEscolher: () => void; tom: keyof typeof TOM_OPCAO }) {
   return (
     <button
       type="button"
@@ -441,7 +647,7 @@ function Opcao({ ativa, Icone, rotulo, disabled, aoEscolher }: { ativa: boolean;
       disabled={disabled || ativa}
       onClick={aoEscolher}
       className={`flex h-14 flex-col items-center justify-center gap-1 rounded-xl border text-xs font-semibold transition disabled:cursor-default ${
-        ativa ? "border-mata-600 bg-mata-50 text-mata-800 ring-1 ring-mata-600" : "border-stone-200 bg-white text-stone-600 hover:border-stone-300 hover:bg-stone-50 disabled:opacity-60"
+        ativa ? TOM_OPCAO[tom].ativa : `border-stone-200 bg-white text-stone-600 disabled:opacity-60 ${TOM_OPCAO[tom].hover}`
       }`}
     >
       <Icone size={16} /> {rotulo}

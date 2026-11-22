@@ -105,6 +105,8 @@ const TABELAS = {
       i("vagas_guardioes", { xdefault: 2, min: 0, max: 50 }), i("vagas_guardias", { xdefault: 2, min: 0, max: 50 }), b("candidaturas_abertas", true),
       // Participantes (público geral, separado da guarnição)
       i("vagas_participantes", { xdefault: 30, min: 0, max: 1000 }),
+      // Doses da equipe (mestres e guardiões, que não têm inscrição): JSON {"<id da pessoa>": [{"n":1,"ml":40,"em":"..."}]}
+      v("doses_equipe", 8192),
     ],
     indices: [
       ["ux_ritual_geral", "unique", ["ritual_numero_geral"]],
@@ -160,6 +162,8 @@ const TABELAS = {
       en("pagamento", ["pendente", "informado", "pago", "isento", "na_hora"], "pendente"),
       f("valor", { min: 0 }), dt("informado_em"), dt("pago_em"),
       v("comprovante_file_id", 36), t("observacao"), v("alterado_por", 36),
+      // Doses consumidas na participação, em JSON: [{"n":1,"ml":40},{"n":2,"ml":20}]
+      v("doses", 512),
     ],
     indices: [
       ["ux_inscricao", "unique", ["evento_id", "usuario_id"]],

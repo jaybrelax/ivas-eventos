@@ -9,6 +9,8 @@ import { listarEquipe } from "@/lib/usuarios";
 import { dataPorExtenso, partesData } from "@/lib/format";
 import { urlImagem, urlPublicaEvento } from "@/lib/links";
 import { SITE_URL } from "@/lib/site";
+import { podeGerenciarEvento } from "@/lib/gestao-evento";
+import { AtualizarAoVivo } from "./AtualizarAoVivo";
 import { MenuEventoMobile } from "./MenuEventoMobile";
 import { ehReuniao, guardioesDaReuniao, temGuarnicao } from "@/lib/guarnicao";
 import { dadosReuniao } from "@/lib/reuniao";
@@ -40,13 +42,13 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   const [evento, { tipos, enderecos, instituto }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
   if (!evento) notFound();
 
-  const gerenciar = pode(u, PODE.editarEventos);
+  const gerenciar = podeGerenciarEvento(u, evento);
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const reuniaoTipo = ehReuniao(tipo);
   const [guarnicao, reuniao, participantes] = await Promise.all([
     temGuarnicao(tipo) ? dadosGuarnicao(evento, u, gerenciar) : null,
     reuniaoTipo ? dadosReuniao(evento, u.id, true) : null,
-    dadosParticipantes(evento, tipo, instituto.valor_contribuicao, gerenciar),
+    dadosParticipantes(evento, tipo, instituto.valor_contribuicao, gerenciar, { estado: instituto.estado, cidade: instituto.cidade }),
   ]);
   const end = enderecos.find((e) => e.$id === evento.endereco_id);
   const caminhoPublico = urlPublicaEvento(evento, tipo);
@@ -88,6 +90,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
 
   return (
     <>
+      <AtualizarAoVivo />
       {/* Mobile: a capa do evento ao fundo, atrás da capa e da data, desbotando para a cor da página */}
       {evento.capa_file_id && (
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[23rem] overflow-hidden md:hidden">
@@ -222,7 +225,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
       <div className="mb-4 md:mb-6">
         {participantes ? (
           <Participantes
-            dados={participantes} semResumo equipe={membros} guardioes={guardioesGerais} titulo="Lista de presença"
+            dados={{ ...participantes, linkPerfil: pode(u, PODE.editarEventos) }} semResumo equipe={membros} guardioes={guardioesGerais} titulo="Lista de presença"
             acoes={gerenciar ? (
               <MenuEquipeMobile
                 mestres={{ eventoId: evento.$id, equipe: equipe.filter((p) => !p.mock), inicial: evento.mestres ?? [] }}

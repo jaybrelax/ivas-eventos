@@ -1,12 +1,15 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { createContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Check, ChevronRight, Clock, Crown, Paperclip, Receipt, Search, Shield, SlidersHorizontal, UserPlus, Users, X } from "lucide-react";
 import type { Sexo, SituacaoPagamento } from "@/lib/types";
+import type { Dose } from "@/lib/doses";
 import { Avatar } from "@/components/Avatar";
 import { Aviso, Carregando } from "@/components/ui";
 import { incluirAvulsoAction, incluirParticipanteAction } from "./participantes-actions";
 import { ModalInscricao } from "./ModalInscricao";
+import { ModalDosagemEquipe } from "./ModalDosagemEquipe";
 
 export type PessoaParticipante = { id: string; nome: string; foto: string | null };
 /** Contato do participante: só vem preenchido para quem gerencia o evento. */
@@ -15,6 +18,8 @@ export type ItemParticipanteInscrito = PessoaParticipante & {
   pagamento: SituacaoPagamento; inscricaoId: string; comprovante: string | null;
   inscritoEm: string; valor: number | null; informadoEm: string | null; pagoEm: string | null;
   contato: ContatoParticipante | null;
+  /** Doses consumidas (só para quem gerencia o evento). */
+  doses?: Dose[];
 };
 
 /** Mestre ou guardião do evento, para a lista de presença juntar equipe e participantes. */
@@ -39,10 +44,16 @@ export type DadosParticipantes = {
   valorContribuicao: number | null;
   /** Contribuição só aparece para tipos que contam como ritual. */
   temContribuicao: boolean;
+  /** Doses de mestres e guardiões escalados, por pessoa (só para quem gerencia). */
+  dosesEquipe?: Record<string, Dose[]>;
+  /** Cidade/UF do Instituto, sugeridas ao informar os dados de quem ainda não tem cidade. */
+  localPadrao?: { estado: string; cidade: string } | null;
+  /** Mostra o atalho para o perfil completo (/admin/participantes): só coordenação e admin. */
+  linkPerfil?: boolean;
 };
 
 const PAGAMENTO: Record<SituacaoPagamento, { rotulo: string; cor: string }> = {
-  pendente: { rotulo: "Pendente", cor: "bg-stone-100 text-stone-600" },
+  pendente: { rotulo: "Pendente", cor: "bg-yellow-50 text-yellow-800 ring-1 ring-yellow-200 ring-inset" },
   informado: { rotulo: "Para conferir", cor: "bg-amber-50 text-amber-800 ring-1 ring-amber-200 ring-inset" },
   pago: { rotulo: "Pago", cor: "bg-emerald-50 text-emerald-700" },
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
@@ -59,7 +70,37 @@ const FILTROS_PG: { id: FiltroPg; rotulo: string; casa: (p: SituacaoPagamento) =
 ];
 
 /** Ações do menu ⋮ do cabeçalho (mobile) que mexem na lista: hoje, abrir o filtro. */
-export const AcoesListaContexto = createContext<{ abrirFiltro?: () => void }>({});
+export const AcoesListaContexto = createContext<{ abrirFiltro?: () => void; chamada?: { ativa: boolean; alternar: () => void } }>({});
+
+const FUNDO_DOSE = "linear-gradient(180deg, #8a4b26 0%, #5a2d13 45%, #2a1308 100%)";
+
+/** Um cartão em formato de copo por dose registrada: marrom, número em branco com "ml" embaixo. */
+function ChipsDose({ doses }: { doses: Dose[] }) {
+  const lista = doses.filter((d) => d.ml > 0);
+  if (!lista.length) return null;
+  return (
+    <span className="flex shrink-0 items-center gap-1">
+      {lista.map((d) => (
+        <span
+          key={d.n}
+          className="flex h-9 w-7 flex-col items-center justify-center rounded-t-[4px] rounded-b-[10px] text-white shadow-sm ring-1 ring-amber-950/40"
+          style={{ background: FUNDO_DOSE }}
+          title={`${d.n}ª dose: ${d.ml} ml`}
+          aria-label={`${d.n}ª dose: ${d.ml} ml`}
+        >
+          <span className="text-[12px] leading-none font-bold tabular-nums">{d.ml}</span>
+          <span className="text-[8px] leading-none font-semibold text-white/80">ml</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** Linha marcada na chamada: faixa verde à esquerda e um degradê verde bem sutil. */
+const CLASSE_PRESENTE = "border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-100/80 via-emerald-50/40 to-white ring-1 ring-emerald-100";
+
+/** Sigla da situação da contribuição (participante com dose registrada). */
+const SIGLA_PAGAMENTO: Record<SituacaoPagamento, string> = { pendente: "PE", informado: "PC", pago: "OK", isento: "IN", na_hora: "NH" };
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -110,6 +151,25 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
   // Modal da inscrição: guarda só o id, para mostrar sempre os dados atualizados depois de cada ação
   const [aberta, setAberta] = useState<string | null>(null);
+  const [equipeAberta, setEquipeAberta] = useState<string | null>(null);
+  // Chamada: presença marcada por pessoa, guardada só neste aparelho (localStorage), por evento
+  const [chamadaAtiva, setChamadaAtiva] = useState(false);
+  const [presentes, setPresentes] = useState<Set<string>>(new Set());
+  const chaveChamada = `chamada-${dados.eventoId}`;
+  const [carregouChamada, setCarregouChamada] = useState(false);
+  useEffect(() => {
+    try {
+      const salvo = JSON.parse(localStorage.getItem(chaveChamada) ?? "null") as { ativa?: boolean; presentes?: string[] } | null;
+      if (salvo) { setChamadaAtiva(!!salvo.ativa); setPresentes(new Set(salvo.presentes ?? [])); }
+    } catch { /* sem localStorage: a chamada vale só enquanto a página está aberta */ }
+    setCarregouChamada(true);
+  }, [chaveChamada]);
+  useEffect(() => {
+    if (!carregouChamada) return;
+    try { localStorage.setItem(chaveChamada, JSON.stringify({ ativa: chamadaAtiva, presentes: [...presentes] })); } catch { /* idem */ }
+  }, [chamadaAtiva, presentes, chaveChamada, carregouChamada]);
+  const marcar = (id: string) => setPresentes((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const ehMarcavel = (id: string) => chamadaAtiva && dados.gerenciar;
   const posEspera = dados.espera.findIndex((p) => p.inscricaoId === aberta);
   const atual = dados.confirmados.find((p) => p.inscricaoId === aberta) ?? dados.espera[posEspera];
 
@@ -155,7 +215,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
   const filtroNoMobile = filtro !== "todos" || filtroAberto;
 
   return (
-    <AcoesListaContexto.Provider value={{ abrirFiltro: temFiltros ? () => setFiltroAberto(true) : undefined }}>
+    <AcoesListaContexto.Provider value={{ abrirFiltro: temFiltros ? () => setFiltroAberto(true) : undefined, chamada: dados.gerenciar ? { ativa: chamadaAtiva, alternar: () => setChamadaAtiva((v) => !v) } : undefined }}>
     <section id="participantes" className="cartao scroll-mt-6 space-y-3.5 p-4 sm:space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -171,6 +231,19 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
       </div>
 
       {msg && <Aviso tipo={msg.erro ? "erro" : "ok"}>{msg.erro ?? msg.ok}</Aviso>}
+
+      {/* Chamada ativa: contagem e botão para encerrar (desativa as marcações) */}
+      {dados.gerenciar && chamadaAtiva && (
+        <div className="animate-surgir flex flex-wrap items-center gap-2 rounded-xl border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-100/80 to-white px-3 py-2 ring-1 ring-emerald-100">
+          <Check size={16} className="shrink-0 text-emerald-700" aria-hidden />
+          <p className="min-w-0 flex-1 text-sm leading-tight font-semibold text-emerald-900">
+            Chamada <span className="block text-xs font-normal whitespace-nowrap text-emerald-800/80">{[...presentes].filter((id) => dados.confirmados.some((c) => c.id === id) || equipe.some((e) => e.id === id)).length} de {totalPresentes} presentes</span>
+          </p>
+          <button type="button" onClick={() => setChamadaAtiva(false)} className="inline-flex h-8 items-center gap-1 rounded-lg bg-emerald-700 px-3 text-xs font-semibold text-white transition hover:bg-emerald-800">
+            <X size={13} aria-hidden /> Encerrar chamada
+          </button>
+        </div>
+      )}
 
       {/* Ocupação e contribuições num relance */}
       {/* Empilhado: o bloco também aparece na coluna estreita do formulário do evento */}
@@ -277,19 +350,32 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
           <ul className="space-y-1">
             {/* Equipe primeiro (guardiões, guardiãs, mestres), com fundo azulado; depois os demais participantes */}
             {equipeOrdenada.map((x) => x.p ? (
-              <Linha key={x.id} p={x.p} papel={x.papel} destaque temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} abrir={() => setAberta(x.p!.inscricaoId)} />
+              <Linha key={x.id} p={x.p} papel={x.papel} destaque temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} chamada={ehMarcavel(x.id)} presente={presentes.has(x.id)} abrir={() => (chamadaAtiva ? marcar(x.id) : setAberta(x.p!.inscricaoId))} />
             ) : (
-              <li key={`equipe-${x.id}`} className="flex w-full items-center gap-2.5 rounded-lg bg-sky-50 px-2 py-1.5 ring-1 ring-sky-100">
-                <Avatar nome={x.nome} foto={x.foto} tamanho={32} className="ring-0" />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{x.nome}</span>
-                <SeloPapel papel={x.papel} />
+              <li key={`equipe-${x.id}`}>
+                {dados.gerenciar ? (
+                  <button type="button" onClick={() => (chamadaAtiva ? marcar(x.id) : setEquipeAberta(x.id))} aria-label={chamadaAtiva ? `Marcar presença de ${x.nome}` : `Registrar a dosagem de ${x.nome}`} aria-pressed={chamadaAtiva ? presentes.has(x.id) : undefined}
+                    className={`group flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition hover:ring-1 hover:ring-mata-200 ${chamadaAtiva && presentes.has(x.id) ? CLASSE_PRESENTE : "bg-sky-50 ring-1 ring-sky-100 hover:bg-mata-50/70"}`}>
+                    <Avatar nome={x.nome} foto={x.foto} tamanho={32} className={chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{x.nome}</span>
+                    <ChipsDose doses={dados.dosesEquipe?.[x.id] ?? []} />
+                    <SeloPapel papel={x.papel} soIcone={(dados.dosesEquipe?.[x.id] ?? []).some((d) => d.ml > 0)} />
+                    {chamadaAtiva ? null : <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600" />}
+                  </button>
+                ) : (
+                  <div className="flex w-full items-center gap-2.5 rounded-lg bg-sky-50 px-2 py-1.5 ring-1 ring-sky-100">
+                    <Avatar nome={x.nome} foto={x.foto} tamanho={32} className="ring-0" />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{x.nome}</span>
+                    <SeloPapel papel={x.papel} />
+                  </div>
+                )}
               </li>
             ))}
             {equipeOrdenada.length > 0 && confirmados.some((p) => !papelDe.has(p.id)) && (
               <li aria-hidden className="px-1.5 pt-3 pb-1 text-xs font-semibold tracking-wider text-stone-400 uppercase">Participantes</li>
             )}
             {confirmados.filter((p) => !papelDe.has(p.id)).map((p) => (
-              <Linha key={p.id} p={p} guardiao={ehGuardiao.has(p.id)} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} abrir={() => setAberta(p.inscricaoId)} />
+              <Linha key={p.id} p={p} guardiao={ehGuardiao.has(p.id)} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} chamada={ehMarcavel(p.id)} presente={presentes.has(p.id)} abrir={() => (chamadaAtiva ? marcar(p.id) : setAberta(p.inscricaoId))} />
             ))}
           </ul>
         ) : (
@@ -318,6 +404,19 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
           </div>
         )}
       </div>
+
+      {equipeAberta && (() => {
+        const m = equipe.find((e) => e.id === equipeAberta);
+        return m ? (
+          <ModalDosagemEquipe
+            eventoId={dados.eventoId}
+            pessoa={{ id: m.id, nome: m.nome, foto: m.foto }}
+            rotulo={m.papel === "mestre" ? "Mestre" : "Guardião"}
+            inicial={dados.dosesEquipe?.[m.id] ?? []}
+            fechar={() => setEquipeAberta(null)}
+          />
+        ) : null;
+      })()}
 
       {atual && (
         <ModalInscricao
@@ -349,28 +448,30 @@ function Numero({ rotulo, valor, detalhe, cor = "text-stone-900", acao }: { rotu
 }
 
 /** Linha da lista: quem gerencia toca para abrir o modal da inscrição (contato, contribuição, comprovante e cancelamento). */
-function SeloPapel({ papel }: { papel: MembroLista["papel"] }) {
+function SeloPapel({ papel, soIcone = false }: { papel: MembroLista["papel"]; /** Com dose registrada: só o ícone, para economizar largura. */ soIcone?: boolean }) {
   const info = PAPEL[papel];
   return (
-    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${info.cor}`}>
-      <info.Icone size={11} /> {info.rotulo}
+    <span title={info.rotulo} className={`inline-flex shrink-0 items-center gap-1 rounded-full text-[11px] font-semibold ${soIcone ? "h-6 w-6 justify-center" : "px-2 py-0.5"} ${info.cor}`}>
+      <info.Icone size={soIcone ? 13 : 11} aria-hidden />{soIcone ? <span className="sr-only">{info.rotulo}</span> : <> {info.rotulo}</>}
     </span>
   );
 }
 
 function Linha({
-  p, papel, guardiao = false, destaque = false, posicao, temContribuicao: comContribuicao, gerenciar, abrir,
+  p, papel, guardiao = false, destaque = false, posicao, temContribuicao: comContribuicao, gerenciar, abrir, chamada = false, presente = false,
 }: {
   p: ItemParticipanteInscrito; papel?: MembroLista["papel"]; guardiao?: boolean; destaque?: boolean; posicao?: number; temContribuicao: boolean; gerenciar: boolean; abrir: () => void;
+  /** Chamada ativa: a linha vira marcador de presença. */ chamada?: boolean; presente?: boolean;
 }) {
   // Situação e valores da contribuição são só para quem gerencia
   const temContribuicao = comContribuicao && gerenciar;
   const pg = PAGAMENTO[p.pagamento];
   const conferir = temContribuicao && p.pagamento === "informado";
+  const temDose = gerenciar && (p.doses ?? []).some((d) => d.ml > 0);
   const conteudo = (
     <>
       {posicao !== undefined && <span className="w-5 shrink-0 text-center text-xs font-semibold text-stone-400 tabular-nums">{posicao}º</span>}
-      <Avatar nome={p.nome} foto={p.foto} tamanho={32} className="ring-0" />
+      <Avatar nome={p.nome} foto={p.foto} tamanho={32} className={chamada && presente ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-sm font-medium text-stone-800">{p.nome}</span>
@@ -388,16 +489,24 @@ function Linha({
           </span>
         )}
       </span>
-      {papel && <SeloPapel papel={papel} />}
+      {gerenciar && <ChipsDose doses={p.doses ?? []} />}
+      {papel && <SeloPapel papel={papel} soIcone={temDose} />}
       {temContribuicao && p.comprovante && <Paperclip size={14} className="shrink-0 text-stone-400" aria-label="Comprovante anexado" />}
       {temContribuicao && (
+        // Participante (fora da equipe) com dose registrada: só a inicial da situação
+        temDose && !papel ? (
+          <span className={`chip h-6 min-w-6 shrink-0 justify-center px-1.5 text-[11px] font-bold ${p.pagamento === "pago" ? "bg-emerald-100 text-emerald-900" : pg.cor}`} title={pg.rotulo}>
+            <span aria-hidden>{SIGLA_PAGAMENTO[p.pagamento]}</span><span className="sr-only">{pg.rotulo}</span>
+          </span>
+        ) : (
         <span className={`chip shrink-0 ${pg.cor}`}>
           {p.pagamento === "pago" && <Check size={12} />}{conferir && <Receipt size={12} />}{pg.rotulo}
         </span>
+        )
       )}
     </>
   );
-  const base = `flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left ${conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? "bg-sky-50 ring-1 ring-sky-100" : "bg-stone-50/70"}`;
+  const base = `flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? "bg-sky-50 ring-1 ring-sky-100" : "bg-stone-50/70"}`;
   if (!gerenciar) return <li className={base}>{conteudo}</li>;
   return (
     <li>
@@ -405,117 +514,156 @@ function Linha({
         type="button"
         onClick={abrir}
         className={`group ${base} transition hover:bg-mata-50/70 hover:ring-1 hover:ring-mata-200`}
-        aria-label={`Gerenciar a inscrição de ${p.nome}`}
+        aria-label={chamada ? `Marcar presença de ${p.nome}` : `Gerenciar a inscrição de ${p.nome}`}
+        aria-pressed={chamada ? presente : undefined}
       >
         {conteudo}
-        <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600" />
+        {chamada ? null : <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600" />}
       </button>
     </li>
   );
 }
 
-/** Inclusão manual com busca por nome (a lista de pessoas pode ter centenas de nomes). */
 /**
- * Inclusão manual com busca por nome entre todas as pessoas com conta. Se ninguém servir, a última opção
- * inclui o nome digitado como participante sem cadastro.
+ * Inclusão manual: um botão abre o modal com a busca entre todas as pessoas com conta. Se ninguém
+ * servir, a última opção cria a pessoa a partir do nome digitado (participante sem cadastro).
  */
 function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso }: {
   opcoes: PessoaParticipante[]; pendente: boolean; cheio: boolean; aoIncluir: (id: string) => void; aoIncluirAvulso: (nome: string) => void;
 }) {
-  const [texto, setTexto] = useState("");
   const [aberto, setAberto] = useState(false);
+  const [texto, setTexto] = useState("");
   const [ativo, setAtivo] = useState(0);
-  const campo = useRef<HTMLInputElement>(null);
+  const lista = useRef<HTMLUListElement>(null);
 
   const nomeDigitado = texto.trim().replace(/\s+/g, " ");
   const termo = semAcento(nomeDigitado);
   const resultados = useMemo(
-    () => (termo ? opcoes.filter((p) => semAcento(p.nome).includes(termo)) : opcoes).slice(0, 8),
+    () => (termo ? opcoes.filter((p) => semAcento(p.nome).includes(termo)) : opcoes).slice(0, 30),
     [opcoes, termo],
   );
-  // Opção "sem cadastro": aparece com 3+ letras e quando o nome não é idêntico a alguém da lista
+  // Opção "criar": com 3+ letras e quando o nome não é idêntico a alguém da lista
   const mostraAvulso = nomeDigitado.length >= 3 && !resultados.some((p) => semAcento(p.nome) === termo);
   const totalOpcoes = resultados.length + (mostraAvulso ? 1 : 0);
 
-  const limpar = () => { setTexto(""); setAberto(false); campo.current?.blur(); };
+  const fechar = () => { setAberto(false); setTexto(""); setAtivo(0); };
   const escolher = (i: number) => {
     if (i < resultados.length) aoIncluir(resultados[i].id);
     else if (mostraAvulso) aoIncluirAvulso(nomeDigitado);
     else return;
-    limpar();
+    fechar();
   };
 
+  useEffect(() => {
+    if (!aberto) return;
+    const rolagem = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = rolagem; };
+  }, [aberto]);
+
+  // Mantém a opção ativa à vista ao navegar pelo teclado
+  useEffect(() => {
+    lista.current?.querySelector<HTMLElement>(`[data-i="${ativo}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [ativo]);
+
   return (
-    <div className="relative">
-      <div className="relative">
-        {pendente ? (
-          <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2"><Carregando tamanho={14} /></span>
-        ) : (
-          <UserPlus size={15} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-stone-400" />
-        )}
-        <input
-          ref={campo}
-          value={texto}
-          disabled={pendente}
-          onChange={(e) => { setTexto(e.target.value); setAberto(true); setAtivo(0); }}
-          onFocus={() => setAberto(true)}
-          onBlur={() => setTimeout(() => setAberto(false), 120)}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown") { e.preventDefault(); setAtivo((a) => Math.min(a + 1, totalOpcoes - 1)); }
-            else if (e.key === "ArrowUp") { e.preventDefault(); setAtivo((a) => Math.max(a - 1, 0)); }
-            else if (e.key === "Enter" && totalOpcoes) { e.preventDefault(); escolher(ativo); }
-            else if (e.key === "Escape") { setAberto(false); }
-          }}
-          placeholder={cheio ? "Incluir na lista de espera: buscar ou digitar um nome…" : "Incluir participante: buscar ou digitar um nome…"}
-          role="combobox"
-          aria-expanded={aberto}
-          aria-controls="incluir-opcoes"
-          aria-autocomplete="list"
-          aria-label="Incluir participante"
-          className="campo h-10 pr-9 pl-9 text-sm"
-        />
-        {texto && (
-          <button type="button" onClick={() => setTexto("")} aria-label="Limpar" className="absolute top-1/2 right-2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-stone-400 hover:text-stone-700">
-            <X size={13} />
-          </button>
-        )}
-      </div>
-      {aberto && (totalOpcoes > 0 || !opcoes.length) && (
-        <ul id="incluir-opcoes" role="listbox" className="absolute inset-x-0 bottom-full z-20 mb-1 max-h-72 overflow-y-auto rounded-xl border border-stone-200 bg-white p-1 shadow-elevado">
-          {resultados.map((p, i) => (
-            <li key={p.id} role="option" aria-selected={i === ativo}>
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onMouseEnter={() => setAtivo(i)}
-                onClick={() => escolher(i)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm ${i === ativo ? "bg-mata-50 text-mata-900" : "text-stone-700"}`}
-              >
-                <Avatar nome={p.nome} foto={p.foto} tamanho={26} className="ring-0" />
-                <span className="truncate">{p.nome}</span>
+    <>
+      <button
+        type="button"
+        onClick={() => setAberto(true)}
+        disabled={pendente}
+        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-mata-300 text-sm font-semibold text-mata-700 transition hover:border-mata-400 hover:bg-mata-50 active:bg-mata-100 disabled:opacity-60"
+      >
+        {pendente ? <Carregando tamanho={15} /> : <UserPlus size={17} aria-hidden />}
+        {cheio ? "Incluir na lista de espera" : "Incluir participante"}
+      </button>
+
+      {aberto && createPortal(
+        <div role="dialog" aria-modal="true" aria-label="Incluir participante" className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
+          onKeyDown={(e) => { if (e.key === "Escape") fechar(); }}>
+          <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm" onClick={fechar} />
+          <div className="relative z-10 flex max-h-[85dvh] w-full max-w-md animate-surgir flex-col overflow-hidden rounded-t-3xl border border-stone-200 bg-white shadow-2xl sm:rounded-3xl">
+            <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
+              <div>
+                <h3 className="text-base font-semibold text-stone-900">{cheio ? "Incluir na lista de espera" : "Incluir participante"}</h3>
+                <p className="mt-0.5 text-xs text-stone-500">Busque pelo nome ou crie alguém que ainda não tem cadastro.</p>
+              </div>
+              <button type="button" onClick={fechar} aria-label="Fechar" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-700">
+                <X size={17} />
               </button>
-            </li>
-          ))}
-          {mostraAvulso && (
-            <li role="option" aria-selected={ativo === resultados.length} className={resultados.length ? "mt-1 border-t border-stone-100 pt-1" : ""}>
-              <button
-                type="button"
-                onMouseDown={(e) => e.preventDefault()}
-                onMouseEnter={() => setAtivo(resultados.length)}
-                onClick={() => escolher(resultados.length)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm ${ativo === resultados.length ? "bg-ouro-100/70 text-stone-900" : "text-stone-700"}`}
-              >
-                <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full border border-dashed border-ouro-500 text-ouro-700"><UserPlus size={13} /></span>
-                <span className="min-w-0">
-                  <span className="block truncate">Incluir <strong className="font-semibold">“{nomeDigitado}”</strong></span>
-                  <span className="block text-[11px] text-stone-500">Pessoa ainda sem cadastro no sistema</span>
-                </span>
-              </button>
-            </li>
-          )}
-          {!totalOpcoes && <li className="px-3 py-2.5 text-sm text-stone-400">Digite um nome para incluir alguém sem cadastro.</li>}
-        </ul>
+            </header>
+
+            <div className="px-5 pb-3">
+              <div className="relative">
+                <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-stone-400" />
+                <input
+                  autoFocus
+                  value={texto}
+                  onChange={(e) => { setTexto(e.target.value); setAtivo(0); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowDown") { e.preventDefault(); setAtivo((a) => Math.min(a + 1, totalOpcoes - 1)); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); setAtivo((a) => Math.max(a - 1, 0)); }
+                    else if (e.key === "Enter" && totalOpcoes) { e.preventDefault(); escolher(ativo); }
+                  }}
+                  placeholder="Nome da pessoa"
+                  role="combobox"
+                  aria-expanded
+                  aria-controls="incluir-opcoes"
+                  aria-activedescendant={totalOpcoes ? `incluir-op-${ativo}` : undefined}
+                  aria-autocomplete="list"
+                  aria-label="Nome da pessoa"
+                  className="campo h-11 pr-9 pl-9 text-base sm:text-sm"
+                />
+                {texto && (
+                  <button type="button" onClick={() => { setTexto(""); setAtivo(0); }} aria-label="Limpar" className="absolute top-1/2 right-2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-700">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <ul ref={lista} id="incluir-opcoes" role="listbox" className="min-h-0 flex-1 overflow-y-auto border-t border-stone-100 p-2">
+              {resultados.map((p, i) => (
+                <li key={p.id} id={`incluir-op-${i}`} role="option" aria-selected={i === ativo} data-i={i}>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setAtivo(i)}
+                    onClick={() => escolher(i)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm transition ${i === ativo ? "bg-mata-50 text-mata-900" : "text-stone-700"}`}
+                  >
+                    <Avatar nome={p.nome} foto={p.foto} tamanho={36} className="ring-0" />
+                    <span className="min-w-0 flex-1 truncate font-medium">{p.nome}</span>
+                    <span className={`shrink-0 text-xs font-semibold text-mata-700 transition ${i === ativo ? "opacity-100" : "opacity-0"}`}>Incluir</span>
+                  </button>
+                </li>
+              ))}
+              {/* Criar a partir do nome digitado: por último, quando ninguém da lista tem esse nome exato */}
+              {mostraAvulso && (
+                <li id={`incluir-op-${resultados.length}`} role="option" aria-selected={ativo === resultados.length} data-i={resultados.length} className={resultados.length ? "mt-1 border-t border-stone-100 pt-1" : ""}>
+                  <button
+                    type="button"
+                    onMouseEnter={() => setAtivo(resultados.length)}
+                    onClick={() => escolher(resultados.length)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition ${ativo === resultados.length ? "bg-ouro-100/70 text-stone-900" : "text-stone-700"}`}
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-dashed border-ouro-500 text-ouro-700"><UserPlus size={16} /></span>
+                    <span className="min-w-0">
+                      <span className="block truncate">Criar <strong className="font-semibold">“{nomeDigitado}”</strong></span>
+                      <span className="block text-xs text-stone-500">Pessoa ainda sem cadastro no sistema</span>
+                    </span>
+                  </button>
+                </li>
+              )}
+              {!totalOpcoes && (
+                <li className="px-3 py-8 text-center text-sm text-stone-400">
+                  {nomeDigitado ? "Digite pelo menos 3 letras para criar." : opcoes.length ? "Ninguém encontrado." : "Digite um nome para incluir alguém sem cadastro."}
+                </li>
+              )}
+            </ul>
+          </div>
+        </div>,
+        document.body,
       )}
-    </div>
+    </>
   );
 }

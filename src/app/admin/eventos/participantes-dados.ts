@@ -4,6 +4,7 @@ import {
 } from "@/lib/inscricoes";
 import { listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
 import { mascararCpf } from "@/lib/cpf";
+import { lerDoses, lerDosesEquipe } from "@/lib/doses";
 import type { Evento, Inscricao, TipoEvento } from "@/lib/types";
 import type { DadosParticipantes, ItemParticipanteInscrito, PessoaParticipante } from "./Participantes";
 
@@ -19,6 +20,8 @@ export async function dadosParticipantes(
   tipo: TipoEvento | undefined,
   valorContribuicao: number | null,
   gerenciar: boolean,
+  /** Estado e cidade do Instituto: já vêm preenchidos ao informar os dados de um participante. */
+  localPadrao?: { estado: string | null; cidade: string | null },
 ): Promise<DadosParticipantes | null> {
   if (!aceitaParticipantes(tipo)) return null;
   const [inscricoes, usuarios, pessoas] = await Promise.all([
@@ -39,6 +42,7 @@ export async function dadosParticipantes(
       pagamento: i.pagamento, inscricaoId: i.$id, comprovante: i.comprovante_file_id,
       inscritoEm: i.$createdAt, valor: i.valor, informadoEm: i.informado_em, pagoEm: i.pago_em,
       contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm, cpf: c.cpf ? mascararCpf(c.cpf) : null } : null,
+      doses: gerenciar ? lerDoses(i.doses) : [],
     };
   };
 
@@ -62,7 +66,9 @@ export async function dadosParticipantes(
     disponiveis: gerenciar
       ? pessoas.filter((p) => !inscritos.has(p.id) && !usuarios.get(p.id)?.mock).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
       : [],
+    dosesEquipe: gerenciar ? lerDosesEquipe(evento.doses_equipe) : {},
     valorContribuicao,
+    localPadrao: localPadrao?.estado && localPadrao.cidade ? { estado: localPadrao.estado, cidade: localPadrao.cidade } : null,
     temContribuicao: !!tipo?.conta_como_ritual,
   };
 }

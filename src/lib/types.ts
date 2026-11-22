@@ -71,6 +71,8 @@ export type Evento = {
   guardioes: string[] | null; // preenchido pela guarnição (candidaturas confirmadas)
   /** Guardiões escalados para uma reunião; `guardioes` registra quem foi guardião do dia. */
   guardioes_escalados_reuniao?: string[] | null;
+  /** Doses da equipe, por pessoa (JSON, ver src/lib/doses.ts). */
+  doses_equipe?: string | null;
   vagas_guardioes: number | null; // vagas masculinas (padrão 2)
   vagas_guardias: number | null; // vagas femininas (padrão 2)
   candidaturas_abertas: boolean | null;
@@ -106,6 +108,8 @@ export type Inscricao = {
   pago_em: string | null;
   comprovante_file_id: string | null;
   observacao: string | null;
+  /** Doses consumidas (JSON, ver src/lib/doses.ts). */
+  doses?: string | null;
   alterado_por: string | null;
   $createdAt: string;
   $updatedAt: string;

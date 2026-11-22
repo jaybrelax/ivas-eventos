@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { ID } from "node-appwrite";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/appwrite";
+import { exigirGestaoDoEvento } from "@/lib/gestao-evento";
 import { exigir, pode } from "@/lib/auth";
 import { BUCKET_ID, DB_ID, PODE, TABLES } from "@/lib/config";
 import { getEvento, listarTags, listarTipos } from "@/lib/data";
@@ -35,8 +36,16 @@ function inteiroOuNull(v: FormDataEntryValue | null) {
 }
 
 export async function salvarEvento(_: EstadoForm, form: FormData): Promise<EstadoForm> {
-  const u = await exigir(PODE.editarEventos);
   const id = String(form.get("id") ?? "") || null;
+  // Criar evento: só coordenação e admin. Editar: também o mestre escalado naquele evento.
+  let u: Awaited<ReturnType<typeof exigir>>;
+  if (id) {
+    const g = await exigirGestaoDoEvento(id);
+    if (g.erro !== undefined) return { erro: g.erro };
+    u = g.u;
+  } else {
+    u = await exigir(PODE.editarEventos);
+  }
 
   const p = esquema.safeParse(Object.fromEntries(form));
   if (!p.success) return { erro: p.error.issues[0]?.message ?? "Dados inválidos" };
@@ -194,9 +203,10 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
  * como no salvar do formulário.
  */
 export async function definirMestresAction(eventoId: string, ids: string[]): Promise<{ ok?: string; erro?: string }> {
-  const u = await exigir(PODE.editarEventos);
-  const [evento, equipe, tipos] = await Promise.all([getEvento(eventoId), listarEquipe(), listarTipos()]);
-  if (!evento) return { erro: "Evento não encontrado." };
+  const g = await exigirGestaoDoEvento(eventoId);
+  if (g.erro !== undefined) return { erro: g.erro };
+  const { u, evento } = g;
+  const [equipe, tipos] = await Promise.all([listarEquipe(), listarTipos()]);
   const validos = new Set(equipe.filter((p) => p.funcao === "mestre").map((p) => p.$id));
   const mestres = [...new Set(ids.map(String))].filter((id) => validos.has(id));
   const antes = evento.mestres ?? [];
