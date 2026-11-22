@@ -12,7 +12,8 @@ function dataFim(ate: string) {
   return new Date(ate).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "long", year: "numeric" });
 }
 
-export function AcoesGuardiao({ id, nome, suspensoAte }: { id: string; nome: string; suspensoAte: string | null }) {
+/** `proprio`: a própria conta pode ser suspensa, mas não pode retirar o próprio cargo. */
+export function AcoesGuardiao({ id, nome, suspensoAte, proprio = false }: { id: string; nome: string; suspensoAte: string | null; proprio?: boolean }) {
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
   const [menuAberto, setMenuAberto] = useState(false);
@@ -66,9 +67,11 @@ export function AcoesGuardiao({ id, nome, suspensoAte }: { id: string; nome: str
             <button type="button" role="menuitem" onClick={() => abrir("suspender")} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-amber-800 active:bg-amber-50">
               <CalendarClock size={18} /> Suspender guardião
             </button>
-            <button type="button" role="menuitem" onClick={() => abrir("excluir")} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-red-700 active:bg-red-50">
-              <Trash2 size={18} /> Excluir guardião
-            </button>
+            {!proprio && (
+              <button type="button" role="menuitem" onClick={() => abrir("excluir")} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-3 text-left text-sm font-medium text-red-700 active:bg-red-50">
+                <Trash2 size={18} /> Excluir guardião
+              </button>
+            )}
           </div>
         )}
       </div>

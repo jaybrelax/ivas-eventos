@@ -117,12 +117,12 @@ export function ListaSoldados({ pessoas }: { pessoas: Pessoa[] }) {
               <Link href={`/guarnicao/guardioes/${p.id}`} className={`flex items-center gap-3 px-4 py-3 active:bg-stone-50 ${foco}`}>
                 <Avatar nome={p.nome} foto={p.foto} tamanho={44} />
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1 text-sm font-semibold text-stone-900"><span className="truncate">{p.nome}</span>{p.sexo && <IconeGenero genero={p.sexo} size={12} />}</span>
+                  <span className="flex items-center gap-1 text-sm font-semibold text-stone-900"><span className="truncate">{p.nome}</span>{p.sexo && <IconeGenero genero={p.sexo} size={12} />}{p.suspenso && <span className="ml-1 shrink-0 rounded-full bg-stone-100 px-1.5 py-px text-[10px] font-medium text-stone-500" title="Candidaturas suspensas">suspenso</span>}</span>
                   <span className="flex items-center gap-1 text-xs font-medium text-emerald-700">
                     {p.funcao === "mestre" ? <Crown aria-hidden size={13} /> : <Shield aria-hidden size={13} />}
                     {p.funcao === "mestre" ? p.sexo === "feminino" ? "Mestra" : "Mestre" : p.sexo === "feminino" ? "Guardiã" : "Guardião"}
                   </span>
-                  <span className="block text-xs text-stone-500">{p.suspenso ? "Suspenso · " : ""}{p.ultimoTexto}</span>
+                  <span className="block text-xs text-stone-500">{p.ultimoTexto}</span>
                 </span>
                 <span className="shrink-0 text-right">
                   <span className="block text-lg leading-none font-bold text-stone-900 tabular-nums">{p.total}</span>

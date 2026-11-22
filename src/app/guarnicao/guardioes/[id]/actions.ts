@@ -8,11 +8,12 @@ import { funcaoDosLabels, prefsDe } from "@/lib/usuarios";
 import { fimSuspensao, suspensaoAtiva } from "@/lib/suspensao-guarnicao";
 import { sinalizarMudanca } from "@/lib/tempo-real";
 
-async function alvoDoCoordenador(userId: string) {
+/** `permitirProprio`: a suspensão pode ser aplicada à própria conta; retirar o cargo, não. */
+async function alvoDoCoordenador(userId: string, permitirProprio = false) {
   const ctx = await contextoGuarnicao();
   if (!ctx || (ctx.u.perfil !== "coordenador" && ctx.u.perfil !== "admin"))
     return { erro: "Só a coordenação pode alterar a situação de um guardião." } as const;
-  if (!userId || userId.length > 64 || userId === ctx.u.id) return { erro: "Guardião inválido." } as const;
+  if (!userId || userId.length > 64 || (userId === ctx.u.id && !permitirProprio)) return { erro: "Guardião inválido." } as const;
   const { users } = createAdminClient();
   const conta = await users.get({ userId }).catch(() => null);
   if (!conta || !conta.status || funcaoDosLabels(conta.labels) !== "guardiao") return { erro: "Guardião não encontrado." } as const;
@@ -29,7 +30,7 @@ async function revalidar(userId: string) {
 
 /** Impede novas candidaturas feitas pelo guardião por 3 ou 6 meses de calendário. */
 export async function suspenderGuardiao(userId: string, meses: number): Promise<Resultado> {
-  const alvo = await alvoDoCoordenador(userId);
+  const alvo = await alvoDoCoordenador(userId, true);
   if ("erro" in alvo) return { erro: alvo.erro };
   if (meses !== 3 && meses !== 6) return { erro: "Escolha 3 ou 6 meses." };
   const ate = fimSuspensao(meses);
@@ -45,7 +46,7 @@ export async function suspenderGuardiao(userId: string, meses: number): Promise<
 
 /** Permite que o guardião volte a se candidatar imediatamente. */
 export async function removerSuspensaoGuardiao(userId: string): Promise<Resultado> {
-  const alvo = await alvoDoCoordenador(userId);
+  const alvo = await alvoDoCoordenador(userId, true);
   if ("erro" in alvo) return { erro: alvo.erro };
   if (!suspensaoAtiva(prefsDe(alvo.conta.prefs).guarnicao_suspenso_ate)) return { erro: "Este guardião não está suspenso." };
   try {
