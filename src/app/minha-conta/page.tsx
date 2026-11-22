@@ -108,7 +108,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
           </div>
         )}
       </main>
-      <RodapePublico instituto={instituto} enderecos={enderecos} telefones={telefones} redes={redes} />
+      <RodapePublico instituto={instituto} enderecos={enderecos} telefones={telefones} redes={redes} apenasSocket />
     </div>
   );
 }

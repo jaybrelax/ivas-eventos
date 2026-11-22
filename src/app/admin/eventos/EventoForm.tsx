@@ -517,7 +517,7 @@ export function EventoForm({ evento, tipos, tags, enderecos, equipe, podeNumerar
             {evento?.$id ? "Editando evento" : "Novo evento"}{tipo && <> · <span className="font-medium" style={{ color: tipo.cor }}>{tipo.nome}</span></>}
           </p>
           <div className="flex w-full gap-2 sm:w-auto">
-            <Link href="/admin/eventos" className="btn-secundario flex-1 sm:flex-none">Cancelar</Link>
+            <Link href={evento ? `/admin/eventos/${evento.$id}` : "/admin/eventos"} className="btn-secundario flex-1 sm:flex-none">Cancelar</Link>
             <button type="submit" className="btn-primario flex-1 sm:flex-none sm:px-6" disabled={pendente}>
               {pendente ? <><Carregando /> Salvando…</> : <><Check size={17} /> Salvar evento</>}
             </button>

@@ -2,7 +2,8 @@ import "server-only";
 import {
   aceitaParticipantes, inicioDe, inscricoesDoEvento, prazoCancelamento, vagasParticipantesDe,
 } from "@/lib/inscricoes";
-import { listarParticipantes, listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
+import { listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
+import { mascararCpf } from "@/lib/cpf";
 import type { Evento, Inscricao, TipoEvento } from "@/lib/types";
 import type { DadosParticipantes, ItemParticipanteInscrito, PessoaParticipante } from "./Participantes";
 
@@ -20,10 +21,9 @@ export async function dadosParticipantes(
   gerenciar: boolean,
 ): Promise<DadosParticipantes | null> {
   if (!aceitaParticipantes(tipo)) return null;
-  const [inscricoes, usuarios, participantes, pessoas] = await Promise.all([
+  const [inscricoes, usuarios, pessoas] = await Promise.all([
     inscricoesDoEvento(evento.$id),
     mapaUsuarios(),
-    gerenciar ? listarParticipantes() : Promise.resolve([]),
     gerenciar ? listarTodasAsPessoas() : Promise.resolve([]),
   ]);
   const contatoPorId = new Map(pessoas.map((p) => [p.id, p]));
@@ -38,7 +38,7 @@ export async function dadosParticipantes(
       ...pessoa(i.usuario_id),
       pagamento: i.pagamento, inscricaoId: i.$id, comprovante: i.comprovante_file_id,
       inscritoEm: i.$createdAt, valor: i.valor, informadoEm: i.informado_em, pagoEm: i.pago_em,
-      contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm } : null,
+      contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm, cpf: c.cpf ? mascararCpf(c.cpf) : null } : null,
     };
   };
 
@@ -58,7 +58,10 @@ export async function dadosParticipantes(
     confirmados,
     espera,
     gerenciar,
-    disponiveis: gerenciar ? participantes.filter((p) => !inscritos.has(p.id)).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto })) : [],
+    // Qualquer pessoa com conta (participante ou equipe) que ainda não está inscrita; contas de teste (mock) ficam de fora
+    disponiveis: gerenciar
+      ? pessoas.filter((p) => !inscritos.has(p.id) && !usuarios.get(p.id)?.mock).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+      : [],
     valorContribuicao,
     temContribuicao: !!tipo?.conta_como_ritual,
   };

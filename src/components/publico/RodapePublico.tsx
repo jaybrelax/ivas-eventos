@@ -40,18 +40,23 @@ export function RodapePublico({
   enderecos,
   telefones,
   redes,
+  apenasSocket = false,
 }: {
   instituto: Instituto;
   enderecos: Endereco[];
   telefones: Telefone[];
   redes: Rede[];
+  /** Só a faixa final (direitos, Privacidade, Termos), sem o rodapé completo. */
+  apenasSocket?: boolean;
 }) {
   const tel = telefones.find((t) => t.whatsapp && t.padrao) ?? telefones.find((t) => t.whatsapp) ?? telefones[0];
   const ano = new Date().getFullYear();
 
   return (
-    <footer className="relative mt-20 overflow-hidden bg-mata-950 text-white/70">
+    <footer className={`relative overflow-hidden bg-mata-950 text-white/70 ${apenasSocket ? "mt-12" : "mt-20"}`}>
       <AvisoCookies />
+      {/* Área logada (Minha conta): só o socket, sem contatos, redes e endereços */}
+      {!apenasSocket && (<>
       {/* filete dourado e brilho suave no topo */}
       <div aria-hidden className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-ouro-400/60 to-transparent" />
       <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 h-64 w-[44rem] -translate-x-1/2 rounded-full bg-mata-600/20 blur-3xl" />
@@ -135,6 +140,7 @@ export function RodapePublico({
           </div>
         </div>
       </div>
+      </>)}
 
       {/* Socket: direitos, lema e acesso restrito */}
       <div className="relative border-t border-white/10">

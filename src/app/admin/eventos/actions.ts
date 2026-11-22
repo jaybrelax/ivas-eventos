@@ -180,10 +180,43 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
     const salvo = await getEvento(id);
     if (salvo && !tipo.fechado_guardioes) await reorganizar(salvo, u.id).catch((e) => console.error(e));
     revalidatePath(`/admin/eventos/${id}`);
+    revalidatePath(`/admin/eventos/${id}/editar`);
     revalidatePath("/admin/guarnicao");
   }
   revalidatePath("/admin/eventos");
-  redirect(`/admin/eventos?mes=${d.data.slice(0, 7)}&ok=salvo`);
+  // Depois de salvar, volta para a visualização do evento (novo ou editado)
+  redirect(salvoId ? `/admin/eventos/${salvoId}?ok=salvo` : `/admin/eventos?mes=${d.data.slice(0, 7)}&ok=salvo`);
+}
+
+/**
+ * Define os mestres escalados no evento (pop-up "Gerenciar" da página do evento). Só aceita
+ * pessoas com a função Mestre. Em reuniões, entrar ou sair da escala atualiza a presença automática,
+ * como no salvar do formulário.
+ */
+export async function definirMestresAction(eventoId: string, ids: string[]): Promise<{ ok?: string; erro?: string }> {
+  const u = await exigir(PODE.editarEventos);
+  const [evento, equipe, tipos] = await Promise.all([getEvento(eventoId), listarEquipe(), listarTipos()]);
+  if (!evento) return { erro: "Evento não encontrado." };
+  const validos = new Set(equipe.filter((p) => p.funcao === "mestre").map((p) => p.$id));
+  const mestres = [...new Set(ids.map(String))].filter((id) => validos.has(id));
+  const antes = evento.mestres ?? [];
+
+  const { tablesDB } = createAdminClient();
+  await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: eventoId, data: { mestres, atualizado_por: u.id } });
+
+  const tipo = tipos.find((t) => t.$id === evento.tipo_id);
+  if (tipo?.fechado_guardioes) {
+    const equipeReuniao = new Set([...(evento.guardioes_escalados_reuniao ?? []), ...(evento.guardioes ?? [])]);
+    const removidos = antes.filter((id) => !mestres.includes(id) && !equipeReuniao.has(id));
+    const novos = mestres.filter((id) => !antes.includes(id) && !equipeReuniao.has(id));
+    await registrarConfirmacoesDaEquipe(evento, removidos, u.id, 0).catch((e) => console.error("Escala de mestres (saída)", e));
+    const salvo = await getEvento(eventoId);
+    if (salvo && novos.length) await registrarConfirmacoesDaEquipe(salvo, novos, u.id).catch((e) => console.error("Escala de mestres (entrada)", e));
+  }
+  revalidatePath(`/admin/eventos/${eventoId}`);
+  revalidatePath(`/admin/eventos/${eventoId}/editar`);
+  revalidatePath("/admin/eventos");
+  return { ok: mestres.length ? `${mestres.length} ${mestres.length === 1 ? "mestre escalado" : "mestres escalados"}.` : "Nenhum mestre escalado." };
 }
 
 export async function excluirEvento(form: FormData) {

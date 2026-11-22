@@ -1,17 +1,28 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppwriteException, Query } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "@/lib/appwrite";
 import { SESSION_COOKIE } from "@/lib/config";
 import { perfilDosLabels } from "@/lib/usuarios";
 import { destinoSeguro } from "@/lib/destino-auth";
+import { bloqueado, ipDe, limpar, registrarFalha, textoEspera } from "@/lib/limite-taxa";
+
+const JANELA_MS = 15 * 60_000;
+const MAX_FALHAS_EMAIL = 8;
+const MAX_FALHAS_IP = 30;
 
 export async function entrar(_: { erro?: string } | undefined, form: FormData) {
   const email = String(form.get("email") ?? "").trim();
   const senha = String(form.get("senha") ?? "");
   if (!email || !senha) return { erro: "Informe e-mail e senha." };
+
+  // O Appwrite não limita chamadas feitas com chave de API: o limite de tentativas é daqui.
+  const chaveIp = `login:ip:${ipDe(await headers())}`;
+  const chaveEmail = `login:email:${email.toLowerCase()}`;
+  const trava = [bloqueado(chaveEmail, MAX_FALHAS_EMAIL), bloqueado(chaveIp, MAX_FALHAS_IP)].find((b) => b.bloqueado);
+  if (trava) return { erro: `Muitas tentativas. Tente de novo em ${textoEspera(trava.esperaS)}.` };
 
   let destino: string;
   try {
@@ -25,6 +36,7 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
       expires: new Date(sessao.expire),
     });
     // Equipe (admin/coordenador/normal) entra no painel; qualquer outra conta vai para a área do participante.
+    limpar(chaveEmail);
     const conta = await users.get({ userId: sessao.userId });
     const perfil = perfilDosLabels(conta.labels);
     destino = destinoSeguro(form.get("next")) ?? (perfil ? "/admin/eventos" : "/minha-conta");
@@ -32,7 +44,7 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
     const msg = e instanceof Error ? e.message : "";
     if (msg.includes("fetch failed") || msg.includes("ECONNREFUSED"))
       return { erro: "Não consegui falar com o Appwrite. Ele está rodando? Confira APPWRITE_ENDPOINT no .env.local." };
-    // Conta bloqueada: se for um cadastro aguardando aprovação, avisa em vez de "senha incorreta"
+    // O Appwrite confere a senha antes de avisar que a conta está bloqueada: só quem acertou a senha vê as mensagens abaixo.
     if (e instanceof AppwriteException && e.type === "user_blocked") {
       const { users } = createAdminClient();
       const u = (await users.list({ queries: [Query.equal("email", email), Query.limit(1)] }).catch(() => null))?.users[0];
@@ -41,6 +53,8 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
         return { erro: "Seu cadastro ainda está aguardando a aprovação da coordenação." };
       return { erro: "Este acesso está desativado. Fale com a coordenação." };
     }
+    registrarFalha(chaveEmail, JANELA_MS);
+    registrarFalha(chaveIp, JANELA_MS);
     return { erro: "E-mail ou senha incorretos." };
   }
   redirect(destino);

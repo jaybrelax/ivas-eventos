@@ -8,6 +8,7 @@
     "start": "next start",
     "setup": "node --env-file=.env.local scripts/setup-appwrite.mjs",
     "typecheck": "tsc --noEmit",
+    "test": "node --test scripts/redirecionamentos.test.mjs scripts/limite-taxa.test.mjs scripts/pagamento-regras.test.mjs",
     "test:redirecionamentos": "node --test scripts/redirecionamentos.test.mjs"
   },
   "dependencies": {
@@ -16,7 +17,7 @@
     "date-fns": "^4.4.0",
     "lucide-react": "^1.58.0",
     "modern-screenshot": "^4.7.0",
-    "next": "16.4.2",
+    "next": "^16.4.6",
     "node-appwrite": "^30.0.1",
     "qrcode": "^1.5.4",
     "react": "19.3.0",

@@ -169,6 +169,24 @@ const TABELAS = {
       ["ix_insc_comprovante", "key", ["comprovante_file_id"]],
     ],
   },
+  // Histórico das inscrições: cada mudança de pagamento, inclusão ou cancelamento vira uma linha (só acrescenta)
+  historico_inscricoes: {
+    nome: "Histórico das inscrições",
+    colunas: [
+      v("inscricao_id", 36, { required: true }), v("evento_id", 36, { required: true }), v("usuario_id", 36, { required: true }),
+      en("acao", [
+        "inscricao", "inclusao", "cancelamento", "remocao",
+        "pagamento_informado", "pagamento_na_hora", "pagamento_desfeito",
+        "pagamento_confirmado", "pagamento_isento", "pagamento_reaberto",
+      ], "inscricao"),
+      v("pagamento_de", 20), v("pagamento_para", 20), f("valor", { min: 0 }), v("por", 36, { required: true }),
+    ],
+    indices: [
+      ["ix_hist_inscricao", "key", ["inscricao_id"]],
+      ["ix_hist_evento", "key", ["evento_id"]],
+      ["ix_hist_usuario", "key", ["usuario_id"]],
+    ],
+  },
   modelos_banner: {
     nome: "Modelos de banner",
     colunas: [v("nome", 80, { required: true }), t("config", { required: true })],

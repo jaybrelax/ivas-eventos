@@ -14,6 +14,13 @@ export function dataPorExtenso(iso: string) {
   return `${p.diaSemana}, ${p.dia} de ${p.mesNome}`;
 }
 
+/** "Quarta-feira, 21 de Nov": versão enxuta para telas pequenas. */
+export function dataAbreviada(iso: string) {
+  const p = partesData(iso);
+  const cap = (t: string) => t.charAt(0).toUpperCase() + t.slice(1);
+  return `${cap(p.diaSemana)}, ${p.dia} de ${cap(p.mesNome.slice(0, 3))}`;
+}
+
 export function dataCurta(iso: string) {
   const p = partesData(iso);
   return `${String(p.dia).padStart(2, "0")}/${String(p.mes).padStart(2, "0")}/${p.ano}`;

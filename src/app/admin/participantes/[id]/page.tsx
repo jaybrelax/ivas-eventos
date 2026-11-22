@@ -20,7 +20,7 @@ const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency"
 
 /** Ficha do participante: dados de cadastro, rituais de que participou e pagamentos. */
 export default async function FichaParticipante({ params }: PageProps<"/admin/participantes/[id]">) {
-  await exigir(PODE.editarEventos);
+  const eu = await exigir(PODE.editarEventos);
   const { id } = await params;
   const { users } = createAdminClient();
   const conta = await users.get({ userId: id }).catch(() => null);
@@ -113,8 +113,10 @@ export default async function FichaParticipante({ params }: PageProps<"/admin/pa
               ) : (
                 <EditarParticipante
                   userId={id}
+                  podeTrocarEmail={eu.perfil === "admin"}
                   dados={{
-                    nome, email: conta.email, telefone: p.telefone, sexo: p.sexo, cpf: p.cpf, dataNascimento: p.data_nascimento,
+                    // O CPF completo não vai para o navegador: o formulário só troca o número se pedirem
+                    nome, email: conta.email, telefone: p.telefone, sexo: p.sexo, cpfMascarado: p.cpf ? mascararCpf(p.cpf) : null, dataNascimento: p.data_nascimento,
                     endereco: p.endereco, estado: p.estado, cidade: p.cidade, profissao: p.profissao,
                     experiencia: p.experiencia_ayahuasca, motivacao: p.motivacao, expectativas: p.expectativas,
                   }}

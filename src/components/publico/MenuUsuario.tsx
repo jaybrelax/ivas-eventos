@@ -2,12 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Calendar, ChevronDown, Download, LogOut, Settings, Share, Ticket } from "lucide-react";
+import { Calendar, ChevronDown, Download, LayoutDashboard, LogOut, Settings, Share, Shield, Ticket } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { useInstalar } from "@/components/useInstalar";
 
 /** Avatar + nome no cabeçalho público; clicar abre o menu com os atalhos da conta. */
-export function MenuUsuario({ nome, foto, sair }: { nome: string; foto: string | null; sair: () => Promise<void> }) {
+export function MenuUsuario({
+  nome, foto, sair, guarnicaoUrl = null, admin = false,
+}: {
+  nome: string;
+  foto: string | null;
+  sair: () => Promise<void>;
+  /** Endereço do app da Guarnição; null esconde a opção. */
+  guarnicaoUrl?: string | null;
+  admin?: boolean;
+}) {
   const [aberto, setAberto] = useState(false);
   const [dicaIos, setDicaIos] = useState(false);
   const inst = useInstalar();
@@ -70,6 +79,28 @@ export function MenuUsuario({ nome, foto, sair }: { nome: string; foto: string |
           >
             <Calendar size={16} className="text-stone-400" /> Agenda de Rituais
           </Link>
+          {(guarnicaoUrl || admin) && <div className="my-1 h-px bg-stone-100" />}
+          {guarnicaoUrl && (
+            // Outro domínio: link comum, sem o roteamento do Next
+            <a
+              href={guarnicaoUrl}
+              role="menuitem"
+              onClick={() => setAberto(false)}
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+            >
+              <Shield size={16} className="text-stone-400" /> App Guarnição
+            </a>
+          )}
+          {admin && (
+            <Link
+              href="/admin"
+              role="menuitem"
+              onClick={() => setAberto(false)}
+              className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+            >
+              <LayoutDashboard size={16} className="text-stone-400" /> Administração
+            </Link>
+          )}
           {inst.disponivel && (
             <>
               <button

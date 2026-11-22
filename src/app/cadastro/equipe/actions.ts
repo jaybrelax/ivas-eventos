@@ -1,6 +1,7 @@
 "use server";
 
 import { ID } from "node-appwrite";
+import { limitarCadastro } from "@/lib/limite-cadastro";
 import { createAdminClient } from "@/lib/appwrite";
 import { salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Funcao, Sexo } from "@/lib/types";
@@ -15,6 +16,9 @@ export type ResultadoCadastro = { ok?: boolean; erro?: string } | undefined;
 export async function cadastrar(_: ResultadoCadastro, form: FormData): Promise<ResultadoCadastro> {
   // Campo escondido que só robôs preenchem
   if (String(form.get("site") ?? "")) return { ok: true };
+
+  const trava = await limitarCadastro();
+  if (trava) return { erro: trava };
 
   const nome = String(form.get("nome") ?? "").trim().replace(/\s+/g, " ").slice(0, 128);
   const email = String(form.get("email") ?? "").trim().toLowerCase();

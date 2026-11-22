@@ -6,6 +6,8 @@ import { getUsuario } from "@/lib/auth";
 import { sair } from "@/app/login/actions";
 import { MenuUsuario } from "./MenuUsuario";
 
+const GUARNICAO_URL = (process.env.GUARNICAO_URL ?? "https://guarnicao.virtudes.net.br").replace(/\/+$/, "");
+
 /** `mostrarAgenda`: false na própria agenda (o botão seria redundante lá). */
 export async function CabecalhoPublico({ instituto, mostrarAgenda = true }: { instituto: Instituto; mostrarAgenda?: boolean }) {
   const u = await getUsuario();
@@ -21,7 +23,14 @@ export async function CabecalhoPublico({ instituto, mostrarAgenda = true }: { in
         {/* Logado: avatar com o menu da conta. Visitante: só o link da agenda (painel fica no rodapé). */}
         <nav className="flex items-center gap-3">
           {u ? (
-            <MenuUsuario nome={u.nome} foto={u.foto} sair={sair} />
+            <MenuUsuario
+              nome={u.nome}
+              foto={u.foto}
+              sair={sair}
+              // Guarnição é outro app (outro domínio): guardião e coordenação têm o atalho; o painel é só do Admin
+              guarnicaoUrl={u.funcaoRitual === "guardiao" || u.perfil === "coordenador" ? `${GUARNICAO_URL}/guarnicao` : null}
+              admin={u.perfil === "admin"}
+            />
           ) : (
             <>
               {mostrarAgenda && (

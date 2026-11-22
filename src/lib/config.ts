@@ -19,6 +19,8 @@ export const TABLES = {
   modelos: "modelos_banner",
   candidaturas: "candidaturas",
   inscricoes: "inscricoes",
+  /** Quem mudou o quê numa inscrição (pagamento, inclusão, cancelamento): só cresce, nunca é editada. */
+  historicoInscricoes: "historico_inscricoes",
   push: "push_inscricoes",
   sinais: "sinais",
 } as const;

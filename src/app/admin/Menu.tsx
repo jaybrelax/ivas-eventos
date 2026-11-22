@@ -22,6 +22,8 @@ type Props = {
 
 export function Menu({ grupos, marca, usuario, sair }: Props) {
   const path = usePathname();
+  // Visualização e edição do evento: no mobile a página tem a própria barra (voltar + menu ⋮)
+  const semBarra = /^\/admin\/eventos\/(?!novo$)[^/]+(\/editar)?$/.test(path);
   const [aberto, setAberto] = useState(false);
   const [dicaIos, setDicaIos] = useState(false);
   const inst = useInstalar();
@@ -119,7 +121,7 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 md:block xl:w-72">{conteudo}</aside>
 
       {/* Mobile: barra no topo + gaveta */}
-      <div className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-white/10 bg-mata-950 px-4 py-3 md:hidden">
+      <div className={`sticky top-0 z-30 items-center justify-between gap-3 border-b border-white/10 bg-mata-950 px-4 py-3 md:hidden ${semBarra ? "hidden" : "flex"}`}>
         <div className="min-w-0 [&_img]:!h-9 [&_p.text-xs]:hidden">{marca}</div>
         <button onClick={() => setAberto(true)} className="grid h-10 w-10 place-items-center rounded-xl text-mata-100 hover:bg-white/10" aria-label="Abrir menu">
           <MenuIcone size={22} />

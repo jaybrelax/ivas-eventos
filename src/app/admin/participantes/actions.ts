@@ -22,6 +22,11 @@ export async function excluirParticipante(userId: string): Promise<{ ok?: string
     if (!ehParticipante(conta.labels)) return { erro: "Só é possível excluir aqui contas de participante." };
 
     const inscricoes = await listar<Inscricao>(TABLES.inscricoes, [Query.equal("usuario_id", userId)]);
+    // Contribuição confirmada é registro financeiro: não some junto com a conta
+    const pagas = inscricoes.filter((i) => i.pagamento === "pago").length;
+    if (pagas) {
+      return { erro: `Este participante tem ${pagas} ${pagas === 1 ? "contribuição confirmada" : "contribuições confirmadas"}. Para não perder o registro financeiro, a conta não pode ser excluída.` };
+    }
     const eventosAfetados = new Set(inscricoes.filter((i) => i.situacao !== "cancelada").map((i) => i.evento_id));
     for (const i of inscricoes) {
       if (i.comprovante_file_id) await storage.deleteFile({ bucketId: COMPROVANTES_BUCKET_ID, fileId: i.comprovante_file_id }).catch(() => {});
@@ -47,7 +52,7 @@ export type ResultadoEdicao = { ok?: string; erro?: string } | undefined;
 
 /** Coordenação corrige os dados de um participante (nome, e-mail, contato, documentos e o que ele contou). */
 export async function editarParticipante(userId: string, _: ResultadoEdicao, form: FormData): Promise<ResultadoEdicao> {
-  await exigir(PODE.editarEventos);
+  const eu = await exigir(PODE.editarEventos);
   const nome = String(form.get("nome") ?? "").trim().replace(/\s+/g, " ").slice(0, 128);
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   if (!nome) return { erro: "Informe o nome." };
@@ -59,6 +64,8 @@ export async function editarParticipante(userId: string, _: ResultadoEdicao, for
     if (!ehParticipante(conta.labels)) return { erro: "Essa conta não é de participante." };
     if (conta.name !== nome) await users.updateName({ userId, name: nome });
     if (conta.email.toLowerCase() !== email) {
+      // Trocar o e-mail permite tomar a conta (o "esqueci a senha" passa a ir para o novo endereço)
+      if (eu.perfil !== "admin") return { erro: "Só o Admin pode trocar o e-mail de um participante." };
       try {
         await users.updateEmail({ userId, email });
       } catch (e) {

@@ -23,6 +23,9 @@ function revalidar(eventoId: string) {
 /** Guardião se candidata a uma vaga. */
 export async function candidatarAction(eventoId: string): Promise<Resultado> {
   const u = await exigir();
+  // Mesmas travas do app da Guarnição: suspenso, aprovação pendente ou cargo retirado não se candidata.
+  if (u.suspensoAte) return { erro: "Suas candidaturas estão suspensas. Fale com a coordenação." };
+  if (u.aprovacaoPendente || u.cargoRemovido) return { erro: "Seu acesso à guarnição não está ativo. Fale com a coordenação." };
   const { evento, tipo } = await contexto(eventoId);
   if (!evento) return { erro: "Evento não encontrado." };
   const r = await candidatar(evento, tipo, { id: u.id, funcaoRitual: u.funcaoRitual, sexo: u.sexo });

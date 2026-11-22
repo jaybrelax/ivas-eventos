@@ -6,9 +6,10 @@ import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigirSessao } from "@/lib/auth";
 import { COMPROVANTES_BUCKET_ID } from "@/lib/config";
-import { getEvento, listarTipos } from "@/lib/data";
+import { getEvento, getInstituto, listarTipos } from "@/lib/data";
 import { conferirImagem } from "@/lib/imagem";
 import { cancelarInscricao, contribuirNaHora, informarPagamento, inscrever, type Resultado } from "@/lib/inscricoes";
+import { lerValor } from "@/lib/pagamento-regras";
 
 async function contexto(eventoId: string) {
   const [evento, tipos] = await Promise.all([getEvento(eventoId), listarTipos()]);
@@ -45,8 +46,9 @@ export async function cancelarInscricaoAction(eventoId: string): Promise<Resulta
 /** Avisa que já contribuiu (comprovante opcional, reduzido no navegador antes do envio). */
 export async function informarPagamentoAction(eventoId: string, inscricaoId: string, form: FormData): Promise<Resultado> {
   const u = await exigirSessao(`/eventos/${eventoId}`);
-  const valorBruto = form.get("valor");
-  const valor = valorBruto !== null && Number.isFinite(Number(valorBruto)) ? Number(valorBruto) : null;
+  // O valor vem da configuração do Instituto, não do navegador: o participante não escolhe quanto "pagou".
+  const lido = lerValor((await getInstituto()).valor_contribuicao);
+  const valor = "erro" in lido ? null : lido.valor;
 
   let comprovanteFileId: string | null = null;
   const arquivo = form.get("comprovante");

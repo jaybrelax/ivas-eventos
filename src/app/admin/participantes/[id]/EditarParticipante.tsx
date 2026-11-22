@@ -14,13 +14,15 @@ import type { Experiencia } from "@/lib/perfil-extra";
 import { editarParticipante } from "../actions";
 
 export type DadosEdicao = {
-  nome: string; email: string; telefone: string | null; sexo: Genero | null; cpf: string | null; dataNascimento: string | null;
+  nome: string; email: string; telefone: string | null; sexo: Genero | null;
+  /** Só a versão mascarada: o campo de CPF aparece vazio quando a coordenação pede para trocar. */
+  cpfMascarado: string | null; dataNascimento: string | null;
   endereco: string | null; estado: string | null; cidade: string | null; profissao: string | null;
   experiencia: Experiencia | null; motivacao: string | null; expectativas: string | null;
 };
 
 /** Botão "Editar dados" da ficha: abre o formulário de correção dos dados do participante. */
-export function EditarParticipante({ userId, dados }: { userId: string; dados: DadosEdicao }) {
+export function EditarParticipante({ userId, dados, podeTrocarEmail }: { userId: string; dados: DadosEdicao; podeTrocarEmail: boolean }) {
   const [aberto, setAberto] = useState(false);
   // Chave nova a cada abertura: o formulário sempre começa com os dados atuais.
   const [versao, setVersao] = useState(0);
@@ -30,13 +32,14 @@ export function EditarParticipante({ userId, dados }: { userId: string; dados: D
       <button type="button" onClick={() => { setVersao((v) => v + 1); setAberto(true); }} className="btn-secundario w-full">
         <Pencil size={15} /> Editar dados
       </button>
-      {aberto && <Formulario key={versao} userId={userId} dados={dados} fechar={() => setAberto(false)} />}
+      {aberto && <Formulario key={versao} userId={userId} dados={dados} podeTrocarEmail={podeTrocarEmail} fechar={() => setAberto(false)} />}
     </>
   );
 }
 
-function Formulario({ userId, dados, fechar }: { userId: string; dados: DadosEdicao; fechar: () => void }) {
+function Formulario({ userId, dados, podeTrocarEmail, fechar }: { userId: string; dados: DadosEdicao; podeTrocarEmail: boolean; fechar: () => void }) {
   const [resultado, acao, pendente] = useActionState(editarParticipante.bind(null, userId), undefined);
+  const [trocarCpf, setTrocarCpf] = useState(false);
 
   useEffect(() => {
     if (resultado?.ok) fechar();
@@ -77,7 +80,8 @@ function Formulario({ userId, dados, fechar }: { userId: string; dados: DadosEdi
             </div>
             <div>
               <label className="rotulo" htmlFor="ed-email">E-mail</label>
-              <input id="ed-email" name="email" type="email" required defaultValue={dados.email} className="campo h-11" />
+              <input id="ed-email" name="email" type="email" required defaultValue={dados.email} readOnly={!podeTrocarEmail} aria-describedby={podeTrocarEmail ? undefined : "ed-email-ajuda"} className={`campo h-11 ${podeTrocarEmail ? "" : "bg-stone-50 text-stone-500"}`} />
+              {!podeTrocarEmail && <p id="ed-email-ajuda" className="mt-1 text-xs text-stone-500">Só o Admin pode trocar o e-mail.</p>}
             </div>
             <div>
               <label className="rotulo" htmlFor="ed-telefone">WhatsApp</label>
@@ -85,7 +89,17 @@ function Formulario({ userId, dados, fechar }: { userId: string; dados: DadosEdi
             </div>
             <div>
               <label className="rotulo" htmlFor="ed-cpf">CPF</label>
-              <InputCPF id="ed-cpf" name="cpf" defaultValue={dados.cpf} className="campo h-11" />
+              {/* Sem o campo no formulário, o CPF salvo continua o mesmo */}
+              {trocarCpf ? (
+                <InputCPF id="ed-cpf" name="cpf" defaultValue={null} className="campo h-11" />
+              ) : (
+                <div className="flex h-11 items-center justify-between gap-2 rounded-xl border border-stone-200 bg-stone-50 px-3 text-sm">
+                  <span className="tabular-nums text-stone-600">{dados.cpfMascarado ?? "Não informado"}</span>
+                  <button type="button" id="ed-cpf" onClick={() => setTrocarCpf(true)} className="text-xs font-semibold text-mata-700 hover:underline">
+                    {dados.cpfMascarado ? "Trocar" : "Informar"}
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <label className="rotulo" htmlFor="ed-nasc">Data de nascimento</label>

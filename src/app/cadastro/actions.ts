@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { limitarCadastro } from "@/lib/limite-cadastro";
 import { redirect } from "next/navigation";
 import { ID } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
@@ -22,6 +23,9 @@ export type ResultadoCadastro = { erro?: string } | undefined;
 export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData): Promise<ResultadoCadastro> {
   // Campo escondido que só robôs preenchem
   if (String(form.get("site") ?? "")) return undefined;
+
+  const trava = await limitarCadastro();
+  if (trava) return { erro: trava };
 
   const nome = String(form.get("nome") ?? "").trim().replace(/\s+/g, " ").slice(0, 128);
   const email = String(form.get("email") ?? "").trim().toLowerCase();

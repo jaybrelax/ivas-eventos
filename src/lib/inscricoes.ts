@@ -1,11 +1,13 @@
 import "server-only";
-import { ID, Query } from "node-appwrite";
+import { AppwriteException, ID, Query } from "node-appwrite";
 import { createAdminClient } from "./appwrite";
 import { DB_ID, TABLES } from "./config";
 import { listar, listarEventos, listarTipos } from "./data";
 import { hoje } from "./format";
 import { HORAS_LIMITE_CANCELAMENTO, inicioDe, prazoCancelamento } from "./guarnicao";
 import { urlPublicaEvento } from "./links";
+import { registrarHistorico, type AcaoHistorico } from "./historico-inscricoes";
+import { participantePodeInformar, transicaoPermitida, type DestinoCoordenacao } from "./pagamento-regras";
 import type { Evento, Inscricao, SituacaoInscricao, SituacaoPagamento, TipoEvento } from "./types";
 
 /**
@@ -142,16 +144,26 @@ export async function reorganizarInscricoes(evento: Pick<Evento, "$id" | "vagas_
   }
 }
 
-async function entrarNaFila(eventoId: string, usuarioId: string, alteradoPor: string) {
+async function entrarNaFila(eventoId: string, usuarioId: string, alteradoPor: string, acao: AcaoHistorico) {
   const { tablesDB } = createAdminClient();
   const existente = await inscricaoDe(eventoId, usuarioId);
   const dados = { situacao: "espera" as const, ordem: Date.now(), alterado_por: alteradoPor };
+  let inscricaoId: string;
   if (existente) {
     if (existente.situacao === "confirmada" || existente.situacao === "espera") return { jaEstava: true };
     await tablesDB.updateRow({ ...base, rowId: existente.$id, data: dados });
+    inscricaoId = existente.$id;
   } else {
-    await tablesDB.createRow({ ...base, rowId: ID.unique(), data: { ...dados, evento_id: eventoId, usuario_id: usuarioId, pagamento: "pendente" } });
+    try {
+      inscricaoId = ID.unique();
+      await tablesDB.createRow({ ...base, rowId: inscricaoId, data: { ...dados, evento_id: eventoId, usuario_id: usuarioId, pagamento: "pendente" } });
+    } catch (e) {
+      // Dois cliques ao mesmo tempo: o índice único (evento_id, usuario_id) barra a segunda linha
+      if (e instanceof AppwriteException && e.code === 409) return { jaEstava: true };
+      throw e;
+    }
   }
+  await registrarHistorico({ inscricao_id: inscricaoId, evento_id: eventoId, usuario_id: usuarioId, acao, por: alteradoPor });
   return { jaEstava: false };
 }
 
@@ -162,6 +174,10 @@ async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: stri
   if (!existente || (existente.situacao !== "confirmada" && existente.situacao !== "espera")) return "nao_inscrito";
   if (existente.pagamento === "pago") return "pago";
   await tablesDB.updateRow({ ...base, rowId: existente.$id, data: { situacao: "cancelada", alterado_por: alteradoPor } });
+  await registrarHistorico({
+    inscricao_id: existente.$id, evento_id: eventoId, usuario_id: usuarioId,
+    acao: alteradoPor === usuarioId ? "cancelamento" : "remocao", por: alteradoPor,
+  });
   return "saiu";
 }
 
@@ -172,7 +188,7 @@ export async function inscrever(evento: Evento, tipo: TipoEvento | undefined, us
   if (!aceitaParticipantes(tipo)) return { erro: "Este evento não está aberto para inscrição pública." };
   if (evento.candidaturas_abertas === false) return { erro: "As inscrições deste evento estão fechadas." };
   if (inicioDe(evento).getTime() <= Date.now()) return { erro: "Este evento já começou." };
-  const r = await entrarNaFila(evento.$id, usuarioId, usuarioId);
+  const r = await entrarNaFila(evento.$id, usuarioId, usuarioId, "inscricao");
   if (r.jaEstava) return { erro: "Você já está inscrito neste evento." };
   await reorganizarInscricoes(evento, usuarioId);
   const minha = await inscricaoDe(evento.$id, usuarioId);
@@ -195,7 +211,7 @@ export async function cancelarInscricao(evento: Evento, usuarioId: string): Prom
 
 /** Coordenador inclui alguém manualmente (entra na fila como qualquer inscrição). */
 export async function incluirParticipante(evento: Evento, usuarioId: string, porId: string): Promise<Resultado> {
-  const r = await entrarNaFila(evento.$id, usuarioId, porId);
+  const r = await entrarNaFila(evento.$id, usuarioId, porId, "inclusao");
   if (r.jaEstava) return { erro: "Essa pessoa já está inscrita neste evento." };
   await reorganizarInscricoes(evento, porId);
   const insc = await inscricaoDe(evento.$id, usuarioId);
@@ -216,10 +232,15 @@ export async function informarPagamento(inscricaoId: string, usuarioId: string, 
   const { tablesDB } = createAdminClient();
   const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
   if (!row || row.usuario_id !== usuarioId) return { erro: "Inscrição não encontrada." };
-  if (row.pagamento === "pago") return { erro: "Esta contribuição já foi confirmada." };
+  const bloqueio = participantePodeInformar(row);
+  if (bloqueio) return { erro: bloqueio };
   await tablesDB.updateRow({
     ...base, rowId: inscricaoId,
     data: { pagamento: "informado", valor, informado_em: new Date().toISOString(), comprovante_file_id: comprovanteFileId, alterado_por: usuarioId },
+  });
+  await registrarHistorico({
+    inscricao_id: inscricaoId, evento_id: row.evento_id, usuario_id: usuarioId, acao: "pagamento_informado",
+    pagamento_de: row.pagamento, pagamento_para: "informado", valor, por: usuarioId,
   });
   return { ok: "Contribuição informada! A coordenação vai confirmar em breve." };
 }
@@ -229,23 +250,48 @@ export async function contribuirNaHora(inscricaoId: string, usuarioId: string, d
   const { tablesDB } = createAdminClient();
   const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
   if (!row || row.usuario_id !== usuarioId) return { erro: "Inscrição não encontrada." };
+  if (row.situacao === "cancelada") return { erro: "Esta inscrição foi cancelada." };
+  const historico = { inscricao_id: inscricaoId, evento_id: row.evento_id, usuario_id: usuarioId, pagamento_de: row.pagamento, por: usuarioId };
   // Só muda enquanto a contribuição não foi informada, confirmada ou isentada
   if (desfazer) {
     if (row.pagamento !== "na_hora") return { erro: "Nada a desfazer." };
     await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: { pagamento: "pendente", alterado_por: usuarioId } });
+    await registrarHistorico({ ...historico, acao: "pagamento_desfeito", pagamento_para: "pendente" });
     return { ok: "Combinado, a escolha foi desfeita." };
   }
   if (row.pagamento !== "pendente" && row.pagamento !== "na_hora") return { erro: "A contribuição desta inscrição já foi resolvida." };
   await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: { pagamento: "na_hora", alterado_por: usuarioId } });
+  await registrarHistorico({ ...historico, acao: "pagamento_na_hora", pagamento_para: "na_hora" });
   return { ok: "Combinado! Você contribui na hora, no dia do ritual." };
 }
 
-/** Coordenador confirma, isenta ou reabre um pagamento. */
-export async function definirPagamento(inscricaoId: string, situacao: "pago" | "isento" | "pendente", porId: string): Promise<Resultado> {
+/**
+ * Coordenador confirma, isenta ou reabre um pagamento. A inscrição precisa ser do evento indicado e
+ * estar ativa. Ao confirmar, `valor` (já validado) registra quanto foi recebido; sem ele, fica o valor informado.
+ * Reabrir apaga a data da confirmação.
+ */
+export async function definirPagamento(
+  eventoId: string, inscricaoId: string, situacao: DestinoCoordenacao, porId: string, valor: number | null = null,
+): Promise<Resultado> {
   const { tablesDB } = createAdminClient();
+  const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
+  if (!row || row.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };
+  const bloqueio = transicaoPermitida(row, situacao);
+  if (bloqueio) return { erro: bloqueio };
+
   const dados: Record<string, unknown> = { pagamento: situacao, alterado_por: porId };
-  if (situacao === "pago") dados.pago_em = new Date().toISOString();
+  if (situacao === "pago") {
+    dados.pago_em = new Date().toISOString();
+    if (valor !== null) dados.valor = valor;
+  } else {
+    dados.pago_em = null;
+  }
   await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: dados });
+  await registrarHistorico({
+    inscricao_id: inscricaoId, evento_id: eventoId, usuario_id: row.usuario_id,
+    acao: { pago: "pagamento_confirmado", isento: "pagamento_isento", pendente: "pagamento_reaberto" }[situacao] as AcaoHistorico,
+    pagamento_de: row.pagamento, pagamento_para: situacao, valor: situacao === "pago" ? (valor ?? row.valor) : null, por: porId,
+  });
   const rotulo = { pago: "confirmada", isento: "marcada como isenta", pendente: "marcada como pendente" }[situacao];
   return { ok: `Contribuição ${rotulo}.` };
 }
