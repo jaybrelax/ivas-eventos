@@ -267,23 +267,42 @@ function DoseAberta({ dose, salvando, onMudar, onCancelar, onSalvar, onRemover }
   };
   useEffect(() => parar, []);
 
-  const botaoPasso = "grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-amber-900/15 bg-white text-amber-950 transition hover:bg-amber-50 active:scale-95 disabled:opacity-40";
+  const botaoPasso = "grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-amber-900/15 bg-white text-amber-950 shadow-sm transition hover:bg-amber-50 active:scale-95 disabled:opacity-40";
+  const atalhos = (d: number) => ({
+    onPointerDown: () => passo(d), onPointerUp: parar, onPointerLeave: parar, onPointerCancel: parar,
+    onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onMudar(valor.current + d); } },
+  });
 
   return (
     <div className="animate-surgir">
       <p className="mb-3 text-center text-xs font-semibold tracking-wider text-amber-900/70 uppercase">{ORDINAL[dose.n]}</p>
-      <div className="flex items-stretch justify-center gap-4">
-        {/* Copo: tocar/arrastar ajusta o nível */}
+      <div className="flex items-stretch justify-center gap-3">
+        {/* Espaço do mesmo tamanho do slider + botões, para o copo ficar centralizado */}
+        <div aria-hidden className="w-20 shrink-0" />
+        {/* Copo: tocar/arrastar ajusta o nível; o valor fica dentro dele */}
         <div
           ref={copo}
           role="presentation"
-          className="cursor-ns-resize touch-none select-none"
+          className="relative cursor-ns-resize touch-none select-none"
           onPointerDown={(e) => { arrastando.current = true; e.currentTarget.setPointerCapture(e.pointerId); pelaAltura(e.clientY); }}
           onPointerMove={(e) => arrastando.current && pelaAltura(e.clientY)}
           onPointerUp={() => { arrastando.current = false; }}
           onPointerCancel={() => { arrastando.current = false; }}
         >
           <Copo ml={dose.ml} />
+          {/* Valor sobre o copo: escuro sobre o vidro e invertido (claro) onde o líquido passa por baixo */}
+          <span aria-hidden className="pointer-events-none absolute inset-[2px] z-20 overflow-hidden rounded-t-md rounded-b-[26px]">
+            <span className="absolute inset-0 flex flex-col items-center justify-center pb-3 text-amber-950">
+              <span className="text-5xl leading-none font-bold tracking-tight tabular-nums">{dose.ml}</span>
+              <span className="mt-0.5 text-xl leading-none font-bold">ml</span>
+            </span>
+            <span className="absolute inset-x-0 bottom-0 overflow-hidden" style={{ height: `${Math.min(100, (dose.ml / DOSE_MAX_ML) * 100)}%` }}>
+              <span className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-center pb-3 text-white" style={{ height: "calc(13rem - 4px)" }}>
+                <span className="text-5xl leading-none font-bold tracking-tight tabular-nums">{dose.ml}</span>
+                <span className="mt-0.5 text-xl leading-none font-bold">ml</span>
+              </span>
+            </span>
+          </span>
         </div>
 
         {/* Slider vertical (teclado e leitor de tela) */}
@@ -300,21 +319,16 @@ function DoseAberta({ dose, salvando, onMudar, onCancelar, onSalvar, onRemover }
           style={{ writingMode: "vertical-lr", direction: "rtl" } as CSSProperties}
         />
 
-        <div className="flex w-24 flex-col justify-center">
-          <span className="text-5xl leading-none font-bold tracking-tight text-amber-950 tabular-nums">{dose.ml}</span>
-          <span className="mt-1 text-2xl leading-none font-bold text-amber-900/70">ml</span>
-          <span className="mt-3 text-sm font-medium text-stone-500">de 0 a {DOSE_MAX_ML}</span>
+        {/* + em cima e − embaixo, ao lado do slider */}
+        <div className="flex flex-col justify-between">
+          <button type="button" className={botaoPasso} aria-label="Aumentar 1 ml" disabled={dose.ml >= DOSE_MAX_ML} {...atalhos(1)}><Plus size={18} aria-hidden /></button>
+          <button type="button" className={botaoPasso} aria-label="Diminuir 1 ml" disabled={dose.ml <= 0} {...atalhos(-1)}><Minus size={18} aria-hidden /></button>
         </div>
       </div>
 
-      {/* Ajuste fino: −, valor digitado, + */}
-      <div className="mx-auto mt-4 flex max-w-60 items-center gap-2">
-        <button type="button" className={botaoPasso} aria-label="Diminuir 1 ml" disabled={dose.ml <= 0}
-          onPointerDown={() => passo(-1)} onPointerUp={parar} onPointerLeave={parar} onPointerCancel={parar}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onMudar(dose.ml - 1); } }}>
-          <Minus size={18} aria-hidden />
-        </button>
-        <label className="relative min-w-0 flex-1">
+      {/* Valor digitado, embaixo do copo */}
+      <div className="mt-3 flex justify-center">
+        <label className="relative block w-32">
           <span className="sr-only">Quantidade em ml</span>
           <input
             type="number"
@@ -328,11 +342,6 @@ function DoseAberta({ dose, salvando, onMudar, onCancelar, onSalvar, onRemover }
           />
           <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-stone-400">ml</span>
         </label>
-        <button type="button" className={botaoPasso} aria-label="Aumentar 1 ml" disabled={dose.ml >= DOSE_MAX_ML}
-          onPointerDown={() => passo(1)} onPointerUp={parar} onPointerLeave={parar} onPointerCancel={parar}
-          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onMudar(dose.ml + 1); } }}>
-          <Plus size={18} aria-hidden />
-        </button>
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-2">
