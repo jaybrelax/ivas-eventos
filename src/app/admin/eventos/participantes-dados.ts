@@ -41,6 +41,7 @@ export async function dadosParticipantes(
       ...pessoa(i.usuario_id),
       pagamento: i.pagamento, inscricaoId: i.$id, comprovante: i.comprovante_file_id,
       inscritoEm: i.$createdAt, valor: i.valor, informadoEm: i.informado_em, pagoEm: i.pago_em,
+      usouPacote: !!i.usou_pacote, pacoteNumero: i.pacote_numero ?? null,
       contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm, cpf: c.cpf ? mascararCpf(c.cpf) : null } : null,
       doses: gerenciar ? lerDoses(i.doses) : [],
     };

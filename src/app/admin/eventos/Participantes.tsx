@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { createContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Check, ChevronRight, Clock, Crown, Paperclip, Receipt, Search, Shield, SlidersHorizontal, UserPlus, Users, X } from "lucide-react";
+import { Check, ChevronRight, Clock, Crown, Receipt, Search, Shield, SlidersHorizontal, UserPlus, Users, X } from "lucide-react";
 import type { Sexo, SituacaoPagamento } from "@/lib/types";
 import type { Dose } from "@/lib/doses";
 import { Avatar } from "@/components/Avatar";
@@ -17,6 +17,8 @@ export type ContatoParticipante = { email: string; telefone: string | null; cida
 export type ItemParticipanteInscrito = PessoaParticipante & {
   pagamento: SituacaoPagamento; inscricaoId: string; comprovante: string | null;
   inscritoEm: string; valor: number | null; informadoEm: string | null; pagoEm: string | null;
+  /** Contribuição paga com pacote (valor em R$ = 0). */
+  usouPacote?: boolean; pacoteNumero?: number | null;
   contato: ContatoParticipante | null;
   /** Doses consumidas (só para quem gerencia o evento). */
   doses?: Dose[];
@@ -74,24 +76,32 @@ export const AcoesListaContexto = createContext<{ abrirFiltro?: () => void; cham
 
 const FUNDO_DOSE = "linear-gradient(180deg, #8a4b26 0%, #5a2d13 45%, #2a1308 100%)";
 
-/** Um cartão em formato de copo por dose registrada: marrom, número em branco com "ml" embaixo. */
+/**
+ * Um copo por dose registrada: fundo marrom médio e o líquido marrom-escuro subindo na proporção dos
+ * ml (0 a 70, copo cheio). Número sempre em branco, legível sobre os dois tons.
+ */
 function ChipsDose({ doses }: { doses: Dose[] }) {
   const lista = doses.filter((d) => d.ml > 0);
   if (!lista.length) return null;
   return (
     <span className="flex shrink-0 items-center gap-1">
-      {lista.map((d) => (
-        <span
-          key={d.n}
-          className="flex h-9 w-7 flex-col items-center justify-center rounded-t-[4px] rounded-b-[10px] text-white shadow-sm ring-1 ring-amber-950/40"
-          style={{ background: FUNDO_DOSE }}
-          title={`${d.n}ª dose: ${d.ml} ml`}
-          aria-label={`${d.n}ª dose: ${d.ml} ml`}
-        >
-          <span className="text-[12px] leading-none font-bold tabular-nums">{d.ml}</span>
-          <span className="text-[8px] leading-none font-semibold text-white/80">ml</span>
-        </span>
-      ))}
+      {lista.map((d) => {
+        const pct = Math.min(100, Math.max(8, (d.ml / 70) * 100));
+        return (
+          <span
+            key={d.n}
+            className="relative block h-10 w-8 overflow-hidden rounded-t-[3px] rounded-b-[6px] bg-[#b07d52] shadow-sm"
+            title={`${d.n}ª dose: ${d.ml} ml`}
+            aria-label={`${d.n}ª dose: ${d.ml} ml`}
+          >
+            <span className="absolute inset-x-0 bottom-0 transition-[height] duration-500 ease-out motion-reduce:transition-none" style={{ height: `${pct}%`, background: FUNDO_DOSE }} />
+            <span className="relative flex h-full flex-col items-center justify-center text-white [text-shadow:0_1px_1px_rgb(0_0_0/0.35)]">
+              <span className="text-[14px] leading-none font-bold tabular-nums">{d.ml}</span>
+              <span className="text-[10px] leading-none font-semibold opacity-90">ml</span>
+            </span>
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -491,7 +501,6 @@ function Linha({
       </span>
       {gerenciar && <ChipsDose doses={p.doses ?? []} />}
       {papel && <SeloPapel papel={papel} soIcone={temDose} />}
-      {temContribuicao && p.comprovante && <Paperclip size={14} className="shrink-0 text-stone-400" aria-label="Comprovante anexado" />}
       {temContribuicao && (
         // Participante (fora da equipe) com dose registrada: só a inicial da situação
         temDose && !papel ? (
@@ -535,11 +544,13 @@ function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso }: {
   const [texto, setTexto] = useState("");
   const [ativo, setAtivo] = useState(0);
   const lista = useRef<HTMLUListElement>(null);
+  // Com o teclado aberto, o modal é centralizado na área visível (visualViewport), sem ficar por baixo dele
+  const [area, setArea] = useState<{ top: number; height: number } | null>(null);
 
   const nomeDigitado = texto.trim().replace(/\s+/g, " ");
   const termo = semAcento(nomeDigitado);
   const resultados = useMemo(
-    () => (termo ? opcoes.filter((p) => semAcento(p.nome).includes(termo)) : opcoes).slice(0, 30),
+    () => (termo ? opcoes.filter((p) => semAcento(p.nome).includes(termo)).slice(0, 30) : []),
     [opcoes, termo],
   );
   // Opção "criar": com 3+ letras e quando o nome não é idêntico a alguém da lista
@@ -561,6 +572,17 @@ function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso }: {
     return () => { document.body.style.overflow = rolagem; };
   }, [aberto]);
 
+  useEffect(() => {
+    if (!aberto) return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const medir = () => setArea({ top: vv.offsetTop, height: vv.height });
+    medir();
+    vv.addEventListener("resize", medir);
+    vv.addEventListener("scroll", medir);
+    return () => { vv.removeEventListener("resize", medir); vv.removeEventListener("scroll", medir); setArea(null); };
+  }, [aberto]);
+
   // Mantém a opção ativa à vista ao navegar pelo teclado
   useEffect(() => {
     lista.current?.querySelector<HTMLElement>(`[data-i="${ativo}"]`)?.scrollIntoView({ block: "nearest" });
@@ -579,10 +601,11 @@ function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso }: {
       </button>
 
       {aberto && createPortal(
-        <div role="dialog" aria-modal="true" aria-label="Incluir participante" className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4"
+        <div role="dialog" aria-modal="true" aria-label="Incluir participante" className="fixed inset-x-0 top-0 bottom-0 z-50 flex items-center justify-center p-4"
+          style={area ? { top: area.top, bottom: "auto", height: area.height } : undefined}
           onKeyDown={(e) => { if (e.key === "Escape") fechar(); }}>
           <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm" onClick={fechar} />
-          <div className="relative z-10 flex max-h-[85dvh] w-full max-w-md animate-surgir flex-col overflow-hidden rounded-t-3xl border border-stone-200 bg-white shadow-2xl sm:rounded-3xl">
+          <div className="relative z-10 flex max-h-full w-full max-w-md animate-surgir flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-2xl">
             <header className="flex items-start justify-between gap-3 px-5 pt-5 pb-3">
               <div>
                 <h3 className="text-base font-semibold text-stone-900">{cheio ? "Incluir na lista de espera" : "Incluir participante"}</h3>
@@ -592,35 +615,6 @@ function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso }: {
                 <X size={17} />
               </button>
             </header>
-
-            <div className="px-5 pb-3">
-              <div className="relative">
-                <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-stone-400" />
-                <input
-                  autoFocus
-                  value={texto}
-                  onChange={(e) => { setTexto(e.target.value); setAtivo(0); }}
-                  onKeyDown={(e) => {
-                    if (e.key === "ArrowDown") { e.preventDefault(); setAtivo((a) => Math.min(a + 1, totalOpcoes - 1)); }
-                    else if (e.key === "ArrowUp") { e.preventDefault(); setAtivo((a) => Math.max(a - 1, 0)); }
-                    else if (e.key === "Enter" && totalOpcoes) { e.preventDefault(); escolher(ativo); }
-                  }}
-                  placeholder="Nome da pessoa"
-                  role="combobox"
-                  aria-expanded
-                  aria-controls="incluir-opcoes"
-                  aria-activedescendant={totalOpcoes ? `incluir-op-${ativo}` : undefined}
-                  aria-autocomplete="list"
-                  aria-label="Nome da pessoa"
-                  className="campo h-11 pr-9 pl-9 text-base sm:text-sm"
-                />
-                {texto && (
-                  <button type="button" onClick={() => { setTexto(""); setAtivo(0); }} aria-label="Limpar" className="absolute top-1/2 right-2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-700">
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-            </div>
 
             <ul ref={lista} id="incluir-opcoes" role="listbox" className="min-h-0 flex-1 overflow-y-auto border-t border-stone-100 p-2">
               {resultados.map((p, i) => (
@@ -656,10 +650,39 @@ function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso }: {
               )}
               {!totalOpcoes && (
                 <li className="px-3 py-8 text-center text-sm text-stone-400">
-                  {nomeDigitado ? "Digite pelo menos 3 letras para criar." : opcoes.length ? "Ninguém encontrado." : "Digite um nome para incluir alguém sem cadastro."}
+                  {nomeDigitado ? "Ninguém encontrado. Digite pelo menos 3 letras para criar." : "Digite um nome para buscar ou criar."}
                 </li>
               )}
             </ul>
+            <div className="shrink-0 border-t border-stone-100 px-5 py-3">
+              <div className="relative">
+                <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-stone-400" />
+                <input
+                  autoFocus
+                  value={texto}
+                  onChange={(e) => { setTexto(e.target.value); setAtivo(0); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowDown") { e.preventDefault(); setAtivo((a) => Math.min(a + 1, totalOpcoes - 1)); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); setAtivo((a) => Math.max(a - 1, 0)); }
+                    else if (e.key === "Enter" && totalOpcoes) { e.preventDefault(); escolher(ativo); }
+                  }}
+                  placeholder="Nome da pessoa"
+                  role="combobox"
+                  aria-expanded
+                  aria-controls="incluir-opcoes"
+                  aria-activedescendant={totalOpcoes ? `incluir-op-${ativo}` : undefined}
+                  aria-autocomplete="list"
+                  aria-label="Nome da pessoa"
+                  className="campo h-11 pr-9 pl-9 text-base sm:text-sm"
+                />
+                {texto && (
+                  <button type="button" onClick={() => { setTexto(""); setAtivo(0); }} aria-label="Limpar" className="absolute top-1/2 right-2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-full text-stone-400 hover:bg-stone-100 hover:text-stone-700">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+            </div>
+
           </div>
         </div>,
         document.body,

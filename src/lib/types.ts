@@ -110,6 +110,9 @@ export type Inscricao = {
   observacao: string | null;
   /** Doses consumidas (JSON, ver src/lib/doses.ts). */
   doses?: string | null;
+  /** Contribuição confirmada com pacote (valor em R$ = 0) e o número do pacote. */
+  usou_pacote?: boolean | null;
+  pacote_numero?: number | null;
   alterado_por: string | null;
   $createdAt: string;
   $updatedAt: string;

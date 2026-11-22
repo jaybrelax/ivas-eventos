@@ -272,6 +272,8 @@ export async function contribuirNaHora(inscricaoId: string, usuarioId: string, d
  */
 export async function definirPagamento(
   eventoId: string, inscricaoId: string, situacao: DestinoCoordenacao, porId: string, valor: number | null = null,
+  /** Confirmada com pacote: número do pacote; o valor em R$ fica 0. */
+  pacote: number | null = null,
 ): Promise<Resultado> {
   const { tablesDB } = createAdminClient();
   const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
@@ -282,16 +284,28 @@ export async function definirPagamento(
   const dados: Record<string, unknown> = { pagamento: situacao, alterado_por: porId };
   if (situacao === "pago") {
     dados.pago_em = new Date().toISOString();
-    if (valor !== null) dados.valor = valor;
+    if (pacote !== null) { dados.valor = 0; dados.usou_pacote = true; dados.pacote_numero = pacote; }
+    else {
+      if (valor !== null) dados.valor = valor;
+      if (row.usou_pacote) { dados.usou_pacote = false; dados.pacote_numero = null; }
+    }
   } else {
     dados.pago_em = null;
+    if (row.usou_pacote) { dados.usou_pacote = false; dados.pacote_numero = null; }
   }
-  await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: dados });
+  try {
+    await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: dados });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    // Colunas do pacote ainda não existem no banco (falta rodar a criação delas)
+    if (/Unknown attribute/i.test(msg) && /usou_pacote|pacote_numero/.test(msg)) return { erro: "O registro de pacote ainda não está ativo no banco de dados. Avise o administrador." };
+    throw e;
+  }
   await registrarHistorico({
     inscricao_id: inscricaoId, evento_id: eventoId, usuario_id: row.usuario_id,
     acao: { pago: "pagamento_confirmado", isento: "pagamento_isento", pendente: "pagamento_reaberto" }[situacao] as AcaoHistorico,
-    pagamento_de: row.pagamento, pagamento_para: situacao, valor: situacao === "pago" ? (valor ?? row.valor) : null, por: porId,
+    pagamento_de: row.pagamento, pagamento_para: situacao, valor: situacao === "pago" ? (pacote !== null ? 0 : (valor ?? row.valor)) : null, por: porId,
   });
-  const rotulo = { pago: "confirmada", isento: "marcada como isenta", pendente: "marcada como pendente" }[situacao];
+  const rotulo = { pago: pacote !== null ? `confirmada (pacote nº ${pacote})` : "confirmada", isento: "marcada como isenta", pendente: "marcada como pendente" }[situacao];
   return { ok: `Contribuição ${rotulo}.` };
 }

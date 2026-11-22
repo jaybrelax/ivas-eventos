@@ -11,6 +11,8 @@ import { urlImagem, urlPublicaEvento } from "@/lib/links";
 import { SITE_URL } from "@/lib/site";
 import { podeGerenciarEvento } from "@/lib/gestao-evento";
 import { AtualizarAoVivo } from "./AtualizarAoVivo";
+import { ConsumoMedicina, type ConsumoPessoa } from "./ConsumoMedicina";
+import { lerDosesEquipe } from "@/lib/doses";
 import { MenuEventoMobile } from "./MenuEventoMobile";
 import { ehReuniao, guardioesDaReuniao, temGuarnicao } from "@/lib/guarnicao";
 import { dadosReuniao } from "@/lib/reuniao";
@@ -85,6 +87,24 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   // Os 4 cards (participantes e contribuições) só fazem sentido para a coordenação em evento com inscrições pagas
   const temNumeros = gerenciar && !!participantes?.temContribuicao;
   const temEquipe = mestres.length > 0 || guardioes.length > 0 || !!guarnicao || reuniaoTipo;
+  // Consumo: doses da inscrição e, para a equipe sem inscrição, as guardadas no evento
+  const consumo: ConsumoPessoa[] = (() => {
+    if (!gerenciar || !participantes) return [];
+    const mapa = new Map<string, ConsumoPessoa>();
+    for (const m of membros) mapa.set(m.id, { id: m.id, nome: m.nome, foto: m.foto, doses: [] });
+    const equipeDoses = lerDosesEquipe(evento.doses_equipe);
+    for (const [id, doses] of Object.entries(equipeDoses)) {
+      const m = mapa.get(id);
+      if (m) m.doses = doses;
+    }
+    for (const c of participantes.confirmados) {
+      const dosesInsc = c.doses ?? [];
+      const atual = mapa.get(c.id);
+      if (atual) { if (dosesInsc.length) atual.doses = dosesInsc; }
+      else mapa.set(c.id, { id: c.id, nome: c.nome, foto: c.foto, doses: dosesInsc });
+    }
+    return [...mapa.values()];
+  })();
   const data = partesData(evento.data);
   const resumo = participantes?.temContribuicao ? resumoContribuicoes(participantes) : null;
 
@@ -252,6 +272,10 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
             <Numero rotulo="Em aberto" valor={String(resumo.aberto)} detalhe={resumo.isentos ? `${resumo.isentos} ${resumo.isentos === 1 ? "isento" : "isentos"}` : "pendentes"} />
           </dl>
         </div>
+      )}
+
+      {gerenciar && participantes && (
+        <div className="mb-4 md:mb-6"><ConsumoMedicina pessoas={consumo} /></div>
       )}
 
       {gerenciar ? (

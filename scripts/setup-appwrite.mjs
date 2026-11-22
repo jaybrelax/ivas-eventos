@@ -164,6 +164,8 @@ const TABELAS = {
       v("comprovante_file_id", 36), t("observacao"), v("alterado_por", 36),
       // Doses consumidas na participação, em JSON: [{"n":1,"ml":40},{"n":2,"ml":20}]
       v("doses", 512),
+      // Contribuição paga com pacote: marca e número do pacote (o valor em R$ fica 0)
+      b("usou_pacote"), i("pacote_numero", { min: 1 }),
     ],
     indices: [
       ["ux_inscricao", "unique", ["evento_id", "usuario_id"]],

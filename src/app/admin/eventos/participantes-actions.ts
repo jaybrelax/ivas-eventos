@@ -75,10 +75,18 @@ export async function removerParticipanteAction(eventoId: string, usuarioId: str
 }
 
 /** Coordenação (ou o mestre do evento) confirma o pagamento de uma inscrição, com o valor recebido (vazio mantém o valor informado). */
-export async function confirmarPagamentoAction(eventoId: string, inscricaoId: string, valorBruto?: unknown): Promise<Resultado> {
+export async function confirmarPagamentoAction(eventoId: string, inscricaoId: string, valorBruto?: unknown, pacoteBruto?: unknown): Promise<Resultado> {
   const g = await exigirGestaoDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u } = g;
+  // Pacote: o campo é o número do pacote (inteiro), sem valor em R$
+  if (pacoteBruto !== undefined && pacoteBruto !== null && pacoteBruto !== false) {
+    const n = Number(String(pacoteBruto).trim());
+    if (!Number.isInteger(n) || n < 1 || n > 9999) return { erro: "Informe o número do pacote (um número inteiro)." };
+    const r = await definirPagamento(eventoId, inscricaoId, "pago", u.id, null, n);
+    revalidar(eventoId);
+    return r;
+  }
   const lido = lerValor(valorBruto);
   if ("erro" in lido) return { erro: lido.erro };
   const r = await definirPagamento(eventoId, inscricaoId, "pago", u.id, lido.valor);
@@ -244,4 +252,23 @@ export async function salvarDosesEquipeAction(eventoId: string, usuarioId: strin
   }
   revalidar(eventoId);
   return { ok: "Dosagem salva." };
+}
+
+/** Coordenação (ou o mestre do evento) exclui o comprovante de uma inscrição (apaga o arquivo). Não muda a situação da contribuição. */
+export async function excluirComprovanteAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
+  const g = await exigirGestaoDoEvento(eventoId);
+  if (g.erro !== undefined) return { erro: g.erro };
+  const { tablesDB, storage } = createAdminClient();
+  const row = (await tablesDB.getRow({ databaseId: DB_ID, tableId: TABLES.inscricoes, rowId: inscricaoId }).catch(() => null)) as unknown as Inscricao | null;
+  if (!row || row.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };
+  if (!row.comprovante_file_id) return { ok: "Não havia comprovante." };
+  try {
+    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.inscricoes, rowId: inscricaoId, data: { comprovante_file_id: null, alterado_por: g.u.id } });
+  } catch (e) {
+    console.error("Excluir comprovante:", e instanceof Error ? e.message : e);
+    return { erro: "Não foi possível excluir o comprovante agora." };
+  }
+  await storage.deleteFile({ bucketId: COMPROVANTES_BUCKET_ID, fileId: row.comprovante_file_id }).catch(() => {});
+  revalidar(eventoId);
+  return { ok: "Comprovante excluído." };
 }

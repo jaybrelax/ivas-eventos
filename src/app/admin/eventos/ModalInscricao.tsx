@@ -6,14 +6,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Camera, CalendarClock, CalendarX2, Check, CheckCircle2, ChevronDown, ExternalLink, IdCard, Pencil, FileImage, Hourglass, Lock, Mail, MapPin,
-  ImagePlus, GlassWater, MessageCircle, Receipt, ShieldCheck, Undo2, UserRound, X, ZoomIn,
+  ImagePlus, GlassWater, MessageCircle, Receipt, Settings2, ShieldCheck, Trash2, Undo2, UserRound, X, ZoomIn,
 } from "lucide-react";
 import type { SituacaoInscricao, SituacaoPagamento } from "@/lib/types";
 import { urlImagem } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
 import { Carregando } from "@/components/ui";
-import { anexarComprovanteAction, salvarDosesAction, confirmarPagamentoAction, informarDadosAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction } from "./participantes-actions";
+import { anexarComprovanteAction, excluirComprovanteAction, salvarDosesAction, confirmarPagamentoAction, informarDadosAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction } from "./participantes-actions";
 import { InputTelefone } from "@/components/InputTelefone";
 import { useImagem } from "@/components/useImagem";
 import { Dosagem } from "./Dosagem";
@@ -71,6 +71,8 @@ export function ModalInscricao({
   const [msg, setMsg] = useState<Resultado>();
   const [pendente, iniciar] = useTransition();
   const [ampliado, setAmpliado] = useState(false);
+  const [comprovanteAberto, setComprovanteAberto] = useState(false);
+  const [usouPacote, setUsouPacote] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
   const [pedirValor, setPedirValor] = useState(false);
   const [verDados, setVerDados] = useState(false);
@@ -307,7 +309,7 @@ export function ModalInscricao({
                   <h4 className="text-sm font-semibold text-emerald-950">Contribuição</h4>
                   <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}><situacao.Icone size={11} aria-hidden /> {situacao.rotulo}</span>
-                    {(p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-emerald-900">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
+                    {p.usouPacote ? <span className="font-semibold text-emerald-900">Pacote{p.pacoteNumero ? ` nº ${p.pacoteNumero}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-emerald-900">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
                   </p>
                 </div>
                 <button
@@ -328,7 +330,7 @@ export function ModalInscricao({
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm font-bold">
                     {situacao.rotulo}
                     {(p.valor ?? dados.valorContribuicao) != null && (
-                      <span className="text-base tabular-nums">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>
+                      <span className="text-base tabular-nums">{p.usouPacote ? `Pacote${p.pacoteNumero ? ` nº ${p.pacoteNumero}` : ""}` : formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>
                     )}
                   </p>
                   <p className="mt-0.5 text-xs opacity-80">{situacao.detalhe}</p>
@@ -341,39 +343,40 @@ export function ModalInscricao({
                 </div>
               </div>
 
-              {/* Comprovante anexado */}
-              <div className="mt-3">
+              {/* Comprovante: miniatura com ampliar e um botão que abre as opções */}
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-100 bg-white p-2.5">
                 {comprovante ? (
-                  <div className="flex items-center gap-3.5 rounded-xl border border-emerald-100 bg-white p-2.5 shadow-sm shadow-emerald-900/5">
-                    {/* Miniatura quadrada: mostra sempre o topo da imagem, qualquer que seja a proporção */}
-                    <button type="button" onClick={() => setAmpliado(true)} className="group relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-stone-100 ring-1 ring-stone-200" aria-label="Ampliar comprovante">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={comprovante} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-top transition group-hover:scale-105" />
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-1.5 text-sm font-semibold text-stone-900">
-                        <FileImage size={15} className="shrink-0 text-emerald-600" /> Comprovante anexado
-                      </p>
-                      <button
-                        type="button"
-                        onClick={() => setAmpliado(true)}
-                        className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200 transition hover:bg-emerald-50"
-                      >
-                        <ZoomIn size={13} /> Ampliar
-                      </button>
-                      {dados.gerenciar && <AnexarComprovante eventoId={dados.eventoId} inscricaoId={p.inscricaoId} trocar aoSalvar={setMsg} />}
-                    </div>
-                  </div>
+                  <button type="button" onClick={() => setAmpliado(true)} className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-100 ring-1 ring-stone-200" aria-label="Ampliar comprovante">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={comprovante} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" />
+                    <span className="absolute right-0.5 bottom-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-white backdrop-blur-sm transition group-hover:bg-black/75"><ZoomIn size={11} aria-hidden /></span>
+                  </button>
                 ) : (
-                  <div className="flex items-center gap-3.5 rounded-xl border border-dashed border-emerald-200 bg-white/50 p-3">
-                    <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-emerald-100/70 text-emerald-500"><FileImage size={30} strokeWidth={1.6} aria-hidden /></span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-medium whitespace-nowrap text-emerald-900/70">Nenhum comprovante anexado.</p>
-                      {dados.gerenciar && <AnexarComprovante eventoId={dados.eventoId} inscricaoId={p.inscricaoId} aoSalvar={setMsg} semMargem />}
-                    </div>
-                  </div>
+                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-400"><FileImage size={24} strokeWidth={1.6} aria-hidden /></span>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-stone-900">Comprovante</p>
+                  <p className="text-xs text-stone-500">{comprovante ? "Anexado" : "Nenhum anexado"}</p>
+                </div>
+                {dados.gerenciar && (
+                  <button
+                    type="button"
+                    onClick={() => setComprovanteAberto(true)}
+                    className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition ${comprovante ? "text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-50" : "bg-emerald-700 text-white hover:bg-emerald-800"}`}
+                  >
+                    {comprovante ? <><Settings2 size={13} aria-hidden /> Gerenciar</> : <><ImagePlus size={13} aria-hidden /> Anexar</>}
+                  </button>
                 )}
               </div>
+              {comprovanteAberto && (
+                <ModalComprovante
+                  eventoId={dados.eventoId}
+                  inscricaoId={p.inscricaoId}
+                  comprovanteUrl={comprovante}
+                  aoSalvar={setMsg}
+                  fechar={() => setComprovanteAberto(false)}
+                />
+              )}
 
               {dados.gerenciar && (
                 <div className="mt-3">
@@ -386,31 +389,46 @@ export function ModalInscricao({
                   {/* Confirmar pede o valor recebido (já vem preenchido com o valor informado ou o padrão do Instituto) */}
                   {pedirValor && !pago && (
                     <form
-                      className="mt-3 flex items-end gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3"
+                      className="mt-3 space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3"
                       onSubmit={(e) => {
                         e.preventDefault();
-                        const valor = new FormData(e.currentTarget).get("valor_recebido");
+                        const fd = new FormData(e.currentTarget);
                         iniciar(async () => {
-                          const r = await confirmarPagamentoAction(dados.eventoId, p.inscricaoId, valor);
+                          const r = usouPacote
+                            ? await confirmarPagamentoAction(dados.eventoId, p.inscricaoId, null, fd.get("pacote_numero"))
+                            : await confirmarPagamentoAction(dados.eventoId, p.inscricaoId, fd.get("valor_recebido"));
                           setMsg(r);
                           if (r.ok) setPedirValor(false);
                         });
                       }}
                     >
-                      <div className="min-w-0 flex-1">
-                        <label htmlFor={`valor-${p.inscricaoId}`} className="mb-1 block text-xs font-medium text-emerald-900">Valor recebido (R$)</label>
-                        <input
-                          id={`valor-${p.inscricaoId}`}
-                          name="valor_recebido"
-                          inputMode="decimal"
-                          autoFocus
-                          defaultValue={valorSugerido != null ? valorSugerido.toFixed(2).replace(".", ",") : ""}
-                          placeholder="150,00"
-                          className="campo h-10 text-sm tabular-nums"
-                        />
+                      <div className="flex items-end gap-3">
+                        <div className="min-w-0 flex-1">
+                          <label htmlFor={`valor-${p.inscricaoId}`} className="mb-1 block text-xs font-medium text-emerald-900">{usouPacote ? "Nº do pacote" : "Valor recebido (R$)"}</label>
+                          {usouPacote ? (
+                            <input key="pacote" id={`valor-${p.inscricaoId}`} name="pacote_numero" type="number" inputMode="numeric" min={1} step={1} autoFocus placeholder="1" className="campo h-10 text-sm tabular-nums" />
+                          ) : (
+                            <input
+                              key="valor"
+                              id={`valor-${p.inscricaoId}`}
+                              name="valor_recebido"
+                              inputMode="decimal"
+                              autoFocus
+                              defaultValue={valorSugerido != null ? valorSugerido.toFixed(2).replace(".", ",") : ""}
+                              placeholder="150,00"
+                              className="campo h-10 text-sm tabular-nums"
+                            />
+                          )}
+                        </div>
+                        <label className="flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-white px-3 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200 select-none">
+                          <input type="checkbox" checked={usouPacote} onChange={(e) => setUsouPacote(e.target.checked)} className="h-4 w-4 accent-emerald-700" />
+                          Usou pacote
+                        </label>
                       </div>
-                      <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={() => setPedirValor(false)}>Voltar</button>
-                      <button type="submit" className="btn-primario h-10" disabled={pendente}>Confirmar</button>
+                      <div className="flex justify-end gap-2">
+                        <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={() => { setPedirValor(false); setUsouPacote(false); }}>Cancelar</button>
+                        <button type="submit" className="btn-primario h-10" disabled={pendente}>Confirmar</button>
+                      </div>
                     </form>
                   )}
                 </div>
@@ -557,86 +575,125 @@ function IconeContato({ Icone, rotulo, valor, href, externo, nome, aoInformar }:
   );
 }
 
-const TOM_OPCAO = {
-  emerald: { ativa: "border-emerald-600 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-600", hover: "hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-800" },
-  sky: { ativa: "border-sky-500 bg-sky-50 text-sky-800 ring-1 ring-sky-500", hover: "hover:border-sky-300 hover:bg-sky-50/70 hover:text-sky-800" },
-  yellow: { ativa: "border-yellow-500 bg-yellow-50 text-yellow-800 ring-1 ring-yellow-500", hover: "hover:border-yellow-300 hover:bg-yellow-50/70 hover:text-yellow-800" },
-} as const;
-
 /**
- * Anexar ou trocar o comprovante: escolher da galeria ou tirar a foto na hora (câmera traseira).
- * A imagem é reduzida no navegador (useImagem), aparece em prévia e só vai ao enviar.
+ * Opções do comprovante num modal: escolher da galeria ou tirar a foto na hora (câmera traseira), com
+ * prévia antes de enviar. A imagem é reduzida no navegador (useImagem). Com comprovante, também amplia.
  */
-function AnexarComprovante({ eventoId, inscricaoId, trocar = false, semMargem = false, aoSalvar }: {
-  eventoId: string; inscricaoId: string; trocar?: boolean; semMargem?: boolean; aoSalvar: (r: Resultado) => void;
+function ModalComprovante({ eventoId, inscricaoId, comprovanteUrl, aoSalvar, fechar }: {
+  eventoId: string; inscricaoId: string; comprovanteUrl: string | null; aoSalvar: (r: Resultado) => void; fechar: () => void;
 }) {
+  const temComprovante = !!comprovanteUrl;
+  const [confirmaExcluir, setConfirmaExcluir] = useState(false);
   const router = useRouter();
   const [enviando, iniciar] = useTransition();
   const { local, erro, otimizando, escolher } = useImagem("comprovante");
   const galeria = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
-  const form = useRef<HTMLFormElement>(null);
 
-  function limpar() {
+  // Esc fecha só este modal (captura antes do listener do modal da inscrição)
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopImmediatePropagation(); fechar(); } };
+    window.addEventListener("keydown", esc, true);
+    return () => window.removeEventListener("keydown", esc, true);
+  }, [fechar]);
+
+  function descartar() {
     for (const i of [galeria.current, camera.current]) if (i) { i.value = ""; escolher(i, null); }
   }
-  // Escolher um arquivo (galeria ou câmera) passa o arquivo para o campo que o formulário envia
   function aoEscolher(i: HTMLInputElement) {
     const outro = i === galeria.current ? camera.current : galeria.current;
     if (outro) outro.value = "";
     escolher(i, i.files?.[0]);
   }
-  const arquivoEscolhido = !!local;
-  const botao = "inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition disabled:opacity-60";
+  function enviar() {
+    const arquivo = galeria.current?.files?.[0] ?? camera.current?.files?.[0];
+    if (!arquivo) return;
+    const fd = new FormData();
+    fd.set("comprovante", arquivo);
+    iniciar(async () => {
+      const r = await anexarComprovanteAction(eventoId, inscricaoId, fd);
+      aoSalvar(r);
+      if (r.ok) { router.refresh(); fechar(); }
+    });
+  }
 
-  return (
-    <form
-      ref={form}
-      className={semMargem ? "mt-2" : trocar ? "mt-2" : "mt-3"}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const arquivo = galeria.current?.files?.[0] ?? camera.current?.files?.[0];
-        if (!arquivo) return;
-        const fd = new FormData();
-        fd.set("comprovante", arquivo);
-        iniciar(async () => {
-          const r = await anexarComprovanteAction(eventoId, inscricaoId, fd);
-          aoSalvar(r);
-          if (r.ok) { limpar(); router.refresh(); }
-        });
-      }}
-    >
-      <input ref={galeria} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => aoEscolher(e.currentTarget)} />
-      <input ref={camera} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => aoEscolher(e.currentTarget)} />
+  function excluir() {
+    iniciar(async () => {
+      const r = await excluirComprovanteAction(eventoId, inscricaoId);
+      aoSalvar(r);
+      if (r.ok) { router.refresh(); fechar(); }
+      else setConfirmaExcluir(false);
+    });
+  }
 
-      {arquivoEscolhido ? (
-        <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-white p-2.5">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={local!} alt="Prévia do comprovante" className="h-16 w-16 shrink-0 rounded-lg object-cover object-top ring-1 ring-stone-200" />
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-emerald-800">{otimizando ? "Preparando a imagem…" : "Pronto para enviar"}</p>
-            <div className="mt-1.5 flex gap-2">
-              <button type="button" disabled={enviando} onClick={limpar} className={`${botao} text-stone-600 ring-1 ring-stone-200 hover:bg-stone-50`}>Descartar</button>
-              <button type="submit" disabled={enviando || otimizando} className={`${botao} bg-emerald-700 text-white hover:bg-emerald-800`}>
-                {enviando ? <><Carregando tamanho={13} /> Enviando…</> : <><Check size={14} aria-hidden /> Enviar</>}
-              </button>
+  const opcao = "flex min-h-14 w-full items-center gap-3 rounded-xl border border-stone-200 bg-white px-4 text-left text-sm font-semibold text-stone-800 transition hover:border-emerald-300 hover:bg-emerald-50/60 active:scale-[0.99]";
+
+  return createPortal(
+    <div role="dialog" aria-modal="true" aria-label="Comprovante" className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm" onClick={fechar} />
+      <div className="relative z-10 w-full max-w-sm animate-surgir overflow-hidden rounded-3xl border border-stone-200 bg-white shadow-2xl">
+        <header className="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+          <h3 className="text-base font-semibold text-stone-900">Comprovante</h3>
+          <button type="button" onClick={fechar} aria-label="Fechar" className="grid h-8 w-8 place-items-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-700"><X size={17} /></button>
+        </header>
+
+        <input ref={galeria} type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => aoEscolher(e.currentTarget)} />
+        <input ref={camera} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} aria-hidden onChange={(e) => aoEscolher(e.currentTarget)} />
+
+        <div className="space-y-2.5 px-5 pb-5">
+          {local ? (
+            <div className="space-y-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={local} alt="Prévia do comprovante" className="max-h-64 w-full rounded-xl bg-stone-50 object-contain ring-1 ring-stone-200" />
+              <p className="text-center text-xs font-medium text-emerald-800">{otimizando ? "Preparando a imagem…" : "Pronto para enviar"}</p>
+              <div className="flex gap-2">
+                <button type="button" disabled={enviando} onClick={descartar} className="btn-secundario h-11 flex-1">Descartar</button>
+                <button type="button" disabled={enviando || otimizando} onClick={enviar} className="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-700 px-4 text-sm font-semibold text-white transition hover:bg-emerald-800 disabled:opacity-60">
+                  {enviando ? <><Carregando tamanho={14} /> Enviando…</> : <><Check size={15} aria-hidden /> Enviar</>}
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Já mostra o comprovante inteiro */}
+              {comprovanteUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={comprovanteUrl} alt="Comprovante anexado" className="max-h-[50dvh] w-full rounded-xl bg-stone-50 object-contain ring-1 ring-stone-200" />
+              )}
+              <button type="button" onClick={() => galeria.current?.click()} className={opcao}>
+                <ImagePlus size={18} className="shrink-0 text-emerald-600" aria-hidden /> {temComprovante ? "Trocar pela galeria" : "Escolher da galeria"}
+              </button>
+              <button type="button" onClick={() => camera.current?.click()} className={opcao}>
+                <Camera size={18} className="shrink-0 text-emerald-600" aria-hidden /> {temComprovante ? "Trocar tirando foto" : "Tirar foto"}
+              </button>
+              {temComprovante && (confirmaExcluir ? (
+                <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-2.5">
+                  <p className="min-w-0 flex-1 text-xs font-semibold text-red-800">Excluir o comprovante?</p>
+                  <button type="button" disabled={enviando} onClick={() => setConfirmaExcluir(false)} className="btn-secundario h-9">Não</button>
+                  <button type="button" disabled={enviando} onClick={excluir} className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-red-600 px-3 text-xs font-semibold text-white transition hover:bg-red-700 disabled:opacity-60">
+                    {enviando ? <Carregando tamanho={13} /> : <Trash2 size={14} aria-hidden />} Excluir
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setConfirmaExcluir(true)} className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold text-red-700 transition hover:bg-red-50">
+                  <Trash2 size={16} aria-hidden /> Excluir comprovante
+                </button>
+              ))}
+            </>
+          )}
+          {erro && <p role="alert" className="text-xs font-medium text-red-700">{erro}</p>}
         </div>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => galeria.current?.click()} className={`${botao} text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-50`}>
-            <ImagePlus size={14} aria-hidden /> {trocar ? "Trocar da galeria" : "Galeria"}
-          </button>
-          <button type="button" onClick={() => camera.current?.click()} className={`${botao} text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-50`}>
-            <Camera size={14} aria-hidden /> Câmera
-          </button>
-        </div>
-      )}
-      {erro && <p role="alert" className="mt-1.5 text-xs font-medium text-red-700">{erro}</p>}
-    </form>
+      </div>
+    </div>,
+    document.body,
   );
 }
+
+const TOM_OPCAO = {
+  emerald: { ativa: "border-emerald-600 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-600", hover: "hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-800" },
+  sky: { ativa: "border-sky-500 bg-sky-50 text-sky-800 ring-1 ring-sky-500", hover: "hover:border-sky-300 hover:bg-sky-50/70 hover:text-sky-800" },
+  yellow: { ativa: "border-yellow-500 bg-yellow-50 text-yellow-800 ring-1 ring-yellow-500", hover: "hover:border-yellow-300 hover:bg-yellow-50/70 hover:text-yellow-800" },
+} as const;
 
 function Opcao({ ativa, Icone, rotulo, disabled, aoEscolher, tom }: { ativa: boolean; Icone: typeof Mail; rotulo: string; disabled: boolean; aoEscolher: () => void; tom: keyof typeof TOM_OPCAO }) {
   return (
