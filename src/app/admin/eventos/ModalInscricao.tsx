@@ -86,6 +86,8 @@ export function ModalInscricao({
   const [contribAberta, setContribAberta] = useState(p.pagamento !== "pago" && p.pagamento !== "isento");
   // Os ícones "viajam" da linha para a coluna: View Transitions quando o navegador suporta
   const alternarDados = () => {
+    // Recém-incluído, sem nenhum dado: "Exibir dados" já abre o formulário para preencher
+    if (!verDados && dados.gerenciar && c && !c.email && !c.telefone && !c.cidade && !c.estado && !c.cpf) { informar(); return; }
     const trocar = () => flushSync(() => setVerDados((v) => !v));
     const doc = document as Document & { startViewTransition?: (fn: () => void) => unknown };
     if (doc.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) doc.startViewTransition(trocar);
@@ -112,10 +114,10 @@ export function ModalInscricao({
   const whatsapp = c?.telefone ? `https://wa.me/${(c.telefone.replace(/\D/g, "").startsWith("55") ? "" : "55") + c.telefone.replace(/\D/g, "")}` : null;
   const local = [c?.cidade, c?.estado].filter(Boolean).join(" — ");
   const contatos = c ? [
-    { chave: "email", ordem: 0, Icone: Mail, rotulo: "E-mail", valor: c.email || null, href: c.email ? `mailto:${c.email}` : null, externo: false, vazio: "Não informado" },
-    { chave: "whatsapp", ordem: 1, Icone: MessageCircle, rotulo: "WhatsApp", valor: c.telefone, href: whatsapp, externo: true, vazio: "Não informado" },
-    { chave: "cidade", ordem: 2, Icone: MapPin, rotulo: "Cidade", valor: local || null, href: null, externo: false, vazio: "Não informada" },
-    { chave: "cpf", ordem: 3, Icone: IdCard, rotulo: "CPF", valor: c.cpf, href: null, externo: false, vazio: "Não informado" },
+    { chave: "whatsapp", ordem: 0, Icone: MessageCircle, rotulo: "WhatsApp", valor: c.telefone, href: whatsapp, externo: true, vazio: "Não informado" },
+    { chave: "cpf", ordem: 1, Icone: IdCard, rotulo: "CPF", valor: c.cpf, href: null, externo: false, vazio: "Não informado" },
+    { chave: "email", ordem: 2, Icone: Mail, rotulo: "E-mail", valor: c.email || null, href: c.email ? `mailto:${c.email}` : null, externo: false, vazio: "Não informado" },
+    { chave: "cidade", ordem: 3, Icone: MapPin, rotulo: "Cidade", valor: local || null, href: null, externo: false, vazio: "Não informada" },
   ] : [];
   // Linha do tempo: doses, contribuição, inscrição e cadastro, do mais recente ao mais antigo
   const linhaDoTempo = ([
@@ -235,9 +237,9 @@ export function ModalInscricao({
                           <p className="text-[11px] text-stone-400">{x.rotulo}</p>
                           {editando ? (
                             x.chave === "email" ? (
-                              <input name="email" type="email" inputMode="email" autoComplete="off" defaultValue={c.email} placeholder="Informar e-mail" aria-label="E-mail" className={CAMPO_INLINE} autoFocus />
+                              <input name="email" type="email" inputMode="email" autoComplete="off" defaultValue={c.email} placeholder="Informar e-mail" aria-label="E-mail" className={CAMPO_INLINE} />
                             ) : x.chave === "whatsapp" ? (
-                              <InputTelefone name="telefone" defaultValue={c.telefone} placeholder="Informar WhatsApp" aria-label="WhatsApp" className={CAMPO_INLINE} />
+                              <InputTelefone name="telefone" defaultValue={c.telefone} placeholder="Informar WhatsApp" aria-label="WhatsApp" className={CAMPO_INLINE} autoFocus />
                             ) : x.chave === "cidade" ? (
                               <span className="flex items-center gap-1.5">
                                 <input name="cidade" defaultValue={c.cidade || (!c.estado ? dados.localPadrao?.cidade : "") || ""} placeholder="Informar cidade" aria-label="Cidade" className={CAMPO_INLINE} />

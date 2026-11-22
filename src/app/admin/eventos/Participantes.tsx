@@ -369,14 +369,14 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
                     <Avatar nome={x.nome} foto={x.foto} tamanho={32} className={chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{x.nome}</span>
                     <ChipsDose doses={dados.dosesEquipe?.[x.id] ?? []} />
-                    <SeloPapel papel={x.papel} soIcone={(dados.dosesEquipe?.[x.id] ?? []).some((d) => d.ml > 0)} />
+                    <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} soIcone={(dados.dosesEquipe?.[x.id] ?? []).some((d) => d.ml > 0)} />
                     {chamadaAtiva ? null : <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600" />}
                   </button>
                 ) : (
                   <div className="flex w-full items-center gap-2.5 rounded-lg bg-sky-50 px-2 py-1.5 ring-1 ring-sky-100">
                     <Avatar nome={x.nome} foto={x.foto} tamanho={32} className="ring-0" />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{x.nome}</span>
-                    <SeloPapel papel={x.papel} />
+                    <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} />
                   </div>
                 )}
               </li>
@@ -421,7 +421,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
           <ModalDosagemEquipe
             eventoId={dados.eventoId}
             pessoa={{ id: m.id, nome: m.nome, foto: m.foto }}
-            rotulo={m.papel === "mestre" ? "Mestre" : "Guardião"}
+            rotulo={m.papel === "mestre" ? "Mestre" : m.sexo === "feminino" ? "Guardiã" : "Guardião"}
             inicial={dados.dosesEquipe?.[m.id] ?? []}
             fechar={() => setEquipeAberta(null)}
           />
@@ -458,8 +458,9 @@ function Numero({ rotulo, valor, detalhe, cor = "text-stone-900", acao }: { rotu
 }
 
 /** Linha da lista: quem gerencia toca para abrir o modal da inscrição (contato, contribuição, comprovante e cancelamento). */
-function SeloPapel({ papel, soIcone = false }: { papel: MembroLista["papel"]; /** Com dose registrada: só o ícone, para economizar largura. */ soIcone?: boolean }) {
-  const info = PAPEL[papel];
+function SeloPapel({ papel, soIcone = false, sexo }: { papel: MembroLista["papel"]; /** Com dose registrada: só o ícone, para economizar largura. */ soIcone?: boolean; /** Feminino: "Guardiã". */ sexo?: Sexo | null }) {
+  const base = PAPEL[papel];
+  const info = papel === "guardiao" && sexo === "feminino" ? { ...base, rotulo: "Guardiã" } : base;
   return (
     <span title={info.rotulo} className={`inline-flex shrink-0 items-center gap-1 rounded-full text-[11px] font-semibold ${soIcone ? "h-6 w-6 justify-center" : "px-2 py-0.5"} ${info.cor}`}>
       <info.Icone size={soIcone ? 13 : 11} aria-hidden />{soIcone ? <span className="sr-only">{info.rotulo}</span> : <> {info.rotulo}</>}
@@ -500,7 +501,7 @@ function Linha({
         )}
       </span>
       {gerenciar && <ChipsDose doses={p.doses ?? []} />}
-      {papel && <SeloPapel papel={papel} soIcone={temDose} />}
+      {papel && <SeloPapel papel={papel} sexo={p.contato?.sexo} soIcone={temDose} />}
       {temContribuicao && (
         // Participante (fora da equipe) com dose registrada: só a inicial da situação
         temDose && !papel ? (

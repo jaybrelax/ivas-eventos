@@ -44,8 +44,10 @@ export default async function PainelLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="min-h-screen">
+      {/* Antes da pintura: menu fino se foi escolhido ou, sem escolha, em tablet (< 1024 px) */}
+      <script dangerouslySetInnerHTML={{ __html: `try{var c=localStorage.getItem("menu-colapsado");if(c==="1"||(c===null&&innerWidth<1024))document.documentElement.dataset.menu="colapsado"}catch(e){}` }} />
       <Menu grupos={grupos} marca={marca} usuario={{ nome: u.nome, perfil, perfilId: u.perfil, foto: u.foto }} sair={sair} />
-      <main className="md:pl-64 xl:pl-72">
+      <main className="transition-[padding] duration-200 md:pl-64 xl:pl-72 in-data-[menu=colapsado]:md:pl-[4.5rem]! in-data-[menu=colapsado]:xl:pl-[4.5rem]!">
         <div className="mx-auto w-full max-w-7xl animate-aparecer px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">{children}</div>
       </main>
     </div>

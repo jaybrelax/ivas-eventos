@@ -215,7 +215,12 @@ export function Dosagem({ salvarDoses, inicial, aoSalvar, aoMudarDoses }: {
               <button
                 key={d.n}
                 type="button"
-                onClick={() => { setRascunho(salvas); setAberta(d.n); }}
+                onClick={() => {
+                  // Dose posterior com uma anterior ainda vazia: abre primeiro a anterior
+                  const anteriorVazia = salvas.find((x) => x.n < d.n && x.ml === 0);
+                  setRascunho(salvas);
+                  setAberta(anteriorVazia ? anteriorVazia.n : d.n);
+                }}
                 className="group flex items-center gap-3 rounded-xl border border-amber-900/10 bg-white p-2.5 text-left transition hover:border-amber-800/30 hover:shadow-sm active:scale-[0.98]"
                 aria-label={`${ORDINAL[d.n]}: ${d.ml} ml. Toque para informar.`}
               >
@@ -295,10 +300,10 @@ function DoseAberta({ dose, salvando, onMudar, onCancelar, onSalvar, onRemover }
           style={{ writingMode: "vertical-lr", direction: "rtl" } as CSSProperties}
         />
 
-        <div className="flex w-20 flex-col justify-center">
+        <div className="flex w-24 flex-col justify-center">
           <span className="text-5xl leading-none font-bold tracking-tight text-amber-950 tabular-nums">{dose.ml}</span>
-          <span className="mt-1 text-sm font-semibold text-amber-900/60">ml</span>
-          <span className="mt-2 text-[11px] text-stone-400">de 0 a {DOSE_MAX_ML}</span>
+          <span className="mt-1 text-2xl leading-none font-bold text-amber-900/70">ml</span>
+          <span className="mt-3 text-sm font-medium text-stone-500">de 0 a {DOSE_MAX_ML}</span>
         </div>
       </div>
 

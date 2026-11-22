@@ -113,7 +113,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
       <AtualizarAoVivo />
       {/* Mobile: a capa do evento ao fundo, atrás da capa e da data, desbotando para a cor da página */}
       {evento.capa_file_id && (
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[23rem] overflow-hidden md:hidden">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[23rem] overflow-hidden md:h-[27rem] lg:hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={urlImagem(evento.capa_file_id, 640)} alt="" className="h-full w-full scale-110 object-cover blur-[2px]" />
           <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-transparent" />
@@ -121,7 +121,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         </div>
       )}
       <div className="-mt-1 mb-2 flex items-center justify-between gap-3 md:mt-0 md:mb-5">
-        <Link href={`/admin/eventos?mes=${evento.data.slice(0, 7)}`} className={`inline-flex min-h-11 items-center gap-2 text-base font-semibold tracking-[0.12em] uppercase md:min-h-0 md:gap-1.5 md:text-xs md:tracking-[0.14em] md:text-ouro-600 md:drop-shadow-none md:hover:text-ouro-700 ${evento.capa_file_id ? "text-white drop-shadow" : "text-ouro-600"}`}>
+        <Link href={`/admin/eventos?mes=${evento.data.slice(0, 7)}`} className={`inline-flex min-h-11 items-center gap-2 text-base font-semibold tracking-[0.12em] uppercase md:min-h-0 md:gap-1.5 md:text-xs md:tracking-[0.14em] lg:text-ouro-600 lg:drop-shadow-none lg:hover:text-ouro-700 ${evento.capa_file_id ? "text-white drop-shadow lg:text-ouro-600 lg:drop-shadow-none" : "text-ouro-600"}`}>
           <ArrowLeft size={18} className="md:size-[13px]" /> Agenda
         </Link>
         <MenuEventoMobile url={`${SITE_URL}${caminhoPublico}`} caminho={caminhoPublico} titulo={evento.titulo} claro={!!evento.capa_file_id} editarHref={gerenciar ? `/admin/eventos/${evento.$id}/editar` : undefined} />
@@ -172,60 +172,62 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
           )}
         </div>
 
-        <div className="cartao col-span-2 flex min-w-0 flex-col divide-y divide-stone-100 overflow-hidden p-0 sm:p-0 md:col-span-1 md:h-[13rem] lg:h-[16rem]">
-          {/* Título e numeração do ritual */}
-          <div className="flex items-start justify-between gap-4 px-4 pt-3.5 pb-3 md:px-5 md:pt-3.5 md:pb-3">
-            <div className="min-w-0">
-              <h1 className="line-clamp-2 text-lg leading-snug text-balance md:text-xl md:leading-tight font-semibold tracking-tight text-stone-900 lg:text-[22px]">{evento.titulo}</h1>
-              {(tipo || evento.destaque) && (
-                <p className="mt-1.5 hidden flex-wrap items-center gap-1.5 md:flex">
-                  {tipo && <BadgeTipo nome={tipo.nome} cor={tipo.cor} icone={tipo.icone} />}
-                  {evento.destaque && <BadgeDestaque />}
-                </p>
-              )}
-            </div>
+        <div className="cartao col-span-2 flex min-w-0 flex-col divide-y divide-stone-100 overflow-hidden p-0 sm:p-0 md:col-span-1 md:max-lg:h-auto lg:h-[16rem] md:max-lg:border-white/60 md:max-lg:bg-white/65 md:max-lg:shadow-elevado md:max-lg:backdrop-blur-xl md:max-lg:backdrop-saturate-150 md:max-lg:divide-white/50">
+          {/* Título (uma linha) e tipo */}
+          <div className="flex items-center gap-3 px-4 pt-3.5 pb-3 md:px-5 md:pt-3 md:pb-2.5">
+            <h1 className="min-w-0 flex-1 truncate text-lg leading-tight font-semibold tracking-tight text-stone-900 md:text-xl lg:text-[22px]" title={evento.titulo}>{evento.titulo}</h1>
+            {(tipo || evento.destaque) && (
+              <p className="hidden shrink-0 items-center gap-1.5 lg:flex">
+                {tipo && <BadgeTipo nome={tipo.nome} cor={tipo.cor} icone={tipo.icone} />}
+                {evento.destaque && <BadgeDestaque />}
+              </p>
+            )}
+          </div>
+
+          {/* Quando, onde e numeração do ritual */}
+          <div className="hidden flex-col items-start gap-2.5 px-5 py-2.5 md:flex lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+            <ul className="flex min-w-0 flex-col gap-1 text-sm">
+              <li className="flex items-center gap-4">
+                <span className="flex items-center gap-2 text-stone-800">
+                  <CalendarDays size={15} className="text-mata-600" aria-hidden />
+                  <span className="font-medium capitalize">{dataPorExtenso(evento.data)}</span>
+                </span>
+                <span className="flex items-center gap-2 text-stone-800">
+                  <Clock size={15} className="text-mata-600" aria-hidden />
+                  <span className="font-medium tabular-nums">{evento.hora_inicio}</span>
+                </span>
+              </li>
+              <li className="flex min-w-0 items-center gap-2 text-stone-800">
+                <MapPin size={15} className="shrink-0 text-mata-600" aria-hidden />
+                <span className="truncate font-medium" title={end?.endereco}>{end ? end.apelido : (evento.endereco_livre || "Local a definir")}</span>
+                {end?.link_maps && (
+                  <a href={end.link_maps} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-mata-700 hover:underline">
+                    Mapa <ExternalLink size={11} aria-hidden />
+                  </a>
+                )}
+              </li>
+            </ul>
             {(evento.ritual_numero_geral || evento.ritual_numero_ano) && (
-              <dl className="hidden shrink-0 divide-x divide-mata-100 rounded-xl md:flex bg-mata-50 ring-1 ring-mata-100">
+              <dl className="flex shrink-0 divide-x divide-mata-200/70 overflow-hidden rounded-xl bg-gradient-to-br from-mata-50 to-white shadow-sm ring-1 ring-mata-200/80">
                 {evento.ritual_numero_geral ? (
-                  <div className="px-3 py-1.5 text-center">
+                  <div className="px-3.5 py-1.5 text-center">
                     <dt className="text-[9px] font-semibold tracking-wider text-mata-600 uppercase">Ritual</dt>
-                    <dd className="font-mono text-lg leading-tight font-bold text-mata-800 tabular-nums">Nº {evento.ritual_numero_geral}</dd>
+                    <dd className="font-mono text-xl leading-tight font-bold text-mata-800 tabular-nums">Nº {evento.ritual_numero_geral}</dd>
                   </div>
                 ) : null}
                 {evento.ritual_numero_ano ? (
-                  <div className="px-3 py-1.5 text-center">
+                  <div className="px-3.5 py-1.5 text-center">
                     <dt className="text-[9px] font-semibold tracking-wider text-mata-600 uppercase">Do ano</dt>
-                    <dd className="font-mono text-lg leading-tight font-bold text-mata-800 tabular-nums">{evento.ritual_numero_ano}/{evento.ritual_ano}</dd>
+                    <dd className="font-mono text-xl leading-tight font-bold text-mata-800 tabular-nums">{evento.ritual_numero_ano}/{evento.ritual_ano}</dd>
                   </div>
                 ) : null}
               </dl>
             )}
           </div>
 
-          {/* Quando e onde */}
-          <ul className="hidden flex-wrap items-center gap-x-5 gap-y-1 px-5 py-2 text-sm md:flex">
-            <li className="flex items-center gap-2 text-stone-800">
-              <CalendarDays size={15} className="text-mata-600" aria-hidden />
-              <span className="font-medium capitalize">{dataPorExtenso(evento.data)}</span>
-            </li>
-            <li className="flex items-center gap-2 text-stone-800">
-              <Clock size={15} className="text-mata-600" aria-hidden />
-              <span className="font-medium tabular-nums">{evento.hora_inicio}</span>
-            </li>
-            <li className="flex min-w-0 items-center gap-2 text-stone-800">
-              <MapPin size={15} className="shrink-0 text-mata-600" aria-hidden />
-              <span className="truncate font-medium" title={end?.endereco}>{end ? end.apelido : (evento.endereco_livre || "Local a definir")}</span>
-              {end?.link_maps && (
-                <a href={end.link_maps} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-mata-700 hover:underline">
-                  Mapa <ExternalLink size={11} aria-hidden />
-                </a>
-              )}
-            </li>
-          </ul>
-
           {/* Equipe */}
           {temEquipe && (
-            <div className="hidden min-h-0 flex-1 flex-row flex-wrap md:flex content-start items-start gap-x-4 gap-y-2 md:gap-x-0 overflow-hidden px-4 pt-2.5 pb-3 md:px-5 md:pt-2.5 md:pb-2">
+            <div className="hidden min-h-0 flex-1 flex-row flex-wrap md:flex md:max-lg:py-3 content-start items-start gap-x-4 gap-y-2 md:gap-x-0 overflow-hidden px-4 pt-2.5 pb-3 md:px-5 md:pt-2.5 md:pb-2">
               <GrupoCompacto
                 titulo="Mestres" Icone={Crown} cor="text-mata-700" anel="ring-mata-300" pessoas={mestres}
                 acao={gerenciar ? <GerenciarMestres eventoId={evento.$id} equipe={equipe.filter((p) => !p.mock)} inicial={evento.mestres ?? []} /> : undefined}
@@ -324,7 +326,7 @@ function GrupoCompacto({ titulo, Icone, cor, anel, pessoas, vagas, acao }: {
   titulo: string; Icone: typeof Crown; cor: string; anel: string; pessoas: MembroEquipe[]; vagas?: number; acao?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col md:first:pr-5 md:[&:not(:first-child)]:border-l md:[&:not(:first-child)]:border-stone-100 md:[&:not(:first-child)]:pl-5">
+    <div className="flex min-w-0 flex-col md:first:pr-5 md:[&:not(:first-child)]:border-l md:[&:not(:first-child)]:border-stone-100 md:[&:not(:first-child)]:pl-5 md:max-lg:w-full md:max-lg:border-l-0! md:max-lg:pl-0! md:max-lg:pr-0!">
       <p className={`mb-1 flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase ${cor}`}>
         <Icone size={13} aria-hidden className="max-md:hidden" /> {titulo}
         <span className="rounded-full bg-stone-100 px-1.5 text-[10px] text-stone-500 tabular-nums">{pessoas.length}{vagas !== undefined ? `/${vagas}` : ""}</span>
