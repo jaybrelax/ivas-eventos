@@ -146,9 +146,9 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         {/* Mobile: ao lado da capa, data em destaque, local e numeração do ritual */}
         <div className="vidro flex flex-col overflow-hidden rounded-2xl md:hidden">
           <div className="flex flex-1 flex-col justify-center px-3 py-2.5 text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.3)]">
-            <p className="text-[10px] font-semibold tracking-[0.16em] text-mata-200 uppercase">{data.diaSemana}</p>
+            <p className="text-[11px] font-semibold tracking-[0.16em] text-mata-100 uppercase">{data.diaSemana}</p>
             <div className="mt-1 flex items-center gap-2">
-              <span className="text-[46px] leading-none font-bold tracking-tight tabular-nums">{data.dia}</span>
+              <span className="text-[52px] leading-[0.9] font-bold tracking-tight tabular-nums">{data.dia}</span>
               <span className="flex min-w-0 flex-col leading-tight">
                 <span className="flex items-center gap-1 text-[11px] font-medium text-mata-100 tabular-nums"><Clock size={11} aria-hidden /> {evento.hora_inicio}</span>
                 <span className="truncate text-[15px] font-semibold text-ouro-300">{data.mesNome.charAt(0).toUpperCase() + data.mesNome.slice(1)}</span>
@@ -175,7 +175,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         <div className="cartao col-span-2 flex min-w-0 flex-col divide-y divide-stone-100 overflow-hidden p-0 sm:p-0 md:col-span-1 md:max-lg:h-auto lg:h-[16rem] md:max-lg:border-white/60 md:max-lg:bg-white/65 md:max-lg:shadow-elevado md:max-lg:backdrop-blur-xl md:max-lg:backdrop-saturate-150 md:max-lg:divide-white/50">
           {/* Título (uma linha) e tipo */}
           <div className="flex items-center gap-3 px-4 pt-3.5 pb-3 md:px-5 md:pt-3 md:pb-2.5">
-            <h1 className="min-w-0 flex-1 truncate text-lg leading-tight font-semibold tracking-tight text-stone-900 md:text-xl lg:text-[22px]" title={evento.titulo}>{evento.titulo}</h1>
+            <h1 className="min-w-0 flex-1 line-clamp-2 font-display text-[22px] leading-[1.15] font-semibold text-stone-900 md:text-2xl lg:line-clamp-1 lg:text-[26px]" title={evento.titulo}>{evento.titulo}</h1>
             {(tipo || evento.destaque) && (
               <p className="hidden shrink-0 items-center gap-1.5 lg:flex">
                 {tipo && <BadgeTipo nome={tipo.nome} cor={tipo.cor} icone={tipo.icone} />}

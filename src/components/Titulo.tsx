@@ -7,19 +7,22 @@ export function Titulo({
   subtitulo,
   acoes,
   sobre,
+  subtituloClassName = "",
 }: {
   titulo: string;
   subtitulo?: ReactNode;
   acoes?: ReactNode;
-  /** Linha pequena acima do título (ex.: seção ou numeração). */
+  /** Navegação acima do título (ex.: link de volta). Texto simples é ignorado: o título já diz onde a pessoa está. */
   sobre?: ReactNode;
+  /** Classes extras do subtítulo (ex.: `hidden sm:block` para esconder no celular). */
+  subtituloClassName?: string;
 }) {
   return (
     <header className="mb-6 flex flex-wrap items-end justify-between gap-4 sm:mb-8">
       <div className="min-w-0">
-        {sobre && <div className="mb-1.5 text-xs font-semibold tracking-[0.14em] text-ouro-600 uppercase">{sobre}</div>}
+        {sobre && typeof sobre !== "string" && <div className="mb-1.5 text-xs font-semibold tracking-[0.14em] text-ouro-700 uppercase">{sobre}</div>}
         <h1 className="text-[26px] leading-tight font-semibold tracking-tight text-stone-900 sm:text-[30px]">{titulo}</h1>
-        {subtitulo && <p className="mt-1.5 max-w-2xl text-sm text-stone-500">{subtitulo}</p>}
+        {subtitulo && <p className={`mt-1.5 max-w-2xl text-sm text-stone-500 ${subtituloClassName}`}>{subtitulo}</p>}
       </div>
       {acoes && <div className="flex flex-wrap items-center gap-2">{acoes}</div>}
     </header>

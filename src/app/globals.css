@@ -22,8 +22,8 @@
   --color-ouro-700: #87692f;
   --color-fundo: #f6f6f3;
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Cinzel Variable", serif;
-  --font-card: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-card: var(--font-display);
   --shadow-cartao: 0 1px 2px rgb(20 42 29 / 0.04), 0 4px 16px -8px rgb(20 42 29 / 0.1);
   --shadow-elevado: 0 2px 4px rgb(20 42 29 / 0.04), 0 16px 40px -16px rgb(20 42 29 / 0.25);
   --animate-surgir: surgir 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both;
@@ -231,11 +231,11 @@ select.campo {
 }
 @utility cartao-titulo {
   font-family: var(--font-card);
-  @apply text-base font-bold tracking-tight text-stone-900;
+  @apply text-base font-semibold tracking-tight text-stone-900;
 }
 @utility titulo-card {
   font-family: var(--font-card);
-  @apply font-bold tracking-tight text-stone-900;
+  @apply font-semibold tracking-tight text-stone-900;
 }
 @utility cartao-sub {
   @apply mt-0.5 text-sm text-stone-500;

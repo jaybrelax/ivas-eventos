@@ -352,7 +352,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
       )}
 
       <div className="sm:rounded-xl sm:border sm:border-stone-200/80 sm:p-3">
-        <p className="flex items-center justify-between px-0.5 pt-1 pb-2 sm:px-1.5 text-xs font-semibold tracking-wider text-stone-400 uppercase">
+        <p className="flex items-center justify-between px-0.5 pt-1 pb-2 sm:px-1.5 text-xs font-semibold tracking-wider text-stone-500 uppercase">
           <span>{equipe.length ? (equipeOrdenada.length ? "Equipe do ritual" : "Participantes") : "Confirmados"}</span>
           {filtrando && <span className="normal-case tracking-normal font-medium">{confirmados.length} de {ocupadas}</span>}
         </p>

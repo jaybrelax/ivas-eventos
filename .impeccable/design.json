@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-22T00:00:00Z",
+  "title": "Design System: Rituais IVAS",
+  "extensions": {
+    "colorMeta": {
+      "mata-600": { "role": "primary", "displayName": "Mata Profundo", "canonical": "#55347f", "tonalRamp": ["#170d26","#251639","#35204f","#432966","#55347f","#6a449c","#8566bb","#ad97d6","#d0c2ea","#f5f2fb"] },
+      "ouro-500": { "role": "secondary", "displayName": "Ouro Ritual", "canonical": "#c8a24a", "tonalRamp": ["#87692f","#a9853a","#c8a24a","#d6b45e","#e2c57a","#ecd9a3","#f5ecd0","#fbf7ec"] },
+      "fundo": { "role": "neutral", "displayName": "Fundo Quente", "canonical": "#f6f6f3", "tonalRamp": ["#18201b","#44403c","#78716c","#d6d3d1","#e7e5e4","#f6f6f3"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display (Bricolage Grotesque)", "purpose": "Títulos de página, evento e marca." },
+      "card-title": { "displayName": "Título de cartão", "purpose": "Montserrat 700 em cartões." }
+    },
+    "shadows": [
+      { "name": "cartao", "value": "0 1px 2px rgb(20 42 29 / 0.04), 0 4px 16px -8px rgb(20 42 29 / 0.1)", "purpose": "Cartão em repouso." },
+      { "name": "elevado", "value": "0 2px 4px rgb(20 42 29 / 0.04), 0 16px 40px -16px rgb(20 42 29 / 0.25)", "purpose": "Modais e gavetas." }
+    ],
+    "motion": [
+      { "name": "surgir", "value": "0.35s cubic-bezier(0.2, 0.7, 0.2, 1)", "purpose": "Entrada de conteúdo (fade + 6px)." },
+      { "name": "folha", "value": "0.34s cubic-bezier(0.2, 0.9, 0.25, 1)", "purpose": "Folha inferior (bottom sheet)." },
+      { "name": "tela", "value": "0.32s cubic-bezier(0.2, 0.8, 0.2, 1)", "purpose": "Troca de tela da Guarnição, entra da direita." }
+    ],
+    "breakpoints": [{ "name": "sm", "value": "640px" }]
+  },
+  "components": [
+    {
+      "name": "Primary Button", "kind": "button", "refersTo": "button-primary",
+      "description": "Ação principal.",
+      "html": "<button class=\"ds-btn-primary\">Salvar</button>",
+      "css": ".ds-btn-primary{height:40px;padding:0 16px;border:0;border-radius:12px;font:600 14px Inter,system-ui,sans-serif;color:#fff;background:linear-gradient(to bottom,#55347f,#35204f);box-shadow:inset 0 1px 0 rgb(255 255 255/.15),0 4px 12px -4px rgb(20 42 29/.5);cursor:pointer;transition:transform .15s}.ds-btn-primary:hover{background:linear-gradient(to bottom,#6a449c,#432966)}.ds-btn-primary:active{transform:scale(.98)}.ds-btn-primary:focus-visible{outline:2px solid #c8a24a;outline-offset:2px}"
+    },
+    {
+      "name": "Ouro Button", "kind": "button", "refersTo": "button-ouro",
+      "description": "Destaque único por tela.",
+      "html": "<button class=\"ds-btn-ouro\">Inscrever-se</button>",
+      "css": ".ds-btn-ouro{height:40px;padding:0 16px;border:0;border-radius:12px;font:600 14px Inter,system-ui,sans-serif;color:#170d26;background:linear-gradient(to bottom,#d6b45e,#a9853a);box-shadow:inset 0 1px 0 rgb(255 255 255/.35),0 4px 12px -4px rgb(169 133 58/.6);cursor:pointer}.ds-btn-ouro:hover{background:linear-gradient(to bottom,#e2c57a,#c8a24a)}.ds-btn-ouro:focus-visible{outline:2px solid #c8a24a;outline-offset:2px}"
+    },
+    {
+      "name": "Secondary Button", "kind": "button", "refersTo": "button-secondary",
+      "description": "Ação secundária.",
+      "html": "<button class=\"ds-btn-sec\">Cancelar</button>",
+      "css": ".ds-btn-sec{height:40px;padding:0 16px;border:1px solid #e7e5e4;border-radius:12px;background:#fff;color:#292524;font:600 14px Inter,system-ui,sans-serif;cursor:pointer}.ds-btn-sec:hover{border-color:#d6d3d1;background:#fafaf9}.ds-btn-sec:focus-visible{outline:2px solid #c8a24a;outline-offset:2px}"
+    },
+    {
+      "name": "Input", "kind": "input", "refersTo": "input",
+      "description": "Campo de texto.",
+      "html": "<input class=\"ds-input\" placeholder=\"Nome completo\">",
+      "css": ".ds-input{height:40px;width:240px;padding:0 12px;border:1px solid #e7e5e4;border-radius:12px;background:#fff;color:#1c1917;font:14px Inter,system-ui,sans-serif;box-shadow:0 1px 2px rgb(0 0 0/.04);outline:none}.ds-input::placeholder{color:#a8a29e}.ds-input:hover{border-color:#d6d3d1}.ds-input:focus{border-color:#8566bb;box-shadow:0 0 0 4px #e8e1f5}"
+    },
+    {
+      "name": "Card", "kind": "card", "refersTo": "card",
+      "description": "Superfície base.",
+      "html": "<div class=\"ds-card\"><h3>Ritual 42</h3><p>Sábado, 19h</p></div>",
+      "css": ".ds-card{width:240px;padding:20px;border:1px solid rgb(231 229 228/.8);border-radius:16px;background:#fff;box-shadow:0 1px 2px rgb(20 42 29/.04),0 4px 16px -8px rgb(20 42 29/.1)}.ds-card h3{margin:0;font:700 16px Montserrat,system-ui,sans-serif;letter-spacing:-.025em;color:#1c1917}.ds-card p{margin:2px 0 0;font:14px Inter,system-ui,sans-serif;color:#78716c}"
+    },
+    {
+      "name": "Chip de filtro", "kind": "chip", "refersTo": "chip-app",
+      "description": "Filtro de toque grande; ativo em roxo.",
+      "html": "<span class=\"ds-chip\">Todos</span> <span class=\"ds-chip ds-chip-on\">Reuniões</span>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:9999px;background:#fff;color:#57534e;font:600 13px Inter,system-ui,sans-serif;box-shadow:0 0 0 1px #e7e5e4}.ds-chip-on{background:#3b2790;color:#fff;box-shadow:0 0 0 1px #3b2790}"
+    }
+  ],
+  "narrative": {
+    "northStar": "O Santuário em Vidro",
+    "overview": "Um espaço calmo e luminoso: cartões claros e arejados sobre fundo quente, com roxo profundo como cor de presença e ouro como assinatura rara. O vidro translúcido aparece só onde o app precisa flutuar (dock, botões sobre capas), nunca como linguagem de toda a tela.",
+    "keyCharacteristics": [
+      "Roxo profundo (`mata`) como cor de ação; ouro como acento raro.",
+      "Cartões brancos, bordas suaves, sombra ambiente discreta.",
+      "Vidro translúcido e gradientes só em dock, capas e destaques.",
+      "Cantos generosos (12–16px) e botões de 40px de altura.",
+      "Movimento curto e com significado; respeita `prefers-reduced-motion`."
+    ],
+    "rules": [
+      { "name": "A Regra do Ouro Raro", "body": "Ouro é assinatura, não decoração: foco, um destaque por tela, selos de conclusão. Nunca como fundo de áreas grandes.", "section": "colors" },
+      { "name": "A Regra da Mesma Estrutura", "body": "Troca de tema ou de app muda valores de token, não a estrutura dos componentes.", "section": "colors" },
+      { "name": "A Regra do Display Contido", "body": "Bricolage Grotesque só em títulos e marca, nunca em corpo, botões ou números de tabela.", "section": "typography" },
+      { "name": "A Regra do Vidro Pontual", "body": "Vidro só flutua sobre imagem ou conteúdo rolável. Nunca em cartões de dados, tabelas ou formulários.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do usar `mata-600→800` para a ação principal e reservar `btn-ouro` a um destaque por tela.",
+      "Do manter alvos de toque de pelo menos 40px (36px em chips) e contraste AA nos dois temas.",
+      "Do mudar tema alterando tokens (`--color-stone-*`, `--color-emerald-*`), não a estrutura dos componentes.",
+      "Do respeitar `prefers-reduced-motion` em toda animação nova.",
+      "Do escrever a interface em português do Brasil."
+    ],
+    "donts": [
+      "Don't usar vidro, blur ou gradientes translúcidos em cartões de dados, tabelas ou formulários.",
+      "Don't usar a fonte de título em corpo de texto, botões ou números de tabela.",
+      "Don't usar ouro como fundo de áreas grandes nem em mais de um destaque por tela.",
+      "Don't criar bordas coloridas animadas fora do evento mais próximo.",
+      "Don't introduzir verde como cor de ação: dentro da Guarnição as classes `emerald-*` já são violeta."
+    ]
+  }
+}

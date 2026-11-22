@@ -1,5 +1,7 @@
 /** Fontes do Google Fonts que podem ser escolhidas para a página pública. */
 export const FONTES_TITULO = [
+  { nome: "Bricolage Grotesque", tipo: "sans-serif" },
+  { nome: "DM Sans", tipo: "sans-serif" },
   { nome: "Cinzel", tipo: "serif" },
   { nome: "Cinzel Decorative", tipo: "serif" },
   { nome: "Cormorant Garamond", tipo: "serif" },
@@ -31,7 +33,7 @@ export const FONTES_TEXTO = [
 ] as const;
 
 /** Padrões atuais do site (usados quando nada foi escolhido). */
-export const PADRAO_TITULO = "Cinzel";
+export const PADRAO_TITULO = "Bricolage Grotesque";
 export const PADRAO_TEXTO = "Inter";
 
 const todas = [...FONTES_TITULO, ...FONTES_TEXTO];

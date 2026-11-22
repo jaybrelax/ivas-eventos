@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/inter";
-import "@fontsource-variable/cinzel";
 import "./globals.css";
 import { SITE_URL } from "@/lib/site";
 import { RegistrarSW } from "@/components/RegistrarSW";
@@ -24,7 +23,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Bricolage+Grotesque:wght@500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
+        {/* Menu lateral do painel fino se foi escolhido ou, sem escolha, em tablet (< 1024 px); antes da pintura, no layout raiz (que não re-renderiza no cliente) */}
+        <script dangerouslySetInnerHTML={{ __html: `try{var c=localStorage.getItem("menu-colapsado");if(c==="1"||(c===null&&innerWidth<1024))document.documentElement.dataset.menu="colapsado"}catch(e){}` }} />
       </head>
       <body className="min-h-full font-sans">
         {children}

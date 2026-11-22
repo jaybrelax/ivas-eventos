@@ -70,7 +70,8 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
         sobre="Agenda"
         titulo="Eventos e rituais"
         subtitulo="Acompanhe o mês, filtre por tipo e abra um evento para editar."
-        acoes={podeEditar && <Link href="/admin/eventos/novo" className="btn-primario"><Plus size={17} /> Novo evento</Link>}
+        subtituloClassName="hidden sm:block"
+        acoes={podeEditar && <Link href="/admin/eventos/novo" className="btn-primario hidden sm:inline-flex"><Plus size={17} /> Novo evento</Link>}
       />
 
       {um(sp.ok) === "salvo" && <div className="mb-5"><Aviso tipo="ok">Evento salvo com sucesso.</Aviso></div>}
