@@ -197,6 +197,18 @@ const TABELAS = {
     nome: "Modelos de banner",
     colunas: [v("nome", 80, { required: true }), t("config", { required: true })],
   },
+  // Central de informações do evento: ocorrências, lembretes e tarefas da equipe, com fotos e menções
+  central_posts: {
+    nome: "Central do evento",
+    colunas: [
+      v("evento_id", 36, { required: true }), v("autor_id", 36, { required: true }),
+      en("tipo", ["aviso", "lembrete", "ocorrencia", "tarefa"], "aviso"),
+      v("texto", 4000), ids("mencoes"), ids("imagens"), b("fixado"),
+      v("concluida_por", 36), dt("concluida_em"), dt("editado_em"),
+    ],
+    // Sem índice em `mencoes`/`imagens`: o Appwrite não indexa colunas de lista
+    indices: [["ix_central_evento", "key", ["evento_id"]]],
+  },
 };
 
 async function criarColuna(tableId, [tipo, key, o]) {
@@ -289,6 +301,13 @@ async function main() {
     storage.createBucket({
       bucketId: "comprovantes", name: "Comprovantes de pagamento", permissions: [], fileSecurity: false,
       maximumFileSize: 5 * 1024 * 1024, allowedFileExtensions: ["png", "jpg", "jpeg", "webp"],
+    }),
+  );
+
+  await talvez("bucket central", () =>
+    storage.createBucket({
+      bucketId: "central", name: "Fotos da Central do evento", permissions: [], fileSecurity: false,
+      maximumFileSize: 3 * 1024 * 1024, allowedFileExtensions: ["png", "jpg", "jpeg", "webp"],
     }),
   );
 

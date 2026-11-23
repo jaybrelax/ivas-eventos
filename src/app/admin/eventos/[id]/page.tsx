@@ -6,13 +6,16 @@ import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, getEvento } from "@/lib/data";
 import { listarEquipe } from "@/lib/usuarios";
-import { dataPorExtenso, partesData } from "@/lib/format";
+import { dataPorExtenso, formatarIdRitual, partesData } from "@/lib/format";
 import { urlImagem, urlPublicaEvento } from "@/lib/links";
 import { SITE_URL } from "@/lib/site";
 import { podeGerenciarEvento } from "@/lib/gestao-evento";
 import { AtualizarAoVivo } from "./AtualizarAoVivo";
 import { ConsumoMedicina, type ConsumoPessoa } from "./ConsumoMedicina";
-import { AbasEvento } from "./AbasEvento";
+import { AbasEvento, ID_PAGINA_EVENTO } from "./AbasEvento";
+import { CentralEvento } from "./CentralEvento";
+import { dadosCentral } from "./central-dados";
+import { guardioesDoEvento, podeVerCentral } from "@/lib/central";
 import { lerDosesEquipe } from "@/lib/doses";
 import { MenuEventoMobile } from "./MenuEventoMobile";
 import { ehReuniao, guardioesDaReuniao, temGuarnicao } from "@/lib/guarnicao";
@@ -27,7 +30,6 @@ import { PresencaReuniao } from "../PresencaReuniao";
 import { Participantes, type MembroLista } from "../Participantes";
 import { dadosParticipantes } from "../participantes-dados";
 import { resumoContribuicoes } from "./EstatisticasEvento";
-import { LinksEvento } from "./LinksEvento";
 import { ListaPresenca, type PessoaPresenca } from "./ListaPresenca";
 import { GerenciarGuardioes, GerenciarMestres, MenuEquipeMobile } from "./GerenciarEquipe";
 
@@ -51,11 +53,19 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   const gerenciar = podeGerenciarEvento(u, evento);
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const reuniaoTipo = ehReuniao(tipo);
-  const [guarnicao, reuniao, participantes] = await Promise.all([
+  const [guarnicao, reuniao, participantes, guardioesDoRitual] = await Promise.all([
     temGuarnicao(tipo) ? dadosGuarnicao(evento, u, gerenciar) : null,
     reuniaoTipo ? dadosReuniao(evento, u.id, true) : null,
     dadosParticipantes(evento, tipo, instituto.valor_contribuicao, gerenciar, { estado: instituto.estado, cidade: instituto.cidade }),
+    gerenciar ? [] : guardioesDoEvento(evento),
   ]);
+  // Central de informações: coordenação, mestres escalados e guardiões deste ritual
+  const central = gerenciar || podeVerCentral(u, evento, guardioesDoRitual) ? await dadosCentral(evento, u, gerenciar) : null;
+  const abaCentral = central && {
+    id: "central", rotulo: "Central", icone: "central" as const, detalheSempre: true,
+    detalhe: central.tarefasAbertas ? String(central.tarefasAbertas) : undefined,
+    painel: <CentralEvento eventoId={evento.$id} dados={central} />,
+  };
   const end = enderecos.find((e) => e.$id === evento.endereco_id);
   const caminhoPublico = urlPublicaEvento(evento, tipo);
   const um = (v: unknown) => (typeof v === "string" ? v : Array.isArray(v) ? v[0] : undefined);
@@ -113,6 +123,24 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   const data = partesData(evento.data);
   const resumo = participantes?.temContribuicao ? resumoContribuicoes(participantes) : null;
 
+  // Números (participantes e contribuições): no celular ficam na aba Financeiro; no computador, acima das abas
+  const numeros = temNumeros && participantes && resumo ? (
+    <dl className={`cartao grid grid-cols-2 overflow-hidden p-0 max-sm:[&>*]:border-stone-100 max-sm:[&>*:nth-child(-n+2)]:border-b max-sm:[&>*:nth-child(odd)]:border-r sm:grid-cols-4 sm:divide-x sm:divide-stone-100 sm:p-0 md:divide-black/[0.05] md:py-1 ${SUPERFICIE}`}>
+      <Numero
+        rotulo="Participantes"
+        valor={`${participantes.confirmados.length}/${participantes.vagas}`}
+        detalhe={`${Math.max(0, participantes.vagas - participantes.confirmados.length)} vagas livres${participantes.espera.length ? ` · ${participantes.espera.length} na espera` : ""}`}
+        barra={participantes.vagas ? Math.min(100, Math.round((participantes.confirmados.length / participantes.vagas) * 100)) : 0}
+      />
+      <Numero rotulo="Recebido" valor={resumo.recebido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} detalhe={`${resumo.pagos} ${resumo.pagos === 1 ? "confirmada" : "confirmadas"}`} cor="text-emerald-700" />
+      <Numero rotulo="Para conferir" valor={String(resumo.conferir)} detalhe={resumo.conferir ? "comprovantes" : "nada pendente"} cor={resumo.conferir ? "text-amber-700" : "text-stone-900"} alerta={resumo.conferir > 0} />
+      <Numero rotulo="Em aberto" valor={String(resumo.aberto)} detalhe={resumo.isentos ? `${resumo.isentos} ${resumo.isentos === 1 ? "isento" : "isentos"}` : "pendentes"} />
+    </dl>
+  ) : null;
+  // Gestão do evento: abas (no celular, menu no rodapé). A aba aberta no carregamento vem do `?aba=`.
+  const comAbas = gerenciar && !!participantes;
+  const abaInicial = ["lista", "consumo", "central", "financeiro"].includes(um(sp.aba) ?? "") ? um(sp.aba)! : "lista";
+
   return (
     <>
       <AtualizarAoVivo />
@@ -126,12 +154,13 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         </div>
       )}
       {/* Largura máxima de 720 px (o fundo desfocado fica fora, de ponta a ponta) */}
-      <div className="mx-auto w-full max-w-[720px]">
+      {/* `data-aba`: a aba aberta (o AbasEvento atualiza); no celular, fora de Participantes o cabeçalho fica compacto */}
+      <div id={ID_PAGINA_EVENTO} data-aba={comAbas ? abaInicial : undefined} className={`mx-auto w-full max-w-[720px] ${comAbas ? "max-md:pb-24" : ""}`}>
       <div className="mb-1 flex items-center justify-between gap-3 md:mt-0 md:mb-5">
         <Link href={`/admin/eventos?mes=${evento.data.slice(0, 7)}`} className={`inline-flex min-h-11 items-center gap-2 text-base font-semibold tracking-[0.12em] uppercase md:min-h-0 md:gap-1.5 md:text-xs md:tracking-[0.14em] ${evento.capa_file_id ? "text-white drop-shadow" : "text-ouro-600"}`}>
           <ArrowLeft size={18} className="md:size-[13px]" /> Agenda
         </Link>
-        <MenuEventoMobile url={`${SITE_URL}${caminhoPublico}`} caminho={caminhoPublico} titulo={evento.titulo} claro={!!evento.capa_file_id} editarHref={gerenciar ? `/admin/eventos/${evento.$id}/editar` : undefined} />
+        <MenuEventoMobile url={`${SITE_URL}${caminhoPublico}`} caminho={caminhoPublico} titulo={evento.titulo} resumo={{ capaFileId: evento.capa_file_id ?? null, data: `${dataPorExtenso(evento.data)} · ${evento.hora_inicio}`, numeros: formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano), gestaoUrl: `${SITE_URL}/admin/eventos/${evento.$id}` }} claro={!!evento.capa_file_id} editarHref={gerenciar ? `/admin/eventos/${evento.$id}/editar` : undefined} />
         <div className="hidden flex-wrap items-center gap-2 md:flex">
           <Link href={caminhoPublico} target="_blank" rel="noopener noreferrer" className="btn-secundario rounded-full! border-white/70! bg-white/75! backdrop-blur-xl"><ExternalLink size={15} /> Ver público</Link>
           {gerenciar && <Link href={`/admin/eventos/${evento.$id}/editar`} className="btn-primario rounded-full!"><Pencil size={15} /> Editar evento</Link>}
@@ -141,7 +170,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
 
       {/* Faixa do evento: capa (sem nada por cima) e, ao lado, tudo na altura dela: quando/onde, números e equipe */}
       <section className="mb-3 grid grid-cols-2 gap-3 md:mb-4 md:gap-4 md:grid-cols-[15rem_minmax(0,1fr)]">
-        <div className="relative aspect-square overflow-hidden rounded-2xl bg-mata-950 shadow-elevado md:rounded-[22px] md:shadow-[0_2px_4px_rgb(0_0_0/0.06),0_18px_40px_-14px_rgb(20_42_29/0.4)] md:ring-1 md:ring-black/[0.06]">
+        <div className="relative aspect-square overflow-hidden rounded-2xl bg-mata-950 shadow-elevado max-md:in-data-[aba=consumo]:hidden max-md:in-data-[aba=central]:hidden max-md:in-data-[aba=financeiro]:hidden md:rounded-[22px] md:shadow-[0_2px_4px_rgb(0_0_0/0.06),0_18px_40px_-14px_rgb(20_42_29/0.4)] md:ring-1 md:ring-black/[0.06]">
           {evento.capa_file_id ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={urlImagem(evento.capa_file_id, 640)} alt="" className="h-full w-full object-cover" />
@@ -151,7 +180,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         </div>
 
         {/* Mobile: ao lado da capa, data em destaque, local e numeração do ritual */}
-        <div className="vidro flex flex-col overflow-hidden rounded-2xl md:hidden">
+        <div className="vidro flex flex-col overflow-hidden rounded-2xl in-data-[aba=consumo]:hidden in-data-[aba=central]:hidden in-data-[aba=financeiro]:hidden md:hidden">
           <div className="flex flex-1 flex-col justify-center px-3 py-2.5 text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.3)]">
             <p className="text-[11px] font-semibold tracking-[0.16em] text-mata-100 uppercase">{data.diaSemana}</p>
             <div className="mt-1 flex items-center gap-2">
@@ -181,15 +210,24 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
 
         <div className={`cartao col-span-2 flex min-w-0 flex-col divide-y divide-stone-100 overflow-hidden p-0 sm:p-0 md:col-span-1 md:justify-between md:divide-y-0 ${SUPERFICIE}`}>
           {/* Tipo (só a partir do tablet) e título */}
-          <div className="px-4 pt-3.5 pb-3 md:px-6 md:pt-5 md:pb-0">
+          <div className="flex items-center gap-3 px-4 pt-3.5 pb-3 in-data-[aba=consumo]:py-2.5 in-data-[aba=central]:py-2.5 in-data-[aba=financeiro]:py-2.5 in-data-[aba=consumo]:pl-2.5 in-data-[aba=central]:pl-2.5 in-data-[aba=financeiro]:pl-2.5 md:block md:px-6! md:pt-5! md:pb-0!">
+            {/* Celular, fora de Participantes: a capa vira uma miniatura ao lado do título */}
+            <span aria-hidden className="hidden h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-mata-900 ring-1 ring-black/[0.06] in-data-[aba=consumo]:block in-data-[aba=central]:block in-data-[aba=financeiro]:block md:hidden!">
+              {evento.capa_file_id && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={urlImagem(evento.capa_file_id, 128)} alt="" className="h-full w-full object-cover" />
+              )}
+            </span>
+            <div className="min-w-0 flex-1">
             {tipo && (
               <p className="mb-1 hidden items-center gap-1.5 text-[11px] font-semibold tracking-[0.12em] uppercase md:flex" style={{ color: tipo.cor }}>
                 <span className="h-1.5 w-1.5 rounded-full" style={{ background: tipo.cor }} aria-hidden /> {tipo.nome}
               </p>
             )}
-            <h1 className="min-w-0 line-clamp-2 font-display text-[22px] leading-[1.15] font-semibold text-stone-900 md:text-[26px] md:leading-[1.1] md:tracking-[-0.015em]" title={evento.titulo}>{evento.titulo}</h1>
+            <h1 className="min-w-0 line-clamp-2 font-display text-[22px] leading-[1.15] font-semibold text-stone-900 in-data-[aba=consumo]:text-lg in-data-[aba=central]:text-lg in-data-[aba=financeiro]:text-lg md:text-[26px]! md:leading-[1.1] md:tracking-[-0.015em]" title={evento.titulo}>{evento.titulo}</h1>
             {/* Divisor fino que some nas pontas */}
             <div aria-hidden className="mt-4 hidden h-px bg-gradient-to-r from-transparent via-stone-900/15 to-transparent md:block" />
+            </div>
           </div>
 
           {/* Data, horário, local e numeração do ritual */}
@@ -257,28 +295,15 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         </div>
       )}
 
-      {temNumeros && participantes && resumo && (
-        <div className="mb-3 md:mb-4">
-          <dl className={`cartao grid grid-cols-2 overflow-hidden p-0 max-sm:[&>*]:border-stone-100 max-sm:[&>*:nth-child(-n+2)]:border-b max-sm:[&>*:nth-child(odd)]:border-r sm:grid-cols-4 sm:divide-x sm:divide-stone-100 sm:p-0 md:divide-black/[0.05] md:py-1 ${SUPERFICIE}`}>
-            <Numero
-              rotulo="Participantes"
-              valor={`${participantes.confirmados.length}/${participantes.vagas}`}
-              detalhe={`${Math.max(0, participantes.vagas - participantes.confirmados.length)} vagas livres${participantes.espera.length ? ` · ${participantes.espera.length} na espera` : ""}`}
-              barra={participantes.vagas ? Math.min(100, Math.round((participantes.confirmados.length / participantes.vagas) * 100)) : 0}
-            />
-            <Numero rotulo="Recebido" valor={resumo.recebido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} detalhe={`${resumo.pagos} ${resumo.pagos === 1 ? "confirmada" : "confirmadas"}`} cor="text-emerald-700" />
-            <Numero rotulo="Para conferir" valor={String(resumo.conferir)} detalhe={resumo.conferir ? "comprovantes" : "nada pendente"} cor={resumo.conferir ? "text-amber-700" : "text-stone-900"} alerta={resumo.conferir > 0} />
-            <Numero rotulo="Em aberto" valor={String(resumo.aberto)} detalhe={resumo.isentos ? `${resumo.isentos} ${resumo.isentos === 1 ? "isento" : "isentos"}` : "pendentes"} />
-          </dl>
-        </div>
-      )}
+      {/* Com abas, os números ficam na aba Financeiro */}
+      {numeros && !comAbas && <div className="mb-3 md:mb-4">{numeros}</div>}
 
       {gerenciar && participantes ? (
         <div className="mb-3 md:mb-4">
           <AbasEvento
             inicial={um(sp.aba)}
             abas={[
-              { id: "lista", rotulo: "Presença", icone: "lista", detalhe: String(participantes.confirmados.length + membros.filter((m) => !participantes.confirmados.some((c) => c.id === m.id)).length), painel: (
+              { id: "lista", rotulo: "Participantes", icone: "lista", detalhe: String(participantes.confirmados.length + membros.filter((m) => !participantes.confirmados.some((c) => c.id === m.id)).length), painel: (
                 <div>
         {participantes ? (
           <Participantes
@@ -296,6 +321,8 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
                 </div>
               ) },
               { id: "consumo", rotulo: "Consumo", icone: "consumo", detalhe: totalMl ? `${totalMl} ml` : undefined, painel: <ConsumoMedicina pessoas={consumo} embutido /> },
+              ...(abaCentral ? [abaCentral] : []),
+              ...(numeros ? [{ id: "financeiro", rotulo: "Financeiro", icone: "financeiro" as const, painel: <div className="p-2 pt-1 sm:p-4 sm:pt-2 md:p-5 md:pt-3 [&>dl]:border-0! [&>dl]:bg-transparent! [&>dl]:shadow-none! [&>dl]:ring-0! [&>dl]:backdrop-blur-none!">{numeros}</div> }] : []),
             ]}
           />
         </div>
@@ -317,6 +344,13 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
       </div>
       )}
 
+      {/* Guardião do ritual (sem gestão do evento): a Central num card próprio, logo abaixo da lista */}
+      {!(gerenciar && participantes) && abaCentral && (
+        <div className="mb-3 md:mb-4">
+          <AbasEvento inicial={um(sp.aba)} abas={[abaCentral]} />
+        </div>
+      )}
+
       {gerenciar ? (
         reuniao && <div className="mb-6"><PresencaReuniao dados={reuniao} /></div>
       ) : (
@@ -327,14 +361,6 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         </div>
       )}
 
-      <div className="mt-6 hidden md:block">
-        <LinksEvento
-          url={`${SITE_URL}${caminhoPublico}`}
-          caminho={caminhoPublico}
-          bannerHref={`/admin/banners?evento=${evento.$id}`}
-          nomeArquivo={`qr-${evento.ritual_numero_geral ?? evento.$id}.png`}
-        />
-      </div>
       </div>
     </>
   );

@@ -334,6 +334,11 @@ function EditarDados({ u, souEu, aoSalvar, aoExcluir }: { u: U; souEu: boolean; 
           <Rot icone={Phone} htmlFor={`ed-tel-${u.id}`}>Telefone</Rot>
           <InputTelefone id={`ed-tel-${u.id}`} name="telefone" defaultValue={u.telefone} />
         </div>
+        <div className="sm:col-span-2">
+          <Rot icone={Mail} htmlFor={`ed-email-${u.id}`}>E-mail de acesso</Rot>
+          <input id={`ed-email-${u.id}`} name="email" type="email" defaultValue={u.email} required autoComplete="off" className="campo" />
+          <p className="ajuda">A pessoa passa a entrar com este e-mail. A senha continua a mesma.</p>
+        </div>
         <div>
           <Rot icone={Flame} htmlFor={`ed-funcao-${u.id}`}>Função do usuário</Rot>
           <select id={`ed-funcao-${u.id}`} name="funcao_ritual" defaultValue={u.funcaoRitual} className="campo">

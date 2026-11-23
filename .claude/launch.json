@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 3000
+    },
+    {
+      "name": "guarnicao-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "../RITUAIS_IVAS_guarnicao", "run", "dev", "--", "-p", "3001"],
+      "port": 3001
     }
   ]
 }

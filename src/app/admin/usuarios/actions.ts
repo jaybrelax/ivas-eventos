@@ -80,6 +80,19 @@ export async function salvarDadosPessoais(_: Resultado, form: FormData): Promise
     console.error(e);
     return { erro: "Não foi possível salvar o nome." };
   }
+  // E-mail de acesso: só o Admin troca (campo ausente = não mexe). A pessoa passa a entrar com o novo e-mail.
+  const novoEmail = String(form.get("email") ?? "").trim().toLowerCase();
+  if (eu.perfil === "admin" && novoEmail) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(novoEmail) || novoEmail.length > 254) return { erro: "Informe um e-mail válido." };
+    try {
+      const conta = await users.get({ userId });
+      if (conta.email.toLowerCase() !== novoEmail) await users.updateEmail({ userId, email: novoEmail });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      console.error("Trocar e-mail:", msg);
+      return { erro: /already|exist|conflict/i.test(msg) ? "Já existe um usuário com esse e-mail." : "Não foi possível alterar o e-mail." };
+    }
+  }
   // Só o Admin muda o perfil de acesso (campo ausente = não mexe) e a função nos rituais.
   const novoPerfil = String(form.get("perfil") ?? "") as Perfil;
   if (eu.perfil === "admin" && PERFIS_VALIDOS.includes(novoPerfil)) {

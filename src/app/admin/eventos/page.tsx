@@ -7,7 +7,8 @@ import { getDadosInstituto, listarEventos } from "@/lib/data";
 import { listarEquipe } from "@/lib/usuarios";
 import { candidaturasDosEventos, temGuarnicao, vagasDe } from "@/lib/guarnicao";
 import { IconeGenero } from "@/components/genero";
-import { formatarIdRitual, hoje, limitesMes, nomeMes, partesData, somarMes } from "@/lib/format";
+import { dataPorExtenso, formatarIdRitual, hoje, limitesMes, nomeMes, partesData, somarMes } from "@/lib/format";
+import { CapaDiaCalendario } from "./CapaDiaCalendario";
 import { BadgeDestaque, BadgeTipo, Titulo, Vazio } from "@/components/Titulo";
 import { Aviso } from "@/components/ui";
 import type { Endereco, Evento, Pessoa, TipoEvento } from "@/lib/types";
@@ -120,7 +121,7 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
       ) : (
         <>
           <div className="mb-3 flex justify-end">{contagemMes}</div>
-          <Calendario mes={mes} eventos={eventos} tipoPorId={tipoPorId} hj={hj} />
+          <Calendario mes={mes} eventos={eventos} tipoPorId={tipoPorId} endPorId={endPorId} hj={hj} />
         </>
       )}
     </>
@@ -175,10 +176,15 @@ function CartaoEvento({ e, t, end, hj, passado, pessoas, guarnicao }: { e: Event
           <img src={urlImagem(e.capa_file_id, 320)} loading="lazy" decoding="async" alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
         )}
         <div aria-hidden className="absolute inset-0 -z-10 bg-black/15" />
-        <div className="my-3 flex w-[4.5rem] flex-col items-center rounded-xl bg-white/20 px-2 py-2 text-center text-white shadow-[0_8px_24px_-8px_rgb(0_0_0/0.5)] ring-1 ring-white/35 backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_6px_rgb(0_0_0/0.45)] sm:w-20">
-          <span className="text-[11px] font-bold tracking-[0.18em] uppercase">{d.mesCurto}</span>
-          <span className="text-[2.1rem] leading-none font-black tabular-nums sm:text-[2.4rem]">{d.dia}</span>
-          <span className="mt-0.5 text-[10px] font-medium capitalize opacity-90 sm:text-[11px]">{d.diaSemana.slice(0, 3)}</span>
+        <div className="my-3 flex w-[5.25rem] flex-col items-center rounded-xl bg-white/20 px-1 py-2 text-center text-white shadow-[0_8px_24px_-8px_rgb(0_0_0/0.5)] ring-1 ring-white/35 backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_6px_rgb(0_0_0/0.45)] sm:w-20 sm:px-2">
+          {/* Celular: dia, mês (3 letras) e, no rodapé, o dia da semana por extenso */}
+          <span className="text-[2.1rem] leading-none font-black tabular-nums sm:hidden">{d.dia}</span>
+          <span className="text-[11px] font-bold tracking-[0.18em] uppercase sm:hidden">{d.mesCurto}</span>
+          <span className="mt-1.5 w-full border-t border-white/30 pt-1 text-[9.5px] font-semibold tracking-tight whitespace-nowrap capitalize sm:hidden">{d.diaSemana}</span>
+          {/* Tablet e computador: mês, dia e dia da semana abreviado */}
+          <span className="hidden text-[11px] font-bold tracking-[0.18em] uppercase sm:block">{d.mesCurto}</span>
+          <span className="hidden text-[2.4rem] leading-none font-black tabular-nums sm:block">{d.dia}</span>
+          <span className="mt-0.5 hidden text-[11px] font-medium capitalize opacity-90 sm:block">{d.diaSemana.slice(0, 3)}</span>
         </div>
       </div>
 
@@ -218,7 +224,7 @@ function CartaoEvento({ e, t, end, hj, passado, pessoas, guarnicao }: { e: Event
   );
 }
 
-function Calendario({ mes, eventos, tipoPorId, hj }: { mes: string; eventos: Evento[]; tipoPorId: Map<string, TipoEvento>; hj: string }) {
+function Calendario({ mes, eventos, tipoPorId, endPorId, hj }: { mes: string; eventos: Evento[]; tipoPorId: Map<string, TipoEvento>; endPorId: Map<string, { apelido: string }>; hj: string }) {
   const { fim } = limitesMes(mes);
   const dias = Number(fim.slice(8));
   const primeiroDia = new Date(`${mes}-01T12:00:00Z`).getUTCDay();
@@ -235,22 +241,39 @@ function Calendario({ mes, eventos, tipoPorId, hj }: { mes: string; eventos: Eve
           const doDia = dia ? eventos.filter((e) => e.data === iso) : [];
           const fimDeSemana = i % 7 === 0 || i % 7 === 6;
           const ehHoje = iso === hj;
+          // Dia com evento que tem imagem: a célula vira a própria imagem (miniatura leve), clicável para abrir o evento
+          const comCapa = doDia.find((e) => e.capa_file_id);
+          const outros = doDia.filter((e) => e !== comCapa);
           return (
             <div
               key={i}
-              className={`min-h-20 border-b border-r border-stone-100 p-1.5 sm:min-h-28 sm:p-2 [&:nth-child(7n)]:border-r-0 ${
+              className={`relative min-h-20 border-b border-r border-stone-100 p-1.5 sm:min-h-28 sm:p-2 [&:nth-child(7n)]:border-r-0 ${comCapa ? "isolate overflow-hidden" : ""} ${
                 !dia ? "bg-stone-50/60" : fimDeSemana ? "bg-stone-50/30" : ""
-              } ${ehHoje ? "bg-mata-50/50" : ""}`}
+              } ${ehHoje && !comCapa ? "bg-mata-50/50" : ""}`}
             >
+              {comCapa && (
+                <CapaDiaCalendario
+                  resumo={{
+                    id: comCapa.$id, titulo: comCapa.titulo, capaFileId: comCapa.capa_file_id!, hora: comCapa.hora_inicio,
+                    data: dataPorExtenso(comCapa.data).replace(/^./, (l) => l.toUpperCase()),
+                    numeros: formatarIdRitual(comCapa.ritual_numero_geral, comCapa.ritual_ano, comCapa.ritual_numero_ano),
+                    local: (comCapa.endereco_id ? endPorId.get(comCapa.endereco_id)?.apelido : null) || comCapa.endereco_livre || null,
+                  }}
+                />
+              )}
               {dia && (
-                <div className="mb-1.5 flex justify-end sm:justify-start">
-                  <span className={`grid h-6 min-w-6 place-items-center rounded-full px-1 text-xs font-semibold tabular-nums ${ehHoje ? "bg-mata-700 text-white" : iso < hj ? "text-stone-400" : "text-stone-600"}`}>
+                <div className={`pointer-events-none relative mb-1.5 flex justify-end sm:justify-start ${comCapa ? "z-10" : ""}`}>
+                  <span className={`grid h-6 min-w-6 place-items-center rounded-full px-1 text-xs font-semibold tabular-nums ${
+                    ehHoje ? "bg-mata-700 text-white ring-2 ring-white/80"
+                      : comCapa ? "bg-white/90 text-stone-900 shadow-[0_1px_4px_rgb(0_0_0/0.3)]"
+                        : iso < hj ? "text-stone-400" : "text-stone-600"
+                  }`}>
                     {dia}
                   </span>
                 </div>
               )}
-              <div className="space-y-1">
-                {doDia.map((e) => {
+              <div className={`space-y-1 ${comCapa ? "relative z-10" : ""}`}>
+                {(comCapa ? outros : doDia).map((e) => {
                   const t = tipoPorId.get(e.tipo_id);
                   const cor = t?.cor ?? "#57534e";
                   return (
@@ -258,8 +281,8 @@ function Calendario({ mes, eventos, tipoPorId, hj }: { mes: string; eventos: Eve
                       key={e.$id}
                       href={`/admin/eventos/${e.$id}`}
                       title={`${e.hora_inicio} · ${e.titulo}`}
-                      className={`block truncate rounded-md border-l-[3px] px-1.5 py-1 text-[11px] leading-tight font-medium transition hover:brightness-95 ${e.destaque ? "ring-1 ring-ouro-300" : ""}`}
-                      style={{ background: `${cor}14`, borderColor: cor, color: cor }}
+                      className={`block truncate rounded-md border-l-[3px] px-1.5 py-1 text-[11px] leading-tight font-medium transition hover:brightness-95 ${comCapa ? "bg-white/90 backdrop-blur-sm" : ""} ${e.destaque ? "ring-1 ring-ouro-300" : ""}`}
+                      style={{ background: comCapa ? undefined : `${cor}14`, borderColor: cor, color: cor }}
                     >
                       {e.destaque && "★ "}<span className="hidden opacity-75 sm:inline">{e.hora_inicio} </span>{e.titulo}
                     </Link>

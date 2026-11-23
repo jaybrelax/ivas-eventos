@@ -2,6 +2,8 @@ export const DB_ID = "ivas";
 export const BUCKET_ID = "midia";
 /** Bucket privado dos comprovantes de pagamento: só é lido pela rota /api/comprovante/[id], com checagem de dono/equipe. */
 export const COMPROVANTES_BUCKET_ID = "comprovantes";
+/** Bucket privado das fotos da Central do evento: só é lido pela rota /api/central/[id], com checagem de acesso. */
+export const CENTRAL_BUCKET_ID = "central";
 export const INSTITUTO_ROW_ID = "principal";
 /** Linha à parte da tabela instituto com a chave da OpenAI e o prompt: não é lida junto dos dados públicos. */
 export const IA_ROW_ID = "ia";
@@ -23,6 +25,8 @@ export const TABLES = {
   historicoInscricoes: "historico_inscricoes",
   push: "push_inscricoes",
   sinais: "sinais",
+  /** Central de informações do evento: ocorrências, lembretes e tarefas da equipe. */
+  central: "central_posts",
 } as const;
 
 export type Perfil = "admin" | "coordenador" | "normal";

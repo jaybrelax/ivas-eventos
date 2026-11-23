@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Flame, Plus, Shield, UserPlus, X, type LucideIcon } from "lucide-react";
+import { Check, ChevronDown, Flame, Plus, Search, Shield, SlidersHorizontal, UserPlus, X, type LucideIcon } from "lucide-react";
 import type { Perfil } from "@/lib/config";
 import type { ItemParticipacao } from "@/lib/types";
 import { Aviso } from "@/components/ui";
@@ -21,6 +21,17 @@ export type UsuarioLista = {
 };
 
 type Funcao = "mestre" | "guardiao";
+type Marca = "mestre" | "guardiao" | "coordenador" | "admin";
+
+/** Opções do filtro em menu: funções nos rituais e perfis de acesso. */
+const MARCAS: { id: Marca; nome: string }[] = [
+  { id: "mestre", nome: "Mestre" },
+  { id: "guardiao", nome: "Guardião" },
+  { id: "coordenador", nome: "Coordenador" },
+  { id: "admin", nome: "Admin" },
+];
+
+const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
 /** Cartões de filtro pela função do usuário. */
 const FUNCOES: { id: Funcao; nome: string; descricao: string; Icone: LucideIcon }[] = [
@@ -36,7 +47,34 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
   const [filtro, setFiltro] = useState<Funcao | null>(null);
   const [novoAberto, setNovoAberto] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
-  const visiveis = filtro ? us.filter((u) => u.funcaoRitual === filtro) : us;
+  const [busca, setBusca] = useState("");
+  const termo = semAcento(busca.trim());
+  const digitos = busca.replace(/\D/g, "");
+  const [marcados, setMarcados] = useState<Set<Marca>>(new Set());
+  const [menuAberto, setMenuAberto] = useState(false);
+  const raizFiltro = useRef<HTMLDivElement>(null);
+  const alternar = (m: Marca) => setMarcados((atual) => { const n = new Set(atual); if (n.has(m)) n.delete(m); else n.add(m); return n; });
+  const casa = (u: UsuarioLista, m: Marca) => (m === "mestre" || m === "guardiao" ? u.funcaoRitual === m : u.perfil === m);
+
+  // Fecha o menu do filtro ao clicar fora ou com Esc
+  useEffect(() => {
+    if (!menuAberto) return;
+    const fora = (e: MouseEvent) => { if (!raizFiltro.current?.contains(e.target as Node)) setMenuAberto(false); };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setMenuAberto(false);
+    document.addEventListener("mousedown", fora);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", esc); };
+  }, [menuAberto]);
+
+  const porCard = filtro ? us.filter((u) => u.funcaoRitual === filtro) : us;
+  // Várias marcas = quem tem qualquer uma delas
+  const porFuncao = marcados.size ? porCard.filter((u) => [...marcados].some((m) => casa(u, m))) : porCard;
+  // Busca por nome, e-mail, telefone, função (Mestre/Guardião) e perfil (Admin/Coordenador/Normal)
+  const visiveis = termo
+    ? porFuncao.filter((u) =>
+        semAcento(`${u.nome} ${u.email} ${u.funcaoRitual === "nenhuma" ? "" : u.funcaoRitual} ${u.perfil ?? ""}`).includes(termo) ||
+        (digitos.length >= 3 && (u.telefone ?? "").replace(/\D/g, "").includes(digitos)))
+    : porFuncao;
   const nomeFiltro = FUNCOES.find((f) => f.id === filtro)?.nome;
 
   useEffect(() => {
@@ -86,7 +124,7 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
 
       {aviso && <div className="mb-4"><Aviso tipo="ok">{aviso}</Aviso></div>}
 
-      <section className="cartao overflow-hidden p-0 sm:p-0">
+      <section className="cartao p-0 sm:p-0 [&>ul>li:last-child]:rounded-b-2xl">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 px-5 py-4 sm:px-6">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="cartao-titulo">{nomeFiltro ? `Somente ${nomeFiltro.toLowerCase()}` : "Pessoas com acesso"}</h2>
@@ -106,6 +144,58 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
           </button>
         </div>
 
+        <div className="relative z-30 flex items-center gap-2 border-b border-stone-100 px-5 py-3 sm:px-6">
+          <div className="relative min-w-0 flex-1">
+            <Search size={15} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-stone-400" aria-hidden />
+            <input
+              type="search"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome, e-mail, telefone ou função"
+              aria-label="Buscar usuário"
+              autoComplete="off"
+              className="campo h-10 pl-9 text-sm"
+            />
+          </div>
+
+          {/* Filtro por função/perfil: menu com caixas de seleção; a lista muda na hora */}
+          <div ref={raizFiltro} className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setMenuAberto((v) => !v)}
+              aria-haspopup="true"
+              aria-expanded={menuAberto}
+              className={`inline-flex h-10 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap ring-1 transition ${
+                marcados.size ? "bg-mata-700 text-white ring-mata-700" : "bg-white text-stone-600 ring-stone-200 hover:bg-stone-50"
+              }`}
+            >
+              <SlidersHorizontal size={15} aria-hidden /> Filtrar
+              {marcados.size > 0 && <span className="rounded-full bg-white/20 px-1.5 text-xs tabular-nums">{marcados.size}</span>}
+              <ChevronDown size={14} aria-hidden className={`transition ${menuAberto ? "rotate-180" : ""}`} />
+            </button>
+            {menuAberto && (
+              <div role="group" aria-label="Filtrar por função ou perfil" className="absolute top-full right-0 z-20 mt-2 w-60 animate-surgir rounded-xl border border-stone-200 bg-white p-1.5 shadow-elevado">
+                <p className="px-2.5 pt-1.5 pb-1 text-[11px] font-semibold tracking-wider text-stone-400 uppercase">Mostrar</p>
+                {MARCAS.map((m) => {
+                  const on = marcados.has(m.id);
+                  const n = us.filter((u) => casa(u, m.id)).length;
+                  return (
+                    <label key={m.id} className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition ${on ? "bg-mata-50 font-semibold text-mata-800" : "text-stone-700 hover:bg-stone-50"}`}>
+                      <input type="checkbox" checked={on} onChange={() => alternar(m.id)} className="sr-only" />
+                      <span aria-hidden className={`grid h-4 w-4 shrink-0 place-items-center rounded ring-1 ${on ? "bg-mata-700 text-white ring-mata-700" : "bg-white ring-stone-300"}`}>{on && <Check size={11} strokeWidth={3} />}</span>
+                      <span className="flex-1">{m.nome}</span>
+                      <span className="rounded-full bg-stone-100 px-1.5 text-xs font-medium text-stone-500 tabular-nums">{n}</span>
+                    </label>
+                  );
+                })}
+                {marcados.size > 0 && (
+                  <button type="button" onClick={() => setMarcados(new Set())} className="mt-1 w-full rounded-lg border-t border-stone-100 px-2.5 py-2 text-left text-xs font-semibold text-mata-700 hover:bg-stone-50">Limpar filtro</button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         {visiveis.length ? (
           <ul className="divide-y divide-stone-100">
             {visiveis.map((u) => (
@@ -113,7 +203,7 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
             ))}
           </ul>
         ) : (
-          <p className="px-6 py-10 text-center text-sm text-stone-500">Ninguém com essa função.</p>
+          <p className="px-6 py-10 text-center text-sm text-stone-500">{termo || marcados.size ? "Ninguém encontrado com esse filtro." : "Ninguém com essa função."}</p>
         )}
       </section>
 

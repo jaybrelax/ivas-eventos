@@ -72,6 +72,36 @@
     from { transform: translateX(-100%); }
     to { transform: none; }
   }
+  /* Menu em pop-up: nasce do botão (canto superior direito) com mola e as opções entram em cascata */
+  @keyframes menu-pop {
+    0% { opacity: 0; transform: translateY(-6px) scale(0.82); filter: blur(4px); }
+    60% { opacity: 1; filter: blur(0); }
+    100% { opacity: 1; transform: none; filter: blur(0); }
+  }
+  /* Troca de aba: o conteúdo desliza para o lado (da direita quando a aba nova está à direita) */
+  @keyframes aba-da-direita {
+    from { opacity: 0; transform: translateX(36px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes aba-da-esquerda {
+    from { opacity: 0; transform: translateX(-36px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes menu-item {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: none; }
+  }
+}
+@media not (prefers-reduced-motion: reduce) {
+  .aba-da-direita { animation: aba-da-direita 0.36s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .aba-da-esquerda { animation: aba-da-esquerda 0.36s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .menu-pop { transform-origin: top right; animation: menu-pop 0.34s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+  .menu-pop > * { animation: menu-item 0.32s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .menu-pop > :nth-child(1) { animation-delay: 0.05s; }
+  .menu-pop > :nth-child(2) { animation-delay: 0.09s; }
+  .menu-pop > :nth-child(3) { animation-delay: 0.13s; }
+  .menu-pop > :nth-child(4) { animation-delay: 0.17s; }
+  .menu-pop > :nth-child(5) { animation-delay: 0.21s; }
 }
 
 html {

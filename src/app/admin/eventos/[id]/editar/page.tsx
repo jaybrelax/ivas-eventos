@@ -8,7 +8,7 @@ import { urlPublicaEvento } from "@/lib/links";
 import { podeGerenciarEvento } from "@/lib/gestao-evento";
 import { listarEquipe } from "@/lib/usuarios";
 import { getConfigIA } from "@/lib/ia";
-import { formatarIdRitual } from "@/lib/format";
+import { dataPorExtenso, formatarIdRitual } from "@/lib/format";
 import { BadgeRitual, BadgeTipo, Titulo } from "@/components/Titulo";
 import { SITE_URL } from "@/lib/site";
 import { MenuEventoMobile } from "../MenuEventoMobile";
@@ -40,7 +40,7 @@ export default async function EditarEvento({ params }: PageProps<"/admin/eventos
         <Link href={`/admin/eventos/${evento.$id}`} className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-[0.14em] text-ouro-600 uppercase">
           <ArrowLeft size={13} /> Visualizar
         </Link>
-        <MenuEventoMobile url={`${SITE_URL}${caminhoPublico}`} caminho={caminhoPublico} titulo={evento.titulo} visualizarHref={`/admin/eventos/${evento.$id}`} />
+        <MenuEventoMobile url={`${SITE_URL}${caminhoPublico}`} caminho={caminhoPublico} titulo={evento.titulo} resumo={{ capaFileId: evento.capa_file_id ?? null, data: `${dataPorExtenso(evento.data)} · ${evento.hora_inicio}`, numeros: idRitual, gestaoUrl: `${SITE_URL}/admin/eventos/${evento.$id}` }} visualizarHref={`/admin/eventos/${evento.$id}`} />
       </div>
       <div className="hidden md:block">
       <Titulo

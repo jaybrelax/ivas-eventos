@@ -13,6 +13,7 @@ const REGRAS: Record<UsoImagem, { lado: number; qualidade: number; semPerda?: bo
   capa: { lado: 1600, qualidade: 78 },
   foto: { lado: 600, qualidade: 80 },
   comprovante: { lado: 1600, qualidade: 75 },
+  galeria: { lado: 1600, qualidade: 72 },
   // Logos mantêm a transparência e os contornos nítidos
   logo: { lado: 1200, qualidade: 90, semPerda: true },
 };

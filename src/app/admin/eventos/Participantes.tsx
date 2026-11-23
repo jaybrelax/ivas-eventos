@@ -74,11 +74,10 @@ const FILTROS_PG: { id: FiltroPg; rotulo: string; casa: (p: SituacaoPagamento) =
 /** Ações do menu ⋮ do cabeçalho (mobile) que mexem na lista: hoje, abrir o filtro. */
 export const AcoesListaContexto = createContext<{ abrirFiltro?: () => void; chamada?: { ativa: boolean; alternar: () => void } }>({});
 
-const FUNDO_DOSE = "linear-gradient(180deg, #8a4b26 0%, #5a2d13 45%, #2a1308 100%)";
-
 /**
- * Um copo por dose registrada: fundo azulado (parte vazia) e o líquido marrom-escuro subindo na proporção dos
- * ml (0 a 70, copo cheio). Número sempre em branco, legível sobre os dois tons.
+ * Um copo por dose registrada, no desenho do medidor: borda cinza clara, parte vazia em degradê do
+ * branco ao pêssego e o líquido marrom-escuro subindo na proporção dos ml (0 a 70, copo cheio).
+ * Só o número, em branco, no rodapé do copo.
  */
 function ChipsDose({ doses }: { doses: Dose[] }) {
   const lista = doses.filter((d) => d.ml > 0);
@@ -86,19 +85,17 @@ function ChipsDose({ doses }: { doses: Dose[] }) {
   return (
     <span className="flex shrink-0 items-center gap-1">
       {lista.map((d) => {
-        const pct = Math.min(100, Math.max(8, (d.ml / 70) * 100));
+        // O líquido nunca fica abaixo da faixa do número (que é branco), senão ele some na parte clara
+        const pct = 38 + Math.min(1, d.ml / 70) * 62;
         return (
           <span
             key={d.n}
-            className="relative block h-10 w-8 overflow-hidden rounded-t-[3px] rounded-b-[6px] bg-[#7488a0] shadow-sm"
+            className="relative block h-9 w-[26px] overflow-hidden rounded-t-[3px] rounded-b-[8px] border border-[#c9c9c9] bg-gradient-to-b from-[#fbf8f6] to-[#d8a994]"
             title={`${d.n}ª dose: ${d.ml} ml`}
             aria-label={`${d.n}ª dose: ${d.ml} ml`}
           >
-            <span className="absolute inset-x-0 bottom-0 transition-[height] duration-500 ease-out motion-reduce:transition-none" style={{ height: `${pct}%`, background: FUNDO_DOSE }} />
-            <span className="relative flex h-full flex-col items-center justify-center text-white [text-shadow:0_1px_1px_rgb(0_0_0/0.35)]">
-              <span className="text-[14px] leading-none font-bold tabular-nums">{d.ml}</span>
-              <span className="text-[10px] leading-none font-semibold opacity-90">ml</span>
-            </span>
+            <span className="absolute inset-x-0 bottom-0 bg-[#51270f] transition-[height] duration-500 ease-out motion-reduce:transition-none" style={{ height: `${pct}%` }} />
+            <span aria-hidden className="absolute inset-x-0 bottom-[2px] text-center text-[13px] leading-none font-semibold tabular-nums text-white">{d.ml}</span>
           </span>
         );
       })}
@@ -211,8 +208,10 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
   const total = dados.confirmados.length + dados.espera.length;
   const mostrarBusca = total > 8;
-  // Embutido nas abas, no celular: o menu ⋮ vai para a mesma linha da busca (em vez de uma linha só para ele)
-  const acoesNaLinha = embutido && dados.abertas && !!acoes && mostrarBusca && total > 0;
+  // O menu ⋮ fica no cabeçalho, ao lado do título (no celular o título voltou, já que as abas foram para o rodapé)
+  const acoesNaLinha = false;
+  // No celular, com a busca visível, "Incluir participante" vira um botão só com o ícone ao lado dela
+  const incluirNaBusca = dados.gerenciar && mostrarBusca && total > 0;
   const termo = semAcento(busca.trim());
   const casa = FILTROS_PG.find((f) => f.id === filtro)!.casa;
   const filtrar = (l: ItemParticipanteInscrito[]) => l.filter((p) => (!dados.temContribuicao || casa(p.pagamento)) && (!termo || semAcento(p.nome).includes(termo)));
@@ -241,9 +240,10 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
   return (
     <AcoesListaContexto.Provider value={{ abrirFiltro: temFiltros ? () => setFiltroAberto(true) : undefined, chamada: dados.gerenciar ? { ativa: chamadaAtiva, alternar: () => setChamadaAtiva((v) => !v) } : undefined }}>
-    <section ref={secao} id="participantes" aria-label={embutido ? titulo : undefined} className={embutido ? "scroll-mt-6 space-y-2 p-2 pt-1 sm:space-y-4 sm:p-4 sm:pt-2 md:p-5 md:pt-3" : "cartao scroll-mt-6 space-y-2 p-2 sm:space-y-5 sm:p-4 md:rounded-[22px] md:border-black/[0.05] md:p-5 md:shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-14px_rgb(20_42_29/0.2)]"}>
-      <div className={`flex items-center justify-between gap-3 ${embutido ? (!acoes && dados.abertas ? "hidden" : acoesNaLinha ? "hidden" : dados.abertas ? "justify-end md:hidden" : "justify-end") : ""}`}>
-        <div className={`flex items-center gap-3 ${embutido ? "hidden" : ""}`}>
+    <section ref={secao} id="participantes" aria-label={embutido ? titulo : undefined} className={embutido ? "scroll-mt-6 space-y-3 p-2 pt-1 sm:space-y-4 sm:p-4 sm:pt-2 md:p-5 md:pt-3" : "cartao scroll-mt-6 space-y-2 p-2 sm:space-y-5 sm:p-4 md:rounded-[22px] md:border-black/[0.05] md:p-5 md:shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-14px_rgb(20_42_29/0.2)]"}>
+      {/* Embutido nas abas: título só no celular (no computador a aba já diz o que é) */}
+      <div className={`flex items-center justify-between gap-3 ${embutido ? (dados.abertas ? "pt-1 md:hidden" : "pt-1 md:justify-end md:pt-0") : ""}`}>
+        <div className={`flex items-center gap-3 ${embutido ? "md:hidden" : ""}`}>
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-mata-50 text-mata-600 sm:h-10 sm:w-10"><Users size={18} /></span>
           <div>
             <h2 className="cartao-titulo">{titulo} <span className="font-normal text-stone-400 tabular-nums">({equipe.length ? totalPresentes : dados.confirmados.length})</span></h2>
@@ -297,7 +297,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
       {/* Filtros e busca */}
       {((dados.temContribuicao && dados.gerenciar) || mostrarBusca) && total > 0 && (
-        <div className={`flex gap-2 sm:flex-row sm:items-center sm:justify-start ${acoesNaLinha ? "max-sm:flex-wrap max-sm:items-center" : "flex-col"} ${!filtroNoMobile && !mostrarBusca ? "max-md:hidden" : ""}`}>
+        <div className={`flex gap-2 sm:flex-row sm:items-center sm:justify-start ${acoesNaLinha || incluirNaBusca ? "max-sm:flex-wrap max-sm:items-center" : "flex-col"} ${!filtroNoMobile && !mostrarBusca ? "max-md:hidden" : ""}`}>
           {dados.temContribuicao && dados.gerenciar ? (
             <div ref={filtroRef} className={`relative flex items-center gap-1.5 ${acoesNaLinha ? "max-sm:basis-full" : ""} ${filtroNoMobile ? "" : "max-md:hidden"}`} role="group" aria-label="Filtrar por contribuição">
               <button
@@ -358,22 +358,27 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
             </div>
           ) : <span />}
           {mostrarBusca && (
-            <div className={`relative sm:w-56 ${acoesNaLinha ? "max-sm:min-w-0 max-sm:flex-1" : ""}`}>
+            <div className={`relative sm:w-56 ${acoesNaLinha || incluirNaBusca ? "max-sm:min-w-0 max-sm:flex-1" : ""}`}>
               <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-stone-400" />
-              <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar nome" aria-label="Buscar participante" className="campo h-9 pl-8 text-sm" />
+              <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar nome" aria-label="Buscar participante" className="campo h-11 pl-8 text-sm md:h-9" />
             </div>
           )}
           {acoesNaLinha && <div className="shrink-0 md:hidden">{acoes}</div>}
+          {incluirNaBusca && (
+            <div className="shrink-0 md:hidden">
+              <Incluir soIcone opcoes={dados.disponiveis} pendente={pendente} cheio={!livres} aoIncluir={(id) => rodar(() => incluirParticipanteAction(dados.eventoId, id))} aoIncluirAvulso={(nome) => rodar(() => incluirAvulsoAction(dados.eventoId, nome))} />
+            </div>
+          )}
         </div>
       )}
 
-      <div className="sm:rounded-xl sm:border sm:border-stone-200/80 sm:p-3">
-        <p className="flex items-center justify-between px-0.5 pt-1 pb-2 sm:px-1.5 text-xs font-semibold tracking-wider text-stone-500 uppercase">
+      <div className={embutido ? "" : "sm:rounded-xl sm:border sm:border-stone-200/80 sm:p-3"}>
+        <p className={`flex items-center justify-between px-0.5 pt-1 pb-2 text-xs font-semibold tracking-wider text-stone-500 uppercase ${embutido ? "" : "sm:px-1.5"}`}>
           <span>{equipe.length ? (equipeOrdenada.length ? "Equipe do ritual" : "Participantes") : "Confirmados"} <span className="tabular-nums">({equipeOrdenada.length || confirmados.length})</span></span>
           {filtrando && <span className="normal-case tracking-normal font-medium">{confirmados.length} de {ocupadas}</span>}
         </p>
         {confirmados.length || soEquipe.length ? (
-          <ul className="space-y-1">
+          <ul className="space-y-2 md:space-y-1">
             {/* Equipe primeiro (guardiões, guardiãs, mestres), com fundo azulado; depois os demais participantes */}
             {equipeOrdenada.map((x) => x.p ? (
               <Linha key={x.id} p={x.p} papel={x.papel} destaque temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} chamada={ehMarcavel(x.id)} presente={presentes.has(x.id)} abrir={() => (chamadaAtiva ? marcar(x.id) : setAberta(x.p!.inscricaoId))} />
@@ -381,8 +386,8 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
               <li key={`equipe-${x.id}`}>
                 {dados.gerenciar ? (
                   <button type="button" onClick={() => (chamadaAtiva ? marcar(x.id) : setEquipeAberta(x.id))} aria-label={chamadaAtiva ? `Marcar presença de ${x.nome}` : `Registrar a dosagem de ${x.nome}`} aria-pressed={chamadaAtiva ? presentes.has(x.id) : undefined}
-                    className={`group flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition hover:ring-1 hover:ring-mata-200 ${chamadaAtiva && presentes.has(x.id) ? CLASSE_PRESENTE : "bg-sky-50 ring-1 ring-sky-100 hover:bg-mata-50/70"}`}>
-                    <Avatar nome={x.nome} foto={x.foto} tamanho={32} className={chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
+                    className={`group flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition hover:ring-1 hover:ring-mata-200 ${chamadaAtiva && presentes.has(x.id) ? CLASSE_PRESENTE : "bg-sky-50 ring-1 ring-sky-100 hover:bg-mata-50/70"}`}>
+                    <Avatar nome={x.nome} foto={x.foto} tamanho={28} className={chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{x.nome}</span>
                     <ChipsDose doses={dados.dosesEquipe?.[x.id] ?? []} />
                     <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} soIcone={(dados.dosesEquipe?.[x.id] ?? []).some((d) => d.ml > 0)} />
@@ -425,7 +430,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
         )}
 
         {dados.gerenciar && (
-          <div className="mt-3 border-t border-stone-100 pt-3">
+          <div className={`mt-3 border-t border-stone-100 pt-3 ${incluirNaBusca ? "max-md:hidden" : ""}`}>
             <Incluir opcoes={dados.disponiveis} pendente={pendente} cheio={!livres} aoIncluir={(id) => rodar(() => incluirParticipanteAction(dados.eventoId, id))} aoIncluirAvulso={(nome) => rodar(() => incluirAvulsoAction(dados.eventoId, nome))} />
           </div>
         )}
@@ -522,18 +527,18 @@ function Linha({
       {temContribuicao && (
         // Participante (fora da equipe) com dose registrada: só a inicial da situação
         temDose && !papel ? (
-          <span className={`chip h-6 shrink-0 justify-center truncate px-1.5 max-md:w-[var(--larg-tag,auto)] md:w-[4.75rem] md:px-1 text-[11px] font-bold ${p.pagamento === "pago" ? "bg-emerald-100 text-emerald-900" : pg.cor}`} title={pg.rotulo} data-tag="">
+          <span className={`chip h-6 shrink-0 justify-center truncate px-1.5 max-md:w-[var(--larg-tag,auto)] md:w-[4.75rem] md:px-1 text-[11px] font-bold ${p.pagamento === "pago" ? (p.usouPacote ? "bg-violet-100 text-violet-800" : "bg-emerald-100 text-emerald-900") : pg.cor}`} title={p.pagamento === "pago" && p.usouPacote ? "Pago com pacote" : pg.rotulo} data-tag="">
             <span aria-hidden className="truncate">{p.pagamento === "pago" ? (p.usouPacote ? `PC${p.pacoteObs ? ` ${p.pacoteObs}` : ""}` : `R$ ${Math.round(p.valor ?? 0)}`) : SIGLA_PAGAMENTO[p.pagamento]}</span><span className="sr-only">{pg.rotulo}</span>
           </span>
         ) : (
-        <span className={`chip shrink-0 justify-center gap-0.5 px-1.5 max-md:w-[var(--larg-tag,auto)] md:w-[4.75rem] md:px-1 ${pg.cor}`} title={pg.rotulo} data-tag="">
+        <span className={`chip shrink-0 justify-center gap-0.5 px-1.5 max-md:w-[var(--larg-tag,auto)] md:w-[4.75rem] md:px-1 ${p.pagamento === "pago" && p.usouPacote ? "bg-violet-100 text-violet-800" : pg.cor}`} title={p.pagamento === "pago" && p.usouPacote ? "Pago com pacote" : pg.rotulo} data-tag="">
           {p.pagamento === "pago" && <Check size={12} className="shrink-0" />}{conferir && <Receipt size={12} className="shrink-0" />}<span className="truncate">{pg.rotulo}</span>
         </span>
         )
       )}
     </>
   );
-  const base = `flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? "bg-sky-50 ring-1 ring-sky-100" : "bg-stone-50/70"}`;
+  const base = `flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? "bg-sky-50 ring-1 ring-sky-100" : "bg-stone-50/70"}`;
   if (!gerenciar) return <li className={base}>{conteudo}</li>;
   return (
     <li>
@@ -555,8 +560,10 @@ function Linha({
  * Inclusão manual: um botão abre o modal com a busca entre todas as pessoas com conta. Se ninguém
  * servir, a última opção cria a pessoa a partir do nome digitado (participante sem cadastro).
  */
-function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso }: {
+function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso, soIcone = false }: {
   opcoes: PessoaParticipante[]; pendente: boolean; cheio: boolean; aoIncluir: (id: string) => void; aoIncluirAvulso: (nome: string) => void;
+  /** Botão quadrado só com o ícone (ao lado da busca, no celular). */
+  soIcone?: boolean;
 }) {
   const [aberto, setAberto] = useState(false);
   const [texto, setTexto] = useState("");
@@ -612,10 +619,12 @@ function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso }: {
         type="button"
         onClick={() => setAberto(true)}
         disabled={pendente}
-        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-mata-300 text-sm font-semibold text-mata-700 transition hover:border-mata-400 hover:bg-mata-50 active:bg-mata-100 disabled:opacity-60"
+        title={cheio ? "Incluir na lista de espera" : "Incluir participante"}
+        aria-label={cheio ? "Incluir na lista de espera" : "Incluir participante"}
+        className={`flex h-11 items-center justify-center gap-2 rounded-xl border border-dashed border-mata-300 text-sm font-semibold text-mata-700 transition hover:border-mata-400 hover:bg-mata-50 active:bg-mata-100 disabled:opacity-60 ${soIcone ? "w-11 shrink-0" : "w-full"}`}
       >
-        {pendente ? <Carregando tamanho={15} /> : <UserPlus size={17} aria-hidden />}
-        {cheio ? "Incluir na lista de espera" : "Incluir participante"}
+        {pendente ? <Carregando tamanho={15} /> : <UserPlus size={soIcone ? 19 : 17} aria-hidden />}
+        {!soIcone && (cheio ? "Incluir na lista de espera" : "Incluir participante")}
       </button>
 
       {aberto && createPortal(

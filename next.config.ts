@@ -51,14 +51,6 @@ const nextConfig: NextConfig = {
     // As imagens são reduzidas no navegador antes do envio (src/lib/imagem.ts).
     serverActions: { bodySizeLimit: "4.5mb" },
   },
-  turbopack: {
-    rules: {
-      "*.css": {
-        loaders: ["@tailwindcss/turbopack"],
-        as: "*.css",
-      },
-    },
-  },
 };
 
 export default nextConfig;
