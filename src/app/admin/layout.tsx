@@ -46,7 +46,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/">) {
     <div className="min-h-screen">
       <Menu grupos={grupos} marca={marca} usuario={{ nome: u.nome, perfil, perfilId: u.perfil, foto: u.foto }} sair={sair} />
       <main className="transition-[padding] duration-200 md:pl-64 xl:pl-72 in-data-[menu=colapsado]:md:pl-[4.5rem]! in-data-[menu=colapsado]:xl:pl-[4.5rem]!">
-        <div className="mx-auto w-full max-w-7xl animate-aparecer px-4 py-6 sm:px-6 sm:py-8 lg:px-10 lg:py-10">{children}</div>
+        <div className="mx-auto w-full max-w-7xl animate-aparecer px-2 py-3 sm:px-6 sm:py-8 lg:px-10 lg:py-10">{children}</div>
       </main>
     </div>
   );

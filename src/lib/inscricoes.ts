@@ -272,33 +272,35 @@ export async function contribuirNaHora(inscricaoId: string, usuarioId: string, d
  */
 export async function definirPagamento(
   eventoId: string, inscricaoId: string, situacao: DestinoCoordenacao, porId: string, valor: number | null = null,
-  /** Confirmada com pacote: número do pacote; o valor em R$ fica 0. */
-  pacote: number | null = null,
+  /** Confirmada com pacote: observação livre (ex.: "2/4 1"); o valor em R$ fica 0. */
+  pacote: { obs: string } | null = null,
 ): Promise<Resultado> {
   const { tablesDB } = createAdminClient();
   const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
   if (!row || row.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };
-  const bloqueio = transicaoPermitida(row, situacao);
+  // Já confirmada: confirmar de novo é editar o valor (ou o pacote); a data da confirmação original fica
+  const edicao = situacao === "pago" && row.pagamento === "pago" && row.situacao !== "cancelada";
+  const bloqueio = edicao ? null : transicaoPermitida(row, situacao);
   if (bloqueio) return { erro: bloqueio };
 
   const dados: Record<string, unknown> = { pagamento: situacao, alterado_por: porId };
   if (situacao === "pago") {
-    dados.pago_em = new Date().toISOString();
-    if (pacote !== null) { dados.valor = 0; dados.usou_pacote = true; dados.pacote_numero = pacote; }
+    if (!edicao) dados.pago_em = new Date().toISOString();
+    if (pacote !== null) { dados.valor = 0; dados.usou_pacote = true; dados.observacao = pacote.obs || null; }
     else {
       if (valor !== null) dados.valor = valor;
-      if (row.usou_pacote) { dados.usou_pacote = false; dados.pacote_numero = null; }
+      if (row.usou_pacote) { dados.usou_pacote = false; dados.observacao = null; }
     }
   } else {
     dados.pago_em = null;
-    if (row.usou_pacote) { dados.usou_pacote = false; dados.pacote_numero = null; }
+    if (row.usou_pacote) { dados.usou_pacote = false; dados.observacao = null; }
   }
   try {
     await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: dados });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     // Colunas do pacote ainda não existem no banco (falta rodar a criação delas)
-    if (/Unknown attribute/i.test(msg) && /usou_pacote|pacote_numero/.test(msg)) return { erro: "O registro de pacote ainda não está ativo no banco de dados. Avise o administrador." };
+    if (/Unknown attribute/i.test(msg) && /usou_pacote/.test(msg)) return { erro: "O registro de pacote ainda não está ativo no banco de dados. Avise o administrador." };
     throw e;
   }
   await registrarHistorico({
@@ -306,6 +308,6 @@ export async function definirPagamento(
     acao: { pago: "pagamento_confirmado", isento: "pagamento_isento", pendente: "pagamento_reaberto" }[situacao] as AcaoHistorico,
     pagamento_de: row.pagamento, pagamento_para: situacao, valor: situacao === "pago" ? (pacote !== null ? 0 : (valor ?? row.valor)) : null, por: porId,
   });
-  const rotulo = { pago: pacote !== null ? `confirmada (pacote nº ${pacote})` : "confirmada", isento: "marcada como isenta", pendente: "marcada como pendente" }[situacao];
+  const rotulo = { pago: edicao ? "atualizada" : pacote !== null ? `confirmada (pacote${pacote.obs ? ` ${pacote.obs}` : ""})` : "confirmada", isento: "marcada como isenta", pendente: "marcada como pendente" }[situacao];
   return { ok: `Contribuição ${rotulo}.` };
 }

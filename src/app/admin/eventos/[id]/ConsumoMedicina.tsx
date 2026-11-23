@@ -12,7 +12,7 @@ const TOM: Record<Dose["n"], { fundo: string; texto: string }> = {
 };
 
 /** Card "Consumo da medicina": ml consumidos no evento, total, média e um gráfico de barras empilhadas por pessoa. */
-export function ConsumoMedicina({ pessoas }: { pessoas: ConsumoPessoa[] }) {
+export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: ConsumoPessoa[]; /** Dentro de outro card (abas): sem card próprio. */ embutido?: boolean }) {
   const com = pessoas
     .map((p) => ({ ...p, doses: p.doses.filter((d) => d.ml > 0), total: totalDoses(p.doses) }))
     .filter((p) => p.total > 0)
@@ -23,8 +23,8 @@ export function ConsumoMedicina({ pessoas }: { pessoas: ConsumoPessoa[] }) {
   const porDose = ([1, 2, 3] as const).map((n) => ({ n, ml: com.reduce((s, p) => s + (p.doses.find((d) => d.n === n)?.ml ?? 0), 0) })).filter((d) => d.ml > 0);
 
   return (
-    <section className="cartao overflow-hidden p-0 sm:p-0" aria-labelledby="consumo-titulo">
-      <header className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
+    <section className={embutido ? "overflow-hidden rounded-b-2xl md:rounded-b-[22px]" : "cartao overflow-hidden p-0 sm:p-0"} aria-labelledby="consumo-titulo">
+      <header className={`flex items-center gap-3 px-3 py-2.5 sm:px-5 ${embutido ? "sm:px-4 md:px-5" : ""}`}>
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow-sm shadow-amber-950/25" style={{ background: "linear-gradient(180deg, #8a4b26 0%, #2a1308 100%)" }}>
           <GlassWater size={17} aria-hidden />
         </span>
@@ -35,7 +35,7 @@ export function ConsumoMedicina({ pessoas }: { pessoas: ConsumoPessoa[] }) {
       </header>
 
       {com.length > 0 && (
-        <div className="border-t border-amber-900/10 bg-gradient-to-b from-amber-50/60 to-white px-4 py-4 sm:px-5">
+        <div className="border-t border-amber-900/10 bg-gradient-to-b from-amber-50/60 to-white px-3 py-3 sm:px-5">
           {/* Números */}
           <dl className="grid grid-cols-3 gap-2 text-center">
             {[
@@ -65,7 +65,7 @@ export function ConsumoMedicina({ pessoas }: { pessoas: ConsumoPessoa[] }) {
           <ol className="mt-3 space-y-2.5">
             {com.map((p) => (
               <li key={p.id} className="flex items-center gap-2.5">
-                <Avatar nome={p.nome} foto={p.foto} tamanho={26} className="ring-0" />
+                <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="ring-0" />
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-baseline justify-between gap-2">
                     <span className="truncate text-xs font-medium text-stone-700">{p.nome}</span>

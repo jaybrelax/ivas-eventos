@@ -79,11 +79,10 @@ export async function confirmarPagamentoAction(eventoId: string, inscricaoId: st
   const g = await exigirGestaoDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u } = g;
-  // Pacote: o campo é o número do pacote (inteiro), sem valor em R$
+  // Pacote: sem valor em R$; a observação é livre (ex.: "2/4 1") e aparece na lista
   if (pacoteBruto !== undefined && pacoteBruto !== null && pacoteBruto !== false) {
-    const n = Number(String(pacoteBruto).trim());
-    if (!Number.isInteger(n) || n < 1 || n > 9999) return { erro: "Informe o número do pacote (um número inteiro)." };
-    const r = await definirPagamento(eventoId, inscricaoId, "pago", u.id, null, n);
+    const obs = String(pacoteBruto).trim().replace(/\s+/g, " ").slice(0, 30);
+    const r = await definirPagamento(eventoId, inscricaoId, "pago", u.id, null, { obs });
     revalidar(eventoId);
     return r;
   }

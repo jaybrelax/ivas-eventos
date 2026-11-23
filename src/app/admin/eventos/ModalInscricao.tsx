@@ -305,24 +305,25 @@ export function ModalInscricao({
           {/* Contribuição: situação, comprovante e o que a coordenação pode marcar */}
           {dados.temContribuicao && (
             <section className="overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50/40 shadow-sm">
-              <div className="flex items-center gap-3 px-3.5 py-3">
+              {/* Cabeçalho inteiro clicável: exibe ou oculta */}
+              <button
+                type="button"
+                onClick={() => setContribAberta((v) => !v)}
+                aria-expanded={contribAberta}
+                className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition hover:bg-emerald-100/40 active:bg-emerald-100/60"
+              >
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm shadow-emerald-700/25"><Receipt size={17} aria-hidden /></span>
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-semibold text-emerald-950">Contribuição</h4>
                   <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}><situacao.Icone size={11} aria-hidden /> {situacao.rotulo}</span>
-                    {p.usouPacote ? <span className="font-semibold text-emerald-900">Pacote{p.pacoteNumero ? ` nº ${p.pacoteNumero}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-emerald-900">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
+                    {p.usouPacote ? <span className="font-semibold text-emerald-900">Pacote{p.pacoteObs ? ` ${p.pacoteObs}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-emerald-900">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setContribAberta((v) => !v)}
-                  aria-expanded={contribAberta}
-                  className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-semibold transition ${contribAberta ? "text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100/60" : "bg-emerald-700 text-white shadow-sm hover:bg-emerald-800"}`}
-                >
+                <span className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-semibold transition ${contribAberta ? "text-emerald-800 ring-1 ring-emerald-200" : "bg-emerald-700 text-white shadow-sm"}`}>
                   {contribAberta ? "Ocultar" : "Exibir"} <ChevronDown size={14} className={`transition duration-300 ${contribAberta ? "rotate-180" : ""}`} aria-hidden />
-                </button>
-              </div>
+                </span>
+              </button>
               <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${contribAberta ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                 <div className="min-h-0 overflow-hidden" inert={!contribAberta}>
                 <div className="border-t border-emerald-100 px-3.5 pt-3 pb-3.5">
@@ -332,7 +333,7 @@ export function ModalInscricao({
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm font-bold">
                     {situacao.rotulo}
                     {(p.valor ?? dados.valorContribuicao) != null && (
-                      <span className="text-base tabular-nums">{p.usouPacote ? `Pacote${p.pacoteNumero ? ` nº ${p.pacoteNumero}` : ""}` : formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>
+                      <span className="text-base tabular-nums">{p.usouPacote ? `Pacote${p.pacoteObs ? ` ${p.pacoteObs}` : ""}` : formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>
                     )}
                   </p>
                   <p className="mt-0.5 text-xs opacity-80">{situacao.detalhe}</p>
@@ -384,12 +385,12 @@ export function ModalInscricao({
                 <div className="mt-3">
                   <p className="mb-1.5 text-xs font-medium text-emerald-900/70">Marcar a contribuição como</p>
                   <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Situação da contribuição">
-                    <Opcao tom="emerald" ativa={pago || pedirValor} Icone={CheckCircle2} rotulo="Confirmada" disabled={pendente || pago} aoEscolher={() => { setMsg(undefined); setPedirValor(true); }} />
+                    <Opcao tom="emerald" ativa={pago || pedirValor} editavel={pago} Icone={CheckCircle2} rotulo="Confirmada" disabled={pendente} aoEscolher={() => { setMsg(undefined); setUsouPacote(!!p.usouPacote); setPedirValor(true); }} />
                     <Opcao tom="sky" ativa={p.pagamento === "isento"} Icone={ShieldCheck} rotulo="Isento" disabled={pendente} aoEscolher={() => rodar(() => isentarPagamentoAction(dados.eventoId, p.inscricaoId))} />
                     <Opcao tom="yellow" ativa={p.pagamento === "pendente"} Icone={Undo2} rotulo="Pendente" disabled={pendente} aoEscolher={() => rodar(() => reabrirPagamentoAction(dados.eventoId, p.inscricaoId))} />
                   </div>
                   {/* Confirmar pede o valor recebido (já vem preenchido com o valor informado ou o padrão do Instituto) */}
-                  {pedirValor && !pago && (
+                  {pedirValor && (
                     <form
                       className="mt-3 space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3"
                       onSubmit={(e) => {
@@ -397,7 +398,7 @@ export function ModalInscricao({
                         const fd = new FormData(e.currentTarget);
                         iniciar(async () => {
                           const r = usouPacote
-                            ? await confirmarPagamentoAction(dados.eventoId, p.inscricaoId, null, fd.get("pacote_numero"))
+                            ? await confirmarPagamentoAction(dados.eventoId, p.inscricaoId, null, fd.get("pacote_obs"))
                             : await confirmarPagamentoAction(dados.eventoId, p.inscricaoId, fd.get("valor_recebido"));
                           setMsg(r);
                           if (r.ok) setPedirValor(false);
@@ -406,9 +407,9 @@ export function ModalInscricao({
                     >
                       <div className="flex items-end gap-3">
                         <div className="min-w-0 flex-1">
-                          <label htmlFor={`valor-${p.inscricaoId}`} className="mb-1 block text-xs font-medium text-emerald-900">{usouPacote ? "Nº do pacote" : "Valor recebido (R$)"}</label>
+                          <label htmlFor={`valor-${p.inscricaoId}`} className="mb-1 block text-xs font-medium text-emerald-900">{usouPacote ? "Observação do pacote" : "Valor recebido (R$)"}</label>
                           {usouPacote ? (
-                            <input key="pacote" id={`valor-${p.inscricaoId}`} name="pacote_numero" type="number" inputMode="numeric" min={1} step={1} autoFocus placeholder="1" className="campo h-10 text-sm tabular-nums" />
+                            <input key="pacote" id={`valor-${p.inscricaoId}`} name="pacote_obs" type="text" maxLength={30} autoComplete="off" autoFocus placeholder="ex.: 2/4 1" defaultValue={p.pacoteObs ?? ""} className="campo h-10 text-sm" />
                           ) : (
                             <input
                               key="valor"
@@ -697,19 +698,20 @@ const TOM_OPCAO = {
   yellow: { ativa: "border-yellow-500 bg-yellow-50 text-yellow-800 ring-1 ring-yellow-500", hover: "hover:border-yellow-300 hover:bg-yellow-50/70 hover:text-yellow-800" },
 } as const;
 
-function Opcao({ ativa, Icone, rotulo, disabled, aoEscolher, tom }: { ativa: boolean; Icone: typeof Mail; rotulo: string; disabled: boolean; aoEscolher: () => void; tom: keyof typeof TOM_OPCAO }) {
+function Opcao({ ativa, Icone, rotulo, disabled, aoEscolher, tom, editavel = false }: { ativa: boolean; Icone: typeof Mail; rotulo: string; disabled: boolean; aoEscolher: () => void; tom: keyof typeof TOM_OPCAO; /** Já marcada, mas tocar de novo edita (lápis no canto). */ editavel?: boolean }) {
   return (
     <button
       type="button"
       role="radio"
       aria-checked={ativa}
-      disabled={disabled || ativa}
+      disabled={disabled || (ativa && !editavel)}
       onClick={aoEscolher}
-      className={`flex h-14 flex-col items-center justify-center gap-1 rounded-xl border text-xs font-semibold transition disabled:cursor-default ${
+      className={`relative flex h-14 flex-col items-center justify-center gap-1 rounded-xl border text-xs font-semibold transition disabled:cursor-default ${
         ativa ? TOM_OPCAO[tom].ativa : `border-stone-200 bg-white text-stone-600 disabled:opacity-60 ${TOM_OPCAO[tom].hover}`
       }`}
     >
       <Icone size={16} /> {rotulo}
+      {editavel && <Pencil size={10} aria-hidden className="absolute top-1.5 right-1.5 opacity-70" />}
     </button>
   );
 }

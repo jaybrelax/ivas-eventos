@@ -18,7 +18,7 @@ export type ItemParticipanteInscrito = PessoaParticipante & {
   pagamento: SituacaoPagamento; inscricaoId: string; comprovante: string | null;
   inscritoEm: string; valor: number | null; informadoEm: string | null; pagoEm: string | null;
   /** Contribuição paga com pacote (valor em R$ = 0). */
-  usouPacote?: boolean; pacoteNumero?: number | null;
+  usouPacote?: boolean; /** Observação do pacote (ex.: "2/4 1"). */ pacoteObs?: string | null;
   contato: ContatoParticipante | null;
   /** Doses consumidas (só para quem gerencia o evento). */
   doses?: Dose[];
@@ -77,7 +77,7 @@ export const AcoesListaContexto = createContext<{ abrirFiltro?: () => void; cham
 const FUNDO_DOSE = "linear-gradient(180deg, #8a4b26 0%, #5a2d13 45%, #2a1308 100%)";
 
 /**
- * Um copo por dose registrada: fundo marrom médio e o líquido marrom-escuro subindo na proporção dos
+ * Um copo por dose registrada: fundo azulado (parte vazia) e o líquido marrom-escuro subindo na proporção dos
  * ml (0 a 70, copo cheio). Número sempre em branco, legível sobre os dois tons.
  */
 function ChipsDose({ doses }: { doses: Dose[] }) {
@@ -90,7 +90,7 @@ function ChipsDose({ doses }: { doses: Dose[] }) {
         return (
           <span
             key={d.n}
-            className="relative block h-10 w-8 overflow-hidden rounded-t-[3px] rounded-b-[6px] bg-[#b07d52] shadow-sm"
+            className="relative block h-10 w-8 overflow-hidden rounded-t-[3px] rounded-b-[6px] bg-[#7488a0] shadow-sm"
             title={`${d.n}ª dose: ${d.ml} ml`}
             aria-label={`${d.n}ª dose: ${d.ml} ml`}
           >
@@ -110,7 +110,7 @@ function ChipsDose({ doses }: { doses: Dose[] }) {
 const CLASSE_PRESENTE = "border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-100/80 via-emerald-50/40 to-white ring-1 ring-emerald-100";
 
 /** Sigla da situação da contribuição (participante com dose registrada). */
-const SIGLA_PAGAMENTO: Record<SituacaoPagamento, string> = { pendente: "PE", informado: "PC", pago: "OK", isento: "IN", na_hora: "NH" };
+const SIGLA_PAGAMENTO: Record<SituacaoPagamento, string> = { pendente: "PEN", informado: "PC", pago: "OK", isento: "IN", na_hora: "NH" };
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -128,8 +128,10 @@ function haQuanto(iso: string) {
  * filtros por situação do pagamento, busca, lista de espera e inclusão manual com busca.
  * Quem se inscreve é sempre pela página pública; este bloco é para a coordenação acompanhar e gerenciar.
  */
-export function Participantes({ dados, semResumo = false, equipe = [], guardioes = [], titulo = "Participantes", acoes }: {
+export function Participantes({ dados, semResumo = false, equipe = [], guardioes = [], titulo = "Participantes", acoes, embutido = false }: {
   dados: DadosParticipantes;
+  /** Dentro de outro card (abas da página do evento): sem card próprio e sem o título, que já está na aba. */
+  embutido?: boolean;
   /** Ações extras no canto do cabeçalho (ex.: menu ⋮ da equipe no mobile). */
   acoes?: React.ReactNode;
   /** A página do evento já mostra vagas e contribuições na faixa de estatísticas. */
@@ -178,6 +180,17 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
     if (!carregouChamada) return;
     try { localStorage.setItem(chaveChamada, JSON.stringify({ ativa: chamadaAtiva, presentes: [...presentes] })); } catch { /* idem */ }
   }, [chamadaAtiva, presentes, chaveChamada, carregouChamada]);
+  // Mobile: todas as tags de contribuição ficam da largura da maior (a coluna alinha)
+  const secao = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = secao.current;
+    if (!el) return;
+    el.style.removeProperty("--larg-tag");
+    const tags = [...el.querySelectorAll<HTMLElement>("[data-tag]")];
+    if (!tags.length) return;
+    const maior = Math.max(...tags.map((t) => t.getBoundingClientRect().width));
+    el.style.setProperty("--larg-tag", `${Math.ceil(maior)}px`);
+  });
   const marcar = (id: string) => setPresentes((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const ehMarcavel = (id: string) => chamadaAtiva && dados.gerenciar;
   const posEspera = dados.espera.findIndex((p) => p.inscricaoId === aberta);
@@ -198,6 +211,8 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
   const total = dados.confirmados.length + dados.espera.length;
   const mostrarBusca = total > 8;
+  // Embutido nas abas, no celular: o menu ⋮ vai para a mesma linha da busca (em vez de uma linha só para ele)
+  const acoesNaLinha = embutido && dados.abertas && !!acoes && mostrarBusca && total > 0;
   const termo = semAcento(busca.trim());
   const casa = FILTROS_PG.find((f) => f.id === filtro)!.casa;
   const filtrar = (l: ItemParticipanteInscrito[]) => l.filter((p) => (!dados.temContribuicao || casa(p.pagamento)) && (!termo || semAcento(p.nome).includes(termo)));
@@ -226,17 +241,17 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
   return (
     <AcoesListaContexto.Provider value={{ abrirFiltro: temFiltros ? () => setFiltroAberto(true) : undefined, chamada: dados.gerenciar ? { ativa: chamadaAtiva, alternar: () => setChamadaAtiva((v) => !v) } : undefined }}>
-    <section id="participantes" className="cartao scroll-mt-6 space-y-3.5 p-4 sm:space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+    <section ref={secao} id="participantes" aria-label={embutido ? titulo : undefined} className={embutido ? "scroll-mt-6 space-y-2 p-2 pt-1 sm:space-y-4 sm:p-4 sm:pt-2 md:p-5 md:pt-3" : "cartao scroll-mt-6 space-y-2 p-2 sm:space-y-5 sm:p-4 md:rounded-[22px] md:border-black/[0.05] md:p-5 md:shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-14px_rgb(20_42_29/0.2)]"}>
+      <div className={`flex items-center justify-between gap-3 ${embutido ? (!acoes && dados.abertas ? "hidden" : acoesNaLinha ? "hidden" : dados.abertas ? "justify-end md:hidden" : "justify-end") : ""}`}>
+        <div className={`flex items-center gap-3 ${embutido ? "hidden" : ""}`}>
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-mata-50 text-mata-600 sm:h-10 sm:w-10"><Users size={18} /></span>
           <div>
-            <h2 className="cartao-titulo">{titulo}</h2>
+            <h2 className="cartao-titulo">{titulo} <span className="font-normal text-stone-400 tabular-nums">({equipe.length ? totalPresentes : dados.confirmados.length})</span></h2>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {!dados.abertas && <span className="chip bg-stone-100 text-stone-600">Inscrições fechadas</span>}
-          {acoes}
+          {!acoesNaLinha && acoes}
         </div>
       </div>
 
@@ -282,9 +297,9 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
       {/* Filtros e busca */}
       {((dados.temContribuicao && dados.gerenciar) || mostrarBusca) && total > 0 && (
-        <div className={`flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between ${!filtroNoMobile && !mostrarBusca ? "max-md:hidden" : ""}`}>
+        <div className={`flex gap-2 sm:flex-row sm:items-center sm:justify-start ${acoesNaLinha ? "max-sm:flex-wrap max-sm:items-center" : "flex-col"} ${!filtroNoMobile && !mostrarBusca ? "max-md:hidden" : ""}`}>
           {dados.temContribuicao && dados.gerenciar ? (
-            <div ref={filtroRef} className={`relative flex items-center gap-1.5 ${filtroNoMobile ? "" : "max-md:hidden"}`} role="group" aria-label="Filtrar por contribuição">
+            <div ref={filtroRef} className={`relative flex items-center gap-1.5 ${acoesNaLinha ? "max-sm:basis-full" : ""} ${filtroNoMobile ? "" : "max-md:hidden"}`} role="group" aria-label="Filtrar por contribuição">
               <button
                 type="button"
                 onClick={() => { setFiltro("todos"); setFiltroAberto(false); }}
@@ -343,17 +358,18 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
             </div>
           ) : <span />}
           {mostrarBusca && (
-            <div className="relative sm:w-56">
+            <div className={`relative sm:w-56 ${acoesNaLinha ? "max-sm:min-w-0 max-sm:flex-1" : ""}`}>
               <Search size={14} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-stone-400" />
               <input type="search" value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar nome" aria-label="Buscar participante" className="campo h-9 pl-8 text-sm" />
             </div>
           )}
+          {acoesNaLinha && <div className="shrink-0 md:hidden">{acoes}</div>}
         </div>
       )}
 
       <div className="sm:rounded-xl sm:border sm:border-stone-200/80 sm:p-3">
         <p className="flex items-center justify-between px-0.5 pt-1 pb-2 sm:px-1.5 text-xs font-semibold tracking-wider text-stone-500 uppercase">
-          <span>{equipe.length ? (equipeOrdenada.length ? "Equipe do ritual" : "Participantes") : "Confirmados"}</span>
+          <span>{equipe.length ? (equipeOrdenada.length ? "Equipe do ritual" : "Participantes") : "Confirmados"} <span className="tabular-nums">({equipeOrdenada.length || confirmados.length})</span></span>
           {filtrando && <span className="normal-case tracking-normal font-medium">{confirmados.length} de {ocupadas}</span>}
         </p>
         {confirmados.length || soEquipe.length ? (
@@ -370,7 +386,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
                     <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{x.nome}</span>
                     <ChipsDose doses={dados.dosesEquipe?.[x.id] ?? []} />
                     <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} soIcone={(dados.dosesEquipe?.[x.id] ?? []).some((d) => d.ml > 0)} />
-                    {chamadaAtiva ? null : <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600" />}
+                    {chamadaAtiva ? null : <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600 max-md:hidden" />}
                   </button>
                 ) : (
                   <div className="flex w-full items-center gap-2.5 rounded-lg bg-sky-50 px-2 py-1.5 ring-1 ring-sky-100">
@@ -382,7 +398,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
               </li>
             ))}
             {equipeOrdenada.length > 0 && confirmados.some((p) => !papelDe.has(p.id)) && (
-              <li aria-hidden className="px-1.5 pt-3 pb-1 text-xs font-semibold tracking-wider text-stone-400 uppercase">Participantes</li>
+              <li aria-hidden className="px-1.5 pt-3 pb-1 text-xs font-semibold tracking-wider text-stone-400 uppercase">Participantes <span className="tabular-nums">({confirmados.filter((p) => !papelDe.has(p.id)).length})</span></li>
             )}
             {confirmados.filter((p) => !papelDe.has(p.id)).map((p) => (
               <Linha key={p.id} p={p} guardiao={ehGuardiao.has(p.id)} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} chamada={ehMarcavel(p.id)} presente={presentes.has(p.id)} abrir={() => (chamadaAtiva ? marcar(p.id) : setAberta(p.inscricaoId))} />
@@ -462,8 +478,9 @@ function SeloPapel({ papel, soIcone = false, sexo }: { papel: MembroLista["papel
   const base = PAPEL[papel];
   const info = papel === "guardiao" && sexo === "feminino" ? { ...base, rotulo: "Guardiã" } : base;
   return (
-    <span title={info.rotulo} className={`inline-flex shrink-0 items-center gap-1 rounded-full text-[11px] font-semibold ${soIcone ? "h-6 w-6 justify-center" : "px-2 py-0.5"} ${info.cor}`}>
-      <info.Icone size={soIcone ? 13 : 11} aria-hidden />{soIcone ? <span className="sr-only">{info.rotulo}</span> : <> {info.rotulo}</>}
+    <span title={info.rotulo} className={`inline-flex shrink-0 items-center gap-1 rounded-full text-[11px] font-semibold ${soIcone ? "h-6 w-6 justify-center" : "px-2 py-0.5"} md:h-6 md:w-[4.75rem] md:justify-center md:px-1 md:py-0 ${info.cor}`}>
+      {/* No celular, com dose registrada, só o ícone; no computador sempre com o nome */}
+      <info.Icone size={soIcone ? 13 : 11} aria-hidden className="md:size-[11px]" />{soIcone ? <span className="max-md:sr-only">{info.rotulo}</span> : <> {info.rotulo}</>}
     </span>
   );
 }
@@ -505,12 +522,12 @@ function Linha({
       {temContribuicao && (
         // Participante (fora da equipe) com dose registrada: só a inicial da situação
         temDose && !papel ? (
-          <span className={`chip h-6 min-w-6 shrink-0 justify-center px-1.5 text-[11px] font-bold ${p.pagamento === "pago" ? "bg-emerald-100 text-emerald-900" : pg.cor}`} title={pg.rotulo}>
-            <span aria-hidden>{SIGLA_PAGAMENTO[p.pagamento]}</span><span className="sr-only">{pg.rotulo}</span>
+          <span className={`chip h-6 shrink-0 justify-center truncate px-1.5 max-md:w-[var(--larg-tag,auto)] md:w-[4.75rem] md:px-1 text-[11px] font-bold ${p.pagamento === "pago" ? "bg-emerald-100 text-emerald-900" : pg.cor}`} title={pg.rotulo} data-tag="">
+            <span aria-hidden className="truncate">{p.pagamento === "pago" ? (p.usouPacote ? `PC${p.pacoteObs ? ` ${p.pacoteObs}` : ""}` : `R$ ${Math.round(p.valor ?? 0)}`) : SIGLA_PAGAMENTO[p.pagamento]}</span><span className="sr-only">{pg.rotulo}</span>
           </span>
         ) : (
-        <span className={`chip shrink-0 ${pg.cor}`}>
-          {p.pagamento === "pago" && <Check size={12} />}{conferir && <Receipt size={12} />}{pg.rotulo}
+        <span className={`chip shrink-0 justify-center gap-0.5 px-1.5 max-md:w-[var(--larg-tag,auto)] md:w-[4.75rem] md:px-1 ${pg.cor}`} title={pg.rotulo} data-tag="">
+          {p.pagamento === "pago" && <Check size={12} className="shrink-0" />}{conferir && <Receipt size={12} className="shrink-0" />}<span className="truncate">{pg.rotulo}</span>
         </span>
         )
       )}
@@ -528,7 +545,7 @@ function Linha({
         aria-pressed={chamada ? presente : undefined}
       >
         {conteudo}
-        {chamada ? null : <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600" />}
+        {chamada ? null : <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600 max-md:hidden" />}
       </button>
     </li>
   );

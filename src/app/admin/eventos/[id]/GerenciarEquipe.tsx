@@ -3,7 +3,7 @@
 import { useContext, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, Crown, MoreVertical, Pencil, Shield, SlidersHorizontal, X } from "lucide-react";
+import { ClipboardCheck, Crown, MoreVertical, Shield, SlidersHorizontal, X } from "lucide-react";
 import { AcoesListaContexto } from "../Participantes";
 import type { Pessoa } from "@/lib/types";
 import { Aviso, Carregando } from "@/components/ui";
@@ -47,8 +47,8 @@ function Modal({ titulo, sub, fechar, children, rodape }: { titulo: string; sub?
 
 function BotaoGerenciar({ onClick, rotulo }: { onClick: () => void; rotulo: string }) {
   return (
-    <button type="button" onClick={onClick} title={rotulo} aria-label={rotulo} className="grid h-7 w-7 place-items-center rounded-lg text-stone-400 transition hover:bg-mata-50 hover:text-mata-700 focus-visible:text-mata-700">
-      <Pencil size={15} aria-hidden />
+    <button type="button" onClick={onClick} title={rotulo} aria-label={rotulo} className="inline-flex h-6 items-center gap-1 rounded-full bg-stone-100 px-2.5 text-[11px] font-medium tracking-normal text-stone-500 normal-case ring-1 ring-stone-200/80 transition hover:bg-mata-50 hover:text-mata-700 hover:ring-mata-200 active:scale-95">
+      <SlidersHorizontal size={11} aria-hidden /> Gerenciar
     </button>
   );
 }
@@ -144,7 +144,7 @@ export function MenuEquipeMobile({ mestres, guarnicao }: {
   return (
     <div ref={raiz} className="relative md:hidden">
       <button type="button" onClick={() => setMenu((v) => !v)} aria-haspopup="menu" aria-expanded={menu} aria-label="Editar equipe do ritual"
-        className="grid h-10 w-10 place-items-center rounded-full text-stone-500 transition hover:bg-stone-100 active:bg-stone-200">
+        className="grid h-10 w-10 place-items-center rounded-full bg-stone-100 text-stone-600 transition hover:bg-stone-200/70 active:bg-stone-200">
         <MoreVertical size={20} aria-hidden />
       </button>
       {menu && (
