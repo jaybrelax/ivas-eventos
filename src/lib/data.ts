@@ -22,6 +22,8 @@ export const INSTITUTO_PADRAO: Instituto = {
   guarnicao_limite_mes: 2,
   guarnicao_horas_presenca: 1,
   guarnicao_aprovacao_automatica: true,
+  gestao_guardiao_ativa: true,
+  gestao_guardiao_horas: 48,
   estado: null,
   cidade: null,
   info_rituais: null,

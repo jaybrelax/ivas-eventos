@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { ID, Query } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
+import { HORAS_GESTAO_MAXIMO } from "@/lib/gestao-guardiao-regras";
 import { ehUf } from "@/lib/perfil-extra";
 import { BUCKET_ID, DB_ID, IA_ROW_ID, INSTITUTO_ROW_ID, TABLES } from "@/lib/config";
 import { lerQuantidade } from "@/lib/creditos-regras";
@@ -128,6 +129,25 @@ export async function salvarChavesApi(_: Resultado, form: FormData): Promise<Res
   revalidatePath("/admin/configuracoes");
   revalidatePath("/admin/eventos", "layout");
   return { ok: "Configurações de IA salvas." };
+}
+
+/** Gestão do ritual pelo guardião escalado: liga/desliga e duração do acesso (horas). */
+export async function salvarGestaoGuardiao(_: Resultado, form: FormData): Promise<Resultado> {
+  await exigir(["admin"]);
+  const { tablesDB } = createAdminClient();
+  const horas = Math.round(Number(String(form.get("gestao_guardiao_horas") ?? "").replace(",", ".")));
+  if (!Number.isFinite(horas) || horas < 1 || horas > HORAS_GESTAO_MAXIMO) return { erro: `Informe de 1 a ${HORAS_GESTAO_MAXIMO} horas.` };
+  try {
+    await tablesDB.upsertRow({
+      databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID,
+      data: { gestao_guardiao_ativa: form.get("ativa") === "on", gestao_guardiao_horas: horas },
+    });
+  } catch (e) {
+    console.error("Gestão do guardião:", e instanceof Error ? e.message : e);
+    return { erro: "Não foi possível salvar. Confira se a migração do banco já foi aplicada." };
+  }
+  revalidatePath("/", "layout");
+  return { ok: "Gestão do ritual atualizada." };
 }
 
 /** Textos fixos que aparecem na página de todo ritual: informações gerais e contribuição. */

@@ -2,11 +2,12 @@ import Link from "next/link";
 import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
-import { Building2, CreditCard, Globe, Info, KeyRound, MapPin, Phone, Share2, Tags, Ticket } from "lucide-react";
+import { Building2, CreditCard, Globe, Info, KeyRound, MapPin, Phone, Share2, ShieldCheck, Tags, Ticket } from "lucide-react";
 import { listarPlanos } from "@/lib/creditos";
 import { Titulo } from "@/components/Titulo";
 import { InstitutoForm } from "./InstitutoForm";
 import { InformacoesForm } from "./InformacoesForm";
+import { GestaoGuardiaoForm } from "./GestaoGuardiaoForm";
 import { ChavesApiForm } from "./ChavesApiForm";
 import { TipografiaForm } from "./TipografiaForm";
 import { getConfigIA, mascararChave } from "@/lib/ia";
@@ -17,7 +18,7 @@ import { TagsEvento, type TagItem } from "./TagsEvento";
 type Item = Record<string, unknown> & { $id: string };
 const limpo = (rows: object[]) => JSON.parse(JSON.stringify(rows)) as Item[];
 
-const SECOES = ["instituto", "informacoes", "publica", "enderecos", "telefones", "redes", "pix", "pacotes", "tipos", "chaves"] as const;
+const SECOES = ["instituto", "informacoes", "publica", "enderecos", "telefones", "redes", "pix", "pacotes", "gestao", "tipos", "chaves"] as const;
 type Secao = (typeof SECOES)[number];
 
 /** Cada seção aparece sozinha: o menu troca a seção (?secao=...) em vez de rolar a página. */
@@ -48,6 +49,7 @@ export default async function Configuracoes({ searchParams }: PageProps<"/admin/
     { id: "redes", rotulo: "Redes sociais", Icone: Share2, n: d.redes.length },
     { id: "pix", rotulo: "Chaves Pix", Icone: CreditCard, n: d.pix.length },
     { id: "pacotes", rotulo: "Pacotes de créditos", Icone: Ticket },
+    { id: "gestao", rotulo: "Gestão do ritual", Icone: ShieldCheck },
     { id: "tipos", rotulo: "Tipos e tags", Icone: Tags, n: d.tipos.length + d.tags.length },
     { id: "chaves", rotulo: "Chaves API", Icone: KeyRound },
   ];
@@ -88,6 +90,7 @@ export default async function Configuracoes({ searchParams }: PageProps<"/admin/
           {atual === "redes" && <ListaEditavel tabela="redes" itens={limpo(d.redes)} />}
           {atual === "pix" && <ListaEditavel tabela="pix" itens={limpo(d.pix)} />}
           {atual === "pacotes" && <ListaEditavel tabela="planosPacote" itens={limpo(planos)} />}
+          {atual === "gestao" && <GestaoGuardiaoForm instituto={d.instituto} />}
           {atual === "chaves" && ia && <ChavesApiForm chaveMascarada={mascararChave(ia.chave)} prompt={ia.prompt} opcoes={ia.opcoes} />}
           {atual === "tipos" && (
             <div className="space-y-6">

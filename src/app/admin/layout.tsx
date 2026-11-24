@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { exigir, pode } from "@/lib/auth";
+import { exigir, getUsuario, pode } from "@/lib/auth";
 import { PERFIS, PODE } from "@/lib/config";
 import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
 import { Menu, type GrupoMenu } from "./Menu";
 import { sair } from "../login/actions";
 import { listarPendentes } from "@/lib/usuarios";
+import { regrasGestaoGuardiao } from "@/lib/gestao-evento";
 
 // O painel é um app instalável à parte: manifesto, nome e cor próprios (o site público mantém o dele)
 export const metadata: Metadata = {
@@ -17,8 +18,12 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#1a0b2e" };
 
 export default async function PainelLayout({ children }: LayoutProps<"/">) {
-  const [u, instituto] = await Promise.all([exigir(), getInstituto()]);
-  const grupos: GrupoMenu[] = [
+  // Guardião sem perfil de painel só passa daqui com a gestão do ritual ligada; cada página confere o evento e o período
+  const sessao = await getUsuario();
+  const guardiaoDaGestao = !!sessao && !sessao.perfil && sessao.funcaoRitual === "guardiao" && (await regrasGestaoGuardiao()).ativa;
+  const [u, instituto] = await Promise.all([guardiaoDaGestao ? Promise.resolve({ ...sessao!, perfil: "normal" as const }) : exigir(), getInstituto()]);
+  const GUARNICAO_URL = (process.env.GUARNICAO_URL ?? "https://guarnicao.virtudes.net.br").replace(/\/+$/, "");
+  const grupos: GrupoMenu[] = guardiaoDaGestao ? [{ titulo: "Guarnição", itens: [{ href: `${GUARNICAO_URL}/guarnicao`, rotulo: "Voltar ao app da Guarnição", icone: "shield" }] }] : [
     {
       titulo: "Agenda",
       itens: [
@@ -39,7 +44,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/">) {
     ...(pode(u, PODE.gerenciarUsuarios) ? [{ href: "/admin/usuarios", rotulo: "Usuários", icone: "users" as const, aviso: (await listarPendentes()).length }] : []),
   ];
   if (admin.length) grupos.push({ titulo: "Administração", itens: admin });
-  const perfil = PERFIS.find((p) => p.id === u.perfil)?.nome ?? "";
+  const perfil = guardiaoDaGestao ? "Guardião em gestão" : (PERFIS.find((p) => p.id === u.perfil)?.nome ?? "");
 
   const marca = <MarcaInstituto instituto={instituto} altura={52} />;
 

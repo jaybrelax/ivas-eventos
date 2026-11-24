@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/appwrite";
 import { getUsuario } from "@/lib/auth";
 import { COMPROVANTES_BUCKET_ID, PODE, TABLES } from "@/lib/config";
 import { getEvento, listar } from "@/lib/data";
-import { podeGerenciarEvento } from "@/lib/gestao-evento";
+import { podeGerenciarOuGuardiao } from "@/lib/gestao-evento";
 import type { Inscricao, Pacote } from "@/lib/types";
 
 /**
@@ -25,7 +25,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/api/comprovante/[id
     } else if (insc.usuario_id !== u.id) {
       // O mestre escalado no evento gerencia as contribuições dele
       const evento = await getEvento(insc.evento_id);
-      if (!evento || !podeGerenciarEvento(u, evento)) return new Response("Não encontrado", { status: 404 });
+      if (!evento || !(await podeGerenciarOuGuardiao(u, evento))) return new Response("Não encontrado", { status: 404 });
     }
   }
 

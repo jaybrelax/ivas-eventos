@@ -3,14 +3,14 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, ChevronRight, CircleDollarSign, Clock, Crown, ExternalLink, Hash, MapPin, Pencil, Shield } from "lucide-react";
 import { CabecalhoAba } from "./CabecalhoAba";
 import type { Sexo } from "@/lib/types";
-import { exigir, pode } from "@/lib/auth";
+import { exigir, getUsuario, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, getEvento } from "@/lib/data";
 import { contatosDeUsuarios, listarEquipe } from "@/lib/usuarios";
 import { dataPorExtenso, formatarIdRitual, partesData } from "@/lib/format";
 import { urlImagem, urlPublicaEvento } from "@/lib/links";
 import { SITE_URL } from "@/lib/site";
-import { podeGerenciarEvento, podeIsentarContribuicao } from "@/lib/gestao-evento";
+import { acessoAoEvento, podeGerenciarEvento, podeIsentarContribuicao } from "@/lib/gestao-evento";
 import { AtualizarAoVivo } from "./AtualizarAoVivo";
 import { ConsumoMedicina, type ConsumoPessoa } from "./ConsumoMedicina";
 import { AbasEvento, ID_PAGINA_EVENTO } from "./AbasEvento";
@@ -46,12 +46,16 @@ const SUPERFICIE = "md:rounded-[22px] md:border-white/70 md:bg-white/75 md:shado
  * (descrição, como participar, contribuição) ficam na página pública. Editar fica em /editar.
  */
 export default async function VerEvento({ params, searchParams }: PageProps<"/admin/eventos/[id]">) {
-  const u = await exigir();
+  const sessao = await getUsuario();
+  if (!sessao) await exigir(); // redireciona para o login
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const [evento, { tipos, enderecos, instituto, pix }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
   if (!evento) notFound();
 
-  const gerenciar = podeGerenciarEvento(u, evento);
+  // Guardião escalado no período de gestão entra aqui como gestão do evento (sem editar o evento nem a escala)
+  const { u, emGestao } = await acessoAoEvento(sessao!, evento);
+  const editor = podeGerenciarEvento(u, evento);
+  const gerenciar = editor || emGestao;
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const reuniaoTipo = ehReuniao(tipo);
   const [guarnicao, reuniao, participantes, guardioesDoRitual] = await Promise.all([
@@ -160,10 +164,10 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         <Link href={`/admin/eventos?mes=${evento.data.slice(0, 7)}`} className={`inline-flex min-h-11 items-center gap-2 text-base font-semibold tracking-[0.12em] uppercase md:min-h-0 md:gap-1.5 md:text-xs md:tracking-[0.14em] ${evento.capa_file_id ? "text-white drop-shadow" : "text-ouro-600"}`}>
           <ArrowLeft size={18} className="md:size-[13px]" /> Voltar
         </Link>
-        <MenuEventoMobile url={`${SITE_URL}${caminhoPublico}`} caminho={caminhoPublico} titulo={evento.titulo} resumo={{ capaFileId: evento.capa_file_id ?? null, data: `${dataPorExtenso(evento.data)} · ${evento.hora_inicio}`, numeros: formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano), gestaoUrl: `${SITE_URL}/admin/eventos/${evento.$id}` }} claro={!!evento.capa_file_id} editarHref={gerenciar ? `/admin/eventos/${evento.$id}/editar` : undefined} />
+        <MenuEventoMobile url={`${SITE_URL}${caminhoPublico}`} caminho={caminhoPublico} titulo={evento.titulo} resumo={{ capaFileId: evento.capa_file_id ?? null, data: `${dataPorExtenso(evento.data)} · ${evento.hora_inicio}`, numeros: formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano), gestaoUrl: `${SITE_URL}/admin/eventos/${evento.$id}` }} claro={!!evento.capa_file_id} editarHref={editor ? `/admin/eventos/${evento.$id}/editar` : undefined} />
         <div className="hidden flex-wrap items-center gap-2 md:flex">
           <Link href={caminhoPublico} target="_blank" rel="noopener noreferrer" className="btn-secundario rounded-full! border-white/70! bg-white/75! backdrop-blur-xl"><ExternalLink size={15} /> Ver público</Link>
-          {gerenciar && <Link href={`/admin/eventos/${evento.$id}/editar`} className="btn-primario rounded-full!"><Pencil size={15} /> Editar evento</Link>}
+          {editor && <Link href={`/admin/eventos/${evento.$id}/editar`} className="btn-primario rounded-full!"><Pencil size={15} /> Editar evento</Link>}
         </div>
       </div>
       {um(sp.ok) === "salvo" && <div className="mb-5"><Aviso tipo="ok">Evento salvo com sucesso.</Aviso></div>}
@@ -278,7 +282,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
           {/* Título e engrenagem de gerenciar (fora da área rolável, para o menu não ser cortado) */}
           <div className="flex items-center justify-between gap-3 px-6 pt-4">
             <h2 className="text-sm font-semibold text-stone-900">Equipe do Ritual</h2>
-            {gerenciar && <MenuEquipeCard mestres={{ eventoId: evento.$id, equipe: equipe.filter((p) => !p.mock), inicial: evento.mestres ?? [] }} guarnicao={guarnicao} />}
+            {editor && <MenuEquipeCard mestres={{ eventoId: evento.$id, equipe: equipe.filter((p) => !p.mock), inicial: evento.mestres ?? [] }} guarnicao={guarnicao} />}
           </div>
           <div className="flex items-start overflow-x-auto px-6 pt-3 pb-4">
             <GrupoCompacto titulo="Mestres" Icone={Crown} cor="text-mata-700" anel="ring-mata-300" pessoas={mestres} />
@@ -313,7 +317,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
             ) : undefined}
           />
         ) : (
-          <ListaPresenca pessoas={presenca} espera={0} vagas={null} linkFicha={gerenciar} />
+          <ListaPresenca pessoas={presenca} espera={0} vagas={null} linkFicha={editor} />
         )}
                 </div>
               ) },
@@ -349,7 +353,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
             ) : undefined}
           />
         ) : (
-          <ListaPresenca pessoas={presenca} espera={0} vagas={null} linkFicha={gerenciar} />
+          <ListaPresenca pessoas={presenca} espera={0} vagas={null} linkFicha={editor} />
         )}
       </div>
       )}

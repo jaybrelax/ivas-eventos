@@ -45,7 +45,7 @@ export async function cancelarAction(eventoId: string): Promise<Resultado> {
 
 /** Coordenação (ou o mestre do evento) inclui um guardião. */
 export async function adicionarGuardiaoAction(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoDoEvento(eventoId, { guardiao: false });
   if (g.erro !== undefined) return { erro: g.erro };
   const { u, evento } = g;
   const usuarios = await mapaUsuarios();
@@ -58,7 +58,7 @@ export async function adicionarGuardiaoAction(eventoId: string, usuarioId: strin
 
 /** Coordenação (ou o mestre do evento) retira um guardião. */
 export async function removerGuardiaoAction(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoDoEvento(eventoId, { guardiao: false });
   if (g.erro !== undefined) return { erro: g.erro };
   const { u, evento } = g;
   const r = await removerGuardiao(evento, usuarioId, u.id);

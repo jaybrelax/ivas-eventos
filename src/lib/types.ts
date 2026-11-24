@@ -18,6 +18,10 @@ export type Instituto = {
   guarnicao_horas_presenca?: number | null;
   /** Novos guardiões recebem acesso ao concluir o cadastro sem aguardar a coordenação. */
   guarnicao_aprovacao_automatica?: boolean | null;
+  /** Guardião escalado gerencia o ritual (financeiro, consumo, central) por um período. Padrão: ligada. */
+  gestao_guardiao_ativa?: boolean | null;
+  /** Duração do acesso de gestão, em horas, a partir das 00:00 do dia do ritual (padrão 48). */
+  gestao_guardiao_horas?: number | null;
   /** Estado (sigla) e cidade do Instituto: já vêm escolhidos nos formulários de cadastro. */
   estado: string | null;
   cidade: string | null;

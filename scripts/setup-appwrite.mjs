@@ -60,6 +60,8 @@ const TABELAS = {
       v("estado", 2), v("cidade", 100),
       // App da Guarnição: prazo para o guardião cancelar e limite de participações por mês (0 = sem limite)
       i("guarnicao_horas_cancelamento", { xdefault: 4, min: 0, max: 72 }), i("guarnicao_limite_mes", { xdefault: 2, min: 0, max: 31 }), b("guarnicao_aprovacao_automatica", true), i("guarnicao_horas_presenca", { xdefault: 1, min: 0, max: 24 }),
+      // Gestão do ritual pelo guardião escalado: liga/desliga e duração (horas) a partir do dia do ritual
+      b("gestao_guardiao_ativa", true), i("gestao_guardiao_horas", { xdefault: 48, min: 0, max: 240 }),
     ],
   },
   enderecos: {

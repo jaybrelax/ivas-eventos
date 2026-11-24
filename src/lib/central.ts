@@ -1,8 +1,8 @@
 import "server-only";
-import { exigir, pode, type Usuario } from "./auth";
+import { exigir, getUsuario, pode, type Usuario } from "./auth";
 import { PODE } from "./config";
 import { getDadosInstituto, getEvento } from "./data";
-import { podeGerenciarEvento } from "./gestao-evento";
+import { comoUsuarioDePainel, guardiaoEmGestao, podeGerenciarEvento } from "./gestao-evento";
 import { candidaturasDoEvento, ehReuniao, guardioesDaReuniao, temGuarnicao } from "./guarnicao";
 import type { Evento } from "./types";
 
@@ -30,10 +30,15 @@ export function podeVerCentral(u: Pick<Usuario, "id" | "perfil"> | null, evento:
 export async function exigirCentral(eventoId: string): Promise<
   { u: Usuario & { perfil: NonNullable<Usuario["perfil"]> }; evento: Evento; gestao: boolean; erro?: undefined } | { erro: string }
 > {
-  const u = await exigir();
+  const sessao = await getUsuario();
+  if (!sessao) await exigir(); // redireciona para o login
   const evento = await getEvento(eventoId);
   if (!evento) return { erro: "Evento não encontrado." };
-  const gestao = podeGerenciarEvento(u, evento);
+  // Guardião no período de gestão do ritual age como gestão, mesmo sem perfil de painel
+  const emGestao = await guardiaoEmGestao(sessao, evento);
+  if (!sessao!.perfil && !emGestao) await exigir(); // participante: vai para a própria área
+  const u = comoUsuarioDePainel(sessao!);
+  const gestao = (!!sessao!.perfil && podeGerenciarEvento(u, evento)) || emGestao;
   if (!gestao && !podeVerCentral(u, evento, await guardioesDoEvento(evento))) return { erro: "Você não faz parte da equipe deste evento." };
   return { u, evento, gestao };
 }

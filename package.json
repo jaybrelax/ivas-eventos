@@ -8,7 +8,7 @@
     "start": "next start",
     "setup": "node --env-file=.env.local scripts/setup-appwrite.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "node --test scripts/redirecionamentos.test.mjs scripts/limite-taxa.test.mjs scripts/pagamento-regras.test.mjs scripts/doses.test.mjs scripts/central-texto.test.mjs scripts/creditos-regras.test.mjs",
+    "test": "node --test scripts/redirecionamentos.test.mjs scripts/limite-taxa.test.mjs scripts/pagamento-regras.test.mjs scripts/doses.test.mjs scripts/central-texto.test.mjs scripts/creditos-regras.test.mjs scripts/gestao-guardiao.test.mjs",
     "test:redirecionamentos": "node --test scripts/redirecionamentos.test.mjs"
   },
   "dependencies": {
