@@ -1,8 +1,0 @@
-{
-  "name": "ivas-gerar-imagem",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "main": "src/main.js",
-  "dependencies": { "node-appwrite": "^30.0.1", "sharp": "^0.35.5" }
-}
