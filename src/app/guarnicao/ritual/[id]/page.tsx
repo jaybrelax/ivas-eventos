@@ -89,9 +89,14 @@ export default async function RitualGuarnicao({ params }: PageProps<"/guarnicao/
           ? `Limite do mês atingido (${usadasNoMes}/${limiteMes})`
           : null;
 
+  // Guardião escalado: no dia do ritual e até o dia seguinte, atalho para a gestão no app de Eventos (datas de Brasília)
+  const inicioDoDia = new Date(`${evento.data}T00:00:00-03:00`).getTime();
+  const naJanelaDeGestao = Date.now() >= inicioDoDia && Date.now() < inicioDoDia + 48 * 3_600_000;
+  const gestaoHref = visao === "guardiao" && g.eu.situacao === "confirmada" && naJanelaDeGestao ? `${EVENTOS_URL}/admin/eventos/${evento.$id}` : undefined;
+
   return (
     <div className={visao === "guardiao" ? "pb-32" : "pb-6"}>
-      <Topo evento={evento} end={end} mestres={mestres} menu={menu} agenda={visao === "guardiao" && g.eu.situacao === "confirmada"} />
+      <Topo evento={evento} end={end} mestres={mestres} menu={menu} agenda={visao === "guardiao" && g.eu.situacao === "confirmada"} gestaoHref={gestaoHref} />
 
       {/* Guarnição */}
       <section className="mt-5 px-5">

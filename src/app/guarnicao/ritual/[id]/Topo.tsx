@@ -1,6 +1,6 @@
 import { urlRitualGuarnicao } from "@/lib/guarnicao-links";
 import Link from "next/link";
-import { CalendarPlus, ChevronLeft, Clock, Crown, MapPin } from "lucide-react";
+import { CalendarPlus, ChevronLeft, Clock, Crown, MapPin, Settings2 } from "lucide-react";
 import { dataPorExtenso } from "@/lib/format";
 import { urlImagem } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
@@ -8,7 +8,7 @@ import type { Endereco, Evento, Pessoa } from "@/lib/types";
 import { CapaRitual } from "./CapaRitual";
 
 /** Capa, data, local e mestres: o topo da página de um ritual ou de uma reunião. */
-export function Topo({ evento, end, mestres, agenda, equipeReuniao, menu }: { evento: Evento; end: Endereco | undefined; mestres: Pessoa[]; /** Mostra o atalho para a agenda do celular. */ agenda: boolean; equipeReuniao?: React.ReactNode; menu?: React.ReactNode }) {
+export function Topo({ evento, end, mestres, agenda, equipeReuniao, menu, gestaoHref }: { evento: Evento; end: Endereco | undefined; mestres: Pessoa[]; /** Mostra o atalho para a agenda do celular. */ agenda: boolean; equipeReuniao?: React.ReactNode; menu?: React.ReactNode; /** Link da gestão do ritual (guardião escalado, no dia e até o dia seguinte). */ gestaoHref?: string }) {
   return (
     <>
       {/* Capa */}
@@ -58,6 +58,15 @@ export function Topo({ evento, end, mestres, agenda, equipeReuniao, menu }: { ev
               </div>
             </div>
           ))}
+          {gestaoHref && (
+            <div className="relative mt-1">
+              <span aria-hidden className="pointer-events-none absolute inset-0 animate-vaga-onda rounded-2xl border-2 border-emerald-400" />
+              <span aria-hidden className="pointer-events-none absolute inset-0 animate-vaga-onda rounded-2xl border-2 border-emerald-400 [animation-delay:1.2s]" />
+              <a href={gestaoHref} className="relative flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-[0_8px_20px_-8px_rgb(5_150_105/0.7)] transition active:scale-[0.98]">
+                <Settings2 size={18} aria-hidden /> Acessar a gestão do ritual
+              </a>
+            </div>
+          )}
         </div>
       </section>
     </>

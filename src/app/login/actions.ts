@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppwriteException, Query } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "@/lib/appwrite";
-import { SESSION_COOKIE } from "@/lib/config";
+import { SESSION_COOKIE, DOMINIO_COOKIE } from "@/lib/config";
 import { destinoGuarnicao } from "@/lib/destino-auth";
 
 export async function entrar(_: { erro?: string } | undefined, form: FormData) {
@@ -21,6 +21,7 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
+      ...DOMINIO_COOKIE,
       expires: new Date(sessao.expire),
     });
     destino = destinoGuarnicao(form.get("next"));
@@ -47,6 +48,6 @@ export async function sair() {
   try {
     await s?.account.deleteSession({ sessionId: "current" });
   } catch {}
-  (await cookies()).delete(SESSION_COOKIE);
+  { const jar = await cookies(); jar.delete(SESSION_COOKIE); jar.delete({ name: SESSION_COOKIE, path: "/", ...DOMINIO_COOKIE }); }
   redirect("/login-guarnicao");
 }

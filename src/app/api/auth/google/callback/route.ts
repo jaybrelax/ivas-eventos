@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ID, Query } from "node-appwrite";
 import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { createAdminClient } from "@/lib/appwrite";
-import { BUCKET_ID, LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
+import { BUCKET_ID, LABEL_PARTICIPANTE, SESSION_COOKIE, DOMINIO_COOKIE } from "@/lib/config";
 import { ehParticipante, funcaoDosLabels, perfilDosLabels } from "@/lib/usuarios";
 import { destinoGuarnicao } from "@/lib/destino-auth";
 
@@ -117,6 +117,7 @@ export async function GET(req: NextRequest) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
+      ...DOMINIO_COOKIE,
       expires: new Date(sessao.expire),
     });
 

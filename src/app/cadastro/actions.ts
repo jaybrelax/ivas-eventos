@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { ID } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
-import { LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
+import { LABEL_PARTICIPANTE, SESSION_COOKIE, DOMINIO_COOKIE } from "@/lib/config";
 import { exigirSessao, podeSolicitarGuarnicao } from "@/lib/auth";
 import { salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Sexo } from "@/lib/types";
@@ -69,6 +69,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
         path: "/",
+        ...DOMINIO_COOKIE,
         expires: new Date(sessao.expire),
       });
     } else {
@@ -129,7 +130,7 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
     }
     if (!automatico) {
       await users.updateStatus({ userId: u.id, status: false });
-      (await cookies()).delete(SESSION_COOKIE);
+      { const jar = await cookies(); jar.delete(SESSION_COOKIE); jar.delete({ name: SESSION_COOKIE, path: "/", ...DOMINIO_COOKIE }); }
     }
   } catch (e) {
     console.error("Concluir cadastro Google na Guarnição:", e);
