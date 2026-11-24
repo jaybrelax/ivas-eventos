@@ -108,9 +108,12 @@
 html {
   color-scheme: light;
   -webkit-tap-highlight-color: transparent;
+  /* Nada que passe da largura da tela pode alargar a página: no celular isso desloca o menu fixo do rodapé */
+  overflow-x: clip;
 }
 
 body {
+  overflow-x: clip;
   background: var(--color-fundo);
   color: #18201b;
   font-feature-settings: "cv11", "ss01";
