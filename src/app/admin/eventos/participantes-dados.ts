@@ -1,6 +1,6 @@
 import "server-only";
 import {
-  aceitaParticipantes, inicioDe, inscricoesDoEvento, prazoCancelamento, vagasParticipantesDe,
+  aceitaParticipantes, inicioDe, inscricoesDoEvento, prazoCancelamento, todasInscricoesAtivas, vagasParticipantesDe,
 } from "@/lib/inscricoes";
 import { listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
 import { mascararCpf } from "@/lib/cpf";
@@ -24,11 +24,14 @@ export async function dadosParticipantes(
   localPadrao?: { estado: string | null; cidade: string | null },
 ): Promise<DadosParticipantes | null> {
   if (!aceitaParticipantes(tipo)) return null;
-  const [inscricoes, usuarios, pessoas] = await Promise.all([
+  const [inscricoes, usuarios, pessoas, todas] = await Promise.all([
     inscricoesDoEvento(evento.$id),
     mapaUsuarios(),
     gerenciar ? listarTodasAsPessoas() : Promise.resolve([]),
+    // Só a coordenação vê o "1° VEZ": quem já tem participação confirmada em outro evento não é primeira vez
+    gerenciar ? todasInscricoesAtivas() : Promise.resolve([]),
   ]);
+  const jaParticiparam = new Set(todas.filter((i) => i.situacao === "confirmada" && i.evento_id !== evento.$id).map((i) => i.usuario_id));
   const contatoPorId = new Map(pessoas.map((p) => [p.id, p]));
   const pessoa = (id: string): PessoaParticipante => {
     const u = usuarios.get(id);
@@ -41,6 +44,8 @@ export async function dadosParticipantes(
       ...pessoa(i.usuario_id),
       pagamento: i.pagamento, inscricaoId: i.$id, comprovante: i.comprovante_file_id,
       inscritoEm: i.$createdAt, valor: i.valor, informadoEm: i.informado_em, pagoEm: i.pago_em,
+      primeiraVez: gerenciar ? !!i.primeira_vez : false,
+      jaParticipou: gerenciar ? jaParticiparam.has(i.usuario_id) : false,
       usouPacote: !!i.usou_pacote, pacoteObs: i.usou_pacote ? (i.observacao ?? null) : null,
       contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm, cpf: c.cpf ? mascararCpf(c.cpf) : null } : null,
       doses: gerenciar ? lerDoses(i.doses) : [],

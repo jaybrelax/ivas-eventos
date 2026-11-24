@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition, type KeyboardEvent as KE } from "react";
 import { useRouter } from "next/navigation";
-import { BellRing, Check, ChevronRight, ImagePlus, ListChecks, Loader2, Megaphone, MessagesSquare, MoreVertical, Pencil, Pin, Plus, PinOff, RotateCcw, Trash2, TriangleAlert, X, type LucideIcon } from "lucide-react";
+import { createPortal } from "react-dom";
+import { CabecalhoAba } from "./CabecalhoAba";
+import { ArrowUp, BellRing, Check, ChevronDown, ChevronRight, ImagePlus, ListChecks, Loader2, Megaphone, MessagesSquare, MoreVertical, Pencil, Pin, Plus, PinOff, RotateCcw, Trash2, TriangleAlert, X, type LucideIcon } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { BotaoConfirmar } from "@/components/Confirmar";
 import { toast } from "@/components/Toaster";
@@ -54,6 +56,26 @@ export function CentralEvento({ eventoId, dados }: { eventoId: string; dados: Da
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const pessoaPorId = useMemo(() => new Map(dados.pessoas.map((p) => [p.id, p])), [dados.pessoas]);
 
+  // Botão "voltar ao início": aparece depois de rolar a página e leva ao começo dos registros
+  const secao = useRef<HTMLElement>(null);
+  const [rolou, setRolou] = useState(false);
+  const [montou, setMontou] = useState(false);
+  useEffect(() => setMontou(true), []);
+  useEffect(() => {
+    // Só com a aba da Central aberta (os painéis das outras abas ficam montados, mas ocultos)
+    const checar = () => setRolou(window.scrollY > 800 && !!secao.current && secao.current.offsetParent !== null);
+    checar();
+    window.addEventListener("scroll", checar, { passive: true });
+    // Trocar de aba não rola a página: o painel oculto/mostrado muda o tamanho da seção
+    const obs = secao.current ? new ResizeObserver(checar) : null;
+    if (secao.current) obs?.observe(secao.current);
+    return () => { window.removeEventListener("scroll", checar); obs?.disconnect(); };
+  }, []);
+  const aoTopo = () => {
+    const reduzido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    secao.current?.scrollIntoView({ behavior: reduzido ? "auto" : "smooth", block: "start" });
+  };
+
   const filtros: { id: Filtro; rotulo: string; n: number }[] = [
     { id: "todos", rotulo: "Todos", n: dados.posts.length },
     { id: "abertas", rotulo: "Tarefas abertas", n: dados.tarefasAbertas },
@@ -70,7 +92,14 @@ export function CentralEvento({ eventoId, dados }: { eventoId: string; dados: Da
             : p.tipo === filtro);
 
   return (
-    <section aria-label="Central de informações" className="space-y-3 p-2 pt-1 sm:space-y-4 sm:p-4 sm:pt-2 md:p-5 md:pt-3">
+    <section ref={secao} aria-label="Central de informações" className="scroll-mt-4 space-y-3 p-2 pt-1 sm:space-y-4 sm:p-4 sm:pt-2 md:p-5 md:pt-3">
+      <CabecalhoAba
+        Icone={MessagesSquare}
+        titulo="Central de informações"
+        resumo={dados.posts.length ? `${dados.posts.length} ${dados.posts.length === 1 ? "registro" : "registros"}${dados.tarefasAbertas ? ` · ${dados.tarefasAbertas} ${dados.tarefasAbertas === 1 ? "tarefa aberta" : "tarefas abertas"}` : ""}` : "Nenhum registro ainda"}
+        fundo="linear-gradient(180deg, #7c5ab8 0%, #3b2466 100%)"
+        className="px-1 pt-1.5 sm:px-0"
+      />
       <Editor eventoId={eventoId} pessoas={dados.pessoas} />
 
       {dados.posts.length > 0 && (
@@ -105,11 +134,84 @@ export function CentralEvento({ eventoId, dados }: { eventoId: string; dados: Da
           <p className="max-w-xs text-sm text-stone-500">Registre aqui ocorrências, lembretes e tarefas do ritual. Toda a equipe do evento vê.</p>
         </div>
       )}
+
+      {/* Flutuante: some no topo da página; no celular fica acima do menu inferior.
+          Vai para o <body>: dentro do painel da aba (que tem transform/overflow) o `fixed` ficava preso ao painel, lá embaixo. */}
+      {montou && createPortal(<button
+        type="button"
+        onClick={aoTopo}
+        tabIndex={rolou ? 0 : -1}
+        aria-hidden={!rolou}
+        aria-label="Voltar ao início dos registros"
+        className={`fixed right-4 bottom-[calc(4.5rem+env(safe-area-inset-bottom)+1.25rem)] z-30 grid h-11 w-11 place-items-center rounded-full bg-stone-200 text-mata-700 shadow-[0_2px_6px_rgb(0_0_0/0.18),0_10px_24px_-8px_rgb(0_0_0/0.35)] transition duration-300 ease-out hover:bg-stone-300 active:scale-95 motion-reduce:transition-none md:right-8 md:bottom-8 ${rolou ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0"}`}
+      >
+        <ArrowUp size={20} strokeWidth={2.4} aria-hidden />
+      </button>, document.body)}
     </section>
   );
 }
 
-type Foto = { chave: string; previa: string; id?: string; erro?: string };
+type Foto ={ chave: string; previa: string; id?: string; erro?: string };
+
+/** Cor do ícone de cada tipo na lista suspensa: o primeiro (Aviso) é o neutro, os outros têm a sua cor. */
+const ICONE_TIPO: Record<TipoCentral, string> = {
+  aviso: "bg-stone-100 text-stone-600",
+  lembrete: "bg-amber-50 text-amber-600",
+  ocorrencia: "bg-rose-50 text-rose-600",
+  tarefa: "bg-mata-50 text-mata-700",
+};
+
+/** Lista suspensa do tipo do post: botão com o tipo atual e menu com as quatro opções. */
+function SeletorTipo({ tipo, aoEscolher }: { tipo: TipoCentral; aoEscolher: (t: TipoCentral) => void }) {
+  const [aberto, setAberto] = useState(false);
+  const raiz = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: MouseEvent) => { if (!raiz.current?.contains(e.target as Node)) setAberto(false); };
+    const esc = (e: globalThis.KeyboardEvent) => { if (e.key === "Escape") setAberto(false); };
+    document.addEventListener("mousedown", fora);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", esc); };
+  }, [aberto]);
+  const atual = TIPOS[tipo];
+  return (
+    <div ref={raiz} className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={aberto}
+        aria-label={`Tipo do post: ${atual.rotulo}`}
+        className="inline-flex h-10 w-44 items-center gap-2 rounded-xl border border-stone-200 bg-white pr-2.5 pl-1.5 text-sm font-semibold text-stone-800 shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition hover:border-mata-300 hover:ring-4 hover:ring-mata-50 aria-expanded:border-mata-400 aria-expanded:ring-4 aria-expanded:ring-mata-50"
+      >
+        <span className={`grid h-7 w-7 place-items-center rounded-lg ${ICONE_TIPO[tipo]}`}><atual.Icone size={15} aria-hidden /></span>
+        <span className="flex-1 text-left">{atual.rotulo}</span>
+        <ChevronDown size={15} className={`text-stone-400 transition-transform duration-200 ${aberto ? "rotate-180" : ""}`} aria-hidden />
+      </button>
+      {aberto && (
+        <ul role="listbox" aria-label="Tipo do post" className="menu-pop absolute top-full right-0 z-20 mt-2 w-56 rounded-2xl border border-black/[0.06] bg-white p-1.5 shadow-[0_2px_6px_rgb(0_0_0/0.06),0_18px_40px_-10px_rgb(20_42_29/0.35)]">
+          {ORDEM_TIPOS.map((t) => {
+            const { rotulo, Icone } = TIPOS[t];
+            const sel = tipo === t;
+            return (
+              <li key={t} role="option" aria-selected={sel}>
+                <button
+                  type="button"
+                  onClick={() => { aoEscolher(t); setAberto(false); }}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-2 py-1.5 text-left text-sm transition ${sel ? "bg-stone-50 font-semibold text-stone-900" : "text-stone-700 hover:bg-stone-50"}`}
+                >
+                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${ICONE_TIPO[t]}`}><Icone size={16} aria-hidden /></span>
+                  <span className="flex-1">{rotulo}</span>
+                  {sel && <Check size={15} className="shrink-0 text-mata-700" aria-hidden />}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 /**
  * Escrever um post (ou editar um existente): tipo, texto com @menções e fotos. As fotos são
@@ -264,19 +366,11 @@ function Editor({ eventoId, pessoas, post, aoTerminar }: { eventoId: string; pes
   }
 
   return (
-    <div className={`rounded-2xl border bg-white p-3 sm:p-4 ${editando ? "border-mata-200 ring-2 ring-mata-100" : "border-stone-200 shadow-sm"}`}>
-      {/* Tipo */}
-      <div className="mb-2.5 flex flex-wrap gap-1.5" role="radiogroup" aria-label="Tipo do post">
-        {ORDEM_TIPOS.map((t) => {
-          const { rotulo, Icone, off, on } = TIPOS[t];
-          const sel = tipo === t;
-          return (
-            <button key={t} type="button" role="radio" aria-checked={sel} onClick={() => setTipo(t)}
-              className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ring-1 ring-inset transition ${sel ? on : `bg-transparent ${off}`}`}>
-              <Icone size={13} aria-hidden /> {rotulo}
-            </button>
-          );
-        })}
+    <div className={`${editando ? "" : "border-b border-stone-100 pb-4"}`}>
+      {/* Tipo: lista suspensa; ao lado, a dica do que fazer */}
+      <div className="mb-2.5 flex items-center justify-between gap-3">
+        <span className="min-w-0 truncate text-base font-semibold tracking-tight text-stone-700">Informar algo</span>
+        <SeletorTipo tipo={tipo} aoEscolher={setTipo} />
       </div>
 
       {/* Texto com autocomplete do @ */}
@@ -292,10 +386,10 @@ function Editor({ eventoId, pessoas, post, aoTerminar }: { eventoId: string; pes
           onBlur={() => setTimeout(() => setBusca(null), 150)}
           placeholder={tipo === "tarefa" ? "O que precisa ser feito? Use @ para marcar alguém." : "Escreva aqui. Use @ para marcar alguém."}
           aria-label="Texto do post"
-          className="campo min-h-[5.5rem] resize-none py-2.5 text-[15px] leading-relaxed"
+          className="campo min-h-[5.5rem] resize-none py-2.5 text-[15px] leading-relaxed transition-[border-color,box-shadow] duration-200 hover:border-mata-300 hover:ring-4 hover:ring-mata-50"
         />
         {busca && sugestoes.length > 0 && (
-          <ul role="listbox" aria-label="Pessoas para marcar" className="absolute top-full left-0 z-30 mt-1 max-h-80 w-72 max-w-full overflow-y-auto rounded-xl border border-stone-200 bg-white p-1 shadow-elevado">
+          <ul role="listbox" aria-label="Pessoas para marcar" className="menu-pop origem-esq absolute top-full left-0 z-30 mt-1 max-h-80 w-72 max-w-full overflow-y-auto rounded-xl border border-stone-200 bg-white p-1 shadow-elevado">
             {sugestoes.map((p, i) => (
               <li key={p.id} role="option" aria-selected={i === ativa}>
                 {/* Separador antes do primeiro de fora do ritual */}
@@ -344,7 +438,7 @@ function Editor({ eventoId, pessoas, post, aoTerminar }: { eventoId: string; pes
           </>
         )}
         <span className="ml-auto hidden text-[11px] text-stone-400 sm:inline">Ctrl+Enter publica</span>
-        <button type="button" onClick={limpar} className="btn-secundario h-9 rounded-full! px-3.5 text-sm">Cancelar</button>
+        <button type="button" onClick={limpar} className="btn-secundario h-9 rounded-full! px-3.5 text-sm max-sm:ml-auto">Cancelar</button>
         <button type="button" onClick={publicar} disabled={salvando || enviando || (!texto.trim() && !prontas.length)} className="btn-primario h-9 rounded-full! px-4 text-sm">
           {salvando ? <Loader2 size={15} className="animate-spin" aria-hidden /> : null}
           {enviando ? "Enviando fotos…" : editando ? "Salvar" : "Publicar"}
@@ -418,7 +512,7 @@ function Post({ eventoId, post, pessoaPorId, pessoas, gestao }: { eventoId: stri
               <MoreVertical size={17} />
             </button>
             {menu && (
-              <div role="menu" className="absolute top-full right-0 z-20 mt-1 w-48 rounded-xl border border-stone-200 bg-white p-1.5 shadow-elevado">
+              <div role="menu" className="menu-pop absolute top-full right-0 z-20 mt-2 w-48 rounded-2xl border border-black/[0.06] bg-white p-1.5 shadow-[0_2px_6px_rgb(0_0_0/0.06),0_18px_40px_-10px_rgb(20_42_29/0.35)]">
                 {post.podeEditar && (
                   <button role="menuitem" type="button" onClick={() => { setMenu(false); setEditando(true); }} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-stone-700 hover:bg-stone-50">
                     <Pencil size={15} className="text-stone-500" aria-hidden /> Editar
@@ -448,7 +542,7 @@ function Post({ eventoId, post, pessoaPorId, pessoas, gestao }: { eventoId: stri
       {post.imagens.length > 0 && <div className="mt-2.5"><GaleriaFotos ids={post.imagens} /></div>}
 
       {post.tipo === "tarefa" && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-stone-100 pt-2.5">
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-2 border-t border-stone-100 pt-2.5">
           {concluida ? (
             <>
               <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-700">

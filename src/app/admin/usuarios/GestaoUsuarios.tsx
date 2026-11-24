@@ -174,7 +174,7 @@ export function GestaoUsuarios({ us, euId }: { us: UsuarioLista[]; euId: string 
               <ChevronDown size={14} aria-hidden className={`transition ${menuAberto ? "rotate-180" : ""}`} />
             </button>
             {menuAberto && (
-              <div role="group" aria-label="Filtrar por função ou perfil" className="absolute top-full right-0 z-20 mt-2 w-60 animate-surgir rounded-xl border border-stone-200 bg-white p-1.5 shadow-elevado">
+              <div role="group" aria-label="Filtrar por função ou perfil" className="menu-pop absolute top-full right-0 z-20 mt-2 w-60 rounded-2xl border border-black/[0.06] bg-white p-1.5 shadow-[0_2px_6px_rgb(0_0_0/0.06),0_18px_40px_-10px_rgb(20_42_29/0.35)]">
                 <p className="px-2.5 pt-1.5 pb-1 text-[11px] font-semibold tracking-wider text-stone-400 uppercase">Mostrar</p>
                 {MARCAS.map((m) => {
                   const on = marcados.has(m.id);

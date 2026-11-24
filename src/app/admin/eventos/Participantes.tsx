@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { createContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Check, ChevronRight, Clock, Crown, Receipt, Search, Shield, SlidersHorizontal, UserPlus, Users, X } from "lucide-react";
+import { Check, ChevronRight, Clock, Crown, Receipt, Search, Shield, SlidersHorizontal, Sprout, UserPlus, Users, X } from "lucide-react";
 import type { Sexo, SituacaoPagamento } from "@/lib/types";
 import type { Dose } from "@/lib/doses";
 import { Avatar } from "@/components/Avatar";
@@ -19,6 +19,10 @@ export type ItemParticipanteInscrito = PessoaParticipante & {
   inscritoEm: string; valor: number | null; informadoEm: string | null; pagoEm: string | null;
   /** Contribuição paga com pacote (valor em R$ = 0). */
   usouPacote?: boolean; /** Observação do pacote (ex.: "2/4 1"). */ pacoteObs?: string | null;
+  /** Primeira vez da pessoa em um ritual (só para quem gerencia o evento). */
+  primeiraVez?: boolean;
+  /** Já tem participação confirmada em outro evento (então não é a primeira vez). */
+  jaParticipou?: boolean;
   contato: ContatoParticipante | null;
   /** Doses consumidas (só para quem gerencia o evento). */
   doses?: Dose[];
@@ -125,8 +129,10 @@ function haQuanto(iso: string) {
  * filtros por situação do pagamento, busca, lista de espera e inclusão manual com busca.
  * Quem se inscreve é sempre pela página pública; este bloco é para a coordenação acompanhar e gerenciar.
  */
-export function Participantes({ dados, semResumo = false, equipe = [], guardioes = [], titulo = "Participantes", acoes, embutido = false }: {
+export function Participantes({ dados, semResumo = false, equipe = [], guardioes = [], titulo = "Participantes", acoes, embutido = false, financeiro = false }: {
   dados: DadosParticipantes;
+  /** Aba Financeiro: mesma lista, mas no lugar das doses vai a contribuição (valor e data); sem chamada nem inclusão. */
+  financeiro?: boolean;
   /** Dentro de outro card (abas da página do evento): sem card próprio e sem o título, que já está na aba. */
   embutido?: boolean;
   /** Ações extras no canto do cabeçalho (ex.: menu ⋮ da equipe no mobile). */
@@ -174,9 +180,10 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
     setCarregouChamada(true);
   }, [chaveChamada]);
   useEffect(() => {
-    if (!carregouChamada) return;
+    // A lista do Financeiro não faz chamada: não regrava o que a lista de presença guardou
+    if (!carregouChamada || financeiro) return;
     try { localStorage.setItem(chaveChamada, JSON.stringify({ ativa: chamadaAtiva, presentes: [...presentes] })); } catch { /* idem */ }
-  }, [chamadaAtiva, presentes, chaveChamada, carregouChamada]);
+  }, [chamadaAtiva, presentes, chaveChamada, carregouChamada, financeiro]);
   // Mobile: todas as tags de contribuição ficam da largura da maior (a coluna alinha)
   const secao = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -189,7 +196,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
     el.style.setProperty("--larg-tag", `${Math.ceil(maior)}px`);
   });
   const marcar = (id: string) => setPresentes((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const ehMarcavel = (id: string) => chamadaAtiva && dados.gerenciar;
+  const ehMarcavel = (id: string) => chamadaAtiva && dados.gerenciar && !financeiro;
   const posEspera = dados.espera.findIndex((p) => p.inscricaoId === aberta);
   const atual = dados.confirmados.find((p) => p.inscricaoId === aberta) ?? dados.espera[posEspera];
 
@@ -207,11 +214,11 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
   const contagem: Record<FiltroPg, number> = { todos: ocupadas, conferir: resumo.conferir, aberto: resumo.aberto, pago: resumo.pago, isento: resumo.isento };
 
   const total = dados.confirmados.length + dados.espera.length;
-  const mostrarBusca = total > 8;
+  const mostrarBusca = total > 8 && !financeiro;
   // O menu ⋮ fica no cabeçalho, ao lado do título (no celular o título voltou, já que as abas foram para o rodapé)
   const acoesNaLinha = false;
   // No celular, com a busca visível, "Incluir participante" vira um botão só com o ícone ao lado dela
-  const incluirNaBusca = dados.gerenciar && mostrarBusca && total > 0;
+  const incluirNaBusca = dados.gerenciar && !financeiro && mostrarBusca && total > 0;
   const termo = semAcento(busca.trim());
   const casa = FILTROS_PG.find((f) => f.id === filtro)!.casa;
   const filtrar = (l: ItemParticipanteInscrito[]) => l.filter((p) => (!dados.temContribuicao || casa(p.pagamento)) && (!termo || semAcento(p.nome).includes(termo)));
@@ -236,13 +243,15 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
   ].sort((a, b) => ordem(a.papel, a.id) - ordem(b.papel, b.id) || a.nome.localeCompare(b.nome, "pt-BR"));
 
   const temFiltros = dados.temContribuicao && dados.gerenciar && total > 0;
-  const filtroNoMobile = filtro !== "todos" || filtroAberto;
+  // No Financeiro não há menu ⋮ para abrir o filtro: ele fica sempre à mostra
+  const filtroNoMobile = financeiro || filtro !== "todos" || filtroAberto;
 
   return (
-    <AcoesListaContexto.Provider value={{ abrirFiltro: temFiltros ? () => setFiltroAberto(true) : undefined, chamada: dados.gerenciar ? { ativa: chamadaAtiva, alternar: () => setChamadaAtiva((v) => !v) } : undefined }}>
-    <section ref={secao} id="participantes" aria-label={embutido ? titulo : undefined} className={embutido ? "scroll-mt-6 space-y-3 p-2 pt-1 sm:space-y-4 sm:p-4 sm:pt-2 md:p-5 md:pt-3" : "cartao scroll-mt-6 space-y-2 p-2 sm:space-y-5 sm:p-4 md:rounded-[22px] md:border-black/[0.05] md:p-5 md:shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-14px_rgb(20_42_29/0.2)]"}>
+    <AcoesListaContexto.Provider value={{ abrirFiltro: temFiltros ? () => setFiltroAberto(true) : undefined, chamada: dados.gerenciar && !financeiro ? { ativa: chamadaAtiva, alternar: () => setChamadaAtiva((v) => !v) } : undefined }}>
+    <section ref={secao} id={financeiro ? "contribuicoes" : "participantes"} aria-label={embutido ? titulo : undefined} className={embutido ? "scroll-mt-6 space-y-3 p-3.5 pt-2.5 sm:space-y-4 sm:p-4 sm:pt-2 md:p-5 md:pt-3" : "cartao scroll-mt-6 space-y-2 p-2 sm:space-y-5 sm:p-4 md:rounded-[22px] md:border-black/[0.05] md:p-5 md:shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-14px_rgb(20_42_29/0.2)]"}>
       {/* Embutido nas abas: título só no celular (no computador a aba já diz o que é) */}
-      <div className={`flex items-center justify-between gap-3 ${embutido ? (dados.abertas ? "pt-1 md:hidden" : "pt-1 md:justify-end md:pt-0") : ""}`}>
+      {/* Financeiro: sem cabeçalho (a lista já vem logo abaixo dos números) */}
+      <div className={`flex items-center justify-between gap-3 ${financeiro ? "hidden" : ""} ${embutido ? (dados.abertas ? "pt-1 md:hidden" : "pt-1 md:justify-end md:pt-0") : ""}`}>
         <div className={`flex items-center gap-3 ${embutido ? "md:hidden" : ""}`}>
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-mata-50 text-mata-600 sm:h-10 sm:w-10"><Users size={18} /></span>
           <div>
@@ -258,7 +267,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
       {msg && <Aviso tipo={msg.erro ? "erro" : "ok"}>{msg.erro ?? msg.ok}</Aviso>}
 
       {/* Chamada ativa: contagem e botão para encerrar (desativa as marcações) */}
-      {dados.gerenciar && chamadaAtiva && (
+      {dados.gerenciar && chamadaAtiva && !financeiro && (
         <div className="animate-surgir flex flex-wrap items-center gap-2 rounded-xl border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-100/80 to-white px-3 py-2 ring-1 ring-emerald-100">
           <Check size={16} className="shrink-0 text-emerald-700" aria-hidden />
           <p className="min-w-0 flex-1 text-sm leading-tight font-semibold text-emerald-900">
@@ -304,7 +313,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
                 type="button"
                 onClick={() => { setFiltro("todos"); setFiltroAberto(false); }}
                 aria-pressed={filtro === "todos"}
-                className={`inline-flex h-8 shrink-0 max-md:hidden items-center gap-1.5 rounded-full px-3 text-xs font-semibold whitespace-nowrap ring-1 transition ${
+                className={`inline-flex h-8 shrink-0 ${financeiro ? "" : "max-md:hidden"} items-center gap-1.5 rounded-full px-3 text-xs font-semibold whitespace-nowrap ring-1 transition ${
                   filtro === "todos" ? "bg-mata-700 text-white ring-mata-700" : "bg-white text-stone-600 ring-stone-200 hover:bg-stone-50"
                 }`}
               >
@@ -316,7 +325,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
                 onClick={() => setFiltroAberto((v) => !v)}
                 aria-haspopup="dialog"
                 aria-expanded={filtroAberto}
-                className={`inline-flex h-8 shrink-0 ${filtro === "todos" ? "max-md:hidden" : ""} items-center gap-1.5 rounded-full px-3 text-xs font-semibold whitespace-nowrap ring-1 transition ${
+                className={`inline-flex h-8 shrink-0 ${filtro === "todos" && !financeiro ? "max-md:hidden" : ""} items-center gap-1.5 rounded-full px-3 text-xs font-semibold whitespace-nowrap ring-1 transition ${
                   filtro !== "todos" ? "bg-mata-700 text-white ring-mata-700" : "bg-white text-stone-600 ring-stone-200 hover:bg-stone-50"
                 }`}
               >
@@ -326,11 +335,11 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
               </button>
               {filtro !== "todos" && (
                 <button type="button" onClick={() => { setFiltro("todos"); setFiltroAberto(false); }} className="inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-xs font-semibold text-stone-600 ring-1 ring-stone-200 transition hover:bg-stone-50 active:bg-stone-100 md:hidden">
-                  <X size={13} aria-hidden /> Limpar filtro
+                  <X size={13} aria-hidden /> Limpar
                 </button>
               )}
               {filtroAberto && (
-                <div role="dialog" aria-label="Filtrar por contribuição" className="absolute top-full left-0 z-20 mt-2 w-60 rounded-xl border border-stone-200 bg-white p-1.5 shadow-elevado">
+                <div role="dialog" aria-label="Filtrar por contribuição" className="menu-pop origem-esq absolute top-full left-0 z-20 mt-2 w-60 rounded-2xl border border-black/[0.06] bg-white p-1.5 shadow-[0_2px_6px_rgb(0_0_0/0.06),0_18px_40px_-10px_rgb(20_42_29/0.35)]">
                   <p className="px-2.5 pt-1.5 pb-1 text-[11px] font-semibold tracking-wider text-stone-400 uppercase">Contribuição</p>
                   {FILTROS_PG.filter((f) => f.id !== "todos").map((f) => {
                     const ativo = filtro === f.id;
@@ -374,30 +383,34 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
       <div className={embutido ? "" : "sm:rounded-xl sm:border sm:border-stone-200/80 sm:p-3"}>
         <p className={`flex items-center justify-between px-0.5 pt-1 pb-2 text-xs font-semibold tracking-wider text-stone-500 uppercase ${embutido ? "" : "sm:px-1.5"}`}>
-          <span>{equipe.length ? (equipeOrdenada.length ? "Equipe do ritual" : "Participantes") : "Confirmados"} <span className="tabular-nums">({equipeOrdenada.length || confirmados.length})</span></span>
+          <span>{equipe.length ? (equipeOrdenada.length ? "Guardiões da Luz" : "Participantes") : "Confirmados"} <span className="tabular-nums">({equipeOrdenada.length || confirmados.length})</span></span>
           {filtrando && <span className="normal-case tracking-normal font-medium">{confirmados.length} de {ocupadas}</span>}
         </p>
         {confirmados.length || soEquipe.length ? (
           <ul className="space-y-2 md:space-y-1">
             {/* Equipe primeiro (guardiões, guardiãs, mestres), com fundo azulado; depois os demais participantes */}
             {equipeOrdenada.map((x) => x.p ? (
-              <Linha key={x.id} p={x.p} papel={x.papel} destaque temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} chamada={ehMarcavel(x.id)} presente={presentes.has(x.id)} abrir={() => (chamadaAtiva ? marcar(x.id) : setAberta(x.p!.inscricaoId))} />
+              <Linha key={x.id} p={x.p} papel={x.papel} destaque temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} chamada={ehMarcavel(x.id)} presente={presentes.has(x.id)} abrir={() => (ehMarcavel(x.id) ? marcar(x.id) : setAberta(x.p!.inscricaoId))} />
             ) : (
               <li key={`equipe-${x.id}`}>
-                {dados.gerenciar ? (
+                {dados.gerenciar && !financeiro ? (
                   <button type="button" onClick={() => (chamadaAtiva ? marcar(x.id) : setEquipeAberta(x.id))} aria-label={chamadaAtiva ? `Marcar presença de ${x.nome}` : `Registrar a dosagem de ${x.nome}`} aria-pressed={chamadaAtiva ? presentes.has(x.id) : undefined}
-                    className={`group flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition hover:ring-1 hover:ring-mata-200 ${chamadaAtiva && presentes.has(x.id) ? CLASSE_PRESENTE : "bg-sky-50 ring-1 ring-sky-100 hover:bg-mata-50/70"}`}>
+                    className={`group flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition hover:ring-1 hover:ring-mata-200 ${chamadaAtiva && presentes.has(x.id) ? CLASSE_PRESENTE : x.papel === "mestre" ? "bg-mata-50 ring-1 ring-mata-100 hover:bg-mata-100/60" : "bg-sky-50 ring-1 ring-sky-100 hover:bg-mata-50/70"}`}>
                     <Avatar nome={x.nome} foto={x.foto} tamanho={28} className={chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{x.nome}</span>
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <span className="truncate text-sm font-medium text-stone-800">{x.nome}</span>
+                      <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} soIcone={(dados.dosesEquipe?.[x.id] ?? []).some((d) => d.ml > 0)} />
+                    </span>
                     <ChipsDose doses={dados.dosesEquipe?.[x.id] ?? []} />
-                    <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} soIcone={(dados.dosesEquipe?.[x.id] ?? []).some((d) => d.ml > 0)} />
                     {chamadaAtiva ? null : <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600 max-md:hidden" />}
                   </button>
                 ) : (
-                  <div className="flex w-full items-center gap-2.5 rounded-lg bg-sky-50 px-2 py-1.5 ring-1 ring-sky-100">
+                  <div className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 ring-1 ${x.papel === "mestre" ? "bg-mata-50 ring-mata-100" : "bg-sky-50 ring-sky-100"}`}>
                     <Avatar nome={x.nome} foto={x.foto} tamanho={32} className="ring-0" />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-stone-800">{x.nome}</span>
-                    <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} />
+                    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <span className="truncate text-sm font-medium text-stone-800">{x.nome}</span>
+                      <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} />
+                    </span>
                   </div>
                 )}
               </li>
@@ -406,7 +419,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
               <li aria-hidden className="px-1.5 pt-3 pb-1 text-xs font-semibold tracking-wider text-stone-400 uppercase">Participantes <span className="tabular-nums">({confirmados.filter((p) => !papelDe.has(p.id)).length})</span></li>
             )}
             {confirmados.filter((p) => !papelDe.has(p.id)).map((p) => (
-              <Linha key={p.id} p={p} guardiao={ehGuardiao.has(p.id)} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} chamada={ehMarcavel(p.id)} presente={presentes.has(p.id)} abrir={() => (chamadaAtiva ? marcar(p.id) : setAberta(p.inscricaoId))} />
+              <Linha key={p.id} p={p} guardiao={ehGuardiao.has(p.id)} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} chamada={ehMarcavel(p.id)} presente={presentes.has(p.id)} abrir={() => (ehMarcavel(p.id) ? marcar(p.id) : setAberta(p.inscricaoId))} />
             ))}
           </ul>
         ) : (
@@ -423,14 +436,14 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
             </p>
             <ol className="space-y-1">
               {espera.map(({ p, pos }) => (
-                <Linha key={p.id} p={p} papel={papelDe.get(p.id)} guardiao={ehGuardiao.has(p.id)} posicao={pos} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} abrir={() => setAberta(p.inscricaoId)} />
+                <Linha key={p.id} p={p} papel={papelDe.get(p.id)} guardiao={ehGuardiao.has(p.id)} posicao={pos} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} abrir={() => setAberta(p.inscricaoId)} />
               ))}
             </ol>
           </div>
         )}
 
-        {dados.gerenciar && (
-          <div className={`mt-3 border-t border-stone-100 pt-3 ${incluirNaBusca ? "max-md:hidden" : ""}`}>
+        {dados.gerenciar && !financeiro && (
+          <div className="mt-3 border-t border-stone-100 pt-3">
             <Incluir opcoes={dados.disponiveis} pendente={pendente} cheio={!livres} aoIncluir={(id) => rodar(() => incluirParticipanteAction(dados.eventoId, id))} aoIncluirAvulso={(nome) => rodar(() => incluirAvulsoAction(dados.eventoId, nome))} />
           </div>
         )}
@@ -490,17 +503,66 @@ function SeloPapel({ papel, soIcone = false, sexo }: { papel: MembroLista["papel
   );
 }
 
+/** Data curta no fuso do Instituto (igual no servidor e no navegador): "12 nov". */
+const dataCurta = (iso: string) =>
+  new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", timeZone: "America/Sao_Paulo" }).replace(".", "").replace(" de ", " ");
+
+/** Financeiro: valor da contribuição e, embaixo, quando foi paga ou informada (ou o que falta). */
+function ValorContribuicao({ p, esperado }: { p: ItemParticipanteInscrito; esperado: number | null }) {
+  let valor: string;
+  let detalhe: string;
+  let cor: string;
+  if (p.pagamento === "pago" && p.usouPacote) {
+    // Observação "4/8": 4º uso de um pacote de 8. Vira "PAC 4/8" e, embaixo, 8 bolinhas com 4 preenchidas.
+    const m = (p.pacoteObs ?? "").match(/(\d+)\s*\/\s*(\d+)/);
+    const atual = m ? Number(m[1]) : 0;
+    const total = m ? Number(m[2]) : 0;
+    const bolinhas = total > 0 && total <= 9;
+    // Pacote maior que 9: barra preenchida na proporção do que já foi usado
+    const barra = total > 9;
+    return (
+      <span className="min-w-[4.5rem] shrink-0 text-right leading-tight">
+        <span className="block truncate text-sm font-semibold tabular-nums text-violet-800">{m ? `PAC ${atual}/${total}` : "PAC"}</span>
+        {bolinhas ? (
+          <span className="mt-1 flex justify-end gap-[3px]" role="img" aria-label={`${atual}º uso de ${total} do pacote`}>
+            {Array.from({ length: total }, (_, i) => (
+              <span key={i} className={`block h-2 w-2 shrink-0 rounded-full ${i < atual ? "bg-violet-600" : "bg-violet-100 ring-1 ring-violet-200 ring-inset"}`} />
+            ))}
+          </span>
+        ) : barra ? (
+          <span className="mt-1.5 ml-auto block h-2 w-[4.5rem] overflow-hidden rounded-full bg-violet-100 ring-1 ring-violet-200 ring-inset" role="progressbar" aria-valuenow={Math.min(atual, total)} aria-valuemin={0} aria-valuemax={total} aria-label={`${atual}º uso de ${total} do pacote`}>
+            <span className="block h-full rounded-full bg-violet-600" style={{ width: `${Math.min(100, Math.round((atual / total) * 100))}%` }} />
+          </span>
+        ) : (
+          <span className="block truncate text-[11px] text-stone-400">{p.pacoteObs || (p.pagoEm ? dataCurta(p.pagoEm) : "pacote")}</span>
+        )}
+      </span>
+    );
+  }
+  if (p.pagamento === "pago") { valor = formatoReal(p.valor ?? 0); detalhe = p.pagoEm ? `pago ${dataCurta(p.pagoEm)}` : "pago"; cor = "text-emerald-800"; }
+  else if (p.pagamento === "informado") { valor = p.valor != null ? formatoReal(p.valor) : "—"; detalhe = p.informadoEm ? `informou ${haQuanto(p.informadoEm)}` : "informado"; cor = "text-amber-800"; }
+  else if (p.pagamento === "isento") { valor = "—"; detalhe = "não paga"; cor = "text-stone-400"; }
+  else { valor = esperado != null ? formatoReal(esperado) : "—"; detalhe = p.pagamento === "na_hora" ? "paga na hora" : "a receber"; cor = "text-stone-500"; }
+  return (
+    <span className="w-[4.5rem] shrink-0 text-right leading-tight">
+      <span className={`block truncate text-sm font-semibold tabular-nums ${cor}`}>{valor}</span>
+      <span className="block truncate text-[11px] text-stone-400">{detalhe}</span>
+    </span>
+  );
+}
+
 function Linha({
-  p, papel, guardiao = false, destaque = false, posicao, temContribuicao: comContribuicao, gerenciar, abrir, chamada = false, presente = false,
+  p, papel, guardiao = false, destaque = false, posicao, temContribuicao: comContribuicao, gerenciar, abrir, chamada = false, presente = false, financeiro = false, esperado = null,
 }: {
   p: ItemParticipanteInscrito; papel?: MembroLista["papel"]; guardiao?: boolean; destaque?: boolean; posicao?: number; temContribuicao: boolean; gerenciar: boolean; abrir: () => void;
   /** Chamada ativa: a linha vira marcador de presença. */ chamada?: boolean; presente?: boolean;
+  /** Aba Financeiro: a contribuição no lugar das doses. */ financeiro?: boolean; /** Valor previsto, para quem ainda não pagou. */ esperado?: number | null;
 }) {
   // Situação e valores da contribuição são só para quem gerencia
   const temContribuicao = comContribuicao && gerenciar;
   const pg = PAGAMENTO[p.pagamento];
   const conferir = temContribuicao && p.pagamento === "informado";
-  const temDose = gerenciar && (p.doses ?? []).some((d) => d.ml > 0);
+  const temDose = gerenciar && !financeiro && (p.doses ?? []).some((d) => d.ml > 0);
   const conteudo = (
     <>
       {posicao !== undefined && <span className="w-5 shrink-0 text-center text-xs font-semibold text-stone-400 tabular-nums">{posicao}º</span>}
@@ -508,6 +570,14 @@ function Linha({
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-1.5">
           <span className="truncate text-sm font-medium text-stone-800">{p.nome}</span>
+          {/* Primeira vez em um ritual: tag logo à direita do nome */}
+          {gerenciar && p.primeiraVez && (
+            <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-orange-50 px-2 text-[11px] font-bold tracking-wide whitespace-nowrap text-orange-700 uppercase ring-1 ring-orange-300 ring-inset" title="Primeira vez em um ritual">
+              <Sprout size={13} strokeWidth={2.4} className="text-orange-500" aria-hidden /> 1° VEZ
+            </span>
+          )}
+          {/* Cargo (mestre/guardião) logo à direita do nome */}
+          {papel && <SeloPapel papel={papel} sexo={p.contato?.sexo} soIcone={temDose} />}
           {/* Guardião que veio como participante (não está na guarnição deste ritual): só o escudo */}
           {guardiao && !papel && (
             <span title="Guardião" className="shrink-0 text-sky-600">
@@ -516,29 +586,24 @@ function Linha({
             </span>
           )}
         </span>
-        {conferir && p.informadoEm && (
+        {/* Financeiro: a tag da situação embaixo do nome, um pouco menor */}
+        {financeiro && temContribuicao && (
+          <span className={`chip mt-0.5 gap-0.5 px-2 py-px text-[11px] ${p.pagamento === "pago" && p.usouPacote ? "bg-violet-100 text-violet-800" : pg.cor}`} title={p.pagamento === "pago" && p.usouPacote ? "Pago com pacote" : pg.rotulo}>
+            {p.pagamento === "pago" && <Check size={11} className="shrink-0" />}{conferir && <Receipt size={11} className="shrink-0" />}{pg.rotulo}
+          </span>
+        )}
+        {conferir && !financeiro && p.informadoEm && (
           <span className="block truncate text-[11px] text-amber-700">
             Informou {haQuanto(p.informadoEm)}{p.valor != null ? ` · ${formatoReal(p.valor)}` : ""}
           </span>
         )}
       </span>
-      {gerenciar && <ChipsDose doses={p.doses ?? []} />}
-      {papel && <SeloPapel papel={papel} sexo={p.contato?.sexo} soIcone={temDose} />}
-      {temContribuicao && (
-        // Participante (fora da equipe) com dose registrada: só a inicial da situação
-        temDose && !papel ? (
-          <span className={`chip h-6 shrink-0 justify-center truncate px-1.5 max-md:w-[var(--larg-tag,auto)] md:w-[4.75rem] md:px-1 text-[11px] font-bold ${p.pagamento === "pago" ? (p.usouPacote ? "bg-violet-100 text-violet-800" : "bg-emerald-100 text-emerald-900") : pg.cor}`} title={p.pagamento === "pago" && p.usouPacote ? "Pago com pacote" : pg.rotulo} data-tag="">
-            <span aria-hidden className="truncate">{p.pagamento === "pago" ? (p.usouPacote ? `PC${p.pacoteObs ? ` ${p.pacoteObs}` : ""}` : `R$ ${Math.round(p.valor ?? 0)}`) : SIGLA_PAGAMENTO[p.pagamento]}</span><span className="sr-only">{pg.rotulo}</span>
-          </span>
-        ) : (
-        <span className={`chip shrink-0 justify-center gap-0.5 px-1.5 max-md:w-[var(--larg-tag,auto)] md:w-[4.75rem] md:px-1 ${p.pagamento === "pago" && p.usouPacote ? "bg-violet-100 text-violet-800" : pg.cor}`} title={p.pagamento === "pago" && p.usouPacote ? "Pago com pacote" : pg.rotulo} data-tag="">
-          {p.pagamento === "pago" && <Check size={12} className="shrink-0" />}{conferir && <Receipt size={12} className="shrink-0" />}<span className="truncate">{pg.rotulo}</span>
-        </span>
-        )
-      )}
+      {gerenciar && !financeiro && <ChipsDose doses={p.doses ?? []} />}
+      {/* A situação da contribuição só aparece na aba Financeiro: o valor na ponta direita */}
+      {financeiro && temContribuicao && <ValorContribuicao p={p} esperado={esperado} />}
     </>
   );
-  const base = `flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? "bg-sky-50 ring-1 ring-sky-100" : "bg-stone-50/70"}`;
+  const base = `flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? (papel === "mestre" ? "bg-mata-50 ring-1 ring-mata-100" : "bg-sky-50 ring-1 ring-sky-100") : "bg-stone-50/70"}`;
   if (!gerenciar) return <li className={base}>{conteudo}</li>;
   return (
     <li>
@@ -621,7 +686,7 @@ function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso, soIcone 
         disabled={pendente}
         title={cheio ? "Incluir na lista de espera" : "Incluir participante"}
         aria-label={cheio ? "Incluir na lista de espera" : "Incluir participante"}
-        className={`flex h-11 items-center justify-center gap-2 rounded-xl border border-dashed border-mata-300 text-sm font-semibold text-mata-700 transition hover:border-mata-400 hover:bg-mata-50 active:bg-mata-100 disabled:opacity-60 ${soIcone ? "w-11 shrink-0" : "w-full"}`}
+        className={`flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold text-mata-700 transition disabled:opacity-60 ${soIcone ? "w-11 shrink-0 border border-stone-200 bg-white shadow-[0_1px_2px_rgb(0_0_0/0.04)] hover:border-stone-300 hover:bg-mata-50 active:bg-mata-100" : "w-full border border-dashed border-mata-300 hover:border-mata-400 hover:bg-mata-50 active:bg-mata-100"}`}
       >
         {pendente ? <Carregando tamanho={15} /> : <UserPlus size={soIcone ? 19 : 17} aria-hidden />}
         {!soIcone && (cheio ? "Incluir na lista de espera" : "Incluir participante")}

@@ -166,6 +166,8 @@ const TABELAS = {
       v("doses", 512),
       // Contribuição paga com pacote: marca e número do pacote (o valor em R$ fica 0)
       b("usou_pacote"), i("pacote_numero", { min: 1 }),
+      // Primeira vez da pessoa em um ritual (marcada pela coordenação no modal da inscrição)
+      b("primeira_vez"),
     ],
     indices: [
       ["ux_inscricao", "unique", ["evento_id", "usuario_id"]],

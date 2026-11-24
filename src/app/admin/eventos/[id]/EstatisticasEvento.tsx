@@ -6,9 +6,9 @@ const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency"
 
 /** Resumo das contribuições dos confirmados (quem está na espera ainda não deve nada). */
 export function resumoContribuicoes(p: DadosParticipantes) {
-  const r = { recebido: 0, pagos: 0, conferir: 0, aberto: 0, isentos: 0 };
+  const r = { recebido: 0, pagos: 0, conferir: 0, aberto: 0, isentos: 0, pacotes: 0 };
   for (const i of p.confirmados) {
-    if (i.pagamento === "pago") { r.pagos++; r.recebido += i.valor ?? 0; }
+    if (i.pagamento === "pago") { r.pagos++; r.recebido += i.valor ?? 0; if (i.usouPacote) r.pacotes++; }
     else if (i.pagamento === "informado") r.conferir++;
     else if (i.pagamento === "isento") r.isentos++;
     else r.aberto++;

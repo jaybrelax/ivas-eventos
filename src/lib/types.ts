@@ -113,6 +113,8 @@ export type Inscricao = {
   /** Contribuição confirmada com pacote (valor em R$ = 0) e o número do pacote. */
   usou_pacote?: boolean | null;
   pacote_numero?: number | null;
+  /** Primeira vez da pessoa em um ritual (marcado pela coordenação). */
+  primeira_vez?: boolean | null;
   alterado_por: string | null;
   $createdAt: string;
   $updatedAt: string;

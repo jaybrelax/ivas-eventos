@@ -13,7 +13,7 @@ import { urlImagem } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
 import { Carregando } from "@/components/ui";
-import { anexarComprovanteAction, excluirComprovanteAction, salvarDosesAction, confirmarPagamentoAction, informarDadosAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction } from "./participantes-actions";
+import { anexarComprovanteAction, excluirComprovanteAction, salvarDosesAction, definirPrimeiraVezAction, confirmarPagamentoAction, informarDadosAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction } from "./participantes-actions";
 import { InputTelefone } from "@/components/InputTelefone";
 import { useImagem } from "@/components/useImagem";
 import { Dosagem } from "./Dosagem";
@@ -73,6 +73,8 @@ export function ModalInscricao({
   const [ampliado, setAmpliado] = useState(false);
   const [comprovanteAberto, setComprovanteAberto] = useState(false);
   const [usouPacote, setUsouPacote] = useState(false);
+  const [primeiraVez, setPrimeiraVez] = useState(!!p.primeiraVez);
+  useEffect(() => setPrimeiraVez(!!p.primeiraVez), [p.primeiraVez]);
   const [confirmando, setConfirmando] = useState(false);
   const [pedirValor, setPedirValor] = useState(false);
   const [verDados, setVerDados] = useState(false);
@@ -300,6 +302,35 @@ export function ModalInscricao({
           {/* Dosagem: ml de cada dose consumida (só quem gerencia, pela lista do evento) */}
           {dados.gerenciar && !evento && inscricao !== "cancelada" && (
             <Dosagem salvarDoses={(l) => salvarDosesAction(dados.eventoId, p.inscricaoId, l)} inicial={p.doses ?? []} aoSalvar={setMsg} aoMudarDoses={setDosesTela} />
+          )}
+
+          {/* 1° VEZ: ativador da primeira vez da pessoa em um ritual (aparece como tag na lista).
+              Só para quem ainda não tem participação em outro evento; se já está marcado, continua à mostra para poder desmarcar. */}
+          {dados.gerenciar && !evento && inscricao !== "cancelada" && (!p.jaParticipou || primeiraVez) && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={primeiraVez}
+              disabled={pendente}
+              onClick={() => {
+                const novo = !primeiraVez;
+                setPrimeiraVez(novo);
+                iniciar(async () => {
+                  const r = await definirPrimeiraVezAction(dados.eventoId, p.inscricaoId, novo);
+                  if (r.erro !== undefined) setPrimeiraVez(!novo);
+                  setMsg(r);
+                });
+              }}
+              className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-3.5 py-3 text-left shadow-sm transition disabled:opacity-60 ${primeiraVez ? "border-ouro-200 bg-ouro-50" : "border-stone-200/80 bg-white hover:bg-stone-50"}`}
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-stone-900">1° VEZ</span>
+                <span className="block text-xs text-stone-500">Primeira vez da pessoa em um ritual</span>
+              </span>
+              <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${primeiraVez ? "bg-ouro-500" : "bg-stone-300"}`} aria-hidden>
+                <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${primeiraVez ? "translate-x-5" : ""}`} />
+              </span>
+            </button>
           )}
 
           {/* Contribuição: situação, comprovante e o que a coordenação pode marcar */}

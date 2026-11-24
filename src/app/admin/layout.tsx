@@ -40,7 +40,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/">) {
   if (admin.length) grupos.push({ titulo: "Administração", itens: admin });
   const perfil = PERFIS.find((p) => p.id === u.perfil)?.nome ?? "";
 
-  const marca = <MarcaInstituto instituto={instituto} altura={52} legenda={instituto.nome_curto && instituto.nome !== instituto.nome_curto ? instituto.nome : "Eventos e rituais"} />;
+  const marca = <MarcaInstituto instituto={instituto} altura={52} />;
 
   return (
     <div className="min-h-screen">

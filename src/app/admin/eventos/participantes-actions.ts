@@ -219,6 +219,27 @@ export async function salvarDosesAction(eventoId: string, inscricaoId: string, e
   return { ok: "Dosagem salva." };
 }
 
+/** Coordenação (ou o mestre do evento) marca ou desmarca "1° VEZ": primeira vez da pessoa em um ritual. */
+export async function definirPrimeiraVezAction(eventoId: string, inscricaoId: string, valor: boolean): Promise<Resultado> {
+  const g = await exigirGestaoDoEvento(eventoId);
+  if (g.erro !== undefined) return { erro: g.erro };
+  const { tablesDB } = createAdminClient();
+  const row = (await tablesDB.getRow({ databaseId: DB_ID, tableId: TABLES.inscricoes, rowId: inscricaoId }).catch(() => null)) as unknown as Inscricao | null;
+  if (!row || row.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };
+  if (row.situacao === "cancelada") return { erro: "Esta inscrição foi cancelada." };
+  try {
+    await tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.inscricoes, rowId: inscricaoId, data: { primeira_vez: !!valor, alterado_por: g.u.id } });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    console.error("Primeira vez:", msg);
+    // A coluna ainda não existe no banco (falta rodar a criação dela)
+    if (/Unknown attribute/i.test(msg) && /primeira_vez/.test(msg)) return { erro: "A marca \"1° VEZ\" ainda não está ativa no banco de dados. Avise o administrador." };
+    return { erro: "Não foi possível salvar agora." };
+  }
+  revalidar(eventoId);
+  return { ok: valor ? "Marcado como 1° VEZ." : "Marca 1° VEZ removida." };
+}
+
 /**
  * Doses de quem é da equipe do ritual (mestres e guardiões escalados), que não tem inscrição:
  * ficam no próprio evento, por pessoa. Mesmas regras e mesma permissão das doses da inscrição.

@@ -3,7 +3,7 @@
 import { useContext, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ClipboardCheck, Crown, MoreVertical, Shield, SlidersHorizontal, X } from "lucide-react";
+import { ClipboardCheck, Crown, Settings, Shield, SlidersHorizontal, X } from "lucide-react";
 import { AcoesListaContexto } from "../Participantes";
 import type { Pessoa } from "@/lib/types";
 import { Aviso, Carregando } from "@/components/ui";
@@ -118,6 +118,46 @@ export function GerenciarGuardioes({ dados, controle }: { dados: DadosGuarnicao;
   );
 }
 
+/** Desktop: engrenagem no canto do card da equipe, com "Editar mestres" e "Editar guardiões". */
+export function MenuEquipeCard({ mestres, guarnicao }: {
+  mestres?: { eventoId: string; equipe: Pessoa[]; inicial: string[] };
+  guarnicao?: DadosGuarnicao | null;
+}) {
+  const [menu, setMenu] = useState(false);
+  const [editMestres, setEditMestres] = useState(false);
+  const [editGuardioes, setEditGuardioes] = useState(false);
+  const raiz = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menu) return;
+    const fora = (e: Event) => { if (!raiz.current?.contains(e.target as Node)) setMenu(false); };
+    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(false); };
+    document.addEventListener("pointerdown", fora);
+    document.addEventListener("keydown", tecla);
+    return () => { document.removeEventListener("pointerdown", fora); document.removeEventListener("keydown", tecla); };
+  }, [menu]);
+
+  if (!mestres && !guarnicao) return null;
+  const item = "flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium text-stone-700 hover:bg-stone-50 active:bg-stone-100";
+
+  return (
+    <div ref={raiz} className="relative">
+      <button type="button" onClick={() => setMenu((v) => !v)} aria-haspopup="menu" aria-expanded={menu} aria-label="Gerenciar mestres e guardiões" title="Gerenciar equipe"
+        className="grid h-9 w-9 place-items-center rounded-full bg-stone-100 text-stone-600 transition hover:bg-stone-200/70 active:scale-95">
+        <Settings size={18} aria-hidden />
+      </button>
+      {menu && (
+        <div role="menu" className="menu-pop absolute top-full right-0 z-30 mt-2 w-56 rounded-2xl border border-black/[0.06] bg-white p-1.5 shadow-[0_2px_6px_rgb(0_0_0/0.06),0_18px_40px_-10px_rgb(20_42_29/0.35)]">
+          {mestres && <button role="menuitem" type="button" className={item} onClick={() => { setMenu(false); setEditMestres(true); }}><Crown size={16} className="text-mata-600" aria-hidden /> Editar mestres</button>}
+          {guarnicao && <button role="menuitem" type="button" className={item} onClick={() => { setMenu(false); setEditGuardioes(true); }}><Shield size={16} className="text-sky-600" aria-hidden /> Editar guardiões</button>}
+        </div>
+      )}
+      {mestres && <GerenciarMestres {...mestres} controle={{ aberto: editMestres, setAberto: setEditMestres }} />}
+      {guarnicao && <GerenciarGuardioes dados={guarnicao} controle={{ aberto: editGuardioes, setAberto: setEditGuardioes }} />}
+    </div>
+  );
+}
+
 /** Mobile: menu ⋮ do card da lista de presença: "Editar mestres", "Editar guardiões" e "Filtrar". */
 export function MenuEquipeMobile({ mestres, guarnicao }: {
   mestres?: { eventoId: string; equipe: Pessoa[]; inicial: string[] };
@@ -145,10 +185,10 @@ export function MenuEquipeMobile({ mestres, guarnicao }: {
     <div ref={raiz} className="relative md:hidden">
       <button type="button" onClick={() => setMenu((v) => !v)} aria-haspopup="menu" aria-expanded={menu} aria-label="Editar equipe do ritual"
         className="grid h-10 w-10 place-items-center rounded-full bg-stone-100 text-stone-600 transition hover:bg-stone-200/70 active:bg-stone-200">
-        <MoreVertical size={20} aria-hidden />
+        <Settings size={19} aria-hidden />
       </button>
       {menu && (
-        <div role="menu" className="absolute top-full right-0 z-30 mt-1 w-56 rounded-xl border border-stone-200 bg-white p-1.5 shadow-elevado">
+        <div role="menu" className="menu-pop absolute top-full right-0 z-30 mt-2 w-56 rounded-2xl border border-black/[0.06] bg-white p-1.5 shadow-[0_2px_6px_rgb(0_0_0/0.06),0_18px_40px_-10px_rgb(20_42_29/0.35)]">
           {mestres && <button role="menuitem" type="button" className={item} onClick={() => { setMenu(false); setEditMestres(true); }}><Crown size={16} className="text-mata-600" aria-hidden /> Editar mestres</button>}
           {guarnicao && <button role="menuitem" type="button" className={item} onClick={() => { setMenu(false); setEditGuardioes(true); }}><Shield size={16} className="text-sky-600" aria-hidden /> Editar guardiões</button>}
           {chamada && <button role="menuitem" type="button" className={item} onClick={() => { setMenu(false); chamada.alternar(); }}><ClipboardCheck size={16} className="text-emerald-600" aria-hidden /> {chamada.ativa ? "Encerrar chamada" : "Ativar chamada"}</button>}

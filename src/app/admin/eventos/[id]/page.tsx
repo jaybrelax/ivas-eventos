@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarDays, ChevronRight, Clock, Crown, ExternalLink, MapPin, Pencil, Shield } from "lucide-react";
+import { ArrowLeft, CalendarDays, ChevronRight, CircleDollarSign, Clock, Crown, ExternalLink, Hash, MapPin, Pencil, Shield } from "lucide-react";
+import { CabecalhoAba } from "./CabecalhoAba";
 import type { Sexo } from "@/lib/types";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
@@ -31,7 +32,7 @@ import { Participantes, type MembroLista } from "../Participantes";
 import { dadosParticipantes } from "../participantes-dados";
 import { resumoContribuicoes } from "./EstatisticasEvento";
 import { ListaPresenca, type PessoaPresenca } from "./ListaPresenca";
-import { GerenciarGuardioes, GerenciarMestres, MenuEquipeMobile } from "./GerenciarEquipe";
+import { MenuEquipeCard, MenuEquipeMobile } from "./GerenciarEquipe";
 
 type MembroEquipe = { id: string; nome: string; foto: string | null; sexo: Sexo | null };
 
@@ -63,7 +64,8 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   const central = gerenciar || podeVerCentral(u, evento, guardioesDoRitual) ? await dadosCentral(evento, u, gerenciar) : null;
   const abaCentral = central && {
     id: "central", rotulo: "Central", icone: "central" as const, detalheSempre: true,
-    detalhe: central.tarefasAbertas ? String(central.tarefasAbertas) : undefined,
+    // Total de registros da Central (todos os tipos)
+    detalhe: central.posts.length ? String(central.posts.length) : undefined,
     painel: <CentralEvento eventoId={evento.$id} dados={central} />,
   };
   const end = enderecos.find((e) => e.$id === evento.endereco_id);
@@ -126,15 +128,10 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   // Números (participantes e contribuições): no celular ficam na aba Financeiro; no computador, acima das abas
   const numeros = temNumeros && participantes && resumo ? (
     <dl className={`cartao grid grid-cols-2 overflow-hidden p-0 max-sm:[&>*]:border-stone-100 max-sm:[&>*:nth-child(-n+2)]:border-b max-sm:[&>*:nth-child(odd)]:border-r sm:grid-cols-4 sm:divide-x sm:divide-stone-100 sm:p-0 md:divide-black/[0.05] md:py-1 ${SUPERFICIE}`}>
-      <Numero
-        rotulo="Participantes"
-        valor={`${participantes.confirmados.length}/${participantes.vagas}`}
-        detalhe={`${Math.max(0, participantes.vagas - participantes.confirmados.length)} vagas livres${participantes.espera.length ? ` · ${participantes.espera.length} na espera` : ""}`}
-        barra={participantes.vagas ? Math.min(100, Math.round((participantes.confirmados.length / participantes.vagas) * 100)) : 0}
-      />
       <Numero rotulo="Recebido" valor={resumo.recebido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} detalhe={`${resumo.pagos} ${resumo.pagos === 1 ? "confirmada" : "confirmadas"}`} cor="text-emerald-700" />
       <Numero rotulo="Para conferir" valor={String(resumo.conferir)} detalhe={resumo.conferir ? "comprovantes" : "nada pendente"} cor={resumo.conferir ? "text-amber-700" : "text-stone-900"} alerta={resumo.conferir > 0} />
       <Numero rotulo="Em aberto" valor={String(resumo.aberto)} detalhe={resumo.isentos ? `${resumo.isentos} ${resumo.isentos === 1 ? "isento" : "isentos"}` : "pendentes"} />
+      <Numero rotulo="Pacotes" valor={String(resumo.pacotes)} detalhe={resumo.pacotes === 1 ? "pacote usado" : "pacotes usados"} cor={resumo.pacotes ? "text-violet-700" : "text-stone-900"} />
     </dl>
   ) : null;
   // Gestão do evento: abas (no celular, menu no rodapé). A aba aberta no carregamento vem do `?aba=`.
@@ -158,7 +155,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
       <div id={ID_PAGINA_EVENTO} data-aba={comAbas ? abaInicial : undefined} className={`mx-auto w-full max-w-[720px] ${comAbas ? "max-md:pb-24" : ""}`}>
       <div className="mb-1 flex items-center justify-between gap-3 md:mt-0 md:mb-5">
         <Link href={`/admin/eventos?mes=${evento.data.slice(0, 7)}`} className={`inline-flex min-h-11 items-center gap-2 text-base font-semibold tracking-[0.12em] uppercase md:min-h-0 md:gap-1.5 md:text-xs md:tracking-[0.14em] ${evento.capa_file_id ? "text-white drop-shadow" : "text-ouro-600"}`}>
-          <ArrowLeft size={18} className="md:size-[13px]" /> Agenda
+          <ArrowLeft size={18} className="md:size-[13px]" /> Voltar
         </Link>
         <MenuEventoMobile url={`${SITE_URL}${caminhoPublico}`} caminho={caminhoPublico} titulo={evento.titulo} resumo={{ capaFileId: evento.capa_file_id ?? null, data: `${dataPorExtenso(evento.data)} · ${evento.hora_inicio}`, numeros: formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano), gestaoUrl: `${SITE_URL}/admin/eventos/${evento.$id}` }} claro={!!evento.capa_file_id} editarHref={gerenciar ? `/admin/eventos/${evento.$id}/editar` : undefined} />
         <div className="hidden flex-wrap items-center gap-2 md:flex">
@@ -170,7 +167,10 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
 
       {/* Faixa do evento: capa (sem nada por cima) e, ao lado, tudo na altura dela: quando/onde, números e equipe */}
       <section className="mb-3 grid grid-cols-2 gap-3 md:mb-4 md:gap-4 md:grid-cols-[15rem_minmax(0,1fr)]">
-        <div className="relative aspect-square overflow-hidden rounded-2xl bg-mata-950 shadow-elevado max-md:in-data-[aba=consumo]:hidden max-md:in-data-[aba=central]:hidden max-md:in-data-[aba=financeiro]:hidden md:rounded-[22px] md:shadow-[0_2px_4px_rgb(0_0_0/0.06),0_18px_40px_-14px_rgb(20_42_29/0.4)] md:ring-1 md:ring-black/[0.06]">
+        {/* Celular: ao trocar para Consumo/Central/Financeiro, capa e data encolhem e somem com suavidade (a linha recolhe) enquanto a miniatura aparece ao lado do título */}
+        <div className="col-span-2 grid grid-rows-[1fr] transition-[grid-template-rows,opacity,margin] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none in-data-[aba=consumo]:-mb-3 in-data-[aba=consumo]:grid-rows-[0fr] in-data-[aba=consumo]:opacity-0 in-data-[aba=central]:-mb-3 in-data-[aba=central]:grid-rows-[0fr] in-data-[aba=central]:opacity-0 in-data-[aba=financeiro]:-mb-3 in-data-[aba=financeiro]:grid-rows-[0fr] in-data-[aba=financeiro]:opacity-0 md:contents">
+        <div className="-mx-6 -mt-2 -mb-10 grid min-h-0 grid-cols-2 gap-3 overflow-hidden px-6 pt-2 pb-10 md:contents">
+        <div className="relative aspect-square origin-top-left overflow-hidden rounded-2xl bg-mata-950 shadow-elevado max-md:transition-transform max-md:duration-500 max-md:ease-[cubic-bezier(0.32,0.72,0,1)] max-md:in-data-[aba=consumo]:scale-[0.28] max-md:in-data-[aba=central]:scale-[0.28] max-md:in-data-[aba=financeiro]:scale-[0.28] motion-reduce:transition-none md:rounded-[22px] md:shadow-[0_2px_4px_rgb(0_0_0/0.06),0_18px_40px_-14px_rgb(20_42_29/0.4)] md:ring-1 md:ring-black/[0.06]">
           {evento.capa_file_id ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={urlImagem(evento.capa_file_id, 640)} alt="" className="h-full w-full object-cover" />
@@ -180,7 +180,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         </div>
 
         {/* Mobile: ao lado da capa, data em destaque, local e numeração do ritual */}
-        <div className="vidro flex flex-col overflow-hidden rounded-2xl in-data-[aba=consumo]:hidden in-data-[aba=central]:hidden in-data-[aba=financeiro]:hidden md:hidden">
+        <div className="vidro flex flex-col overflow-hidden rounded-2xl md:hidden">
           <div className="flex flex-1 flex-col justify-center px-3 py-2.5 text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.3)]">
             <p className="text-[11px] font-semibold tracking-[0.16em] text-mata-100 uppercase">{data.diaSemana}</p>
             <div className="mt-1 flex items-center gap-2">
@@ -207,70 +207,61 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
             </dl>
           )}
         </div>
+        </div>
+        </div>
 
-        <div className={`cartao col-span-2 flex min-w-0 flex-col divide-y divide-stone-100 overflow-hidden p-0 sm:p-0 md:col-span-1 md:justify-between md:divide-y-0 ${SUPERFICIE}`}>
-          {/* Tipo (só a partir do tablet) e título */}
-          <div className="flex items-center gap-3 px-4 pt-3.5 pb-3 in-data-[aba=consumo]:py-2.5 in-data-[aba=central]:py-2.5 in-data-[aba=financeiro]:py-2.5 in-data-[aba=consumo]:pl-2.5 in-data-[aba=central]:pl-2.5 in-data-[aba=financeiro]:pl-2.5 md:block md:px-6! md:pt-5! md:pb-0!">
+        <div className={`cartao col-span-2 flex min-w-0 flex-col overflow-hidden p-0 sm:p-0 max-md:border-0! max-md:bg-transparent! max-md:shadow-none! max-md:backdrop-blur-none! md:col-span-1 md:justify-between md:divide-y-0 ${SUPERFICIE}`}>
+          {/* Título; a partir do tablet, a data fica à esquerda dele e horário e local logo abaixo */}
+          <div className="flex items-center gap-3 px-4 pt-3.5 pb-3 max-md:px-1! max-md:pt-1! max-md:pb-1! in-data-[aba=consumo]:py-2.5 in-data-[aba=central]:py-2.5 in-data-[aba=financeiro]:py-2.5 in-data-[aba=consumo]:pl-2.5 in-data-[aba=central]:pl-2.5 in-data-[aba=financeiro]:pl-2.5 md:flex-wrap md:items-start md:gap-x-4 md:gap-y-3.5 md:px-6! md:pt-5! md:pb-0!">
             {/* Celular, fora de Participantes: a capa vira uma miniatura ao lado do título */}
-            <span aria-hidden className="hidden h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-mata-900 ring-1 ring-black/[0.06] in-data-[aba=consumo]:block in-data-[aba=central]:block in-data-[aba=financeiro]:block md:hidden!">
+            <span aria-hidden className="block h-12 w-0 -mr-3 shrink-0 scale-50 overflow-hidden rounded-xl bg-mata-900 opacity-0 ring-1 ring-black/[0.06] transition-all delay-100 duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] motion-reduce:transition-none in-data-[aba=consumo]:mr-0 in-data-[aba=consumo]:w-12 in-data-[aba=consumo]:scale-100 in-data-[aba=consumo]:opacity-100 in-data-[aba=central]:mr-0 in-data-[aba=central]:w-12 in-data-[aba=central]:scale-100 in-data-[aba=central]:opacity-100 in-data-[aba=financeiro]:mr-0 in-data-[aba=financeiro]:w-12 in-data-[aba=financeiro]:scale-100 in-data-[aba=financeiro]:opacity-100 md:hidden!">
               {evento.capa_file_id && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={urlImagem(evento.capa_file_id, 128)} alt="" className="h-full w-full object-cover" />
               )}
             </span>
-            <div className="min-w-0 flex-1">
-            {tipo && (
-              <p className="mb-1 hidden items-center gap-1.5 text-[11px] font-semibold tracking-[0.12em] uppercase md:flex" style={{ color: tipo.cor }}>
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: tipo.cor }} aria-hidden /> {tipo.nome}
-              </p>
-            )}
-            <h1 className="min-w-0 line-clamp-2 font-display text-[22px] leading-[1.15] font-semibold text-stone-900 in-data-[aba=consumo]:text-lg in-data-[aba=central]:text-lg in-data-[aba=financeiro]:text-lg md:text-[26px]! md:leading-[1.1] md:tracking-[-0.015em]" title={evento.titulo}>{evento.titulo}</h1>
-            {/* Divisor fino que some nas pontas */}
-            <div aria-hidden className="mt-4 hidden h-px bg-gradient-to-r from-transparent via-stone-900/15 to-transparent md:block" />
-            </div>
-          </div>
-
-          {/* Data, horário, local e numeração do ritual */}
-          <div className="hidden items-center gap-4 px-6 pt-4 pb-5 md:flex">
             {/* Data como ícone de calendário */}
-            <div className="w-[68px] shrink-0 overflow-hidden rounded-lg bg-white text-center shadow-[0_1px_2px_rgb(0_0_0/0.06)] ring-1 ring-black/[0.06]">
+            <div className="hidden w-[68px] shrink-0 overflow-hidden rounded-lg bg-white text-center shadow-[0_1px_2px_rgb(0_0_0/0.06)] ring-1 ring-black/[0.06] md:block">
               <p className="bg-mata-600 py-1 text-[10px] font-semibold tracking-[0.14em] text-white uppercase">{data.diaSemana.split("-")[0].slice(0, 3)}</p>
               <p className="pt-1 text-[32px] leading-none font-extrabold tracking-tight text-stone-900 tabular-nums">{data.dia}</p>
               <p className="pt-0.5 pb-1.5 text-[10px] font-medium tracking-[0.12em] text-stone-400 uppercase">{data.mesCurto}</p>
             </div>
-
-            {/* Horário e local */}
-            <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-              <p className="flex items-center gap-2.5">
-                <span className="grid w-5 shrink-0 place-items-center text-mata-600"><Clock size={17} strokeWidth={2} aria-hidden /></span>
-                <span className="min-w-0 leading-tight">
-                  <span className="block text-[11px] font-medium text-stone-500 capitalize">{data.diaSemana}</span>
-                  <span className="block text-[15px] font-semibold text-stone-900 tabular-nums">{evento.hora_inicio}</span>
-                </span>
-              </p>
-              <p className="flex min-w-0 items-center gap-2.5 text-[14px] text-stone-900">
-                <span className="grid w-5 shrink-0 place-items-center text-ouro-600"><MapPin size={17} strokeWidth={2} aria-hidden /></span>
+            <div className="min-w-0 flex-1">
+              <h1 className="min-w-0 line-clamp-2 font-display text-[22px] leading-[1.15] font-semibold text-stone-900 transition-[font-size,color] duration-500 motion-reduce:transition-none max-md:in-data-[aba=consumo]:text-white max-md:in-data-[aba=consumo]:[text-shadow:0_1px_4px_rgb(0_0_0/0.45)] max-md:in-data-[aba=central]:text-white max-md:in-data-[aba=central]:[text-shadow:0_1px_4px_rgb(0_0_0/0.45)] max-md:in-data-[aba=financeiro]:text-white max-md:in-data-[aba=financeiro]:[text-shadow:0_1px_4px_rgb(0_0_0/0.45)] in-data-[aba=consumo]:text-lg in-data-[aba=central]:text-lg in-data-[aba=financeiro]:text-lg md:text-[26px]! md:leading-[1.1] md:tracking-[-0.015em]" title={evento.titulo}>{evento.titulo}</h1>
+            </div>
+            {/* Horário e local: na linha de baixo, abaixo do card da data */}
+            <p className="hidden basis-full flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-stone-700 md:flex">
+              <span className="inline-flex items-center gap-2">
+                <Clock size={16} className="shrink-0 text-mata-600" aria-hidden />
+                <span className="capitalize">{data.diaSemana}</span>
+                <span className="font-semibold text-stone-900 tabular-nums">{evento.hora_inicio}</span>
+              </span>
+              <span className="inline-flex min-w-0 items-center gap-2">
+                <MapPin size={16} className="shrink-0 text-ouro-600" aria-hidden />
                 {end?.link_maps ? (
-                  <a href={end.link_maps} target="_blank" rel="noopener noreferrer" title={end.endereco} className="group inline-flex min-w-0 items-center gap-0.5 font-medium transition-colors hover:text-mata-700">
+                  <a href={end.link_maps} target="_blank" rel="noopener noreferrer" title={end.endereco} className="group inline-flex min-w-0 items-center gap-0.5 font-medium text-stone-900 transition-colors hover:text-mata-700">
                     <span className="truncate">{end.apelido}</span>
                     <ChevronRight size={15} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-500" aria-hidden />
                   </a>
                 ) : (
-                  <span className="min-w-0 truncate font-medium" title={end?.endereco}>{end ? end.apelido : (evento.endereco_livre || "Local a definir")}</span>
+                  <span className="min-w-0 truncate font-medium text-stone-900" title={end?.endereco}>{end ? end.apelido : (evento.endereco_livre || "Local a definir")}</span>
                 )}
-              </p>
-            </div>
+              </span>
+            </p>
+          </div>
 
-            {/* Numeração do ritual */}
+          {/* Numeração do ritual: dois cards iguais, o geral em destaque e o do ano ao lado */}
+          <div className="hidden md:block">
+            <div aria-hidden className="mx-6 h-px bg-gradient-to-r from-transparent via-stone-900/15 to-transparent" />
             {(evento.ritual_numero_geral || evento.ritual_numero_ano) && (
-              <dl className="flex shrink-0 divide-x divide-black/[0.06] rounded-2xl bg-stone-900/[0.035] py-2.5 text-center">
-                <div className="px-4">
-                  <dt className="text-[11px] font-medium text-stone-500">Ritual</dt>
-                  <dd className="mt-0.5 text-[22px] leading-none font-semibold tracking-tight text-stone-900 tabular-nums">{evento.ritual_numero_geral ?? "–"}</dd>
+              <dl className="grid grid-cols-2 gap-3 px-6 pt-4 pb-5">
+                <div className="flex items-center justify-center gap-2 rounded-xl bg-mata-50 px-4 py-3 ring-1 ring-mata-100">
+                  <dt className="sr-only">Número geral do ritual</dt>
+                  <dd className="inline-flex items-center gap-2 text-[15px] font-semibold text-mata-800 tabular-nums"><Hash size={16} className="text-mata-500" aria-hidden /> Ritual N° {evento.ritual_numero_geral ?? "–"}</dd>
                 </div>
-                <div className="px-4">
-                  <dt className="text-[11px] font-medium text-stone-500">Em {evento.ritual_ano ?? data.ano}</dt>
-                  <dd className="mt-0.5 text-[22px] leading-none font-semibold tracking-tight text-stone-900 tabular-nums">{evento.ritual_numero_ano ?? "–"}</dd>
+                <div className="flex items-center justify-center gap-2 rounded-xl bg-stone-50 px-4 py-3 ring-1 ring-stone-200/70">
+                  <dt className="sr-only">Número do ritual no ano</dt>
+                  <dd className="inline-flex items-center gap-2 text-[15px] font-semibold text-stone-800 tabular-nums"><CalendarDays size={16} className="text-stone-400" aria-hidden /> {evento.ritual_numero_ano ?? "–"}° de {evento.ritual_ano ?? data.ano}</dd>
                 </div>
               </dl>
             )}
@@ -280,18 +271,21 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
 
       {/* Equipe do ritual: mestres e guardiões numa linha só, em card próprio (a partir do tablet) */}
       {temEquipe && (
-        <div className={`cartao mb-3 hidden items-start overflow-x-auto p-0 md:mb-4 md:flex md:px-6 md:py-4 ${SUPERFICIE}`}>
-          <GrupoCompacto
-            titulo="Mestres" Icone={Crown} cor="text-mata-700" anel="ring-mata-300" pessoas={mestres}
-            acao={gerenciar ? <GerenciarMestres eventoId={evento.$id} equipe={equipe.filter((p) => !p.mock)} inicial={evento.mestres ?? []} /> : undefined}
-          />
-          {(guarnicao || reuniaoTipo || guardioes.length > 0) && (
-            <GrupoCompacto
-              titulo="Guardiões" Icone={Shield} cor="text-sky-700" anel="ring-sky-300" pessoas={guardioes}
-              vagas={guarnicao ? guarnicao.vagas.masculino + guarnicao.vagas.feminino : undefined}
-              acao={gerenciar && guarnicao ? <GerenciarGuardioes dados={guarnicao} /> : undefined}
-            />
-          )}
+        <div className={`cartao mb-3 hidden p-0 md:mb-4 md:block ${SUPERFICIE}`}>
+          {/* Título e engrenagem de gerenciar (fora da área rolável, para o menu não ser cortado) */}
+          <div className="flex items-center justify-between gap-3 px-6 pt-4">
+            <h2 className="text-sm font-semibold text-stone-900">Equipe do Ritual</h2>
+            {gerenciar && <MenuEquipeCard mestres={{ eventoId: evento.$id, equipe: equipe.filter((p) => !p.mock), inicial: evento.mestres ?? [] }} guarnicao={guarnicao} />}
+          </div>
+          <div className="flex items-start overflow-x-auto px-6 pt-3 pb-4">
+            <GrupoCompacto titulo="Mestres" Icone={Crown} cor="text-mata-700" anel="ring-mata-300" pessoas={mestres} />
+            {(guarnicao || reuniaoTipo || guardioes.length > 0) && (
+              <GrupoCompacto
+                titulo="Guardiões" Icone={Shield} cor="text-sky-700" anel="ring-sky-300" pessoas={guardioes}
+                vagas={guarnicao ? guarnicao.vagas.masculino + guarnicao.vagas.feminino : undefined}
+              />
+            )}
+          </div>
         </div>
       )}
 
@@ -322,7 +316,20 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
               ) },
               { id: "consumo", rotulo: "Consumo", icone: "consumo", detalhe: totalMl ? `${totalMl} ml` : undefined, painel: <ConsumoMedicina pessoas={consumo} embutido /> },
               ...(abaCentral ? [abaCentral] : []),
-              ...(numeros ? [{ id: "financeiro", rotulo: "Financeiro", icone: "financeiro" as const, painel: <div className="p-2 pt-1 sm:p-4 sm:pt-2 md:p-5 md:pt-3 [&>dl]:border-0! [&>dl]:bg-transparent! [&>dl]:shadow-none! [&>dl]:ring-0! [&>dl]:backdrop-blur-none!">{numeros}</div> }] : []),
+              ...(numeros ? [{ id: "financeiro", rotulo: "Financeiro", icone: "financeiro" as const, painel: (
+                <div>
+                  <CabecalhoAba
+                    Icone={CircleDollarSign}
+                    titulo="Contribuições"
+                    resumo={resumo ? `${resumo.pagos} de ${participantes.confirmados.length} confirmadas · ${resumo.recebido.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : undefined}
+                    fundo="linear-gradient(180deg, #2f9e6e 0%, #0f4a33 100%)"
+                    className="px-3 pt-2.5 pb-1 sm:px-4 md:px-5 md:pt-4"
+                  />
+                  <div className="p-2 pt-1 sm:p-4 sm:pt-2 md:p-5 md:pt-3 md:pb-0 [&>dl]:border-0! [&>dl]:bg-transparent! [&>dl]:shadow-none! [&>dl]:ring-0! [&>dl]:backdrop-blur-none!">{numeros}</div>
+                  {/* Só os inscritos (sem a equipe do ritual), com a contribuição de cada um no lugar das doses */}
+                  <Participantes dados={{ ...participantes, linkPerfil: pode(u, PODE.editarEventos) }} semResumo embutido financeiro guardioes={guardioesGerais} titulo="Participantes" />
+                </div>
+              ) }] : []),
             ]}
           />
         </div>

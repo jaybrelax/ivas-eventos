@@ -51,7 +51,7 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
           </dl>
 
           {/* Legenda por dose, com o total de cada uma */}
-          <ul className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-stone-600" aria-label="Legenda">
+          <ul className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3 text-xs sm:mt-4 sm:gap-y-1.5 text-stone-600" aria-label="Legenda">
             {porDose.map((d) => (
               <li key={d.n} className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded-[4px]" style={{ background: TOM[d.n].fundo }} aria-hidden />
@@ -62,7 +62,7 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
           </ul>
 
           {/* Gráfico: uma barra empilhada por pessoa (1ª, 2ª, 3ª), na mesma escala */}
-          <ol className="mt-3 space-y-2.5">
+          <ol className="mt-5 space-y-2.5 sm:mt-3">
             {com.map((p) => (
               <li key={p.id} className="flex items-center gap-2.5">
                 <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="ring-0" />
