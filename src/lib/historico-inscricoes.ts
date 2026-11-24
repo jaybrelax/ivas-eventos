@@ -6,7 +6,8 @@ import { DB_ID, TABLES } from "./config";
 export type AcaoHistorico =
   | "inscricao" | "inclusao" | "cancelamento" | "remocao"
   | "pagamento_informado" | "pagamento_na_hora" | "pagamento_desfeito"
-  | "pagamento_confirmado" | "pagamento_isento" | "pagamento_reaberto";
+  | "pagamento_confirmado" | "pagamento_isento" | "pagamento_reaberto"
+  | "credito_usado" | "credito_devolvido";
 
 export type RegistroHistorico = {
   inscricao_id: string;

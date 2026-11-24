@@ -20,3 +20,10 @@ export function validarCpf(valor: string): boolean {
   }
   return true;
 }
+
+/** Exibição com privacidade: esconde os 3 primeiros e os 2 últimos dígitos (***.456.789-**). */
+export function ocultarCpf(valor: string): string {
+  const d = valor.replace(/\D/g, "");
+  if (d.length !== 11) return "";
+  return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
+}

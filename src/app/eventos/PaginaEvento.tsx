@@ -5,6 +5,7 @@ import { descricaoComTags, getDadosInstituto, listarEventos } from "@/lib/data";
 import { srcsetImagem, urlImagem, urlPublicaEvento } from "@/lib/links";
 import { listarEquipe } from "@/lib/usuarios";
 import { getUsuario } from "@/lib/auth";
+import { saldoDoUsuario } from "@/lib/creditos";
 import {
   aceitaParticipantes, HORAS_LIMITE_CANCELAMENTO, inicioDe, inscricoesDoEvento,
   prazoCancelamento, vagasParticipantesDe,
@@ -125,6 +126,8 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
   const usuario = await getUsuario();
   const aceitaPublico = aceitaParticipantes(tipo);
   const inscricoesAtivas = aceitaPublico ? await inscricoesDoEvento(evento.$id) : [];
+  // Créditos de pacote: só rituais; se o banco dos créditos ainda não existe, a página segue sem eles
+  const saldoCreditos = usuario && ritual && aceitaPublico ? await saldoDoUsuario(usuario.id).catch(() => null) : null;
   const vagas = vagasParticipantesDe(evento);
   const confirmadas = inscricoesAtivas.filter((i) => i.situacao === "confirmada").length;
   const vagasLivres = Math.max(0, vagas - confirmadas);
@@ -179,6 +182,7 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
     podeCancelar,
     prazoTexto,
     valorContribuicao: instituto.valor_contribuicao,
+    creditos: saldoCreditos ? { disponiveis: saldoCreditos.disponiveis, saldo: saldoCreditos.saldo } : null,
   };
   const temContribuicao = ritual && !!instituto.info_contribuicao?.trim();
 

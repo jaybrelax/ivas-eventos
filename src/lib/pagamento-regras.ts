@@ -4,6 +4,16 @@
  */
 import type { SituacaoInscricao, SituacaoPagamento } from "./types";
 
+/** Forma de pagamento aceita ao confirmar na mão (pacote usa crédito, por outro caminho). */
+export type FormaManual = "pix" | "dinheiro";
+
+/** Forma vinda do formulário: só "pix" ou "dinheiro". */
+export function lerForma(bruto: unknown): { forma: FormaManual } | { erro: string } {
+  const f = String(bruto ?? "").trim().toLowerCase();
+  if (f === "pix" || f === "dinheiro") return { forma: f };
+  return { erro: "Escolha a forma de pagamento: Pix, dinheiro ou pacote." };
+}
+
 /** Teto de sanidade para um valor digitado (evita erro de digitação como 15000 em vez de 150,00). */
 export const VALOR_MAXIMO = 10_000;
 
@@ -26,6 +36,7 @@ export function participantePodeInformar(atual: { situacao: SituacaoInscricao; p
   if (atual.situacao === "cancelada") return "Esta inscrição foi cancelada.";
   if (atual.pagamento === "pago") return "Esta contribuição já foi confirmada.";
   if (atual.pagamento === "isento") return "Esta inscrição está isenta de contribuição.";
+  if (atual.pagamento === "credito") return "Esta participação já está paga com crédito.";
   return null;
 }
 

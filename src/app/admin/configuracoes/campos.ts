@@ -89,6 +89,18 @@ export const CAMPOS = {
       { nome: "ativo", rotulo: "Ativa", tipo: "checkbox" },
     ],
   },
+  // A chave é a mesma de TABLES (planos_pacote): o salvar/excluir genérico usa TABLES[tabela]
+  planosPacote: {
+    titulo: "Pacotes de créditos",
+    descricao: "O que o participante pode comprar. Cada crédito vale 1 participação em ritual; o pagamento é por Pix e a coordenação confirma.",
+    campos: [
+      { nome: "nome", rotulo: "Nome", tipo: "text", obrigatorio: true, dica: "Ex.: Pacote de 4 rituais", largura: "md" },
+      { nome: "quantidade", rotulo: "Créditos", tipo: "number", obrigatorio: true, dica: "Ex.: 4", largura: "sm" },
+      { nome: "valor", rotulo: "Valor (R$)", tipo: "text", obrigatorio: true, dica: "Ex.: 220,00", largura: "sm" },
+      { nome: "descricao", rotulo: "Descrição", tipo: "text", largura: "lg" },
+      { nome: "ativo", rotulo: "Ativo", tipo: "checkbox" },
+    ],
+  },
 } satisfies Record<string, { titulo: string; descricao: string; campos: Campo[] }>;
 
 export type TabelaEditavel = keyof typeof CAMPOS;

@@ -9,6 +9,9 @@ export const INSTITUTO_ROW_ID = "principal";
 export const IA_ROW_ID = "ia";
 export const SESSION_COOKIE = "ivas-session";
 
+/** Cookie de sessão compartilhado entre os apps (Eventos e Guarnição) em produção; local fica sem domínio. */
+export const DOMINIO_COOKIE: { domain?: string } = process.env.NODE_ENV === "production" ? { domain: process.env.COOKIE_DOMAIN || ".virtudes.net.br" } : {};
+
 export const TABLES = {
   instituto: "instituto",
   enderecos: "enderecos",
@@ -27,6 +30,11 @@ export const TABLES = {
   sinais: "sinais",
   /** Central de informações do evento: ocorrências, lembretes e tarefas da equipe. */
   central: "central_posts",
+  /** Pacotes de créditos: catálogo, compras, créditos (1 por participação, com trava atômica) e histórico. */
+  planosPacote: "planos_pacote",
+  pacotes: "pacotes",
+  creditos: "creditos",
+  movimentosCredito: "movimentos_credito",
 } as const;
 
 export type Perfil = "admin" | "coordenador" | "normal";

@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
 import type { Perfil } from "@/lib/config";
-import { BarChart3, CalendarDays, Download, Image as ImageIcon, LogOut, Menu as MenuIcone, PanelLeftClose, PanelLeftOpen, Plus, Receipt, Settings, Share, Shield, Users, UsersRound, X } from "lucide-react";
+import { BarChart3, CalendarDays, Download, Image as ImageIcon, LogOut, Menu as MenuIcone, PanelLeftClose, PanelLeftOpen, Plus, Receipt, Settings, Share, Shield, Ticket, Users, UsersRound, X } from "lucide-react";
 import { useInstalar } from "@/components/useInstalar";
 
-const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users, shield: Shield, receipt: Receipt, participantes: UsersRound };
+const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users, shield: Shield, receipt: Receipt, participantes: UsersRound, ticket: Ticket };
 
 export type ItemMenu = { href: string; rotulo: string; icone: keyof typeof ICONES; /** contador ao lado (ex.: cadastros pendentes) */ aviso?: number };
 export type GrupoMenu = { titulo: string; itens: ItemMenu[] };

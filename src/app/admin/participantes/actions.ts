@@ -5,6 +5,7 @@ import { Query } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
 import { COMPROVANTES_BUCKET_ID, DB_ID, PODE, TABLES } from "@/lib/config";
+import { registrosDeCredito } from "@/lib/creditos";
 import { getEvento, listar } from "@/lib/data";
 import { reorganizarInscricoes } from "@/lib/inscricoes";
 import type { Inscricao } from "@/lib/types";
@@ -26,6 +27,11 @@ export async function excluirParticipante(userId: string): Promise<{ ok?: string
     const pagas = inscricoes.filter((i) => i.pagamento === "pago").length;
     if (pagas) {
       return { erro: `Este participante tem ${pagas} ${pagas === 1 ? "contribuição confirmada" : "contribuições confirmadas"}. Para não perder o registro financeiro, a conta não pode ser excluída.` };
+    }
+    // Pacotes e créditos também são registro financeiro
+    const { pacotes, creditos } = await registrosDeCredito(userId);
+    if (pacotes || creditos) {
+      return { erro: `Este participante tem ${pacotes} ${pacotes === 1 ? "pacote" : "pacotes"} e ${creditos} ${creditos === 1 ? "crédito" : "créditos"}. Para não perder o registro financeiro, a conta não pode ser excluída.` };
     }
     const eventosAfetados = new Set(inscricoes.filter((i) => i.situacao !== "cancelada").map((i) => i.evento_id));
     for (const i of inscricoes) {

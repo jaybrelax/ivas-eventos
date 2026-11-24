@@ -3,6 +3,7 @@
 // Pode rodar quantas vezes quiser: o que já existe é pulado.
 
 import { Client, ID, Permission, Query, Role, Storage, TablesDB, Users, AppwriteException } from "node-appwrite";
+import { HISTORICO_ACOES, INSCRICOES_COLUNA_CREDITO, INSCRICOES_COLUNA_FORMA, INSCRICOES_PAGAMENTO, TABELAS_CREDITOS } from "./creditos-schema.mjs";
 
 const { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME } = process.env;
 if (!APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !APPWRITE_API_KEY) {
@@ -159,7 +160,7 @@ const TABELAS = {
       v("evento_id", 36, { required: true }), v("usuario_id", 36, { required: true }),
       en("situacao", ["confirmada", "espera", "cancelada"], "espera"),
       i("ordem", { min: 0 }),
-      en("pagamento", ["pendente", "informado", "pago", "isento", "na_hora"], "pendente"),
+      en("pagamento", INSCRICOES_PAGAMENTO, "pendente"),
       f("valor", { min: 0 }), dt("informado_em"), dt("pago_em"),
       v("comprovante_file_id", 36), t("observacao"), v("alterado_por", 36),
       // Doses consumidas na participação, em JSON: [{"n":1,"ml":40},{"n":2,"ml":20}]
@@ -168,6 +169,10 @@ const TABELAS = {
       b("usou_pacote"), i("pacote_numero", { min: 1 }),
       // Primeira vez da pessoa em um ritual (marcada pela coordenação no modal da inscrição)
       b("primeira_vez"),
+      // Crédito (de um pacote) usado nesta inscrição; nesse caso pagamento = "credito"
+      INSCRICOES_COLUNA_CREDITO,
+      // Forma da contribuição confirmada: pix, dinheiro ou pacote
+      INSCRICOES_COLUNA_FORMA,
     ],
     indices: [
       ["ux_inscricao", "unique", ["evento_id", "usuario_id"]],
@@ -182,11 +187,7 @@ const TABELAS = {
     nome: "Histórico das inscrições",
     colunas: [
       v("inscricao_id", 36, { required: true }), v("evento_id", 36, { required: true }), v("usuario_id", 36, { required: true }),
-      en("acao", [
-        "inscricao", "inclusao", "cancelamento", "remocao",
-        "pagamento_informado", "pagamento_na_hora", "pagamento_desfeito",
-        "pagamento_confirmado", "pagamento_isento", "pagamento_reaberto",
-      ], "inscricao"),
+      en("acao", HISTORICO_ACOES, "inscricao"),
       v("pagamento_de", 20), v("pagamento_para", 20), f("valor", { min: 0 }), v("por", 36, { required: true }),
     ],
     indices: [
@@ -195,6 +196,8 @@ const TABELAS = {
       ["ix_hist_usuario", "key", ["usuario_id"]],
     ],
   },
+  // Pacotes de créditos: catálogo, compras, créditos (1 por participação), trava de uso e histórico
+  ...TABELAS_CREDITOS,
   modelos_banner: {
     nome: "Modelos de banner",
     colunas: [v("nome", 80, { required: true }), t("config", { required: true })],

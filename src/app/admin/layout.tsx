@@ -28,6 +28,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/">) {
         ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/guarnicao", rotulo: "Guarnição", icone: "shield" as const }] : []),
         ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/participantes", rotulo: "Participantes", icone: "participantes" as const }] : []),
         ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/pagamentos", rotulo: "Pagamentos", icone: "receipt" as const }] : []),
+        ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/creditos", rotulo: "Créditos", icone: "ticket" as const }] : []),
         { href: "/admin/resumo", rotulo: "Resumo do ano", icone: "chart" },
       ],
     },

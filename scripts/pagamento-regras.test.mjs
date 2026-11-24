@@ -50,3 +50,13 @@ test("csvCampo neutraliza fórmulas e escapa aspas", () => {
   assert.equal(csvCampo("@SUM(A1)"), `"'@SUM(A1)"`);
   assert.equal(csvCampo("Maria Silva"), `"Maria Silva"`);
 });
+
+test("forma de pagamento aceita só pix ou dinheiro", async () => {
+  const { lerForma } = await import("../src/lib/pagamento-regras.ts");
+  assert.deepEqual(lerForma("pix"), { forma: "pix" });
+  assert.deepEqual(lerForma(" Dinheiro "), { forma: "dinheiro" });
+  assert.ok("erro" in lerForma(""));
+  assert.ok("erro" in lerForma(null));
+  assert.ok("erro" in lerForma("cartao"));
+  assert.ok("erro" in lerForma("pacote"), "pacote usa crédito, por outro caminho");
+});

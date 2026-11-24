@@ -9,6 +9,7 @@ import { createAdminClient } from "@/lib/appwrite";
 import { exigirGestaoDoEvento } from "@/lib/gestao-evento";
 import { exigir, pode } from "@/lib/auth";
 import { BUCKET_ID, DB_ID, PODE, TABLES } from "@/lib/config";
+import { devolverCreditosDoEvento } from "@/lib/creditos";
 import { getEvento, listarTags, listarTipos } from "@/lib/data";
 import { conferirImagem } from "@/lib/imagem";
 import { arquivoOtimizado } from "@/lib/imagem-servidor";
@@ -230,10 +231,12 @@ export async function definirMestresAction(eventoId: string, ids: string[]): Pro
 }
 
 export async function excluirEvento(form: FormData) {
-  await exigir(["admin"]);
+  const u = await exigir(["admin"]);
   const id = String(form.get("id"));
   const { tablesDB, storage } = createAdminClient();
   const evento = await getEvento(id);
+  // Os créditos gastos nas inscrições deste evento voltam para os donos
+  await devolverCreditosDoEvento(id, u.id).catch((e) => console.error("Devolver créditos do evento:", e instanceof Error ? e.message : e));
   await tablesDB.deleteRow({ databaseId: DB_ID, tableId: TABLES.eventos, rowId: id });
   if (evento?.capa_file_id) await storage.deleteFile({ bucketId: BUCKET_ID, fileId: evento.capa_file_id }).catch(() => {});
   revalidatePath("/admin/eventos");

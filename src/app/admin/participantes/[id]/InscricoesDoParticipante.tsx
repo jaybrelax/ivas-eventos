@@ -8,6 +8,7 @@ import { urlImagem } from "@/lib/links";
 import { Aviso } from "@/components/ui";
 import { ModalInscricao } from "@/app/admin/eventos/ModalInscricao";
 import type { PessoaParticipante } from "@/app/admin/eventos/Participantes";
+import type { ChavePix } from "@/lib/types";
 
 const SITUACAO: Record<ItemInscricao["situacao"], { rotulo: string; cor: string }> = {
   confirmada: { rotulo: "Confirmado", cor: "bg-mata-100 text-mata-800" },
@@ -21,12 +22,18 @@ const PAGAMENTO: Record<ItemInscricao["pagamento"], { rotulo: string; cor: strin
   pago: { rotulo: "Pago", cor: "bg-emerald-50 text-emerald-700" },
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
+  credito: { rotulo: "Crédito", cor: "bg-violet-50 text-violet-700" },
 };
 
 /** Inscrições da ficha do participante: card com a miniatura do evento; ao tocar, abre o modal da participação. */
 export function InscricoesDoParticipante({
-  itens, pessoa, valorContribuicao,
-}: { itens: ItemInscricao[]; pessoa: PessoaParticipante; valorContribuicao: number | null }) {
+  itens, pessoa, valorContribuicao, podeIsentar = false, saldoCredito = null, chavePix = null,
+}: {
+  /** Chave Pix padrão, para o QR Code ao confirmar um Pix. */ chavePix?: ChavePix | null;
+  itens: ItemInscricao[]; pessoa: PessoaParticipante; valorContribuicao: number | null;
+  /** Admin: pode isentar a contribuição. */ podeIsentar?: boolean;
+  /** Saldo de créditos da pessoa: habilita a forma "Pacote" ao confirmar. */ saldoCredito?: { disponiveis: number; debitos: number; saldo: number } | null;
+}) {
   // Guarda só o id: depois de cada ação o modal mostra os dados atualizados da página
   const [aberta, setAberta] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ ok?: string; erro?: string }>();
@@ -76,10 +83,11 @@ export function InscricoesDoParticipante({
             ...pessoa,
             pagamento: atual.pagamento, inscricaoId: atual.inscricaoId, comprovante: atual.comprovante,
             inscritoEm: atual.inscritoEm, valor: atual.valor, informadoEm: atual.informadoEm, pagoEm: atual.pagoEm,
+            forma: atual.forma, saldoCredito: atual.temContribuicao ? saldoCredito : null,
             contato: null,
           }}
           situacaoInscricao={atual.situacao}
-          dados={{ eventoId: atual.eventoId, temContribuicao: atual.temContribuicao, valorContribuicao, gerenciar: true }}
+          dados={{ eventoId: atual.eventoId, temContribuicao: atual.temContribuicao, valorContribuicao, gerenciar: true, podeIsentar, chavePix }}
           evento={{
             titulo: atual.ritualNumero ? `Ritual ${formatarIdRitual(atual.ritualNumero, null, null)}: ${atual.titulo}` : atual.titulo,
             quando: `${dataCurta(atual.data)} às ${atual.hora}${atual.passado ? " · realizado" : ""}`,

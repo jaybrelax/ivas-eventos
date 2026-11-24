@@ -4,7 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppwriteException, Query } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "@/lib/appwrite";
-import { SESSION_COOKIE } from "@/lib/config";
+import { SESSION_COOKIE, DOMINIO_COOKIE } from "@/lib/config";
 import { perfilDosLabels } from "@/lib/usuarios";
 import { destinoSeguro } from "@/lib/destino-auth";
 import { bloqueado, ipDe, limpar, registrarFalha, textoEspera } from "@/lib/limite-taxa";
@@ -33,6 +33,7 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
+      ...DOMINIO_COOKIE,
       expires: new Date(sessao.expire),
     });
     // Equipe (admin/coordenador/normal) entra no painel; qualquer outra conta vai para a área do participante.
@@ -70,7 +71,7 @@ export async function sair(voltarPara?: unknown) {
   try {
     await s?.account.deleteSession({ sessionId: "current" });
   } catch {}
-  (await cookies()).delete(SESSION_COOKIE);
+  { const jar = await cookies(); jar.delete(SESSION_COOKIE); jar.delete({ name: SESSION_COOKIE, path: "/", ...DOMINIO_COOKIE }); }
   const destino = typeof voltarPara === "string" ? destinoSeguro(voltarPara) : null;
   // Do app da Guarnição volta para o login do próprio app
   if (destino?.startsWith("/guarnicao")) redirect("/login-guarnicao");

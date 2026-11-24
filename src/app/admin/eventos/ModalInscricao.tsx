@@ -6,19 +6,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Camera, CalendarClock, CalendarX2, Check, CheckCircle2, ChevronDown, ExternalLink, IdCard, Pencil, FileImage, Hourglass, Lock, Mail, MapPin,
-  ImagePlus, GlassWater, MessageCircle, Receipt, Settings2, ShieldCheck, Trash2, Undo2, UserRound, X, ZoomIn,
+  Banknote, ImagePlus, GlassWater, MessageCircle, QrCode, Receipt, Settings2, ShieldCheck, Ticket, Trash2, Undo2, UserRound, X, ZoomIn,
 } from "lucide-react";
 import type { SituacaoInscricao, SituacaoPagamento } from "@/lib/types";
 import { urlImagem } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
 import { Carregando } from "@/components/ui";
-import { anexarComprovanteAction, excluirComprovanteAction, salvarDosesAction, definirPrimeiraVezAction, confirmarPagamentoAction, informarDadosAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction } from "./participantes-actions";
+import { anexarComprovanteAction, excluirComprovanteAction, salvarDosesAction, definirPrimeiraVezAction, confirmarPagamentoAction, informarDadosAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction, excluirInscricaoAction, usarCreditoAction } from "./participantes-actions";
 import { InputTelefone } from "@/components/InputTelefone";
 import { useImagem } from "@/components/useImagem";
 import { Dosagem } from "./Dosagem";
 import type { Dose } from "@/lib/doses";
 import { UFS } from "@/lib/perfil-extra";
+import { gerarPayloadPix } from "@/lib/pix";
+import { lerValor } from "@/lib/pagamento-regras";
 import { mascararCpf } from "@/lib/cpf";
 import type { DadosParticipantes, ItemParticipanteInscrito } from "./Participantes";
 
@@ -36,12 +38,78 @@ const dia = (iso: string) => new Intl.DateTimeFormat("pt-BR", { timeZone: "Ameri
 
 /** Situação da contribuição como a coordenação vê (inclui o que o próprio participante avisou). */
 const SITUACAO_CONTRIBUICAO: Record<SituacaoPagamento, { rotulo: string; detalhe: string; cor: string; /** bloco de situação: fundo, faixa lateral e ícone */ bloco: string; Icone: typeof CheckCircle2 }> = {
-  pendente: { rotulo: "Pendente", detalhe: "O participante ainda não avisou a contribuição.", cor: "bg-yellow-50 text-yellow-800 ring-yellow-200", bloco: "bg-yellow-50/80 border-yellow-400 text-yellow-900 [&_svg]:text-yellow-600", Icone: Hourglass },
-  informado: { rotulo: "Informada", detalhe: "O participante avisou que contribuiu. Confira o comprovante e confirme.", cor: "bg-amber-50 text-amber-800 ring-amber-200", bloco: "bg-amber-50/80 border-amber-500 text-amber-900 [&_svg]:text-amber-600", Icone: Receipt },
-  na_hora: { rotulo: "Na hora", detalhe: "O participante vai contribuir no dia do ritual.", cor: "bg-ouro-100 text-ouro-700 ring-ouro-200", bloco: "bg-ouro-100/60 border-ouro-500 text-ouro-700 [&_svg]:text-ouro-600", Icone: CalendarClock },
+  pendente: { rotulo: "Pendente", detalhe: "O participante ainda não avisou a contribuição.", cor: "bg-sky-100 text-sky-800 ring-sky-200", bloco: "bg-yellow-50/80 border-yellow-400 text-yellow-900 [&_svg]:text-yellow-600", Icone: Hourglass },
+  informado: { rotulo: "Informada", detalhe: "O participante avisou que contribuiu. Confira o comprovante e confirme.", cor: "bg-sky-50 text-sky-800 ring-sky-200", bloco: "bg-sky-50/80 border-sky-500 text-sky-900 [&_svg]:text-sky-600", Icone: Receipt },
+  na_hora: { rotulo: "Na hora", detalhe: "O participante vai contribuir no dia do ritual.", cor: "bg-sky-100 text-sky-800 ring-sky-200", bloco: "bg-ouro-100/60 border-ouro-500 text-ouro-700 [&_svg]:text-ouro-600", Icone: CalendarClock },
   pago: { rotulo: "Confirmada", detalhe: "Contribuição confirmada pela coordenação.", cor: "bg-emerald-50 text-emerald-800 ring-emerald-200", bloco: "bg-emerald-50 border-emerald-500 text-emerald-900 [&_svg]:text-emerald-600", Icone: CheckCircle2 },
   isento: { rotulo: "Isento", detalhe: "Participação isenta de contribuição.", cor: "bg-sky-50 text-sky-800 ring-sky-200", bloco: "bg-sky-50 border-sky-400 text-sky-900 [&_svg]:text-sky-600", Icone: ShieldCheck },
+  credito: { rotulo: "Crédito", detalhe: "Participação paga com 1 crédito de um pacote. Mudar a contribuição devolve o crédito ao pacote.", cor: "bg-violet-50 text-violet-800 ring-violet-200", bloco: "bg-violet-50 border-violet-400 text-violet-900 [&_svg]:text-violet-600", Icone: Ticket },
 };
+
+/** Cor do texto e do ícone do status, sem caixa: família quente da seção, com um toque semântico por situação. */
+const TEXTO_SITUACAO: Record<SituacaoPagamento, string> = {
+  pendente: "[&_svg]:text-sky-600",
+  informado: "[&_svg]:text-sky-600",
+  na_hora: "[&_svg]:text-sky-600",
+  pago: "[&_svg]:text-emerald-600",
+  isento: "[&_svg]:text-sky-600",
+  credito: "[&_svg]:text-violet-600",
+};
+
+/**
+ * Tema do card Contribuição: azul claro enquanto não foi pago (pendente, informada, na hora, isenta), verde quando
+ * confirmada em Pix ou dinheiro e lilás quando paga com pacote. Classes por extenso para o Tailwind gerar todas.
+ */
+const TEMA = {
+  sky: {
+    secao: "border-sky-200/80 bg-sky-50/60",
+    hover: "hover:bg-sky-100/60 active:bg-sky-100/80",
+    icone: "bg-sky-100 text-sky-700 ring-sky-200",
+    div70: "border-sky-200/70",
+    ring: "ring-sky-200/80",
+    div60: "border-sky-200/60",
+    anexo: "bg-sky-100/70 text-sky-500",
+    btnSec: "text-sky-800 ring-1 ring-sky-300 hover:bg-sky-100/60",
+    btnPri: "bg-sky-600 text-white hover:bg-sky-700",
+    opcao: "ring-sky-300 hover:bg-sky-100/60",
+    voltar: "bg-sky-100/80 text-sky-900 hover:bg-sky-200/70",
+    qr: "ring-sky-200",
+    toggleAberto: "bg-white text-sky-800 ring-1 ring-sky-300",
+    toggleFechado: "bg-sky-600 text-white shadow-sm",
+  },
+  emerald: {
+    secao: "border-emerald-200/80 bg-emerald-50/60",
+    hover: "hover:bg-emerald-100/60 active:bg-emerald-100/80",
+    icone: "bg-emerald-100 text-emerald-700 ring-emerald-200",
+    div70: "border-emerald-200/70",
+    ring: "ring-emerald-200/80",
+    div60: "border-emerald-200/60",
+    anexo: "bg-emerald-100/70 text-emerald-500",
+    btnSec: "text-emerald-800 ring-1 ring-emerald-300 hover:bg-emerald-100/60",
+    btnPri: "bg-emerald-600 text-white hover:bg-emerald-700",
+    opcao: "ring-emerald-300 hover:bg-emerald-100/60",
+    voltar: "bg-emerald-100/80 text-emerald-900 hover:bg-emerald-200/70",
+    qr: "ring-emerald-200",
+    toggleAberto: "bg-white text-emerald-800 ring-1 ring-emerald-300",
+    toggleFechado: "bg-emerald-600 text-white shadow-sm",
+  },
+  violet: {
+    secao: "border-violet-200/80 bg-violet-50/60",
+    hover: "hover:bg-violet-100/60 active:bg-violet-100/80",
+    icone: "bg-violet-100 text-violet-700 ring-violet-200",
+    div70: "border-violet-200/70",
+    ring: "ring-violet-200/80",
+    div60: "border-violet-200/60",
+    anexo: "bg-violet-100/70 text-violet-500",
+    btnSec: "text-violet-800 ring-1 ring-violet-300 hover:bg-violet-100/60",
+    btnPri: "bg-violet-600 text-white hover:bg-violet-700",
+    opcao: "ring-violet-300 hover:bg-violet-100/60",
+    voltar: "bg-violet-100/80 text-violet-900 hover:bg-violet-200/70",
+    qr: "ring-violet-200",
+    toggleAberto: "bg-white text-violet-800 ring-1 ring-violet-300",
+    toggleFechado: "bg-violet-600 text-white shadow-sm",
+  },
+} as const;
 
 /** Evento da inscrição, quando o modal é aberto a partir da ficha do participante. */
 export type EventoDoModal = { titulo: string; quando: string; capa: string | null; href: string };
@@ -52,18 +120,22 @@ export type EventoDoModal = { titulo: string; quando: string; capa: string | nul
  * comprovante anexado) e o cancelamento da participação.
  */
 export function ModalInscricao({
-  p, situacaoInscricao, posicaoEspera, dados, evento, podeCancelar = true, fechar, aoCancelar,
+  p, situacaoInscricao, posicaoEspera, dados, evento, podeCancelar = true, financeiro = false, abrirEditando = false, fechar, aoCancelar,
 }: {
   p: ItemParticipanteInscrito;
   /** Sem valor: confirmada, ou lista de espera se houver `posicaoEspera`. */
   situacaoInscricao?: SituacaoInscricao;
   /** Posição na lista de espera. */
   posicaoEspera?: number;
-  dados: Pick<DadosParticipantes, "eventoId" | "temContribuicao" | "valorContribuicao" | "gerenciar" | "linkPerfil" | "localPadrao">;
+  dados: Pick<DadosParticipantes, "eventoId" | "temContribuicao" | "valorContribuicao" | "gerenciar" | "linkPerfil" | "localPadrao" | "podeIsentar" | "chavePix">;
   /** Com o evento, o cabeçalho mostra o evento em vez da pessoa (ficha do participante). */
   evento?: EventoDoModal;
   /** Eventos já realizados não têm cancelamento. */
   podeCancelar?: boolean;
+  /** Aberto da aba Financeiro: o card de dosagem fica oculto. */
+  financeiro?: boolean;
+  /** Pessoa recém-criada sem cadastro: já abre com os dados expandidos e em edição. */
+  abrirEditando?: boolean;
   fechar: () => void;
   /** Depois de cancelar, o modal fecha e o aviso aparece na página. */
   aoCancelar: (r: Resultado) => void;
@@ -72,20 +144,27 @@ export function ModalInscricao({
   const [pendente, iniciar] = useTransition();
   const [ampliado, setAmpliado] = useState(false);
   const [comprovanteAberto, setComprovanteAberto] = useState(false);
-  const [usouPacote, setUsouPacote] = useState(false);
+  // Confirmar contribuição: 1) escolher a forma (Pix, dinheiro ou pacote); 2) Pix/dinheiro pedem o valor recebido
+  const [escolhendoForma, setEscolhendoForma] = useState(false);
+  // QR Code Pix com o valor digitado (chave padrão de Configurações)
+  const [qrPix, setQrPix] = useState<{ imagem: string; codigo: string; valor: number } | null>(null);
+  const [erroQr, setErroQr] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [forma, setForma] = useState<"pix" | "dinheiro">("pix");
   const [primeiraVez, setPrimeiraVez] = useState(!!p.primeiraVez);
   useEffect(() => setPrimeiraVez(!!p.primeiraVez), [p.primeiraVez]);
   const [confirmando, setConfirmando] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
   const [pedirValor, setPedirValor] = useState(false);
-  const [verDados, setVerDados] = useState(false);
+  const [verDados, setVerDados] = useState(abrirEditando);
   // Doses como a tela mostra (atualizadas na hora pelo card Dosagem), para a linha do tempo
   const [dosesTela, setDosesTela] = useState<Dose[]>(p.doses ?? []);
-  const [editando, setEditando] = useState(false);
+  const [editando, setEditando] = useState(abrirEditando);
   // "Informar dados": abre a lista (se estiver só nos ícones) e deixa os textos editáveis ali mesmo
   const informar = () => { setMsg(undefined); setVerDados(true); setEditando(true); };
   const router = useRouter();
   // Contribuição já resolvida (confirmada ou isenta) começa recolhida; pendente/informada começa aberta
-  const [contribAberta, setContribAberta] = useState(p.pagamento !== "pago" && p.pagamento !== "isento");
+  const [contribAberta, setContribAberta] = useState(p.pagamento !== "pago" && p.pagamento !== "isento" && p.pagamento !== "credito");
   // Os ícones "viajam" da linha para a coluna: View Transitions quando o navegador suporta
   const alternarDados = () => {
     // Recém-incluído, sem nenhum dado: "Exibir dados" já abre o formulário para preencher
@@ -95,12 +174,12 @@ export function ModalInscricao({
     if (doc.startViewTransition && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) doc.startViewTransition(trocar);
     else trocar();
   };
-  const rodar = (fn: () => Promise<Resultado>) => iniciar(async () => { setPedirValor(false); setMsg(await fn()); });
+  const rodar = (fn: () => Promise<Resultado>) => iniciar(async () => { setPedirValor(false); setEscolhendoForma(false); setMsg(await fn()); });
   const valorSugerido = p.valor ?? dados.valorContribuicao ?? null;
 
   useEffect(() => {
     // Esc fecha primeiro o que estiver por cima: comprovante ampliado, confirmação e, por fim, o modal
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && (ampliado ? setAmpliado(false) : confirmando ? setConfirmando(false) : pedirValor ? setPedirValor(false) : editando ? setEditando(false) : fechar());
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && (ampliado ? setAmpliado(false) : confirmando ? setConfirmando(false) : pedirValor ? setPedirValor(false) : escolhendoForma ? setEscolhendoForma(false) : editando ? setEditando(false) : fechar());
     document.addEventListener("keydown", esc);
     const rolagem = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -108,17 +187,22 @@ export function ModalInscricao({
       document.removeEventListener("keydown", esc);
       document.body.style.overflow = rolagem;
     };
-  }, [fechar, ampliado, confirmando, pedirValor, editando]);
+  }, [fechar, ampliado, confirmando, pedirValor, escolhendoForma, editando]);
 
   const c = p.contato;
   const situacao = SITUACAO_CONTRIBUICAO[p.pagamento];
   const pago = p.pagamento === "pago";
+  // Comprovante só faz sentido depois do aviso/pagamento: fica oculto em pendente e pago por crédito (a menos que já exista um anexo)
+  // Tema do card: lilás (pacote), verde (pago em Pix/dinheiro) ou azul (ainda não pago)
+  const t = TEMA[p.pagamento === "credito" ? "violet" : p.pagamento === "pago" ? "emerald" : "sky"];
+  const mostrarComprovante = !(p.pagamento === "pendente" || p.pagamento === "credito" || (p.pagamento === "pago" && p.forma === "dinheiro")) || !!p.comprovante;
+  const formaRotulo = p.pagamento === "credito" || p.forma === "pacote" ? "Pacote" : p.forma === "pix" ? "Pix" : p.forma === "dinheiro" ? "Dinheiro" : null;
   const whatsapp = c?.telefone ? `https://wa.me/${(c.telefone.replace(/\D/g, "").startsWith("55") ? "" : "55") + c.telefone.replace(/\D/g, "")}` : null;
   const local = [c?.cidade, c?.estado].filter(Boolean).join(" — ");
   const contatos = c ? [
     { chave: "whatsapp", ordem: 0, Icone: MessageCircle, rotulo: "WhatsApp", valor: c.telefone, href: whatsapp, externo: true, vazio: "Não informado" },
-    { chave: "cpf", ordem: 1, Icone: IdCard, rotulo: "CPF", valor: c.cpf, href: null, externo: false, vazio: "Não informado" },
-    { chave: "email", ordem: 2, Icone: Mail, rotulo: "E-mail", valor: c.email || null, href: c.email ? `mailto:${c.email}` : null, externo: false, vazio: "Não informado" },
+    { chave: "email", ordem: 1, Icone: Mail, rotulo: "E-mail", valor: c.email || null, href: c.email ? `mailto:${c.email}` : null, externo: false, vazio: "Não informado" },
+    { chave: "cpf", ordem: 2, Icone: IdCard, rotulo: "CPF", valor: c.cpf, href: null, externo: false, vazio: "Não informado" },
     { chave: "cidade", ordem: 3, Icone: MapPin, rotulo: "Cidade", valor: local || null, href: null, externo: false, vazio: "Não informada" },
   ] : [];
   // Linha do tempo: doses, contribuição, inscrição e cadastro, do mais recente ao mais antigo
@@ -252,7 +336,7 @@ export function ModalInscricao({
                                 </select>
                               </span>
                             ) : (
-                              <input name="cpf" inputMode="numeric" maxLength={14} defaultValue={c.cpf ?? ""} placeholder="Informar CPF" aria-label="CPF"
+                              <input name="cpf" inputMode="numeric" maxLength={14} defaultValue="" placeholder={c.cpf ? `${c.cpf} (digite para trocar)` : "Informar CPF"} aria-label="CPF"
                                 onChange={(e) => { e.currentTarget.value = mascararCpf(e.currentTarget.value); }} className={`${CAMPO_INLINE} tabular-nums`} />
                             )
                           ) : x.valor && x.href ? (
@@ -300,7 +384,7 @@ export function ModalInscricao({
           )}
 
           {/* Dosagem: ml de cada dose consumida (só quem gerencia, pela lista do evento) */}
-          {dados.gerenciar && !evento && inscricao !== "cancelada" && (
+          {dados.gerenciar && !evento && !financeiro && inscricao !== "cancelada" && (
             <Dosagem salvarDoses={(l) => salvarDosesAction(dados.eventoId, p.inscricaoId, l)} inicial={p.doses ?? []} aoSalvar={setMsg} aoMudarDoses={setDosesTela} />
           )}
 
@@ -321,53 +405,59 @@ export function ModalInscricao({
                   setMsg(r);
                 });
               }}
-              className={`flex w-full items-center justify-between gap-3 rounded-2xl border px-3.5 py-3 text-left shadow-sm transition disabled:opacity-60 ${primeiraVez ? "border-ouro-200 bg-ouro-50" : "border-stone-200/80 bg-white hover:bg-stone-50"}`}
+              aria-label="1° VEZ: primeira vez da pessoa em um ritual"
+              className={`group flex min-h-16 w-full items-center gap-3 rounded-2xl border py-3 pr-3.5 pl-5 text-left shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ouro-500 disabled:opacity-60 motion-reduce:transition-none ${primeiraVez ? "border-ouro-300 bg-gradient-to-r from-ouro-50 to-white" : "border-stone-200/80 bg-white hover:bg-stone-50"}`}
             >
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold text-stone-900">1° VEZ</span>
                 <span className="block text-xs text-stone-500">Primeira vez da pessoa em um ritual</span>
               </span>
-              <span className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${primeiraVez ? "bg-ouro-500" : "bg-stone-300"}`} aria-hidden>
-                <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${primeiraVez ? "translate-x-5" : ""}`} />
+              <span className={`text-xs font-semibold ${primeiraVez ? "text-ouro-700" : "text-stone-400"}`} aria-hidden>{primeiraVez ? "Sim" : "Não"}</span>
+              <span className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${primeiraVez ? "bg-ouro-500" : "bg-stone-300"}`} aria-hidden>
+                <span className={`absolute top-0.5 left-0.5 grid h-6 w-6 place-items-center rounded-full bg-white shadow transition-transform motion-reduce:transition-none ${primeiraVez ? "translate-x-5" : ""}`}>
+                  {primeiraVez && <Check size={13} strokeWidth={3} className="text-ouro-600" />}
+                </span>
               </span>
             </button>
           )}
 
           {/* Contribuição: situação, comprovante e o que a coordenação pode marcar */}
           {dados.temContribuicao && (
-            <section className="overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50/40 shadow-sm">
+            <section className={`overflow-hidden rounded-2xl border ${t.secao} shadow-sm`}>
               {/* Cabeçalho inteiro clicável: exibe ou oculta */}
               <button
                 type="button"
                 onClick={() => setContribAberta((v) => !v)}
                 aria-expanded={contribAberta}
-                className="flex w-full items-center gap-3 px-3.5 py-3 text-left transition hover:bg-emerald-100/40 active:bg-emerald-100/60"
+                className={`flex w-full items-center gap-3 px-3.5 py-3 text-left transition ${t.hover}`}
               >
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-sm shadow-emerald-700/25"><Receipt size={17} aria-hidden /></span>
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ring-1 ${t.icone}`}><Receipt size={17} aria-hidden /></span>
                 <div className="min-w-0 flex-1">
-                  <h4 className="text-sm font-semibold text-emerald-950">Contribuição</h4>
-                  <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}><situacao.Icone size={11} aria-hidden /> {situacao.rotulo}</span>
-                    {p.usouPacote ? <span className="font-semibold text-emerald-900">Pacote{p.pacoteObs ? ` ${p.pacoteObs}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-emerald-900">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
+                  <h4 className="text-sm font-semibold text-stone-900">Contribuição</h4>
+                  {!contribAberta && (
+                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}><situacao.Icone size={11} aria-hidden /> {situacao.rotulo}{pago && formaRotulo ? ` · ${formaRotulo}` : ""}</span>
+                    {p.pagamento === "credito" ? <span className="font-semibold text-stone-800">1 crédito{p.creditoRotulo ? ` · ${p.creditoRotulo}` : ""}</span> : p.usouPacote ? <span className="font-semibold text-stone-800">Pacote{p.pacoteObs ? ` ${p.pacoteObs}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-stone-800">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
                   </p>
+                  )}
                 </div>
-                <span className={`inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-semibold transition ${contribAberta ? "text-emerald-800 ring-1 ring-emerald-200" : "bg-emerald-700 text-white shadow-sm"}`}>
+                <span className={`inline-flex h-9 min-w-28 shrink-0 items-center justify-center gap-1.5 rounded-lg px-5 text-xs font-semibold transition ${contribAberta ? t.toggleAberto : t.toggleFechado}`}>
                   {contribAberta ? "Ocultar" : "Exibir"} <ChevronDown size={14} className={`transition duration-300 ${contribAberta ? "rotate-180" : ""}`} aria-hidden />
                 </span>
               </button>
               <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${contribAberta ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                 <div className="min-h-0 overflow-hidden" inert={!contribAberta}>
-                <div className="border-t border-emerald-100 px-3.5 pt-3 pb-3.5">
-              <div className={`flex items-start gap-3 rounded-xl border-l-4 px-3.5 py-3 ${situacao.bloco}`}>
+                <div className={`border-t ${t.div70} px-3.5 pt-3 pb-3.5`}>
+              <div className={`flex items-start gap-3 rounded-xl bg-white/80 p-3 text-stone-900 ring-1 ${t.ring} ${TEXTO_SITUACAO[p.pagamento]}`}>
                 <situacao.Icone size={20} className="mt-0.5 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm font-bold">
-                    {situacao.rotulo}
+                    <span>{situacao.rotulo}{pago && formaRotulo && <span className="font-medium opacity-75"> · {formaRotulo}</span>}</span>
                     {(p.valor ?? dados.valorContribuicao) != null && (
-                      <span className="text-base tabular-nums">{p.usouPacote ? `Pacote${p.pacoteObs ? ` ${p.pacoteObs}` : ""}` : formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>
+                      <span className="text-base tabular-nums">{p.pagamento === "credito" ? `1 crédito${p.creditoRotulo ? ` · ${p.creditoRotulo}` : ""}` : p.usouPacote ? `Pacote${p.pacoteObs ? ` ${p.pacoteObs}` : ""}` : formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>
                     )}
                   </p>
-                  <p className="mt-0.5 text-xs opacity-80">{situacao.detalhe}</p>
+                  <p className="mt-0.5 text-xs text-stone-600">{situacao.detalhe}</p>
                   {(p.informadoEm || (pago && p.pagoEm)) && (
                     <p className="mt-1.5 space-x-3 text-[11px] opacity-75">
                       {p.informadoEm && <span>Informada em {quando(p.informadoEm)}</span>}
@@ -377,8 +467,9 @@ export function ModalInscricao({
                 </div>
               </div>
 
-              {/* Comprovante: miniatura com ampliar e um botão que abre as opções */}
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-100 bg-white p-2.5">
+              {/* Comprovante: miniatura com ampliar e um botão que abre as opções (oculto em pendente e pago por crédito) */}
+              {mostrarComprovante && (
+              <div className={`mt-3 flex items-center gap-3 border-t ${t.div60} pt-3`}>
                 {comprovante ? (
                   <button type="button" onClick={() => setAmpliado(true)} className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-100 ring-1 ring-stone-200" aria-label="Ampliar comprovante">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -386,7 +477,7 @@ export function ModalInscricao({
                     <span className="absolute right-0.5 bottom-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-white backdrop-blur-sm transition group-hover:bg-black/75"><ZoomIn size={11} aria-hidden /></span>
                   </button>
                 ) : (
-                  <span className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-400"><FileImage size={24} strokeWidth={1.6} aria-hidden /></span>
+                  <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-lg ${t.anexo}`}><FileImage size={24} strokeWidth={1.6} aria-hidden /></span>
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-stone-900">Comprovante</p>
@@ -396,12 +487,13 @@ export function ModalInscricao({
                   <button
                     type="button"
                     onClick={() => setComprovanteAberto(true)}
-                    className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition ${comprovante ? "text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-50" : "bg-emerald-700 text-white hover:bg-emerald-800"}`}
+                    className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition ${comprovante ? t.btnSec : t.btnPri}`}
                   >
                     {comprovante ? <><Settings2 size={13} aria-hidden /> Gerenciar</> : <><ImagePlus size={13} aria-hidden /> Anexar</>}
                   </button>
                 )}
               </div>
+              )}
               {comprovanteAberto && (
                 <ModalComprovante
                   eventoId={dados.eventoId}
@@ -413,55 +505,156 @@ export function ModalInscricao({
               )}
 
               {dados.gerenciar && (
-                <div className="mt-3">
-                  <p className="mb-1.5 text-xs font-medium text-emerald-900/70">Marcar a contribuição como</p>
-                  <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Situação da contribuição">
-                    <Opcao tom="emerald" ativa={pago || pedirValor} editavel={pago} Icone={CheckCircle2} rotulo="Confirmada" disabled={pendente} aoEscolher={() => { setMsg(undefined); setUsouPacote(!!p.usouPacote); setPedirValor(true); }} />
-                    <Opcao tom="sky" ativa={p.pagamento === "isento"} Icone={ShieldCheck} rotulo="Isento" disabled={pendente} aoEscolher={() => rodar(() => isentarPagamentoAction(dados.eventoId, p.inscricaoId))} />
-                    <Opcao tom="yellow" ativa={p.pagamento === "pendente"} Icone={Undo2} rotulo="Pendente" disabled={pendente} aoEscolher={() => rodar(() => reabrirPagamentoAction(dados.eventoId, p.inscricaoId))} />
-                  </div>
-                  {/* Confirmar pede o valor recebido (já vem preenchido com o valor informado ou o padrão do Instituto) */}
+                <div className="mt-3 space-y-2.5">
+                  {/* Ações conforme a situação: pendente → Confirmar; confirmada/isenta/pacote → editar ou reabrir */}
+                  {!escolhendoForma && !pedirValor && (
+                    <div className="flex flex-col items-center gap-1.5">
+                    <div className="flex items-center gap-2">
+                      {p.pagamento === "pago" || p.pagamento === "credito" || p.pagamento === "isento" ? (
+                        <>
+                          {(p.pagamento === "pago" || p.pagamento === "isento") && (
+                            <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={() => { setMsg(undefined); setEscolhendoForma(true); }}>
+                              <Pencil size={15} aria-hidden /> {p.pagamento === "pago" ? "Editar forma e valor" : "Confirmar pagamento"}
+                            </button>
+                          )}
+                          <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={() => rodar(() => reabrirPagamentoAction(dados.eventoId, p.inscricaoId))}>
+                            <Undo2 size={15} aria-hidden /> Reabrir (voltar a pendente)
+                          </button>
+                        </>
+                      ) : (
+                        <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60" disabled={pendente} onClick={() => { setMsg(undefined); setEscolhendoForma(true); }}>
+                          <CheckCircle2 size={16} aria-hidden /> Confirmar pagamento
+                        </button>
+                      )}
+                    </div>
+                      {/* Isentar: só o Admin e o mestre escalado no evento; fica abaixo, centralizado, sem caixa */}
+                      {dados.podeIsentar && p.pagamento !== "isento" && (
+                        <button
+                          type="button"
+                          disabled={pendente}
+                          onClick={() => rodar(() => isentarPagamentoAction(dados.eventoId, p.inscricaoId))}
+                          className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-stone-600 transition hover:bg-stone-900/5 hover:text-stone-900 disabled:opacity-60"
+                        >
+                          <ShieldCheck size={15} aria-hidden /> Isentar
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Passo 1: como foi pago? Pacote já debita 1 crédito na hora */}
+                  {escolhendoForma && (
+                    <div className={`space-y-2.5 border-t ${t.div60} pt-3`}>
+                      <p className="text-xs font-medium text-stone-700">Como foi pago?</p>
+                      <div className="flex flex-wrap gap-2" role="group" aria-label="Forma de pagamento">
+                        {([
+                          { chave: "pix", rotulo: "Pix", Icone: QrCode },
+                          { chave: "dinheiro", rotulo: "Dinheiro", Icone: Banknote },
+                        ] as const).map(({ chave, rotulo, Icone }) => (
+                          <button
+                            key={chave}
+                            type="button"
+                            disabled={pendente}
+                            onClick={() => { setForma(chave); setEscolhendoForma(false); setPedirValor(true); }}
+                            className={`inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-stone-800 ring-1 ${t.opcao} transition disabled:opacity-60`}
+                          >
+                            <Icone size={18} aria-hidden /> {rotulo}
+                          </button>
+                        ))}
+                        {(() => {
+                          const livres = p.saldoCredito?.disponiveis ?? 0;
+                          const naEspera = !!posicaoEspera || situacaoInscricao === "espera";
+                          const bloqueado = pendente || livres === 0 || naEspera;
+                          return (
+                            <button
+                              type="button"
+                              disabled={bloqueado}
+                              title={naEspera ? "Só a participação confirmada usa pacote" : livres === 0 ? "Esta pessoa não tem crédito de pacote disponível" : "Debita 1 crédito de pacote agora"}
+                              onClick={() => rodar(() => usarCreditoAction(dados.eventoId, p.inscricaoId))}
+                              className={`inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-stone-800 ring-1 ${t.opcao} transition disabled:opacity-50`}
+                            >
+                              <Ticket size={18} aria-hidden /> Pacote
+                              <span className="text-xs font-medium text-stone-500">{livres > 0 ? <><span className="sm:hidden">({livres})</span><span className="hidden sm:inline">{`${livres} ${livres === 1 ? "crédito" : "créditos"}`}</span></> : "sem crédito"}</span>
+                            </button>
+                          );
+                        })()}
+                      </div>
+                      <div className="flex justify-end">
+                        <button type="button" className={`inline-flex h-9 items-center rounded-lg ${t.voltar} px-3.5 text-xs font-semibold transition disabled:opacity-60`} disabled={pendente} onClick={() => setEscolhendoForma(false)}>Voltar</button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Passo 2 (Pix ou dinheiro): valor recebido, já preenchido com o valor informado ou o padrão do Instituto */}
                   {pedirValor && (
                     <form
-                      className="mt-3 space-y-3 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3"
+                      className={`space-y-3 border-t ${t.div60} pt-3`}
                       onSubmit={(e) => {
                         e.preventDefault();
                         const fd = new FormData(e.currentTarget);
                         iniciar(async () => {
-                          const r = usouPacote
-                            ? await confirmarPagamentoAction(dados.eventoId, p.inscricaoId, null, fd.get("pacote_obs"))
-                            : await confirmarPagamentoAction(dados.eventoId, p.inscricaoId, fd.get("valor_recebido"));
+                          const r = await confirmarPagamentoAction(dados.eventoId, p.inscricaoId, fd.get("valor_recebido"), undefined, forma);
                           setMsg(r);
                           if (r.ok) setPedirValor(false);
                         });
                       }}
                     >
-                      <div className="flex items-end gap-3">
-                        <div className="min-w-0 flex-1">
-                          <label htmlFor={`valor-${p.inscricaoId}`} className="mb-1 block text-xs font-medium text-emerald-900">{usouPacote ? "Observação do pacote" : "Valor recebido (R$)"}</label>
-                          {usouPacote ? (
-                            <input key="pacote" id={`valor-${p.inscricaoId}`} name="pacote_obs" type="text" maxLength={30} autoComplete="off" autoFocus placeholder="ex.: 2/4 1" defaultValue={p.pacoteObs ?? ""} className="campo h-10 text-sm" />
-                          ) : (
-                            <input
-                              key="valor"
-                              id={`valor-${p.inscricaoId}`}
-                              name="valor_recebido"
-                              inputMode="decimal"
-                              autoFocus
-                              defaultValue={valorSugerido != null ? valorSugerido.toFixed(2).replace(".", ",") : ""}
-                              placeholder="150,00"
-                              className="campo h-10 text-sm tabular-nums"
-                            />
-                          )}
-                        </div>
-                        <label className="flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-white px-3 text-sm font-semibold text-emerald-900 ring-1 ring-emerald-200 select-none">
-                          <input type="checkbox" checked={usouPacote} onChange={(e) => setUsouPacote(e.target.checked)} className="h-4 w-4 accent-emerald-700" />
-                          Usou pacote
+                      <div>
+                        <label htmlFor={`valor-${p.inscricaoId}`} className="mb-1 flex items-center gap-1.5 text-xs font-medium text-stone-700">
+                          {forma === "pix" ? <QrCode size={13} aria-hidden /> : <Banknote size={13} aria-hidden />} Valor recebido em {forma === "pix" ? "Pix" : "dinheiro"} (R$)
                         </label>
+                        <input
+                          id={`valor-${p.inscricaoId}`}
+                          name="valor_recebido"
+                          inputMode="decimal"
+                          autoFocus
+                          defaultValue={valorSugerido != null ? valorSugerido.toFixed(2).replace(".", ",") : ""}
+                          placeholder="150,00"
+                          className="campo h-10 text-sm tabular-nums"
+                        />
                       </div>
-                      <div className="flex justify-end gap-2">
-                        <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={() => { setPedirValor(false); setUsouPacote(false); }}>Cancelar</button>
-                        <button type="submit" className="btn-primario h-10" disabled={pendente}>Confirmar</button>
+                      {forma === "pix" && qrPix && (
+                        <div className={`flex flex-col items-center gap-2 rounded-xl bg-white p-3 ring-1 ${t.qr}`}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={qrPix.imagem} alt={`QR Code Pix de ${formatoReal(qrPix.valor)}`} width={192} height={192} className="h-48 w-48" />
+                          <p className="text-center text-xs text-stone-600">
+                            <strong className="tabular-nums">{formatoReal(qrPix.valor)}</strong> para {dados.chavePix?.favorecido}
+                            <span className="block text-stone-400">Chave {dados.chavePix?.tipo}: {dados.chavePix?.chave}</span>
+                          </p>
+                          <button
+                            type="button"
+                            className="btn-secundario h-9 text-xs"
+                            onClick={async () => { try { await navigator.clipboard.writeText(qrPix.codigo); setCopiado(true); setTimeout(() => setCopiado(false), 2500); } catch { /* sem permissão da área de transferência */ } }}
+                          >
+                            {copiado ? "Código copiado" : "Copiar código Pix (copia e cola)"}
+                          </button>
+                        </div>
+                      )}
+                      {forma === "pix" && erroQr && <p role="alert" className="text-xs text-red-700">{erroQr}</p>}
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        {forma === "pix" ? (
+                          <button
+                            type="button"
+                            className="btn-secundario h-10"
+                            disabled={pendente || !dados.chavePix}
+                            title={dados.chavePix ? "Gera o QR Code com o valor digitado, para a chave Pix cadastrada em Configurações" : "Cadastre uma chave Pix em Configurações"}
+                            onClick={async (e) => {
+                              const campo = e.currentTarget.form?.elements.namedItem("valor_recebido") as HTMLInputElement | null;
+                              const lido = lerValor(campo?.value);
+                              if ("erro" in lido || lido.valor === null) { setQrPix(null); setErroQr("Digite o valor recebido para gerar o QR Code."); return; }
+                              setErroQr(null);
+                              const chave = dados.chavePix!;
+                              const codigo = gerarPayloadPix({ tipo: chave.tipo, chave: chave.chave, favorecido: chave.favorecido, cidade: chave.cidade, valor: lido.valor });
+                              const QRCode = (await import("qrcode")).default;
+                              setQrPix({ imagem: await QRCode.toDataURL(codigo, { margin: 1, width: 384, errorCorrectionLevel: "M" }), codigo, valor: lido.valor });
+                            }}
+                          >
+                            <QrCode size={15} aria-hidden /> Gerar QR Code
+                          </button>
+                        ) : <span />}
+                        <div className="flex gap-2">
+                          <button type="button" className={`inline-flex h-10 items-center rounded-xl ${t.voltar} px-4 text-sm font-semibold transition disabled:opacity-60`} disabled={pendente} onClick={() => { setPedirValor(false); setQrPix(null); setErroQr(null); setEscolhendoForma(true); }}>Voltar</button>
+                          <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60" disabled={pendente}>Confirmar</button>
+                        </div>
                       </div>
                     </form>
                   )}
@@ -497,6 +690,17 @@ export function ModalInscricao({
 
         {/* Rodapé: cancelar a participação (só sem contribuição confirmada) */}
         <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-stone-100 bg-stone-50/70 px-5 py-3.5 sm:px-6">
+          {/* Excluir só aparece quando "Cancelar inscrição" não existe (ex.: ritual já realizado), para não duplicar */}
+          {dados.gerenciar && p.pagamento === "pendente" && !cancelavel && (
+            <button
+              type="button"
+              disabled={pendente}
+              onClick={() => setExcluindo(true)}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold whitespace-nowrap text-red-700 transition hover:bg-red-50 disabled:opacity-60"
+            >
+              <Trash2 size={16} /> Excluir participação
+            </button>
+          )}
           {/* Retorno da última ação: aqui fica sempre à vista, mesmo com o conteúdo rolado */}
           {pendente ? (
             <span className="flex items-center gap-2 text-xs text-stone-500"><Carregando tamanho={14} /> Salvando…</span>
@@ -505,6 +709,7 @@ export function ModalInscricao({
               {msg.erro ? <X size={14} className="shrink-0" /> : <CheckCircle2 size={14} className="shrink-0" />} {msg.erro ?? msg.ok}
             </span>
           ) : <span />}
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
           {cancelavel && (pago ? (
             <span className="flex items-center gap-1.5 text-right text-xs text-stone-500">
               <Lock size={13} className="shrink-0" /> Contribuição confirmada: para cancelar, marque como pendente.
@@ -519,7 +724,33 @@ export function ModalInscricao({
               <CalendarX2 size={16} /> Cancelar inscrição
             </button>
           ))}
+          </div>
         </footer>
+
+        {/* Exclusão definitiva da participação (só com a contribuição pendente) */}
+        {excluindo && (
+          <div role="alertdialog" aria-label="Confirmar exclusão" className="absolute inset-x-0 bottom-0 z-10 animate-surgir border-t border-red-100 bg-white px-5 py-4 shadow-[0_-12px_32px_-12px_rgb(0_0_0/0.25)] sm:px-6">
+            <p className="text-sm font-semibold text-stone-900">Excluir a participação de {p.nome}?</p>
+            <p className="mt-0.5 text-xs text-stone-500">A inscrição e o comprovante anexado são apagados. Não dá para desfazer.</p>
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" className="btn-secundario" disabled={pendente} onClick={() => setExcluindo(false)}>Voltar</button>
+              <button
+                type="button"
+                disabled={pendente}
+                onClick={() =>
+                  iniciar(async () => {
+                    const r = await excluirInscricaoAction(dados.eventoId, p.inscricaoId);
+                    if (r.erro) { setMsg(r); setExcluindo(false); }
+                    else aoCancelar(r);
+                  })
+                }
+                className="inline-flex h-10 items-center gap-1.5 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-700 disabled:opacity-60"
+              >
+                {pendente ? <><Carregando tamanho={14} /> Excluindo…</> : "Sim, excluir"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Confirmação do cancelamento, no lugar do rodapé (um balão seria cortado pela borda do modal) */}
         {confirmando && (
@@ -723,26 +954,3 @@ function ModalComprovante({ eventoId, inscricaoId, comprovanteUrl, aoSalvar, fec
   );
 }
 
-const TOM_OPCAO = {
-  emerald: { ativa: "border-emerald-600 bg-emerald-50 text-emerald-800 ring-1 ring-emerald-600", hover: "hover:border-emerald-300 hover:bg-emerald-50/70 hover:text-emerald-800" },
-  sky: { ativa: "border-sky-500 bg-sky-50 text-sky-800 ring-1 ring-sky-500", hover: "hover:border-sky-300 hover:bg-sky-50/70 hover:text-sky-800" },
-  yellow: { ativa: "border-yellow-500 bg-yellow-50 text-yellow-800 ring-1 ring-yellow-500", hover: "hover:border-yellow-300 hover:bg-yellow-50/70 hover:text-yellow-800" },
-} as const;
-
-function Opcao({ ativa, Icone, rotulo, disabled, aoEscolher, tom, editavel = false }: { ativa: boolean; Icone: typeof Mail; rotulo: string; disabled: boolean; aoEscolher: () => void; tom: keyof typeof TOM_OPCAO; /** Já marcada, mas tocar de novo edita (lápis no canto). */ editavel?: boolean }) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={ativa}
-      disabled={disabled || (ativa && !editavel)}
-      onClick={aoEscolher}
-      className={`relative flex h-14 flex-col items-center justify-center gap-1 rounded-xl border text-xs font-semibold transition disabled:cursor-default ${
-        ativa ? TOM_OPCAO[tom].ativa : `border-stone-200 bg-white text-stone-600 disabled:opacity-60 ${TOM_OPCAO[tom].hover}`
-      }`}
-    >
-      <Icone size={16} /> {rotulo}
-      {editavel && <Pencil size={10} aria-hidden className="absolute top-1.5 right-1.5 opacity-70" />}
-    </button>
-  );
-}

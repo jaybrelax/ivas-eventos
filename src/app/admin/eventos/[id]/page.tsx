@@ -6,11 +6,11 @@ import type { Sexo } from "@/lib/types";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, getEvento } from "@/lib/data";
-import { listarEquipe } from "@/lib/usuarios";
+import { contatosDeUsuarios, listarEquipe } from "@/lib/usuarios";
 import { dataPorExtenso, formatarIdRitual, partesData } from "@/lib/format";
 import { urlImagem, urlPublicaEvento } from "@/lib/links";
 import { SITE_URL } from "@/lib/site";
-import { podeGerenciarEvento } from "@/lib/gestao-evento";
+import { podeGerenciarEvento, podeIsentarContribuicao } from "@/lib/gestao-evento";
 import { AtualizarAoVivo } from "./AtualizarAoVivo";
 import { ConsumoMedicina, type ConsumoPessoa } from "./ConsumoMedicina";
 import { AbasEvento, ID_PAGINA_EVENTO } from "./AbasEvento";
@@ -48,7 +48,7 @@ const SUPERFICIE = "md:rounded-[22px] md:border-white/70 md:bg-white/75 md:shado
 export default async function VerEvento({ params, searchParams }: PageProps<"/admin/eventos/[id]">) {
   const u = await exigir();
   const [{ id }, sp] = await Promise.all([params, searchParams]);
-  const [evento, { tipos, enderecos, instituto }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
+  const [evento, { tipos, enderecos, instituto, pix }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
   if (!evento) notFound();
 
   const gerenciar = podeGerenciarEvento(u, evento);
@@ -57,7 +57,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   const [guarnicao, reuniao, participantes, guardioesDoRitual] = await Promise.all([
     temGuarnicao(tipo) ? dadosGuarnicao(evento, u, gerenciar) : null,
     reuniaoTipo ? dadosReuniao(evento, u.id, true) : null,
-    dadosParticipantes(evento, tipo, instituto.valor_contribuicao, gerenciar, { estado: instituto.estado, cidade: instituto.cidade }),
+    dadosParticipantes(evento, tipo, instituto.valor_contribuicao, gerenciar, { estado: instituto.estado, cidade: instituto.cidade }, podeIsentarContribuicao(u, evento), pix.find((c) => c.padrao) ?? pix[0] ?? null),
     gerenciar ? [] : guardioesDoEvento(evento),
   ]);
   // Central de informações: coordenação, mestres escalados e guardiões deste ritual
@@ -95,10 +95,13 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
     ...(participantes?.confirmados ?? []).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto, papel: "participante" as const })),
   ].filter((p) => (vistos.has(p.id) ? false : (vistos.add(p.id), true)));
 
+  // Contato do guardião (card de informações no modal de dosagem): só para quem gerencia o evento
+  const contatosEquipe = gerenciar ? await contatosDeUsuarios([...mestres, ...guardioes].map((m) => m.id)) : new Map();
   const membros: MembroLista[] = [
     ...mestres.map((p) => ({ id: p.id, nome: p.nome, foto: p.foto, sexo: p.sexo, first: !!pessoaDaEquipe.get(p.id)?.first, papel: "mestre" as const })),
     ...guardioes.filter((g) => !mestres.some((m) => m.id === g.id)).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto, sexo: p.sexo, first: !!pessoaDaEquipe.get(p.id)?.first, papel: "guardiao" as const })),
   ];
+  membros.forEach((m) => { m.contato = contatosEquipe.get(m.id) ?? null; });
   const guardioesGerais = equipe.filter((p) => p.funcao === "guardiao" && !p.mock).map((p) => p.$id);
   // Os 4 cards (participantes e contribuições) só fazem sentido para a coordenação em evento com inscrições pagas
   const temNumeros = gerenciar && !!participantes?.temContribuicao;
@@ -227,7 +230,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
               <p className="pt-0.5 pb-1.5 text-[10px] font-medium tracking-[0.12em] text-stone-400 uppercase">{data.mesCurto}</p>
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="min-w-0 line-clamp-2 font-display text-[22px] leading-[1.15] font-semibold text-stone-900 transition-[font-size,color] duration-500 motion-reduce:transition-none max-md:in-data-[aba=consumo]:text-white max-md:in-data-[aba=consumo]:[text-shadow:0_1px_4px_rgb(0_0_0/0.45)] max-md:in-data-[aba=central]:text-white max-md:in-data-[aba=central]:[text-shadow:0_1px_4px_rgb(0_0_0/0.45)] max-md:in-data-[aba=financeiro]:text-white max-md:in-data-[aba=financeiro]:[text-shadow:0_1px_4px_rgb(0_0_0/0.45)] in-data-[aba=consumo]:text-lg in-data-[aba=central]:text-lg in-data-[aba=financeiro]:text-lg md:text-[26px]! md:leading-[1.1] md:tracking-[-0.015em]" title={evento.titulo}>{evento.titulo}</h1>
+              <h1 className="min-w-0 line-clamp-3 font-display text-[22px] leading-[1.15] font-semibold text-stone-900 transition-[font-size,color] duration-500 motion-reduce:transition-none max-md:in-data-[aba=consumo]:text-white max-md:in-data-[aba=consumo]:[text-shadow:0_1px_4px_rgb(0_0_0/0.45)] max-md:in-data-[aba=central]:text-white max-md:in-data-[aba=central]:[text-shadow:0_1px_4px_rgb(0_0_0/0.45)] max-md:in-data-[aba=financeiro]:text-white max-md:in-data-[aba=financeiro]:[text-shadow:0_1px_4px_rgb(0_0_0/0.45)] in-data-[aba=consumo]:text-lg in-data-[aba=central]:text-lg in-data-[aba=financeiro]:text-lg md:text-[26px]! md:leading-[1.1] md:tracking-[-0.015em]" title={evento.titulo}>{evento.titulo}</h1>
             </div>
             {/* Horário e local: na linha de baixo, abaixo do card da data */}
             <p className="hidden basis-full flex-wrap items-center gap-x-5 gap-y-1.5 text-sm text-stone-700 md:flex">
@@ -254,12 +257,12 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
           <div className="hidden md:block">
             <div aria-hidden className="mx-6 h-px bg-gradient-to-r from-transparent via-stone-900/15 to-transparent" />
             {(evento.ritual_numero_geral || evento.ritual_numero_ano) && (
-              <dl className="grid grid-cols-2 gap-3 px-6 pt-4 pb-5">
-                <div className="flex items-center justify-center gap-2 rounded-xl bg-mata-50 px-4 py-3 ring-1 ring-mata-100">
+              <dl className="grid grid-cols-2 divide-x divide-stone-900/10 px-6 pt-4 pb-5">
+                <div className="flex items-center justify-center gap-2 px-4 py-2">
                   <dt className="sr-only">Número geral do ritual</dt>
                   <dd className="inline-flex items-center gap-2 text-[15px] font-semibold text-mata-800 tabular-nums"><Hash size={16} className="text-mata-500" aria-hidden /> Ritual N° {evento.ritual_numero_geral ?? "–"}</dd>
                 </div>
-                <div className="flex items-center justify-center gap-2 rounded-xl bg-stone-50 px-4 py-3 ring-1 ring-stone-200/70">
+                <div className="flex items-center justify-center gap-2 px-4 py-2">
                   <dt className="sr-only">Número do ritual no ano</dt>
                   <dd className="inline-flex items-center gap-2 text-[15px] font-semibold text-stone-800 tabular-nums"><CalendarDays size={16} className="text-stone-400" aria-hidden /> {evento.ritual_numero_ano ?? "–"}° de {evento.ritual_ano ?? data.ano}</dd>
                 </div>

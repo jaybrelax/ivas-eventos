@@ -5,7 +5,7 @@ import { limitarCadastro } from "@/lib/limite-cadastro";
 import { redirect } from "next/navigation";
 import { ID } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
-import { LABEL_PARTICIPANTE, SESSION_COOKIE } from "@/lib/config";
+import { LABEL_PARTICIPANTE, SESSION_COOKIE, DOMINIO_COOKIE } from "@/lib/config";
 import { exigirSessao, podeSolicitarGuarnicao } from "@/lib/auth";
 import { labelsComFuncao, salvarContato, validarTelefone } from "@/lib/usuarios";
 import type { Sexo } from "@/lib/types";
@@ -76,6 +76,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
+      ...DOMINIO_COOKIE,
       expires: new Date(sessao.expire),
     });
   } catch (e) {

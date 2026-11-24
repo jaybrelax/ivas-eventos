@@ -2,10 +2,11 @@ import "server-only";
 import {
   aceitaParticipantes, inicioDe, inscricoesDoEvento, prazoCancelamento, todasInscricoesAtivas, vagasParticipantesDe,
 } from "@/lib/inscricoes";
+import { rotulosDosCreditos, saldosDe } from "@/lib/creditos";
 import { listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
-import { mascararCpf } from "@/lib/cpf";
+import { ocultarCpf } from "@/lib/cpf";
 import { lerDoses, lerDosesEquipe } from "@/lib/doses";
-import type { Evento, Inscricao, TipoEvento } from "@/lib/types";
+import type { ChavePix, Evento, Inscricao, TipoEvento } from "@/lib/types";
 import type { DadosParticipantes, ItemParticipanteInscrito, PessoaParticipante } from "./Participantes";
 
 function quando(d: Date) {
@@ -22,6 +23,8 @@ export async function dadosParticipantes(
   gerenciar: boolean,
   /** Estado e cidade do Instituto: já vêm preenchidos ao informar os dados de um participante. */
   localPadrao?: { estado: string | null; cidade: string | null },
+  podeIsentar = false,
+  chavePix: ChavePix | null = null,
 ): Promise<DadosParticipantes | null> {
   if (!aceitaParticipantes(tipo)) return null;
   const [inscricoes, usuarios, pessoas, todas] = await Promise.all([
@@ -31,6 +34,13 @@ export async function dadosParticipantes(
     // Só a coordenação vê o "1° VEZ": quem já tem participação confirmada em outro evento não é primeira vez
     gerenciar ? todasInscricoesAtivas() : Promise.resolve([]),
   ]);
+  // Créditos: saldo de cada inscrito e o "2/4" do crédito usado (só a coordenação vê)
+  const [saldos, rotulosCredito] = gerenciar && tipo?.conta_como_ritual
+    ? await Promise.all([
+        saldosDe(inscricoes.map((i) => i.usuario_id)).catch(() => null),
+        rotulosDosCreditos(inscricoes.flatMap((i) => (i.credito_id ? [i.credito_id] : []))).catch(() => new Map<string, string>()),
+      ])
+    : [null, new Map<string, string>()];
   const jaParticiparam = new Set(todas.filter((i) => i.situacao === "confirmada" && i.evento_id !== evento.$id).map((i) => i.usuario_id));
   const contatoPorId = new Map(pessoas.map((p) => [p.id, p]));
   const pessoa = (id: string): PessoaParticipante => {
@@ -47,7 +57,10 @@ export async function dadosParticipantes(
       primeiraVez: gerenciar ? !!i.primeira_vez : false,
       jaParticipou: gerenciar ? jaParticiparam.has(i.usuario_id) : false,
       usouPacote: !!i.usou_pacote, pacoteObs: i.usou_pacote ? (i.observacao ?? null) : null,
-      contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm, cpf: c.cpf ? mascararCpf(c.cpf) : null } : null,
+      forma: gerenciar ? (i.pagamento === "credito" ? "pacote" : (i.forma_pagamento ?? null)) : null,
+      creditoRotulo: gerenciar && i.credito_id ? (rotulosCredito.get(i.credito_id) ?? null) : null,
+      saldoCredito: saldos?.get(i.usuario_id) ? { disponiveis: saldos.get(i.usuario_id)!.disponiveis, debitos: saldos.get(i.usuario_id)!.debitos, saldo: saldos.get(i.usuario_id)!.saldo } : null,
+      contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm, cpf: c.cpf ? ocultarCpf(c.cpf) || null : null } : null,
       doses: gerenciar ? lerDoses(i.doses) : [],
     };
   };
@@ -68,6 +81,8 @@ export async function dadosParticipantes(
     confirmados,
     espera,
     gerenciar,
+    podeIsentar: gerenciar && podeIsentar,
+    chavePix: gerenciar ? chavePix : null,
     // Qualquer pessoa com conta (participante ou equipe) que ainda não está inscrita; contas de teste (mock) ficam de fora
     disponiveis: gerenciar
       ? pessoas.filter((p) => !inscritos.has(p.id) && !usuarios.get(p.id)?.mock).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))

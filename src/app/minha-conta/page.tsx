@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarCheck, History, Receipt } from "lucide-react";
+import { CalendarCheck, History, Receipt, Ticket } from "lucide-react";
 import { exigirSessao } from "@/lib/auth";
 import { urlImagem } from "@/lib/links";
-import { getDadosInstituto } from "@/lib/data";
+import { creditosESaldo, historicoCreditos, pacotesComResumo, listarPlanos, saldoDoUsuario, type CreditoItem } from "@/lib/creditos";
+import { ROTULO_ACAO, ROTULO_CREDITO, ROTULO_PACOTE } from "@/lib/creditos-rotulos";
+import { getDadosInstituto, listarEventos } from "@/lib/data";
+import { mapaUsuarios } from "@/lib/usuarios";
 import { dataCurta, dataPorExtenso, formatarIdRitual } from "@/lib/format";
 import { inscricoesComEventos, type ItemInscricao } from "@/lib/inscricoes";
 import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
@@ -11,6 +14,7 @@ import { RodapePublico } from "@/components/publico/RodapePublico";
 import { ProximoRitualCard } from "@/components/publico/ProximoRitualCard";
 import { CancelarParticipacao } from "@/components/publico/CancelarParticipacao";
 import { BotaoComprovante } from "./BotaoComprovante";
+import { CederCredito, ComprarPacote } from "./CreditosCliente";
 
 export const metadata: Metadata = { title: "Minha conta" };
 
@@ -20,6 +24,7 @@ const PAGAMENTO: Record<ItemInscricao["pagamento"], { rotulo: string; cor: strin
   pago: { rotulo: "Contribuiu", cor: "bg-emerald-50 text-emerald-700" },
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
+  credito: { rotulo: "Crédito", cor: "bg-violet-50 text-violet-700" },
 };
 
 const SITUACAO: Record<ItemInscricao["situacao"], { rotulo: string; cor: string }> = {
@@ -34,6 +39,7 @@ const ABAS = [
   { chave: "proximos", rotulo: "Próximos", Icone: CalendarCheck },
   { chave: "historico", rotulo: "Histórico", Icone: History },
   { chave: "pagamentos", rotulo: "Contribuições", Icone: Receipt },
+  { chave: "creditos", rotulo: "Créditos", Icone: Ticket },
 ] as const;
 type Aba = (typeof ABAS)[number]["chave"];
 
@@ -43,10 +49,16 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
   const abaBruta = String(sp?.aba ?? "proximos");
   const aba: Aba = (ABAS.some((a) => a.chave === abaBruta) ? abaBruta : "proximos") as Aba;
 
-  const [{ instituto, enderecos, telefones, redes }, itens] = await Promise.all([
+  const [{ instituto, enderecos, telefones, redes, pix }, itens, conta] = await Promise.all([
     getDadosInstituto(),
     inscricoesComEventos(u.id),
+    // Saldo aparece na aba Créditos e como aviso quando está negativo; se o banco dos créditos ainda não existe, a conta segue funcionando.
+    // Na aba Créditos, saldo e lista saem de uma leitura só dos créditos da pessoa.
+    aba === "creditos" ? creditosESaldo(u.id).catch(() => null)
+      : aba === "proximos" ? saldoDoUsuario(u.id).then((saldo) => ({ saldo, creditos: [] })).catch(() => null)
+      : Promise.resolve(null),
   ]);
+  const saldo = conta?.saldo ?? null;
 
   const proximos = itens.filter((i) => !i.passado && i.situacao !== "cancelada");
   const historico = itens.filter((i) => i.passado && i.situacao === "confirmada");
@@ -77,6 +89,12 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
           ))}
         </nav>
 
+        {aba === "proximos" && saldo && saldo.saldo < 0 && (
+          <Link href="/minha-conta?aba=creditos" className="mb-4 block rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200 transition hover:bg-red-100/70">
+            Seu saldo de créditos está negativo ({saldo.saldo}). Toque para ver e regularizar com a coordenação.
+          </Link>
+        )}
+
         {aba === "proximos" && <ProximoRitualCard usuarioId={u.id} />}
 
         {aba === "proximos" && (
@@ -91,6 +109,11 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
         {aba === "historico" && (
           <Lista vazio="Nenhum ritual no seu histórico ainda." itens={historico} mostrarPagamento={false} />
         )}
+
+        {aba === "creditos" && saldo && (
+          <AbaCreditos usuarioId={u.id} saldo={saldo} creditos={conta?.creditos ?? []} chavePix={pix.find((p) => p.padrao) ?? pix[0] ?? null} />
+        )}
+        {aba === "creditos" && !saldo && <p className="cartao text-center text-sm text-stone-400">Os créditos ainda não estão disponíveis. Tente de novo em instantes.</p>}
 
         {aba === "pagamentos" && (
           <div className="space-y-5">
@@ -143,7 +166,8 @@ function Lista({ itens, vazio, mostrarPagamento, cancelar = false }: { itens: It
           </div>
           {((mostrarPagamento && i.temContribuicao) || (cancelar && i.podeCancelar)) && (
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-500">
-              {mostrarPagamento && i.temContribuicao && i.valor != null && <span>Contribuição: {formatoReal(i.valor)}</span>}
+              {mostrarPagamento && i.temContribuicao && i.pagamento === "credito" && <span>Participação paga com 1 crédito</span>}
+              {mostrarPagamento && i.temContribuicao && i.pagamento !== "credito" && i.valor != null && <span>Contribuição: {formatoReal(i.valor)}</span>}
               {mostrarPagamento && i.temContribuicao && i.comprovante && <BotaoComprovante id={i.comprovante} />}
               {mostrarPagamento && i.temContribuicao && i.pagamento === "pendente" && (
                 <Link
@@ -159,5 +183,123 @@ function Lista({ itens, vazio, mostrarPagamento, cancelar = false }: { itens: It
         </li>
       ))}
     </ul>
+  );
+}
+
+const dataHora = (iso: string) =>
+  new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(",", " às");
+
+async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId: string; saldo: Awaited<ReturnType<typeof saldoDoUsuario>>; creditos: CreditoItem[]; chavePix: Awaited<ReturnType<typeof getDadosInstituto>>["pix"][number] | null }) {
+  const [pacotes, movimentos, planos, usuarios] = await Promise.all([
+    pacotesComResumo(usuarioId),
+    historicoCreditos({ usuarioId, limite: 30 }),
+    listarPlanos(true),
+    mapaUsuarios(),
+  ]);
+  const nome = (id: string | null) => (id ? (usuarios.get(id)?.nome ?? "Outra pessoa") : "");
+  const eventoIds = [...new Set(movimentos.flatMap((m) => (m.evento_id ? [m.evento_id] : [])))];
+  const eventos = new Map((eventoIds.length ? await listarEventos({ ids: eventoIds.slice(0, 100) }) : []).map((e) => [e.$id, e]));
+  const negativo = saldo.saldo < 0;
+
+  return (
+    <div className="space-y-6">
+      <section className={`cartao !p-5 ${negativo ? "ring-2 ring-red-200" : ""}`}>
+        <p className="text-xs font-medium text-stone-500">Seu saldo</p>
+        <p className={`mt-1 text-4xl font-semibold tabular-nums ${negativo ? "text-red-700" : "text-mata-800"}`}>{saldo.saldo}</p>
+        <p className="mt-1 text-sm text-stone-500">
+          {saldo.disponiveis} {saldo.disponiveis === 1 ? "crédito disponível" : "créditos disponíveis"}
+          {saldo.bloqueados > 0 && ` · ${saldo.bloqueados} aguardando confirmação do pagamento`}
+          {saldo.debitos > 0 && ` · ${saldo.debitos} ${saldo.debitos === 1 ? "participação sem crédito" : "participações sem crédito"}`}
+        </p>
+        {saldo.debitosLista.length > 0 && (
+          <div className="mt-3 rounded-xl bg-red-50 p-3 text-sm text-red-900 ring-1 ring-red-100">
+            <p className="font-medium">Você participou sem crédito de:</p>
+            <ul className="mt-1 list-inside list-disc text-red-800">
+              {saldo.debitosLista.map((d) => (
+                <li key={d.inscricaoId}>{d.ritualNumero ? `Ritual ${formatarIdRitual(d.ritualNumero, null, null)}: ` : ""}{d.titulo} · {dataCurta(d.data)}</li>
+              ))}
+            </ul>
+            <p className="mt-2 text-xs text-red-700">Compre um pacote e fale com a coordenação para regularizar. Seus próximos pacotes não quitam isso sozinhos.</p>
+          </div>
+        )}
+        <div className="mt-4"><ComprarPacote planos={planos.map((p) => ({ id: p.$id, nome: p.nome, quantidade: p.quantidade, valor: p.valor, descricao: p.descricao }))} chavePix={chavePix} /></div>
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-sm font-semibold text-stone-800">Meus créditos</h2>
+        {!creditos.length ? <p className="cartao text-center text-sm text-stone-400">Você ainda não tem créditos.</p> : (
+          <ul className="space-y-2">
+            {creditos.map((c) => {
+              const rec = !c.cedidoParaOutro && c.cedido_de;
+              const sit = c.cedidoParaOutro ? { rotulo: `Cedido para ${nome(c.titular_id)}`, cor: "bg-sky-50 text-sky-700" } : ROTULO_CREDITO[c.situacao];
+              return (
+                <li key={c.$id} className="cartao !p-3.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-stone-900">Crédito {c.rotulo}{c.pacoteNome ? <span className="font-normal text-stone-500"> · {c.pacoteNome}</span> : null}</p>
+                      <p className="mt-0.5 text-xs text-stone-500">
+                        {rec && `Recebido de ${nome(c.cedido_de)}`}
+                        {c.situacao === "utilizado" && c.evento && `${rec ? " · " : ""}Usado em ${c.evento.ritualNumero ? `Ritual ${formatarIdRitual(c.evento.ritualNumero, null, null)}: ` : ""}${c.evento.titulo} (${dataCurta(c.evento.data)})`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`chip ${sit.cor}`}>{sit.rotulo}</span>
+                      {!c.cedidoParaOutro && c.situacao === "disponivel" && !c.cedido_de && <CederCredito creditoId={c.$id} rotulo={c.rotulo} />}
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-sm font-semibold text-stone-800">Meus pacotes</h2>
+        {!pacotes.length ? <p className="cartao text-center text-sm text-stone-400">Nenhum pacote comprado ainda.</p> : (
+          <ul className="space-y-2">
+            {pacotes.map((p) => (
+              <li key={p.$id} className="cartao !p-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-stone-900">{p.nome ?? "Pacote"} <span className="font-normal text-stone-500">· {p.quantidade} {p.quantidade === 1 ? "crédito" : "créditos"}</span></p>
+                    <p className="mt-0.5 text-xs text-stone-500">
+                      {p.valor != null ? `${formatoReal(p.valor)} · ` : ""}{dataHora(p.$createdAt)}
+                      {p.situacao === "pago" && ` · ${p.disponiveis} disponíveis, ${p.utilizados} usados${p.cedidos ? `, ${p.cedidos} cedidos` : ""}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm">
+                    {p.comprovante_file_id && <BotaoComprovante id={p.comprovante_file_id} />}
+                    <span className={`chip ${ROTULO_PACOTE[p.situacao].cor}`}>{ROTULO_PACOTE[p.situacao].rotulo}</span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-2 text-sm font-semibold text-stone-800">Histórico</h2>
+        {!movimentos.length ? <p className="cartao text-center text-sm text-stone-400">Nenhuma movimentação ainda.</p> : (
+          <ul className="cartao divide-y divide-stone-100 !p-0">
+            {movimentos.map((m) => {
+              const e = m.evento_id ? eventos.get(m.evento_id) : undefined;
+              const detalhe = [
+                e?.titulo,
+                m.acao === "cessao" ? (m.de_usuario === usuarioId ? `para ${nome(m.para_usuario)}` : `de ${nome(m.de_usuario)}`) : null,
+                m.observacao,
+              ].filter(Boolean).join(" · ");
+              return (
+                <li key={m.$id} className="flex flex-wrap items-baseline justify-between gap-x-3 px-4 py-2.5 text-sm">
+                  <span className="font-medium text-stone-800">{ROTULO_ACAO[m.acao]}{detalhe && <span className="font-normal text-stone-500"> · {detalhe}</span>}</span>
+                  <span className="text-xs text-stone-400 tabular-nums">{dataHora(m.$createdAt)}</span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
   );
 }

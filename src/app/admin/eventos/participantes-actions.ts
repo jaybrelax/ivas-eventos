@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { exigirGestaoDoEvento } from "@/lib/gestao-evento";
+import { exigirGestaoDoEvento, podeIsentarContribuicao } from "@/lib/gestao-evento";
 import { ID, Query } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
 import { COMPROVANTES_BUCKET_ID, DB_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
@@ -9,16 +9,19 @@ import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { conferirImagem } from "@/lib/imagem";
 import { lerDosesEquipe, validarDoses } from "@/lib/doses";
 import { candidaturasDoEvento } from "@/lib/guarnicao";
+import { usarCreditoNaInscricao } from "@/lib/creditos";
 import { listar } from "@/lib/data";
 import type { Inscricao } from "@/lib/types";
 import { ehParticipante, salvarContato } from "@/lib/usuarios";
-import { definirPagamento, incluirParticipante, removerParticipante, type Resultado } from "@/lib/inscricoes";
-import { lerValor } from "@/lib/pagamento-regras";
+import { definirPagamento, excluirInscricao, incluirParticipante, removerParticipante, type Resultado } from "@/lib/inscricoes";
+import { lerForma, lerValor } from "@/lib/pagamento-regras";
+import { capitalizarNomeProprio } from "@/lib/format";
 
 function revalidar(eventoId: string) {
   revalidatePath(`/admin/eventos/${eventoId}`);
   revalidatePath("/admin/eventos");
   revalidatePath("/admin/pagamentos");
+  revalidatePath("/admin/creditos");
   revalidatePath(`/eventos/${eventoId}`);
   revalidatePath("/minha-conta");
   revalidatePath("/admin/participantes", "layout");
@@ -43,7 +46,7 @@ export async function incluirAvulsoAction(eventoId: string, nomeBruto: string): 
   const g = await exigirGestaoDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u, evento } = g;
-  const nome = String(nomeBruto ?? "").trim().replace(/\s+/g, " ").slice(0, 128);
+  const nome = capitalizarNomeProprio(String(nomeBruto ?? "").trim().replace(/\s+/g, " ").slice(0, 128));
   if (nome.length < 3) return { erro: "Digite o nome da pessoa (pelo menos 3 letras)." };
 
   const { users } = createAdminClient();
@@ -74,8 +77,17 @@ export async function removerParticipanteAction(eventoId: string, usuarioId: str
   return r;
 }
 
+/** Coordenação (ou o mestre do evento) exclui a participação (só com a contribuição pendente). */
+export async function excluirInscricaoAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
+  const g = await exigirGestaoDoEvento(eventoId);
+  if (g.erro !== undefined) return { erro: g.erro };
+  const r = await excluirInscricao(g.evento, inscricaoId, g.u.id);
+  revalidar(eventoId);
+  return r;
+}
+
 /** Coordenação (ou o mestre do evento) confirma o pagamento de uma inscrição, com o valor recebido (vazio mantém o valor informado). */
-export async function confirmarPagamentoAction(eventoId: string, inscricaoId: string, valorBruto?: unknown, pacoteBruto?: unknown): Promise<Resultado> {
+export async function confirmarPagamentoAction(eventoId: string, inscricaoId: string, valorBruto?: unknown, pacoteBruto?: unknown, formaBruta?: unknown): Promise<Resultado> {
   const g = await exigirGestaoDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u } = g;
@@ -88,7 +100,9 @@ export async function confirmarPagamentoAction(eventoId: string, inscricaoId: st
   }
   const lido = lerValor(valorBruto);
   if ("erro" in lido) return { erro: lido.erro };
-  const r = await definirPagamento(eventoId, inscricaoId, "pago", u.id, lido.valor);
+  const forma = lerForma(formaBruta);
+  if ("erro" in forma) return { erro: forma.erro };
+  const r = await definirPagamento(eventoId, inscricaoId, "pago", u.id, lido.valor, null, forma.forma);
   revalidar(eventoId);
   return r;
 }
@@ -97,7 +111,8 @@ export async function confirmarPagamentoAction(eventoId: string, inscricaoId: st
 export async function isentarPagamentoAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
   const g = await exigirGestaoDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
-  const { u } = g;
+  const { u, evento } = g;
+  if (!podeIsentarContribuicao(u, evento)) return { erro: "Só o mestre do evento ou o Admin pode isentar a contribuição." };
   const r = await definirPagamento(eventoId, inscricaoId, "isento", u.id);
   revalidar(eventoId);
   return r;
@@ -153,7 +168,9 @@ export async function informarDadosAction(eventoId: string, usuarioId: string, f
 
   // Só os campos de contato: o resto da ficha fica como está
   const contato = new FormData();
-  for (const k of ["telefone", "estado", "cidade", "cpf"]) contato.set(k, String(form.get(k) ?? ""));
+  for (const k of ["telefone", "estado", "cidade"]) contato.set(k, String(form.get(k) ?? ""));
+  // CPF já cadastrado não volta para o navegador: campo vazio mantém o atual
+  if (String(form.get("cpf") ?? "").trim()) contato.set("cpf", String(form.get("cpf")));
   const r = await salvarContato(usuarioId, contato);
   if (r.erro) return { erro: r.erro };
   revalidar(eventoId);
@@ -291,4 +308,20 @@ export async function excluirComprovanteAction(eventoId: string, inscricaoId: st
   await storage.deleteFile({ bucketId: COMPROVANTES_BUCKET_ID, fileId: row.comprovante_file_id }).catch(() => {});
   revalidar(eventoId);
   return { ok: "Comprovante excluído." };
+}
+
+/** Coordenação (ou o mestre do evento) usa 1 crédito da própria pessoa na inscrição dela (ex.: pacote comprado depois de se inscrever). */
+export async function usarCreditoAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
+  const g = await exigirGestaoDoEvento(eventoId);
+  if (g.erro !== undefined) return { erro: g.erro };
+  const insc = (await tablesDBInscricao(inscricaoId));
+  if (!insc || insc.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };
+  const r = await usarCreditoNaInscricao(g.u.id, inscricaoId);
+  revalidar(eventoId);
+  return r;
+}
+
+async function tablesDBInscricao(inscricaoId: string) {
+  const { tablesDB } = createAdminClient();
+  return (await tablesDB.getRow({ databaseId: DB_ID, tableId: TABLES.inscricoes, rowId: inscricaoId }).catch(() => null)) as unknown as Inscricao | null;
 }

@@ -62,3 +62,12 @@ export function slugify(s: string) {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 }
+
+/**
+ * Nome de quem é criado sem cadastro: a primeira letra de cada palavra com mais de 3 letras vira maiúscula.
+ * Palavras de até 3 letras (de, da, alg…) ficam como foram digitadas.
+ */
+export function capitalizarNomeProprio(nome: string): string {
+  return nome.replace(/\p{L}+/gu, (palavra) =>
+    palavra.length > 3 ? palavra.charAt(0).toLocaleUpperCase("pt-BR") + palavra.slice(1) : palavra);
+}

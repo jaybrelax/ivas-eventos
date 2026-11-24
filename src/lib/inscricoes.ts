@@ -1,14 +1,16 @@
 import "server-only";
 import { AppwriteException, ID, Query } from "node-appwrite";
 import { createAdminClient } from "./appwrite";
-import { DB_ID, TABLES } from "./config";
-import { listar, listarEventos, listarTipos } from "./data";
+import { COMPROVANTES_BUCKET_ID, DB_ID, TABLES } from "./config";
+import { consumirCredito, devolverCredito } from "./creditos";
+import { consomeCredito } from "./creditos-regras";
+import { getEvento, listar, listarEventos, listarTipos } from "./data";
 import { hoje } from "./format";
 import { HORAS_LIMITE_CANCELAMENTO, inicioDe, prazoCancelamento } from "./guarnicao";
 import { urlPublicaEvento } from "./links";
 import { registrarHistorico, type AcaoHistorico } from "./historico-inscricoes";
 import { participantePodeInformar, transicaoPermitida, type DestinoCoordenacao } from "./pagamento-regras";
-import type { Evento, Inscricao, SituacaoInscricao, SituacaoPagamento, TipoEvento } from "./types";
+import type { Evento, FormaPagamento, Inscricao, SituacaoInscricao, SituacaoPagamento, TipoEvento } from "./types";
 
 /**
  * Inscrições de participantes (público geral) nos eventos — separadas da guarnição (guardiões).
@@ -77,6 +79,8 @@ export type ItemInscricao = {
   ritualNumero: number | null;
   situacao: SituacaoInscricao;
   pagamento: SituacaoPagamento;
+  /** Como a contribuição foi paga (pix, dinheiro ou pacote), quando confirmada. */
+  forma: FormaPagamento | null;
   valor: number | null;
   comprovante: string | null;
   /** Quando a inscrição foi feita, quando a contribuição foi informada e quando foi confirmada. */
@@ -113,6 +117,7 @@ export async function inscricoesComEventos(usuarioId: string): Promise<ItemInscr
         ritualNumero: tipo?.conta_como_ritual ? e.ritual_numero_geral : null,
         situacao: i.situacao,
         pagamento: i.pagamento,
+        forma: i.pagamento === "credito" ? "pacote" : (i.forma_pagamento ?? null),
         valor: i.valor,
         comprovante: i.comprovante_file_id,
         inscritoEm: i.$createdAt,
@@ -136,11 +141,34 @@ export async function reorganizarInscricoes(evento: Pick<Evento, "$id" | "vagas_
   const vagas = vagasParticipantesDe(evento);
   const ativas = await inscricoesDoEvento(evento.$id);
   const fila = [...ativas].sort((a, b) => a.ordem - b.ordem);
+  const promovidas: Inscricao[] = [];
+  const rebaixadas: Inscricao[] = [];
   for (const [i, insc] of fila.entries()) {
     const deveSer = i < vagas ? "confirmada" : "espera";
     if (insc.situacao !== deveSer) {
       await tablesDB.updateRow({ ...base, rowId: insc.$id, data: { situacao: deveSer, alterado_por: alteradoPor } });
+      (deveSer === "confirmada" ? promovidas : rebaixadas).push(insc);
     }
+  }
+  await ajustarCreditos(evento.$id, promovidas, rebaixadas, alteradoPor);
+}
+
+/**
+ * Créditos acompanham a vaga: quem passa a ter vaga confirmada num ritual usa 1 crédito (se tiver e se a
+ * contribuição avulsa ainda está em aberto); quem volta para a espera devolve o crédito. A inscrição nova entra
+ * como "espera" e é promovida aqui, então este é o único ponto de consumo. Nunca derruba a inscrição.
+ */
+async function ajustarCreditos(eventoId: string, promovidas: Inscricao[], rebaixadas: Inscricao[], alteradoPor: string | null) {
+  if (!promovidas.length && !rebaixadas.length) return;
+  try {
+    const evento = await getEvento(eventoId);
+    if (!evento) return;
+    const tipo = (await listarTipos()).find((t) => t.$id === evento.tipo_id);
+    if (!consomeCredito(tipo)) return;
+    for (const insc of rebaixadas) if (insc.credito_id) await devolverCredito(insc, alteradoPor ?? insc.usuario_id);
+    for (const insc of promovidas) await consumirCredito(insc.$id, alteradoPor ?? insc.usuario_id);
+  } catch (e) {
+    console.error("Créditos da inscrição:", e instanceof Error ? e.message : e);
   }
 }
 
@@ -151,6 +179,8 @@ async function entrarNaFila(eventoId: string, usuarioId: string, alteradoPor: st
   let inscricaoId: string;
   if (existente) {
     if (existente.situacao === "confirmada" || existente.situacao === "espera") return { jaEstava: true };
+    // Crédito que ficou preso numa inscrição cancelada volta para o dono antes de reativar
+    if (existente.credito_id) await devolverCredito(existente, alteradoPor);
     await tablesDB.updateRow({ ...base, rowId: existente.$id, data: dados });
     inscricaoId = existente.$id;
   } else {
@@ -168,7 +198,7 @@ async function entrarNaFila(eventoId: string, usuarioId: string, alteradoPor: st
 }
 
 /** Cancela a inscrição ativa. Com a contribuição já confirmada, não cancela (só depois de reabrir a contribuição). */
-async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: string): Promise<"saiu" | "nao_inscrito" | "pago"> {
+async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: string): Promise<"saiu" | "saiu_com_credito" | "nao_inscrito" | "pago"> {
   const { tablesDB } = createAdminClient();
   const existente = await inscricaoDe(eventoId, usuarioId);
   if (!existente || (existente.situacao !== "confirmada" && existente.situacao !== "espera")) return "nao_inscrito";
@@ -178,6 +208,11 @@ async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: stri
     inscricao_id: existente.$id, evento_id: eventoId, usuario_id: usuarioId,
     acao: alteradoPor === usuarioId ? "cancelamento" : "remocao", por: alteradoPor,
   });
+  // RN007: cancelar a participação devolve o crédito ao pacote
+  if (existente.pagamento === "credito" || existente.credito_id) {
+    await devolverCredito(existente, alteradoPor);
+    return "saiu_com_credito";
+  }
   return "saiu";
 }
 
@@ -193,7 +228,7 @@ export async function inscrever(evento: Evento, tipo: TipoEvento | undefined, us
   await reorganizarInscricoes(evento, usuarioId);
   const minha = await inscricaoDe(evento.$id, usuarioId);
   return minha?.situacao === "confirmada"
-    ? { ok: "Participação confirmada!" }
+    ? { ok: minha.pagamento === "credito" ? "Participação confirmada com 1 crédito!" : "Participação confirmada!" }
     : { ok: "As vagas estão preenchidas: você entrou na lista de espera e será avisado se alguém sair." };
 }
 
@@ -206,7 +241,7 @@ export async function cancelarInscricao(evento: Evento, usuarioId: string): Prom
   if (r === "nao_inscrito") return { erro: "Você não está inscrito neste evento." };
   if (r === "pago") return { erro: "Sua contribuição já foi confirmada, então a participação não pode ser cancelada pelo site. Fale com a coordenação." };
   await reorganizarInscricoes(evento, usuarioId);
-  return { ok: "Participação cancelada." };
+  return { ok: r === "saiu_com_credito" ? "Participação cancelada. Seu crédito foi devolvido." : "Participação cancelada." };
 }
 
 /** Coordenador inclui alguém manualmente (entra na fila como qualquer inscrição). */
@@ -224,7 +259,23 @@ export async function removerParticipante(evento: Evento, usuarioId: string, por
   if (r === "nao_inscrito") return { erro: "Essa pessoa não está neste evento." };
   if (r === "pago") return { erro: "A contribuição desta pessoa já foi confirmada. Reabra a contribuição antes de cancelar a participação." };
   await reorganizarInscricoes(evento, porId);
-  return { ok: "Participação cancelada." };
+  return { ok: r === "saiu_com_credito" ? "Participação cancelada. O crédito foi devolvido." : "Participação cancelada." };
+}
+
+/**
+ * Coordenação exclui de vez a participação de alguém, com a contribuição ainda pendente (serve também para
+ * rituais já realizados). Apaga a inscrição e o comprovante anexado; o histórico fica registrado.
+ */
+export async function excluirInscricao(evento: Evento, inscricaoId: string, porId: string): Promise<Resultado> {
+  const { tablesDB, storage } = createAdminClient();
+  const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
+  if (!row || row.evento_id !== evento.$id) return { erro: "Inscrição não encontrada neste evento." };
+  if (row.pagamento !== "pendente") return { erro: "Só dá para excluir a participação com a contribuição pendente. Marque como pendente antes." };
+  await registrarHistorico({ inscricao_id: row.$id, evento_id: evento.$id, usuario_id: row.usuario_id, acao: "remocao", pagamento_de: row.pagamento, por: porId });
+  await tablesDB.deleteRow({ ...base, rowId: row.$id });
+  if (row.comprovante_file_id) await storage.deleteFile({ bucketId: COMPROVANTES_BUCKET_ID, fileId: row.comprovante_file_id }).catch(() => {});
+  await reorganizarInscricoes(evento, porId);
+  return { ok: "Participação excluída." };
 }
 
 /** O próprio participante avisa que contribuiu (comprovante opcional); fica aguardando confirmação da coordenação. */
@@ -274,6 +325,8 @@ export async function definirPagamento(
   eventoId: string, inscricaoId: string, situacao: DestinoCoordenacao, porId: string, valor: number | null = null,
   /** Confirmada com pacote: observação livre (ex.: "2/4 1"); o valor em R$ fica 0. */
   pacote: { obs: string } | null = null,
+  /** Forma da contribuição confirmada: pix ou dinheiro. */
+  forma: "pix" | "dinheiro" | null = null,
 ): Promise<Resultado> {
   const { tablesDB } = createAdminClient();
   const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
@@ -284,6 +337,12 @@ export async function definirPagamento(
   if (bloqueio) return { erro: bloqueio };
 
   const dados: Record<string, unknown> = { pagamento: situacao, alterado_por: porId };
+  // Trocar a forma de pagamento de uma participação paga com crédito devolve o crédito ao pacote
+  if (row.pagamento === "credito" || row.credito_id) {
+    await devolverCredito(row, porId, false, "Contribuição alterada pela coordenação");
+    dados.credito_id = null;
+    if (situacao !== "pago") dados.valor = null;
+  }
   if (situacao === "pago") {
     if (!edicao) dados.pago_em = new Date().toISOString();
     if (pacote !== null) { dados.valor = 0; dados.usou_pacote = true; dados.observacao = pacote.obs || null; }
@@ -295,11 +354,15 @@ export async function definirPagamento(
     dados.pago_em = null;
     if (row.usou_pacote) { dados.usou_pacote = false; dados.observacao = null; }
   }
+  // A forma acompanha a confirmação; ao sair de "pago" ela é apagada
+  if (situacao === "pago") { if (forma) dados.forma_pagamento = forma; }
+  else if (row.forma_pagamento) dados.forma_pagamento = null;
   try {
     await tablesDB.updateRow({ ...base, rowId: inscricaoId, data: dados });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     // Colunas do pacote ainda não existem no banco (falta rodar a criação delas)
+    if (/Unknown attribute/i.test(msg) && /forma_pagamento/.test(msg)) return { erro: "A forma de pagamento ainda não está ativa no banco de dados. Avise o administrador." };
     if (/Unknown attribute/i.test(msg) && /usou_pacote/.test(msg)) return { erro: "O registro de pacote ainda não está ativo no banco de dados. Avise o administrador." };
     throw e;
   }

@@ -92,8 +92,10 @@ export type Evento = {
 export type SituacaoCandidatura = "confirmada" | "espera" | "cancelada" | "removida" | "justificada";
 
 export type SituacaoInscricao = "confirmada" | "espera" | "cancelada";
-/** na_hora: o participante avisou que vai contribuir no dia do ritual. */
-export type SituacaoPagamento = "pendente" | "informado" | "pago" | "isento" | "na_hora";
+/** na_hora: o participante avisou que vai contribuir no dia do ritual. credito: paga com 1 crédito de um pacote. */
+/** Como a contribuição confirmada foi paga. Pacote = crédito (pagamento "credito"); pix e dinheiro ficam em `forma_pagamento`. */
+export type FormaPagamento = "pix" | "dinheiro" | "pacote";
+export type SituacaoPagamento = "pendente" | "informado" | "pago" | "isento" | "na_hora" | "credito";
 
 /** Inscrição de um participante (público geral) num evento. */
 export type Inscricao = {
@@ -115,6 +117,10 @@ export type Inscricao = {
   pacote_numero?: number | null;
   /** Primeira vez da pessoa em um ritual (marcado pela coordenação). */
   primeira_vez?: boolean | null;
+  /** Crédito consumido por esta inscrição (quando pagamento = "credito"). */
+  credito_id?: string | null;
+  /** Forma da contribuição confirmada (pix ou dinheiro). Com crédito, a forma é pacote. */
+  forma_pagamento?: FormaPagamento | null;
   alterado_por: string | null;
   $createdAt: string;
   $updatedAt: string;
@@ -155,4 +161,88 @@ export type DadosInstituto = {
   pix: ChavePix[];
   tipos: TipoEvento[];
   tags: TagEvento[];
+};
+
+// ---------------------------------------------------------------------------------------------------------------
+// Pacotes de créditos. O Pacote é a compra (financeiro); o controle real é por Crédito (1 = 1 participação).
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Plano do catálogo: o que a pessoa pode comprar (ex.: 4 rituais por R$ 220). */
+export type PlanoPacote = {
+  $id: string;
+  nome: string;
+  quantidade: number;
+  valor: number;
+  descricao: string | null;
+  ativo: boolean;
+  ordem: number;
+  $createdAt: string;
+  $updatedAt: string;
+};
+
+/** pendente: criado pela equipe e ainda não pago · informado: o participante diz que pagou · pago: confirmado. */
+export type SituacaoPacote = "pendente" | "informado" | "pago" | "cancelado";
+
+export type Pacote = {
+  $id: string;
+  usuario_id: string;
+  plano_id: string | null;
+  nome: string | null;
+  quantidade: number;
+  valor: number | null;
+  situacao: SituacaoPacote;
+  origem: "participante" | "equipe";
+  comprovante_file_id: string | null;
+  informado_em: string | null;
+  pago_em: string | null;
+  confirmado_por: string | null;
+  criado_por: string | null;
+  observacao: string | null;
+  $createdAt: string;
+  $updatedAt: string;
+};
+
+/** bloqueado: pacote ainda não pago · disponivel · utilizado: vinculado a um ritual · cancelado: pacote cancelado. */
+export type SituacaoCredito = "bloqueado" | "disponivel" | "utilizado" | "cancelado";
+
+export type Credito = {
+  $id: string;
+  pacote_id: string;
+  /** Posição no pacote (1..N), para exibir "2/4". */
+  numero: number;
+  comprador_id: string;
+  /** Quem pode usar o crédito agora (o comprador, ou quem recebeu por cessão). */
+  titular_id: string;
+  situacao: SituacaoCredito;
+  /** Fila: o menor é usado primeiro. */
+  ordem: number | null;
+  cedido_de: string | null;
+  cedido_em: string | null;
+  evento_id: string | null;
+  inscricao_id: string | null;
+  utilizado_em: string | null;
+  /** Trava atômica do consumo: 1 = livre, 0 = em uso (ver consumirCredito). */
+  trava?: number | null;
+  $createdAt: string;
+  $updatedAt: string;
+};
+
+export type AcaoMovimento =
+  | "compra" | "pagamento_informado" | "pacote_confirmado" | "pacote_cancelado"
+  | "uso" | "devolucao" | "cessao" | "cessao_desfeita" | "quitacao_debito" | "ajuste";
+
+/** Linha do histórico auditável dos créditos (só acrescenta). */
+export type MovimentoCredito = {
+  $id: string;
+  acao: AcaoMovimento;
+  usuario_id: string;
+  credito_id: string | null;
+  pacote_id: string | null;
+  evento_id: string | null;
+  inscricao_id: string | null;
+  de_usuario: string | null;
+  para_usuario: string | null;
+  por: string;
+  observacao: string | null;
+  $createdAt: string;
 };

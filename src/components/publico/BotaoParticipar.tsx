@@ -57,6 +57,8 @@ type Props = {
   podeCancelar: boolean;
   prazoTexto?: string;
   valorContribuicao?: number | null;
+  /** Créditos de pacote do usuário (só para rituais): quantos tem disponíveis e o saldo (negativo = deve participações). */
+  creditos?: { disponiveis: number; saldo: number } | null;
 };
 
 let reivindicado: string | null = null;
@@ -88,6 +90,7 @@ export function BotaoParticipar({
   podeCancelar,
   prazoTexto,
   valorContribuicao,
+  creditos = null,
 }: Props) {
   const [aberto, setAberto] = useState(false);
   // Etapa de anexar o comprovante (vem de "Já fiz a contribuição" ou do link "Avisar contribuição")
@@ -134,6 +137,7 @@ export function BotaoParticipar({
         : ehRitual ? "Participar do Ritual" : "Participar do encontro";
   // Miniatura do card: a capa do evento nas primeiras etapas; o local só no fim (confirmado e com a contribuição avisada/resolvida).
   const exigeContribuicao = ehRitual && !!valorContribuicao && valorContribuicao > 0;
+  const temCredito = ehRitual && !!creditos && creditos.disponiveis > 0;
   const concluiu = !!minhaInscricao && (!exigeContribuicao || minhaInscricao.pagamento !== "pendente");
   const miniatura = concluiu && fotoLocal
     ? { id: fotoLocal, alt: "Foto do local" }
@@ -217,7 +221,8 @@ export function BotaoParticipar({
                   motivoBloqueio={motivoBloqueio}
                   vagasLivres={vagasLivres}
                   linkWhatsApp={linkWhatsApp}
-                  exigeContribuicao={exigeContribuicao}
+                  exigeContribuicao={exigeContribuicao && !temCredito}
+                  creditos={ehRitual ? creditos : null}
                 />
               )}
             </div>
@@ -255,9 +260,10 @@ function SemSessao({ next, linkWhatsApp }: { next: string; linkWhatsApp: string 
 }
 
 function SemInscricao({
-  eventoId, podeInscrever, motivoBloqueio, vagasLivres, linkWhatsApp, exigeContribuicao,
+  eventoId, podeInscrever, motivoBloqueio, vagasLivres, linkWhatsApp, exigeContribuicao, creditos,
 }: {
   eventoId: string; podeInscrever: boolean; motivoBloqueio?: string | null; vagasLivres: number; linkWhatsApp: string; exigeContribuicao: boolean;
+  creditos: { disponiveis: number; saldo: number } | null;
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -285,6 +291,20 @@ function SemInscricao({
           ? `${vagasLivres} vaga${vagasLivres > 1 ? "s" : ""} disponíve${vagasLivres > 1 ? "is" : "l"}.`
           : "As vagas estão preenchidas: você entrará na lista de espera e será avisado se alguém sair."}
       </p>
+      {creditos && creditos.disponiveis > 0 && (
+        <p className="flex items-start gap-2 rounded-xl bg-violet-50 px-3.5 py-2.5 text-[13px] leading-snug text-violet-900 ring-1 ring-violet-200/70">
+          <Ticket size={16} className="mt-0.5 shrink-0" aria-hidden />
+          <span>{vagasLivres > 0 ? "Ao confirmar, será usado " : "Quando você garantir a vaga, será usado "}<strong>1 dos seus {creditos.disponiveis} {creditos.disponiveis === 1 ? "crédito" : "créditos"}</strong>. Se cancelar, ele volta para você.</span>
+        </p>
+      )}
+      {creditos && creditos.saldo < 0 && (
+        <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-[13px] leading-snug text-red-800 ring-1 ring-red-200">
+          Seu saldo de créditos está negativo ({creditos.saldo}). Veja em <a href="/minha-conta?aba=creditos" className="font-semibold underline">Minha conta</a> e fale com a coordenação.
+        </p>
+      )}
+      {creditos && creditos.disponiveis === 0 && (
+        <p className="text-center text-xs text-stone-500">Quer participar com crédito? <a href="/minha-conta?aba=creditos" className="font-semibold text-mata-700 underline">Comprar um pacote</a></p>
+      )}
       <button
         type="button"
         disabled={pendente}
@@ -415,7 +435,13 @@ function Inscrito({
 
   return (
     <div className="space-y-4">
-      {ehRitual && !!valorContribuicao && valorContribuicao > 0 && (
+      {ehRitual && minhaInscricao.pagamento === "credito" && (
+        <div className="flex items-start gap-2.5 rounded-xl bg-violet-50 px-3.5 py-3 text-sm font-medium text-violet-900 ring-1 ring-violet-200">
+          <Ticket size={18} className="mt-0.5 shrink-0" aria-hidden />
+          <span>Participação paga com 1 crédito.<span className="mt-0.5 block text-xs font-normal text-violet-800/80">Se você cancelar, o crédito volta para você.</span></span>
+        </div>
+      )}
+      {ehRitual && minhaInscricao.pagamento !== "credito" && !!valorContribuicao && valorContribuicao > 0 && (
         <PagamentoBloco
           eventoId={eventoId}
           inscricaoId={minhaInscricao.id}

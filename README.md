@@ -102,6 +102,18 @@ Guardiões se candidatam às vagas de cada ritual (tipos que contam como ritual)
 - O histórico de participações aparece em **Meu perfil** e no painel de edição do usuário.
 - Dados: tabela `candidaturas`; a lista `guardioes` do evento é mantida igual às candidaturas confirmadas.
 
+## Créditos (pacotes)
+
+O participante compra um **pacote** (ex.: 4 rituais por R$ 220) e recebe **créditos**: cada crédito vale 1 participação em ritual (tipo que conta como ritual e aceita inscrição pública). O pacote é a parte financeira; o controle é por crédito, com dono, situação e histórico próprios.
+
+- **Compra:** em *Minha conta › Créditos* a pessoa escolhe um pacote do catálogo (*Configurações › Pacotes de créditos*), paga por Pix e toca em "Já paguei" (comprovante opcional). A coordenação confirma em *Créditos › Pacotes*, ou lança o pacote direto para a pessoa. Enquanto o pagamento não for confirmado, os créditos ficam **bloqueados** e não contam no saldo.
+- **Uso:** quem ganha vaga confirmada num ritual usa o crédito disponível mais antigo, e a inscrição passa a "Crédito". Sem crédito, vale o fluxo avulso de sempre (Pix e comprovante). Um crédito só é usado uma vez: a coluna `creditos.trava` (1 = livre) é decrementada com mínimo 0, operação atômica no Appwrite, e só um consumo vence.
+- **Cancelar:** cancelar a participação, trocar a contribuição para outra forma ou excluir o evento devolve o crédito ao pacote.
+- **Saldo negativo:** quando o ritual começa e a pessoa está confirmada, sem crédito e sem contribuição avulsa confirmada, informada ou isenta, ela fica em **débito** (saldo = disponíveis − débitos). O débito some sozinho se a contribuição for resolvida ou a inscrição cancelada. Pacote novo **não quita** débito antigo sozinho: a coordenação usa *Quitar com crédito* em *Créditos › Débitos*.
+- **Ceder:** o titular cede um crédito disponível a outra pessoa pelo e-mail dela. Crédito usado não se cede, e quem recebeu por cessão não cede de novo. A coordenação pode corrigir (na ficha do participante).
+- **Histórico:** toda compra, uso, devolução, cessão e quitação vira uma linha em `movimentos_credito` (só acrescenta), com filtros por pessoa, ritual, pacote e data e exportação em CSV.
+- **Banco:** rode uma vez `node --env-file=.env.local scripts/migrar-creditos.mjs` (`--check` só mostra o estado). Cria as tabelas `planos_pacote`, `pacotes`, `creditos` e `movimentos_credito`, a coluna `credito_id` em `inscricoes` e os valores novos de `pagamento` e do histórico, e preenche a trava dos créditos. `--remover-usos` apaga a tabela antiga `usos_credito` (só se vazia). `npm run setup` também cria tudo. Regras puras em `src/lib/creditos-regras.ts` (testes em `scripts/creditos-regras.test.mjs`).
+
 ## Estrutura
 
 ```

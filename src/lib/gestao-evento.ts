@@ -14,6 +14,12 @@ export function podeGerenciarEvento(u: Pick<Usuario, "id" | "perfil"> | null, ev
   return pode(u, PODE.editarEventos) || (evento.mestres ?? []).includes(u.id);
 }
 
+/** Isentar a contribuição: o Admin e o mestre escalado neste evento. Coordenador comum não isenta. */
+export function podeIsentarContribuicao(u: Pick<Usuario, "id" | "perfil"> | null, evento: Pick<Evento, "mestres">): boolean {
+  if (!u?.perfil) return false;
+  return u.perfil === "admin" || (evento.mestres ?? []).includes(u.id);
+}
+
 /** Para Server Actions: devolve o usuário e o evento, ou um erro se ele não puder gerenciar este evento. */
 export async function exigirGestaoDoEvento(eventoId: string): Promise<{ u: Usuario & { perfil: NonNullable<Usuario["perfil"]> }; evento: Evento; erro?: undefined } | { erro: string }> {
   const u = await exigir();

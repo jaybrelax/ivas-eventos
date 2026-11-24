@@ -1,9 +1,10 @@
 "use client";
 
 import { createPortal } from "react-dom";
+import { capitalizarNomeProprio } from "@/lib/format";
 import { createContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Check, ChevronRight, Clock, Crown, Receipt, Search, Shield, SlidersHorizontal, Sprout, UserPlus, Users, X } from "lucide-react";
-import type { Sexo, SituacaoPagamento } from "@/lib/types";
+import type { ChavePix, FormaPagamento, Sexo, SituacaoPagamento } from "@/lib/types";
 import type { Dose } from "@/lib/doses";
 import { Avatar } from "@/components/Avatar";
 import { Aviso, Carregando } from "@/components/ui";
@@ -19,6 +20,11 @@ export type ItemParticipanteInscrito = PessoaParticipante & {
   inscritoEm: string; valor: number | null; informadoEm: string | null; pagoEm: string | null;
   /** Contribuição paga com pacote (valor em R$ = 0). */
   usouPacote?: boolean; /** Observação do pacote (ex.: "2/4 1"). */ pacoteObs?: string | null;
+  /** Crédito usado na participação (ex.: "2/4") e saldo da pessoa: só para quem gerencia o evento. */
+  creditoRotulo?: string | null;
+  /** Como foi paga a contribuição confirmada (pix, dinheiro ou pacote). */
+  forma?: FormaPagamento | null;
+  saldoCredito?: { disponiveis: number; debitos: number; saldo: number } | null;
   /** Primeira vez da pessoa em um ritual (só para quem gerencia o evento). */
   primeiraVez?: boolean;
   /** Já tem participação confirmada em outro evento (então não é a primeira vez). */
@@ -29,7 +35,8 @@ export type ItemParticipanteInscrito = PessoaParticipante & {
 };
 
 /** Mestre ou guardião do evento, para a lista de presença juntar equipe e participantes. */
-export type MembroLista = { id: string; nome: string; foto: string | null; papel: "mestre" | "guardiao"; sexo?: Sexo | null; /** Label `first` do Appwrite: vem antes dentro do grupo. */ first?: boolean };
+export type ContatoEquipe = { email: string; telefone: string | null; cidade: string | null; estado: string | null; cpf: string | null };
+export type MembroLista = { id: string; nome: string; foto: string | null; papel: "mestre" | "guardiao"; sexo?: Sexo | null; /** Label `first` do Appwrite: vem antes dentro do grupo. */ first?: boolean; /** Contato (só para quem gerencia). */ contato?: ContatoEquipe | null };
 
 const PAPEL = {
   mestre: { rotulo: "Mestre", cor: "bg-mata-100 text-mata-800", Icone: Crown },
@@ -54,6 +61,10 @@ export type DadosParticipantes = {
   dosesEquipe?: Record<string, Dose[]>;
   /** Cidade/UF do Instituto, sugeridas ao informar os dados de quem ainda não tem cidade. */
   localPadrao?: { estado: string; cidade: string } | null;
+  /** Chave Pix padrão (Configurações): usada para gerar o QR Code com o valor ao confirmar um Pix. */
+  chavePix?: ChavePix | null;
+  /** Quem pode isentar a contribuição: Admin e mestre escalado no evento. */
+  podeIsentar?: boolean;
   /** Mostra o atalho para o perfil completo (/admin/participantes): só coordenação e admin. */
   linkPerfil?: boolean;
 };
@@ -64,6 +75,7 @@ const PAGAMENTO: Record<SituacaoPagamento, { rotulo: string; cor: string }> = {
   pago: { rotulo: "Pago", cor: "bg-emerald-50 text-emerald-700" },
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
+  credito: { rotulo: "Crédito", cor: "bg-violet-50 text-violet-700" },
 };
 
 type FiltroPg = "todos" | "conferir" | "aberto" | "pago" | "isento";
@@ -111,7 +123,7 @@ function ChipsDose({ doses }: { doses: Dose[] }) {
 const CLASSE_PRESENTE = "border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-100/80 via-emerald-50/40 to-white ring-1 ring-emerald-100";
 
 /** Sigla da situação da contribuição (participante com dose registrada). */
-const SIGLA_PAGAMENTO: Record<SituacaoPagamento, string> = { pendente: "PEN", informado: "PC", pago: "OK", isento: "IN", na_hora: "NH" };
+const SIGLA_PAGAMENTO: Record<SituacaoPagamento, string> = { pendente: "PEN", informado: "PC", pago: "OK", isento: "IN", na_hora: "NH", credito: "CR" };
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -160,6 +172,38 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
     return () => { document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", tecla); };
   }, [filtroAberto]);
   const rodar = (fn: () => Promise<{ ok?: string; erro?: string }>) => iniciar(async () => setMsg(await fn()));
+  // O aviso some sozinho depois de 7 segundos
+  useEffect(() => {
+    if (!msg) return;
+    const t = setTimeout(() => setMsg(undefined), 7000);
+    return () => clearTimeout(t);
+  }, [msg]);
+  // Inclusão: guarda quem já estava na lista; quando a lista atualiza, quem apareceu a mais ganha o destaque
+  const [destacado, setDestacado] = useState<string | null>(null);
+  const antesDeIncluir = useRef<Set<string> | null>(null);
+  // Pessoa criada agora, sem cadastro: o card abre com os dados expandidos e em edição
+  const [recemCriado, setRecemCriado] = useState<string | null>(null);
+  const incluindoAvulso = useRef(false);
+  const incluir = (fn: () => Promise<{ ok?: string; erro?: string }>, avulso = false) => {
+    antesDeIncluir.current = new Set([...dados.confirmados, ...dados.espera].map((x) => x.id));
+    incluindoAvulso.current = avulso;
+    iniciar(async () => {
+      const r = await fn();
+      setMsg(r);
+      if (r.erro) { antesDeIncluir.current = null; incluindoAvulso.current = false; }
+    });
+  };
+  useEffect(() => {
+    const antes = antesDeIncluir.current;
+    if (!antes) return;
+    const novo = [...dados.confirmados, ...dados.espera].find((x) => !antes.has(x.id));
+    if (!novo) return;
+    antesDeIncluir.current = null;
+    if (incluindoAvulso.current) { setRecemCriado(novo.id); incluindoAvulso.current = false; }
+    setDestacado(novo.id);
+    setTimeout(() => setDestacado(null), 5000);
+    requestAnimationFrame(() => document.querySelector(`[data-participante="${novo.id}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" }));
+  }, [dados.confirmados, dados.espera]);
   const ocupadas = dados.confirmados.length;
   const livres = Math.max(0, dados.vagas - ocupadas);
   const pct = dados.vagas ? Math.min(100, Math.round((ocupadas / dados.vagas) * 100)) : 0;
@@ -375,7 +419,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
           {acoesNaLinha && <div className="shrink-0 md:hidden">{acoes}</div>}
           {incluirNaBusca && (
             <div className="shrink-0 md:hidden">
-              <Incluir soIcone opcoes={dados.disponiveis} pendente={pendente} cheio={!livres} aoIncluir={(id) => rodar(() => incluirParticipanteAction(dados.eventoId, id))} aoIncluirAvulso={(nome) => rodar(() => incluirAvulsoAction(dados.eventoId, nome))} />
+              <Incluir soIcone opcoes={dados.disponiveis} pendente={pendente} cheio={!livres} aoIncluir={(id) => incluir(() => incluirParticipanteAction(dados.eventoId, id))} aoIncluirAvulso={(nome) => incluir(() => incluirAvulsoAction(dados.eventoId, nome), true)} />
             </div>
           )}
         </div>
@@ -383,14 +427,14 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
       <div className={embutido ? "" : "sm:rounded-xl sm:border sm:border-stone-200/80 sm:p-3"}>
         <p className={`flex items-center justify-between px-0.5 pt-1 pb-2 text-xs font-semibold tracking-wider text-stone-500 uppercase ${embutido ? "" : "sm:px-1.5"}`}>
-          <span>{equipe.length ? (equipeOrdenada.length ? "Guardiões da Luz" : "Participantes") : "Confirmados"} <span className="tabular-nums">({equipeOrdenada.length || confirmados.length})</span></span>
+          <span>{equipe.length ? (equipeOrdenada.length ? "Soldados da Luz" : "Participantes") : "Confirmados"} <span className="tabular-nums">({equipeOrdenada.length || confirmados.length})</span></span>
           {filtrando && <span className="normal-case tracking-normal font-medium">{confirmados.length} de {ocupadas}</span>}
         </p>
         {confirmados.length || soEquipe.length ? (
           <ul className="space-y-2 md:space-y-1">
             {/* Equipe primeiro (guardiões, guardiãs, mestres), com fundo azulado; depois os demais participantes */}
             {equipeOrdenada.map((x) => x.p ? (
-              <Linha key={x.id} p={x.p} papel={x.papel} destaque temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} chamada={ehMarcavel(x.id)} presente={presentes.has(x.id)} abrir={() => (ehMarcavel(x.id) ? marcar(x.id) : setAberta(x.p!.inscricaoId))} />
+              <Linha key={x.id} p={x.p} novo={destacado === x.p.id} papel={x.papel} destaque temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} chamada={ehMarcavel(x.id)} presente={presentes.has(x.id)} abrir={() => (ehMarcavel(x.id) ? marcar(x.id) : setAberta(x.p!.inscricaoId))} />
             ) : (
               <li key={`equipe-${x.id}`}>
                 {dados.gerenciar && !financeiro ? (
@@ -419,7 +463,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
               <li aria-hidden className="px-1.5 pt-3 pb-1 text-xs font-semibold tracking-wider text-stone-400 uppercase">Participantes <span className="tabular-nums">({confirmados.filter((p) => !papelDe.has(p.id)).length})</span></li>
             )}
             {confirmados.filter((p) => !papelDe.has(p.id)).map((p) => (
-              <Linha key={p.id} p={p} guardiao={ehGuardiao.has(p.id)} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} chamada={ehMarcavel(p.id)} presente={presentes.has(p.id)} abrir={() => (ehMarcavel(p.id) ? marcar(p.id) : setAberta(p.inscricaoId))} />
+              <Linha key={p.id} p={p} novo={destacado === p.id} guardiao={ehGuardiao.has(p.id)} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} chamada={ehMarcavel(p.id)} presente={presentes.has(p.id)} abrir={() => (ehMarcavel(p.id) ? marcar(p.id) : setAberta(p.inscricaoId))} />
             ))}
           </ul>
         ) : (
@@ -436,7 +480,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
             </p>
             <ol className="space-y-1">
               {espera.map(({ p, pos }) => (
-                <Linha key={p.id} p={p} papel={papelDe.get(p.id)} guardiao={ehGuardiao.has(p.id)} posicao={pos} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} abrir={() => setAberta(p.inscricaoId)} />
+                <Linha key={p.id} p={p} novo={destacado === p.id} papel={papelDe.get(p.id)} guardiao={ehGuardiao.has(p.id)} posicao={pos} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} abrir={() => setAberta(p.inscricaoId)} />
               ))}
             </ol>
           </div>
@@ -444,7 +488,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
 
         {dados.gerenciar && !financeiro && (
           <div className="mt-3 border-t border-stone-100 pt-3">
-            <Incluir opcoes={dados.disponiveis} pendente={pendente} cheio={!livres} aoIncluir={(id) => rodar(() => incluirParticipanteAction(dados.eventoId, id))} aoIncluirAvulso={(nome) => rodar(() => incluirAvulsoAction(dados.eventoId, nome))} />
+            <Incluir opcoes={dados.disponiveis} pendente={pendente} cheio={!livres} aoIncluir={(id) => incluir(() => incluirParticipanteAction(dados.eventoId, id))} aoIncluirAvulso={(nome) => incluir(() => incluirAvulsoAction(dados.eventoId, nome), true)} />
           </div>
         )}
       </div>
@@ -456,6 +500,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
             eventoId={dados.eventoId}
             pessoa={{ id: m.id, nome: m.nome, foto: m.foto }}
             rotulo={m.papel === "mestre" ? "Mestre" : m.sexo === "feminino" ? "Guardiã" : "Guardião"}
+            contato={m.papel === "guardiao" ? m.contato ?? null : null}
             inicial={dados.dosesEquipe?.[m.id] ?? []}
             fechar={() => setEquipeAberta(null)}
           />
@@ -465,9 +510,11 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
       {atual && (
         <ModalInscricao
           p={atual}
+          financeiro={financeiro}
           posicaoEspera={posEspera >= 0 ? posEspera + 1 : undefined}
           dados={dados}
-          fechar={() => setAberta(null)}
+          abrirEditando={recemCriado === atual.id}
+          fechar={() => { setAberta(null); setRecemCriado(null); }}
           aoCancelar={(r) => { setAberta(null); setMsg(r); }}
         />
       )}
@@ -552,9 +599,9 @@ function ValorContribuicao({ p, esperado }: { p: ItemParticipanteInscrito; esper
 }
 
 function Linha({
-  p, papel, guardiao = false, destaque = false, posicao, temContribuicao: comContribuicao, gerenciar, abrir, chamada = false, presente = false, financeiro = false, esperado = null,
+  p, papel, guardiao = false, destaque = false, posicao, temContribuicao: comContribuicao, gerenciar, abrir, chamada = false, presente = false, financeiro = false, esperado = null, novo = false,
 }: {
-  p: ItemParticipanteInscrito; papel?: MembroLista["papel"]; guardiao?: boolean; destaque?: boolean; posicao?: number; temContribuicao: boolean; gerenciar: boolean; abrir: () => void;
+  p: ItemParticipanteInscrito; papel?: MembroLista["papel"]; guardiao?: boolean; destaque?: boolean; posicao?: number; temContribuicao: boolean; gerenciar: boolean; abrir: () => void; novo?: boolean;
   /** Chamada ativa: a linha vira marcador de presença. */ chamada?: boolean; presente?: boolean;
   /** Aba Financeiro: a contribuição no lugar das doses. */ financeiro?: boolean; /** Valor previsto, para quem ainda não pagou. */ esperado?: number | null;
 }) {
@@ -604,9 +651,9 @@ function Linha({
     </>
   );
   const base = `flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? (papel === "mestre" ? "bg-mata-50 ring-1 ring-mata-100" : "bg-sky-50 ring-1 ring-sky-100") : "bg-stone-50/70"}`;
-  if (!gerenciar) return <li className={base}>{conteudo}</li>;
+  if (!gerenciar) return <li data-participante={p.id} className={`${base} ${novo ? "animate-destaque motion-reduce:animate-none" : ""}`}>{conteudo}</li>;
   return (
-    <li>
+    <li data-participante={p.id} className={novo ? "animate-destaque rounded-lg motion-reduce:animate-none" : undefined}>
       <button
         type="button"
         onClick={abrir}
@@ -734,7 +781,7 @@ function Incluir({ opcoes, pendente, cheio, aoIncluir, aoIncluirAvulso, soIcone 
                   >
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-dashed border-ouro-500 text-ouro-700"><UserPlus size={16} /></span>
                     <span className="min-w-0">
-                      <span className="block truncate">Criar <strong className="font-semibold">“{nomeDigitado}”</strong></span>
+                      <span className="block truncate">Criar <strong className="font-semibold">“{capitalizarNomeProprio(nomeDigitado.trim().replace(/s+/g, " "))}”</strong></span>
                       <span className="block text-xs text-stone-500">Pessoa ainda sem cadastro no sistema</span>
                     </span>
                   </button>

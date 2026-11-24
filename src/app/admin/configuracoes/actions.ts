@@ -6,6 +6,9 @@ import { createAdminClient } from "@/lib/appwrite";
 import { exigir } from "@/lib/auth";
 import { ehUf } from "@/lib/perfil-extra";
 import { BUCKET_ID, DB_ID, IA_ROW_ID, INSTITUTO_ROW_ID, TABLES } from "@/lib/config";
+import { lerQuantidade } from "@/lib/creditos-regras";
+import { listarPlanos } from "@/lib/creditos";
+import { lerValor } from "@/lib/pagamento-regras";
 import { getConfigIA } from "@/lib/ia";
 import { FONTES_TEXTO, FONTES_TITULO, fonteValida } from "@/lib/tipografia";
 import { getInstituto, listarTags, listarTipos } from "@/lib/data";
@@ -211,6 +214,22 @@ export async function salvarItem(tabela: TabelaEditavel, _: Resultado, form: For
       // Sem campo de ordem na tela: a tag nova entra no fim da lista.
       const ultimas = await listarTags();
       dados.ordem = Math.max(0, ...ultimas.map((t) => t.ordem ?? 0)) + 1;
+    }
+  }
+
+  if (tabela === "planosPacote") {
+    const q = lerQuantidade(dados.quantidade);
+    if ("erro" in q) return { erro: q.erro };
+    const v = lerValor(dados.valor);
+    if ("erro" in v) return { erro: v.erro };
+    if (v.valor === null) return { erro: "Informe o valor do pacote." };
+    dados.quantidade = q.quantidade;
+    dados.valor = v.valor;
+    if (typeof dados.descricao === "string") dados.descricao = dados.descricao.slice(0, 1000);
+    if (!id) {
+      // Sem campo de ordem na tela: o pacote novo entra no fim da lista.
+      const ultimos = await listarPlanos();
+      dados.ordem = Math.max(0, ...ultimos.map((p) => p.ordem ?? 0)) + 1;
     }
   }
 

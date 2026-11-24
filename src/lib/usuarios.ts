@@ -5,7 +5,7 @@ import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { createAdminClient } from "./appwrite";
 import { BUCKET_ID, LABEL_PARTICIPANTE, type Perfil } from "./config";
 import { conferirImagem } from "./imagem";
-import { validarCpf } from "./cpf";
+import { ocultarCpf, validarCpf } from "./cpf";
 import { ehExperiencia, ehUf, LIMITE_TEXTO_LONGO, type Experiencia } from "./perfil-extra";
 import type { Funcao, Pessoa, Sexo } from "./types";
 
@@ -286,4 +286,18 @@ export async function apagarFotoDe(userId: string) {
   const { users, storage } = createAdminClient();
   const foto = prefsDe(await users.getPrefs({ userId }).catch(() => ({}))).foto_file_id;
   if (foto) await storage.deleteFile({ bucketId: BUCKET_ID, fileId: foto }).catch(() => {});
+}
+
+/** Contato de algumas pessoas (e-mail, WhatsApp, CPF mascarado e cidade), para quem gerencia o evento. */
+export async function contatosDeUsuarios(ids: string[]): Promise<Map<string, { email: string; telefone: string | null; cidade: string | null; estado: string | null; cpf: string | null }>> {
+  const alvo = new Set(ids);
+  if (!alvo.size) return new Map();
+  const { users } = createAdminClient();
+  const res = await users.list({ queries: [Query.limit(500)] });
+  return new Map(
+    res.users.filter((u) => alvo.has(u.$id)).map((u) => {
+      const p = prefsDe(u.prefs);
+      return [u.$id, { email: u.email, telefone: p.telefone, cidade: p.cidade, estado: p.estado, cpf: p.cpf ? ocultarCpf(p.cpf) || null : null }];
+    }),
+  );
 }
