@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import { capitalizarNomeProprio } from "@/lib/format";
 import { createContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Check, ChevronRight, Clock, Crown, Receipt, Search, Shield, SlidersHorizontal, Sprout, UserPlus, Users, X } from "lucide-react";
+import { Check, ChevronRight, Clock, Crown, Receipt, Search, Shield, SlidersHorizontal, Sprout, Ticket, UserPlus, Users, X } from "lucide-react";
 import type { ChavePix, FormaPagamento, Sexo, SituacaoPagamento } from "@/lib/types";
 import type { Dose } from "@/lib/doses";
 import { Avatar } from "@/components/Avatar";
@@ -586,6 +586,15 @@ function ValorContribuicao({ p, esperado }: { p: ItemParticipanteInscrito; esper
       </span>
     );
   }
+  // Participação paga com crédito de pacote: número do crédito (ex.: "2/4") e, embaixo, que já foi debitado
+  if (p.pagamento === "credito") {
+    return (
+      <span className="min-w-[4.5rem] shrink-0 text-right leading-tight">
+        <span className="flex items-center justify-end gap-1 truncate text-sm font-semibold tabular-nums text-violet-800"><Ticket size={13} className="shrink-0" aria-hidden />{p.creditoRotulo ?? "Crédito"}</span>
+        <span className="block truncate text-[11px] text-stone-400">debitado</span>
+      </span>
+    );
+  }
   if (p.pagamento === "pago") { valor = formatoReal(p.valor ?? 0); detalhe = p.pagoEm ? `pago ${dataCurta(p.pagoEm)}` : "pago"; cor = "text-emerald-800"; }
   else if (p.pagamento === "informado") { valor = p.valor != null ? formatoReal(p.valor) : "—"; detalhe = p.informadoEm ? `informou ${haQuanto(p.informadoEm)}` : "informado"; cor = "text-amber-800"; }
   else if (p.pagamento === "isento") { valor = "—"; detalhe = "não paga"; cor = "text-stone-400"; }
@@ -636,7 +645,7 @@ function Linha({
         {/* Financeiro: a tag da situação embaixo do nome, um pouco menor */}
         {financeiro && temContribuicao && (
           <span className={`chip mt-0.5 gap-0.5 px-2 py-px text-[11px] ${p.pagamento === "pago" && p.usouPacote ? "bg-violet-100 text-violet-800" : pg.cor}`} title={p.pagamento === "pago" && p.usouPacote ? "Pago com pacote" : pg.rotulo}>
-            {p.pagamento === "pago" && <Check size={11} className="shrink-0" />}{conferir && <Receipt size={11} className="shrink-0" />}{pg.rotulo}
+            {p.pagamento === "pago" && <Check size={11} className="shrink-0" />}{p.pagamento === "credito" ? <Ticket size={11} className="shrink-0" aria-hidden /> : null}{conferir && <Receipt size={11} className="shrink-0" />}{p.pagamento === "credito" ? "Crédito de pacote" : pg.rotulo}
           </span>
         )}
         {conferir && !financeiro && p.informadoEm && (

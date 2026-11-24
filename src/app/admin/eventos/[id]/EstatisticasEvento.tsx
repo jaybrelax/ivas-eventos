@@ -11,6 +11,8 @@ export function resumoContribuicoes(p: DadosParticipantes) {
     if (i.pagamento === "pago") { r.pagos++; r.recebido += i.valor ?? 0; if (i.usouPacote) r.pacotes++; }
     else if (i.pagamento === "informado") r.conferir++;
     else if (i.pagamento === "isento") r.isentos++;
+    // Paga com crédito de pacote: não está em aberto e conta como pacote usado
+    else if (i.pagamento === "credito") r.pacotes++;
     else r.aberto++;
   }
   return r;
