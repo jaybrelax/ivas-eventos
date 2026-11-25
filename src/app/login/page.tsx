@@ -1,7 +1,25 @@
+import type { Metadata } from "next";
+import { SITE_URL } from "@/lib/site";
 import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
 import { FundoMarca } from "@/components/FundoMarca";
 import { LoginForm } from "./LoginForm";
+
+/**
+ * Pré-visualização ao compartilhar um link de gestão do ritual (/admin/eventos/...): quem não está logado cai aqui
+ * com ?next=, e a imagem de compartilhamento é a da gestão. Nos demais casos, sem metadados extras.
+ */
+export async function generateMetadata({ searchParams }: PageProps<"/login">): Promise<Metadata> {
+  const sp = await searchParams;
+  const next = typeof sp.next === "string" ? sp.next : "";
+  if (!/^\/admin\/eventos\/[^/?]+/.test(next)) return {};
+  const imagem = `${SITE_URL}/og-gestao-ritual.jpg`;
+  return {
+    title: "Gestão do ritual",
+    openGraph: { title: "Gestão do ritual", images: [{ url: imagem, width: 1200, height: 1200, type: "image/jpeg", alt: "Gestão do ritual" }] },
+    twitter: { card: "summary_large_image", title: "Gestão do ritual", images: [imagem] },
+  };
+}
 
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const [sp, instituto] = await Promise.all([searchParams, getInstituto()]);

@@ -440,7 +440,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
                 {dados.gerenciar && !financeiro ? (
                   <button type="button" onClick={() => (chamadaAtiva ? marcar(x.id) : setEquipeAberta(x.id))} aria-label={chamadaAtiva ? `Marcar presença de ${x.nome}` : `Registrar a dosagem de ${x.nome}`} aria-pressed={chamadaAtiva ? presentes.has(x.id) : undefined}
                     className={`group flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition hover:ring-1 hover:ring-mata-200 ${chamadaAtiva && presentes.has(x.id) ? CLASSE_PRESENTE : x.papel === "mestre" ? "bg-mata-50 ring-1 ring-mata-100 hover:bg-mata-100/60" : "bg-sky-50 ring-1 ring-sky-100 hover:bg-mata-50/70"}`}>
-                    <Avatar nome={x.nome} foto={x.foto} tamanho={28} className={chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
+                    <Avatar nome={x.nome} foto={x.foto} tamanho={32} className={chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
                     <span className="flex min-w-0 flex-1 items-center gap-1.5">
                       <span className="truncate text-sm font-medium text-stone-800">{x.nome}</span>
                       <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} soIcone={(dados.dosesEquipe?.[x.id] ?? []).some((d) => d.ml > 0)} />
@@ -624,7 +624,7 @@ function Linha({
       {posicao !== undefined && <span className="w-5 shrink-0 text-center text-xs font-semibold text-stone-400 tabular-nums">{posicao}º</span>}
       <Avatar nome={p.nome} foto={p.foto} tamanho={32} className={chamada && presente ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
       <span className="min-w-0 flex-1">
-        <span className="flex min-w-0 items-center gap-1.5">
+        <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <span className="truncate text-sm font-medium text-stone-800">{p.nome}</span>
           {/* Primeira vez em um ritual: tag logo à direita do nome */}
           {gerenciar && p.primeiraVez && (
@@ -640,6 +640,10 @@ function Linha({
               <Shield size={13} strokeWidth={2.4} aria-hidden />
               <span className="sr-only">Guardião</span>
             </span>
+          )}
+          {/* Contribuição pendente (fora da aba Financeiro): tag logo depois do nome e dos ícones */}
+          {temContribuicao && !financeiro && p.pagamento === "pendente" && (
+            <span className={`chip shrink-0 gap-0.5 px-2 py-px text-[11px] whitespace-nowrap ${pg.cor}`} title={pg.rotulo}>{pg.rotulo}</span>
           )}
         </span>
         {/* Financeiro: a tag da situação embaixo do nome, um pouco menor */}
