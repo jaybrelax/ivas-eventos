@@ -18,6 +18,7 @@ import { FichaCompleta } from "./FichaCompleta";
 import { InscricoesDoParticipante } from "./InscricoesDoParticipante";
 import { LancarPacote, QuitarDebito } from "@/app/admin/creditos/Cliente";
 import { GerenciarCreditos } from "./GerenciarCreditos";
+import { MesclarContas } from "./MesclarContas";
 import { rotuloExperiencia } from "@/lib/perfil-extra";
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -32,6 +33,11 @@ export default async function FichaParticipante({ params }: PageProps<"/admin/pa
   if (!conta || (!ehParticipante(conta.labels) && !perfilEquipe)) notFound();
   const p = prefsDe(conta.prefs);
   const nome = conta.name || conta.email;
+  const bruto = (conta.prefs ?? {}) as Record<string, unknown>;
+  const pessoasParaMesclar = eu.perfil === "admin"
+    ? (await listarTodasAsPessoas()).filter((x) => x.id !== id).map((x) => ({ id: x.id, nome: x.nome, foto: x.foto })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
+    : [];
+  const mescladas = Array.isArray(bruto.contas_mescladas) ? (bruto.contas_mescladas as { nome?: string; em?: string }[]) : [];
 
   const [itens, { instituto, pix }] = await Promise.all([inscricoesComEventos(id), getDadosInstituto()]);
   // Créditos: se o banco dos créditos ainda não existe, a ficha segue sem o cartão
@@ -54,6 +60,8 @@ export default async function FichaParticipante({ params }: PageProps<"/admin/pa
     ["Nascimento", p.data_nascimento ? dataCurta(p.data_nascimento) : null],
     ["Gênero", p.sexo ? (p.sexo === "masculino" ? "Masculino" : "Feminino") : null],
     ["Cadastro em", dataCurta(conta.$createdAt.slice(0, 10))],
+    ...(typeof bruto.conta_rapida_assumida_em === "string" ? [["Cadastro rápido assumido pela pessoa em", dataCurta(bruto.conta_rapida_assumida_em.slice(0, 10))] as [string, string | null]] : []),
+    ...(mescladas.length ? [["Contas mescladas", mescladas.map((m) => `${m.nome ?? "Conta"}${m.em ? ` (${dataCurta(m.em.slice(0, 10))})` : ""}`).join(", "), true] as [string, string | null, boolean]] : []),
     ["Experiência com ayahuasca", rotuloExperiencia(p.experiencia_ayahuasca)],
     ["Motivação para participar", p.motivacao, true],
     ["Expectativas", p.expectativas, true],
@@ -119,7 +127,7 @@ export default async function FichaParticipante({ params }: PageProps<"/admin/pa
                     </div>
                   ))}
                 </dl>
-                <div className="mt-4 sm:max-w-xs">
+                <div className="mt-4 space-y-2 sm:max-w-xs">
                   {perfilEquipe ? (
                     <Link href="/admin/usuarios" className="btn-secundario w-full">Gerenciar em Usuários</Link>
                   ) : (
@@ -134,6 +142,7 @@ export default async function FichaParticipante({ params }: PageProps<"/admin/pa
                       }}
                     />
                   )}
+                  {eu.perfil === "admin" && <MesclarContas id={id} pessoas={pessoasParaMesclar} />}
                 </div>
               </FichaCompleta>
             </section>

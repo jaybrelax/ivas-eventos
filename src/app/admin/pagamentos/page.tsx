@@ -4,6 +4,7 @@ import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { dataCurta, hoje } from "@/lib/format";
 import { pagamentosDoAno } from "@/lib/pagamentos";
+import type { SituacaoPagamento } from "@/lib/types";
 import { Titulo } from "@/components/Titulo";
 import { Avatar } from "@/components/Avatar";
 import { FiltrosPagamentos } from "./FiltrosPagamentos";
@@ -11,12 +12,13 @@ import { ExportarCsv } from "./ExportarCsv";
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const PAGAMENTO: Record<string, { rotulo: string; cor: string }> = {
+const PAGAMENTO: Record<SituacaoPagamento, { rotulo: string; cor: string }> = {
   pendente: { rotulo: "Pendente", cor: "bg-stone-100 text-stone-600" },
   informado: { rotulo: "Informado", cor: "bg-amber-50 text-amber-700" },
   pago: { rotulo: "Pago", cor: "bg-emerald-50 text-emerald-700" },
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
+  credito: { rotulo: "Crédito de pacote", cor: "bg-violet-50 text-violet-700" },
 };
 
 export default async function Pagamentos({ searchParams }: PageProps<"/admin/pagamentos">) {

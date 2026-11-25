@@ -8,6 +8,8 @@ import { createAdminClient } from "@/lib/appwrite";
 import { LABEL_PARTICIPANTE, SESSION_COOKIE, DOMINIO_COOKIE } from "@/lib/config";
 import { exigirSessao, podeSolicitarGuarnicao } from "@/lib/auth";
 import { labelsComFuncao, salvarContato, validarTelefone } from "@/lib/usuarios";
+import { assumirContaRapida, buscarContaRapida, juntarGoogleNaContaRapida } from "@/lib/conta-rapida";
+import { contaSemRegistros } from "@/lib/conta-vazia";
 import type { Sexo } from "@/lib/types";
 import { ehUf } from "@/lib/perfil-extra";
 import { destinoAposCadastro } from "@/lib/destino-auth";
@@ -55,19 +57,33 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   }
 
   const { account, users } = createAdminClient();
+  // Cadastro rápido da mesma pessoa (pelo e-mail ou telefone): ela passa a usar essa conta, com as participações dela
+  const rapida = await buscarContaRapida({ email, telefone: tel.valor }).catch((e) => { console.error("Buscar conta rápida:", e instanceof Error ? e.message : e); return null; });
   let userId: string | null = null;
+  let criada = false;
+  const labelsNovas = guardiao && automatico ? [LABEL_PARTICIPANTE, "guardiao"] : [LABEL_PARTICIPANTE];
+  const prefsNovas = {
+    funcao_ritual: guardiao && automatico ? "guardiao" : "nenhuma",
+    ...(guardiao && !automatico ? { guarnicao_situacao: "pendente", guarnicao_solicitacao: true } : {}),
+  };
   try {
-    const u = await users.create({ userId: ID.unique(), email, password: senha, name: nome });
-    userId = u.$id;
-    await users.updateLabels({ userId, labels: guardiao && automatico ? [LABEL_PARTICIPANTE, "guardiao"] : [LABEL_PARTICIPANTE] });
-    await users.updatePrefs({ userId, prefs: {
-      funcao_ritual: guardiao && automatico ? "guardiao" : "nenhuma",
-      ...(guardiao && !automatico ? { guarnicao_situacao: "pendente", guarnicao_solicitacao: true } : {}),
-    } });
-    const r = await salvarContato(userId, form);
-    if (r.erro) {
-      await users.delete({ userId }).catch(() => {});
-      return { erro: r.erro };
+    if (rapida) {
+      // Valida e salva os dados antes de mexer no e-mail e na senha: se algo estiver errado, a conta fica como estava
+      const r0 = await salvarContato(rapida, form);
+      if (r0.erro) return { erro: r0.erro };
+      userId = rapida;
+      await assumirContaRapida(rapida, { email, senha, nome, labels: labelsNovas, prefs: prefsNovas });
+    } else {
+      const u = await users.create({ userId: ID.unique(), email, password: senha, name: nome });
+      userId = u.$id;
+      criada = true;
+      await users.updateLabels({ userId, labels: labelsNovas });
+      await users.updatePrefs({ userId, prefs: prefsNovas });
+      const r = await salvarContato(userId, form);
+      if (r.erro) {
+        await users.delete({ userId }).catch(() => {});
+        return { erro: r.erro };
+      }
     }
     // Conta já ativa: entra direto, sem precisar logar de novo.
     const sessao = await account.createEmailPasswordSession({ email, password: senha });
@@ -82,7 +98,7 @@ export async function cadastrarParticipante(_: ResultadoCadastro, form: FormData
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     if (msg.includes("already")) return { erro: "Já existe um cadastro com esse e-mail. Esqueceu a senha? Fale com a coordenação." };
-    if (userId) await users.delete({ userId }).catch(() => {});
+    if (userId && criada) await users.delete({ userId }).catch(() => {});
     console.error("Cadastro de participante:", msg);
     return { erro: "Não foi possível concluir o cadastro agora. Tente de novo em instantes." };
   }
@@ -119,21 +135,38 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
     catch { return { erro: "Não foi possível consultar a aprovação da Guarnição. Tente novamente." }; }
   }
 
-  const r = await salvarContato(u.id, form);
+  // Telefone de um cadastro rápido e esta conta do Google ainda sem registros: junta tudo na conta rápida
+  let contaId = u.id;
+  try {
+    const rapida = await buscarContaRapida({ email: u.email, telefone: tel.valor });
+    if (rapida && rapida !== u.id && (await contaSemRegistros(u.id))) {
+      const r0 = await salvarContato(rapida, form);
+      if (r0.erro) return { erro: r0.erro };
+      const sessao = await juntarGoogleNaContaRapida(rapida, u.id);
+      contaId = rapida;
+      (await cookies()).set(SESSION_COOKIE, sessao.secret, {
+        httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", ...DOMINIO_COOKIE, expires: new Date(sessao.expire),
+      });
+    }
+  } catch (e) {
+    console.error("Juntar Google ao cadastro rápido:", e instanceof Error ? e.message : e);
+  }
+
+  const r = await salvarContato(contaId, form);
   if (r.erro) return { erro: r.erro };
 
   if (solicitarGuardiao) {
     const { users } = createAdminClient();
     // updatePrefs substitui tudo: mescla com o que o formulário acabou de salvar (gênero, telefone, endereço…)
-    const atuais = await users.getPrefs({ userId: u.id });
-    await users.updatePrefs({ userId: u.id, prefs: { ...atuais,
+    const atuais = await users.getPrefs({ userId: contaId });
+    await users.updatePrefs({ userId: contaId, prefs: { ...atuais,
       funcao_ritual: automatico ? "guardiao" : "nenhuma",
       guarnicao_situacao: automatico ? null : "pendente",
       guarnicao_solicitacao: automatico ? null : true,
     } });
     if (automatico) {
-      const conta = await users.get({ userId: u.id });
-      await users.updateLabels({ userId: u.id, labels: labelsComFuncao(conta.labels, "guardiao") });
+      const conta = await users.get({ userId: contaId });
+      await users.updateLabels({ userId: contaId, labels: labelsComFuncao(conta.labels, "guardiao") });
     }
   }
   redirect(destinoAposCadastro(form.get("next"), guardiao, "/minha-conta?aba=proximos"));

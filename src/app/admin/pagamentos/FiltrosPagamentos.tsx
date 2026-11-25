@@ -11,6 +11,7 @@ const SITUACOES = [
   { valor: "pago", rotulo: "Pago" },
   { valor: "isento", rotulo: "Isento" },
   { valor: "na_hora", rotulo: "Na hora" },
+  { valor: "credito", rotulo: "Crédito de pacote" },
 ];
 
 export function FiltrosPagamentos({ eventos }: { eventos: { id: string; titulo: string }[] }) {

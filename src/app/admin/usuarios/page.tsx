@@ -6,6 +6,9 @@ import { Titulo } from "@/components/Titulo";
 import { ehParticipante, listarPendentes, perfilDosLabels, prefsDe } from "@/lib/usuarios";
 import { Pendentes } from "./Pendentes";
 import { GestaoUsuarios } from "./GestaoUsuarios";
+import { PossiveisDuplicadas } from "./PossiveisDuplicadas";
+import { chaveTelefone, ehContaRapida } from "@/lib/conta-rapida-regras";
+import { agruparPossiveisDuplicadas } from "@/lib/duplicadas";
 import { todasCandidaturasAtivas } from "@/lib/guarnicao";
 import { participacoesPorUsuario } from "@/lib/participacoes";
 
@@ -35,10 +38,25 @@ export default async function Usuarios() {
       participacoes: participacoes.get(u.$id) ?? [],
     };
   });
+  // Possíveis duplicadas: todas as contas (participantes e equipe), sem as de teste
+  const duplicadas = agruparPossiveisDuplicadas(
+    lista.users.filter((u) => !(u.labels ?? []).includes("mock")).map((u) => ({
+      id: u.$id, nome: u.name || u.email, chaveTel: chaveTelefone(prefsDe(u.prefs).telefone),
+      rapida: ehContaRapida({ labels: u.labels, prefs: u.prefs as Record<string, unknown>, passwordUpdate: u.passwordUpdate }),
+    })),
+  ).map((g) => ({
+    motivo: g.motivo,
+    contas: g.contas.map((c) => {
+      const u = lista.users.find((x) => x.$id === c.id)!;
+      const p = prefsDe(u.prefs);
+      return { id: c.id, nome: c.nome, email: u.email || null, telefone: p.telefone, foto: p.foto_file_id, rapida: c.rapida };
+    }),
+  }));
   return (
     <>
       <Titulo sobre="Administração" titulo="Usuários" subtitulo="Quem acessa o painel e com qual perfil." />
       <Pendentes lista={pendentes} />
+      <PossiveisDuplicadas grupos={duplicadas} />
       <GestaoUsuarios us={us} euId={eu.id} />
     </>
   );

@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { ID, Query } from "node-appwrite";
 import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { createAdminClient } from "@/lib/appwrite";
+import { liberarContaRapida } from "@/lib/conta-rapida";
+import { ehContaRapida } from "@/lib/conta-rapida-regras";
 import { BUCKET_ID, LABEL_PARTICIPANTE, SESSION_COOKIE, DOMINIO_COOKIE } from "@/lib/config";
 import { ehParticipante, perfilDosLabels } from "@/lib/usuarios";
 import { destinoGuarnicao, destinoSeguro, ehDestinoGuarnicao } from "@/lib/destino-auth";
@@ -91,6 +93,9 @@ export async function GET(req: NextRequest) {
     const existentes = await users.list({ queries: [Query.equal("email", perfil.email.toLowerCase()), Query.limit(1)] });
     let userId = existentes.users[0]?.$id;
     const contaNova = !userId;
+    // E-mail igual ao de um cadastro rápido (sem senha): é a mesma pessoa, a conta passa a ser dela
+    const achada = existentes.users[0];
+    if (achada && ehContaRapida({ labels: achada.labels, prefs: achada.prefs as Record<string, unknown>, passwordUpdate: achada.passwordUpdate })) await liberarContaRapida(achada.$id);
 
     if (!userId) {
       const novo = await users.create({ userId: ID.unique(), email: perfil.email.toLowerCase(), name: perfil.name || perfil.email });

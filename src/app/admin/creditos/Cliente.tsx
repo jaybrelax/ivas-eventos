@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useTransition, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Download, FileImage, ImagePlus, Plus, Send, Settings, Ticket, Trash2, Undo2, X } from "lucide-react";
+import { Check, Download, FileImage, ImagePlus, Package, Plus, Send, SlidersHorizontal, Ticket, Trash2, Undo2, X } from "lucide-react";
+import { Avatar } from "@/components/Avatar";
 import { useImagem } from "@/components/useImagem";
 import { BuscaPessoa } from "@/components/BuscaPessoa";
 import { BotaoConfirmar } from "@/components/Confirmar";
@@ -32,21 +34,44 @@ function useAcao() {
 /** Confirmar ou cancelar um pacote na lista da equipe. */
 export type DadosPacote = { nome: string; valor: number | null; observacao: string | null; comprovante: string | null };
 
-export function AcoesPacote({ pacoteId, situacao, quantidade, dados }: { pacoteId: string; situacao: "pendente" | "informado" | "pago" | "cancelado"; quantidade: number; dados: DadosPacote }) {
+/** Dados do pacote que aparecem só no modal (a linha da lista fica enxuta). */
+export type DetalhesPacote = { criadoEm: string; lancadoPor: string | null; pessoa: { nome: string; foto: string | null } };
+
+/**
+ * Linha (ou cartão) de um pacote: clicar em qualquer ponto abre o modal com os dados completos e a edição.
+ * O conteúdo da linha vem pronto do servidor (children).
+ */
+export function PacoteClicavel({ as: Tag, className, children, pacoteId, situacao, quantidade, dados, detalhes }: {
+  as: "tr" | "li"; className?: string; children: ReactNode; pacoteId: string; situacao: "pendente" | "informado" | "pago" | "cancelado"; quantidade: number; dados: DadosPacote; detalhes: DetalhesPacote;
+}) {
   const { pendente, rodar } = useAcao();
   const [editando, setEditando] = useState(false);
   const [qtd, setQtd] = useState(String(quantidade));
   const [sit, setSit] = useState<string>(situacao);
   const [remover, setRemover] = useState(false);
   const { local, erro: erroFoto, otimizando, escolher } = useImagem("comprovante");
-  const editor = editando && (
+  const abrir = () => { setQtd(String(quantidade)); setSit(situacao); setRemover(false); setEditando(true); };
+  useEffect(() => {
+    if (!editando) return;
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setEditando(false);
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, [editando]);
+  const editor = editando && createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Editar pacote">
       <div className="fixed inset-0 bg-stone-950/60" onClick={() => setEditando(false)} />
       <form
         className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-3 overflow-y-auto rounded-2xl bg-white p-5 text-left shadow-2xl"
         onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); rodar(async () => { const r = await editarPacoteAction(pacoteId, fd); if (r.ok) setEditando(false); return r; }); }}
       >
-        <h3 className="text-sm font-semibold text-stone-900">Editar pacote</h3>
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-stone-900"><Package size={17} className="shrink-0 text-mata-600" aria-hidden /> {dados.nome}</h3>
+        <div className="flex items-center gap-3">
+          <Avatar nome={detalhes.pessoa.nome} foto={detalhes.pessoa.foto} tamanho={40} className="ring-0" />
+          <div className="min-w-0">
+            <p className="text-xs text-stone-500">Pacote de</p>
+            <p className="truncate text-sm font-semibold text-stone-900">{detalhes.pessoa.nome}</p>
+          </div>
+        </div>
         <div>
           <label className="rotulo" htmlFor={`ep-n-${pacoteId}`}>Nome do pacote</label>
           <input id={`ep-n-${pacoteId}`} name="nome" required maxLength={80} defaultValue={dados.nome} className="campo" />
@@ -94,6 +119,12 @@ export function AcoesPacote({ pacoteId, situacao, quantidade, dados }: { pacoteI
           )}
         </div>
         <p className="ajuda">Reduzir remove os últimos créditos que não foram usados nem cedidos. Marcar como pago libera os créditos.</p>
+        <dl className="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-lg bg-stone-50 p-3 text-xs">
+          <dt className="text-stone-500">Criado em</dt>
+          <dd className="font-medium text-stone-800">{detalhes.criadoEm}</dd>
+          <dt className="text-stone-500">Origem</dt>
+          <dd className="font-medium text-stone-800">{detalhes.lancadoPor ? `Lançado por ${detalhes.lancadoPor}` : "Comprado pelo participante"}</dd>
+        </dl>
         <div className="flex items-center justify-between gap-2 pt-1">
           <BotaoConfirmar pergunta="Excluir este pacote e seus créditos? Não dá para desfazer." confirmar="Sim, excluir" acima alinhar="esquerda" aoConfirmar={() => rodar(async () => { const r = await excluirPacoteAction(pacoteId); if (r.ok) setEditando(false); return r; })} disabled={pendente} className="btn-fantasma h-9 px-2.5 text-xs text-red-700">
             <Trash2 size={14} aria-hidden /> Excluir
@@ -105,21 +136,33 @@ export function AcoesPacote({ pacoteId, situacao, quantidade, dados }: { pacoteI
         </div>
       </form>
     </div>
-  );
-  const botaoEditar = (
-    <button type="button" onClick={() => { setQtd(String(quantidade)); setSit(situacao); setRemover(false); setEditando(true); }} className="btn-fantasma h-8 w-8 px-0" title="Configurar pacote" aria-label="Configurar pacote">
-      <Settings size={14} aria-hidden />
-    </button>
-  );
-  if (situacao === "cancelado") return <div className="flex justify-end">{botaoEditar}{editor}</div>;
+    , document.body);
   return (
-    <div className="flex items-center justify-end gap-1.5">
-      {botaoEditar}{editor}
-      {situacao !== "pago" && (
-        <button type="button" disabled={pendente} onClick={() => rodar(() => confirmarPacoteAction(pacoteId))} className="btn-primario h-8 px-3 text-xs">
-          <Check size={14} aria-hidden /> Confirmar pagamento
-        </button>
-      )}
+    <>
+      <Tag
+        className={`cursor-pointer ${className ?? ""}`}
+        tabIndex={0}
+        aria-haspopup="dialog"
+        title="Abrir pacote"
+        onClick={abrir}
+        onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); abrir(); } }}
+      >
+        {children}
+      </Tag>
+      {editor}
+    </>
+  );
+}
+
+/** Ação rápida na linha: confirmar o pagamento (sem abrir o modal). */
+export function AcoesPacote({ pacoteId, situacao }: { pacoteId: string; situacao: "pendente" | "informado" | "pago" | "cancelado" }) {
+  const { pendente, rodar } = useAcao();
+  if (situacao === "pago" || situacao === "cancelado") return null;
+  return (
+    <div className="flex justify-end" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <button type="button" disabled={pendente} onClick={() => rodar(() => confirmarPacoteAction(pacoteId))} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-mata-600 px-3 text-xs font-semibold text-white transition hover:bg-mata-800 active:scale-[0.98] disabled:opacity-50 max-lg:h-11">
+        <Check size={14} aria-hidden /> Confirmar pagamento
+      </button>
     </div>
   );
 }
@@ -153,7 +196,7 @@ export function LancarPacote({ planos, pessoas, pessoaFixa }: { planos: PlanoOpc
 
   if (!aberto) {
     return (
-      <button type="button" className="btn-primario h-9 text-sm" onClick={() => setAberto(true)}>
+      <button type="button" className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-mata-600 px-3.5 text-sm font-semibold text-white transition hover:bg-mata-800 active:scale-[0.98] max-lg:h-11" onClick={() => setAberto(true)}>
         <Plus size={15} aria-hidden /> Lançar pacote
       </button>
     );
@@ -178,7 +221,7 @@ export function LancarPacote({ planos, pessoas, pessoaFixa }: { planos: PlanoOpc
         <h3 className="text-sm font-semibold text-stone-900">Lançar pacote{pessoaFixa ? ` para ${pessoaFixa.nome}` : ""}</h3>
         <button type="button" onClick={() => setAberto(false)} className="grid h-8 w-8 place-items-center rounded-full text-stone-500 hover:bg-stone-100" aria-label="Fechar"><X size={16} /></button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3">
         {pessoaFixa ? (
           <input type="hidden" name="usuario_id" value={pessoaFixa.id} />
         ) : (
@@ -212,7 +255,7 @@ export function LancarPacote({ planos, pessoas, pessoaFixa }: { planos: PlanoOpc
             </div>
           </>
         )}
-        <div className="sm:col-span-2">
+        <div>
           <label className="rotulo" htmlFor="lp-obs">Observação (opcional)</label>
           <input id="lp-obs" name="observacao" maxLength={500} className="campo" placeholder="Ex.: pago em dinheiro no ritual 512" />
         </div>
@@ -227,6 +270,42 @@ export function LancarPacote({ planos, pessoas, pessoaFixa }: { planos: PlanoOpc
         <button type="submit" className="btn-primario h-10" disabled={pendente}>{pendente ? "Lançando…" : "Lançar pacote"}</button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Cabeçalho do histórico: as abas à esquerda e, à direita, o botão que mostra ou esconde os filtros.
+ * Os filtros começam ocultos; o número no botão diz quantos estão ativos.
+ */
+export function CabecalhoComFiltros({ abas, filtros }: { abas: ReactNode; filtros: ReactNode }) {
+  const router = useRouter();
+  const sp = useSearchParams();
+  const [aberto, setAberto] = useState(false);
+  const ativos = ["usuario", "evento", "pacote", "de", "ate"].filter((c) => sp.get(c)).length;
+  return (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 border-b border-[#dadde1] px-4">
+        {abas}
+        <button
+          type="button"
+          onClick={() => setAberto((v) => !v)}
+          aria-expanded={aberto}
+          aria-controls="filtros-historico"
+          className={"inline-flex h-9 items-center gap-1.5 rounded-md border px-3 text-sm font-semibold transition max-lg:h-11 " + (aberto || ativos ? "border-mata-300 bg-mata-50 text-mata-700" : "border-[#dadde1] bg-white text-[#1c1e21] hover:bg-[#f5f6f7]")}
+        >
+          <SlidersHorizontal size={15} aria-hidden /> Filtros
+          {ativos > 0 && <span className="grid h-5 min-w-5 place-items-center rounded-full bg-mata-600 px-1.5 text-[11px] font-bold text-white tabular-nums">{ativos}</span>}
+        </button>
+      </div>
+      {aberto && (
+        <div id="filtros-historico" className="flex flex-col gap-3 border-b border-[#dadde1] bg-[#f5f6f7] px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
+          {filtros}
+          {ativos > 0 && (
+            <button type="button" onClick={() => router.replace("/admin/creditos?aba=historico", { scroll: false })} className="btn-fantasma h-9 shrink-0 px-3 text-sm max-lg:h-11">Limpar filtros</button>
+          )}
+        </div>
+      )}
+    </>
   );
 }
 

@@ -1,5 +1,6 @@
+import { Fragment } from "react";
 import Link from "next/link";
-import { AlertTriangle, CalendarDays, Clock, FileImage, History, ListChecks, Package, Ticket, Users, Wallet } from "lucide-react";
+import { AlertTriangle, Clock, History, ListChecks, Package, Ticket, Users, Wallet } from "lucide-react";
 import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import {
@@ -12,7 +13,7 @@ import { dataCurta } from "@/lib/format";
 import { listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
 import { Titulo } from "@/components/Titulo";
 import { Avatar } from "@/components/Avatar";
-import { AcoesPacote, ExportarHistoricoCsv, FiltrosHistorico, LancarPacote, QuitarDebito } from "./Cliente";
+import { AcoesPacote, CabecalhoComFiltros, ExportarHistoricoCsv, FiltrosHistorico, LancarPacote, PacoteClicavel, QuitarDebito } from "./Cliente";
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const dataHora = (iso: string) =>
@@ -29,6 +30,24 @@ type Aba = (typeof ABAS)[number]["chave"];
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 
+/** Abas dos créditos, dentro do cabeçalho de cada tabela (estilo Meta: sublinhado azul na aba ativa). */
+function AbasCreditos({ aba }: { aba: Aba }) {
+  return (
+    <nav className="-mb-px flex min-w-0 gap-1 overflow-x-auto" aria-label="Seções dos créditos">
+      {ABAS.map(({ chave, rotulo, Icone }) => (
+        <Link
+          key={chave}
+          href={"/admin/creditos?aba=" + chave}
+          aria-current={aba === chave ? "page" : undefined}
+          className={"inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-4 text-sm font-medium whitespace-nowrap transition max-lg:min-h-11 " + (aba === chave ? "border-mata-600 text-mata-700" : "border-transparent text-[#65676b] hover:text-[#1c1e21]")}
+        >
+          <Icone size={15} aria-hidden /> {rotulo}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
 /** Painel dos pacotes de créditos: compras, saldo de cada pessoa, débitos (participou sem crédito) e histórico auditável. */
 export default async function Creditos({ searchParams }: PageProps<"/admin/creditos">) {
   await exigir(PODE.editarEventos);
@@ -38,40 +57,24 @@ export default async function Creditos({ searchParams }: PageProps<"/admin/credi
   return (
     <>
       <Titulo sobre="Relatório" titulo="Créditos" subtitulo="Pacotes vendidos, saldo de cada pessoa, participações sem crédito e histórico de uso." />
-      <nav className="mb-6 flex flex-wrap gap-2 border-b border-stone-200/80 pb-3" aria-label="Seções dos créditos">
-        {ABAS.map(({ chave, rotulo, Icone }) => (
-          <Link
-            key={chave}
-            href={`/admin/creditos?aba=${chave}`}
-            aria-current={aba === chave ? "page" : undefined}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition ${aba === chave ? "bg-mata-800 text-white shadow-cartao" : "text-stone-600 hover:bg-stone-100"}`}
-          >
-            <Icone size={15} aria-hidden /> {rotulo}
-          </Link>
-        ))}
-      </nav>
       {aba === "pacotes" && <AbaPacotes />}
-      {aba === "saldos" && <AbaSaldos negativos={str(sp.negativos) === "1"} />}
+      {aba === "saldos" && <AbaSaldos negativos={str(sp.negativos) === "1"} agrupar={str(sp.agrupar) === "1"} />}
       {aba === "debitos" && <AbaDebitos />}
       {aba === "historico" && <AbaHistorico filtros={{ usuario: str(sp.usuario), evento: str(sp.evento), pacote: str(sp.pacote), de: str(sp.de), ate: str(sp.ate) }} paginas={Math.min(10, Math.max(1, Number(str(sp.paginas)) || 1))} />}
     </>
   );
 }
 
-function Kpi({ rotulo, valor, Icone, cor }: { rotulo: string; valor: string | number; Icone: typeof Wallet; cor: string }) {
-  return (
-    <div className="cartao flex flex-col items-start gap-3 p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5">
-      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${cor}`}><Icone size={20} /></span>
-      <div className="min-w-0">
-        <p className="truncate text-[13px] text-stone-500">{rotulo}</p>
-        <p className="text-2xl font-semibold tracking-tight text-stone-900 tabular-nums">{valor}</p>
-      </div>
-    </div>
-  );
-}
-
-function Pessoa({ id, usuarios }: { id: string; usuarios: Awaited<ReturnType<typeof mapaUsuarios>> }) {
+function Pessoa({ id, usuarios, semLink = false }: { id: string; usuarios: Awaited<ReturnType<typeof mapaUsuarios>>; semLink?: boolean }) {
   const u = usuarios.get(id);
+  if (semLink) {
+    return (
+      <span className="flex items-center gap-2.5">
+        <Avatar nome={u?.nome ?? "Usuário removido"} foto={u?.foto ?? null} tamanho={32} className="ring-0" />
+        <span className="font-medium text-[#1c1e21]">{u?.nome ?? "Usuário removido"}</span>
+      </span>
+    );
+  }
   return (
     <Link href={`/admin/participantes/${id}`} className="flex items-center gap-2.5 hover:underline">
       <Avatar nome={u?.nome ?? "Usuário removido"} foto={u?.foto ?? null} tamanho={26} className="ring-0" />
@@ -80,73 +83,143 @@ function Pessoa({ id, usuarios }: { id: string; usuarios: Awaited<ReturnType<typ
   );
 }
 
-async function AbaPacotes() {
-  // Uma leitura só da tabela de créditos para pacotes, saldos e débitos
-  const [{ pacotes, saldos, debitos }, planos, pessoas, usuarios] = await Promise.all([
-    resumoGeral(), listarPlanos(true), listarTodasAsPessoas(), mapaUsuarios(),
-  ]);
+/* Aba Pacotes no padrão Meta (Ads Manager): superfícies brancas planas, borda de 1 px, cabeçalho cinza claro,
+   situação com ponto + texto, barra fina de progresso e azul Meta só nas ações principais. */
+const SITUACAO_PACOTE_DOT: Record<string, string> = { pago: "bg-[#31a24c]", informado: "bg-[#f7b928]", pendente: "bg-[#f7b928]", cancelado: "bg-[#8a8d91]" };
+
+function KpiMeta({ rotulo, valor, detalhe, Icone }: { rotulo: string; valor: string | number; detalhe?: string; Icone: typeof Wallet }) {
+  return (
+    <div className="rounded-lg border border-[#dadde1] bg-white p-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-[13px] font-medium text-[#65676b]">{rotulo}</p>
+        <Icone size={16} className="shrink-0 text-[#8a8d91]" aria-hidden />
+      </div>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-[#1c1e21] tabular-nums">{valor}</p>
+      {detalhe && <p className="mt-0.5 truncate text-xs text-[#65676b]">{detalhe}</p>}
+    </div>
+  );
+}
+
+function SituacaoPacote({ p }: { p: PacoteResumo }) {
+  return (
+    <span className="inline-flex items-center gap-2 text-sm whitespace-nowrap text-[#1c1e21]">
+      <span className={"h-2 w-2 shrink-0 rounded-full " + (SITUACAO_PACOTE_DOT[p.situacao] ?? "bg-[#8a8d91]")} aria-hidden />
+      {ROTULO_PACOTE[p.situacao].rotulo}
+    </span>
+  );
+}
+
+function NomePacote({ p }: { p: PacoteResumo }) {
+  return (
+    <p className="text-sm font-semibold text-[#1c1e21]">
+      {p.nome ?? "Pacote"} <span className="font-normal text-[#65676b]">· {p.quantidade} {p.quantidade === 1 ? "crédito" : "créditos"}</span>
+    </p>
+  );
+}
+
+/** Os 4 cards de números do topo das abas Pacotes e Saldos. */
+function CartoesResumo({ dados }: { dados: Awaited<ReturnType<typeof resumoGeral>> }) {
+  const { pacotes, saldos, debitos } = dados;
   const pagos = pacotes.filter((p) => p.situacao === "pago");
   const aguardando = pacotes.filter((p) => p.situacao === "informado" || p.situacao === "pendente");
   const disponiveis = [...saldos.values()].reduce((s, x) => s + x.disponiveis, 0);
+  return (
+      <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <KpiMeta rotulo="Recebido em pacotes" valor={formatoReal(pagos.reduce((s, p) => s + (p.valor ?? 0), 0))} detalhe="pagamentos confirmados" Icone={Wallet} />
+        <KpiMeta rotulo="Aguardando confirmação" valor={aguardando.length} detalhe={formatoReal(aguardando.reduce((s, p) => s + (p.valor ?? 0), 0))} Icone={Clock} />
+        <KpiMeta rotulo="Créditos disponíveis" valor={disponiveis} detalhe="para uso em rituais" Icone={Ticket} />
+        <KpiMeta rotulo="Participações sem crédito" valor={debitos.length} detalhe={debitos.length ? "precisam de quitação" : "nada em aberto"} Icone={AlertTriangle} />
+      </div>
+  );
+}
 
+/** Props do modal do pacote: dados editáveis e as informações que só aparecem lá dentro. */
+function propsModal(p: PacoteResumo, usuarios: Awaited<ReturnType<typeof mapaUsuarios>>) {
+  return {
+    pacoteId: p.$id, situacao: p.situacao, quantidade: p.quantidade,
+    dados: { nome: p.nome ?? "Pacote", valor: p.valor, observacao: p.observacao, comprovante: p.comprovante_file_id },
+    detalhes: { pessoa: { nome: usuarios.get(p.usuario_id)?.nome ?? "Usuário removido", foto: usuarios.get(p.usuario_id)?.foto ?? null }, criadoEm: dataHora(p.$createdAt), lancadoPor: p.origem === "equipe" ? ((p.criado_por && usuarios.get(p.criado_por)?.nome) || "a equipe") : null },
+  };
+}
+
+async function AbaPacotes() {
+  // Uma leitura só da tabela de créditos para pacotes, saldos e débitos
+  const [dados, planos, pessoas, usuarios] = await Promise.all([
+    resumoGeral(), listarPlanos(true), listarTodasAsPessoas(), mapaUsuarios(),
+  ]);
+  const { pacotes } = dados;
+  const pagos = pacotes.filter((p) => p.situacao === "pago");
+
+  const botaoLancar = (
+    <LancarPacote
+      planos={planos.map((p) => ({ id: p.$id, nome: p.nome, quantidade: p.quantidade, valor: p.valor }))}
+      pessoas={pessoas.filter((p) => !usuarios.get(p.id)?.mock).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))}
+    />
+  );
   return (
     <>
-      <div className="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Kpi rotulo="Recebido em pacotes" valor={formatoReal(pagos.reduce((s, p) => s + (p.valor ?? 0), 0))} Icone={Wallet} cor="bg-emerald-50 text-emerald-600" />
-        <Kpi rotulo="Aguardando confirmação" valor={`${aguardando.length} · ${formatoReal(aguardando.reduce((s, p) => s + (p.valor ?? 0), 0))}`} Icone={Clock} cor="bg-amber-50 text-amber-600" />
-        <Kpi rotulo="Créditos disponíveis" valor={disponiveis} Icone={Ticket} cor="bg-violet-50 text-violet-600" />
-        <Kpi rotulo="Participações sem crédito" valor={debitos.length} Icone={AlertTriangle} cor="bg-red-50 text-red-600" />
+      <CartoesResumo dados={dados} />
+
+      {/* Celular: contagem de pacotes ativos à esquerda e o botão à direita, entre os cards e a tabela */}
+      <div className="mb-3 flex items-center justify-between gap-3 lg:hidden">
+        <p className="text-sm text-[#65676b]"><strong className="font-semibold text-[#1c1e21]">{pagos.length}</strong> {pagos.length === 1 ? "pacote ativo" : "pacotes ativos"}</p>
+        {botaoLancar}
       </div>
 
-      <div className="mb-4 flex justify-end">
-        <LancarPacote
-          planos={planos.map((p) => ({ id: p.$id, nome: p.nome, quantidade: p.quantidade, valor: p.valor }))}
-          pessoas={pessoas.filter((p) => !usuarios.get(p.id)?.mock).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))}
-        />
-      </div>
+      <section className="overflow-hidden rounded-lg border border-[#dadde1] bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[#dadde1] px-4">
+          <AbasCreditos aba="pacotes" />
+          <div className="max-lg:hidden">{botaoLancar}</div>
+        </div>
 
-      <section className="cartao overflow-hidden p-0 sm:p-0">
-        <div className="overflow-x-auto">
+        {/* Celular e tablet: um cartão por pacote (sem rolagem lateral) */}
+        <ul className="divide-y divide-[#dadde1] lg:hidden">
+          {pacotes.length ? pacotes.map((p) => (
+            <PacoteClicavel key={p.$id} as="li" className="space-y-3 px-4 py-3.5 transition active:bg-[#f5f6f7]" {...propsModal(p, usuarios)}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 text-sm"><Pessoa id={p.usuario_id} usuarios={usuarios} semLink /></div>
+                <span className="shrink-0 text-sm font-semibold text-[#1c1e21] tabular-nums">{p.valor != null ? formatoReal(p.valor) : "—"}</span>
+              </div>
+              <NomePacote p={p} />
+              <IndicadorCreditos p={p} />
+              <div className="flex items-end justify-between gap-3">
+                <div className="flex min-w-0 flex-col items-start gap-2">
+                  <SituacaoPacote p={p} />
+                  <AcoesPacote pacoteId={p.$id} situacao={p.situacao} />
+                </div>
+                <time dateTime={p.$createdAt} className="shrink-0 text-xs text-[#65676b] tabular-nums">{dataCurta(p.$createdAt.slice(0, 10))}</time>
+              </div>
+            </PacoteClicavel>
+          )) : (
+            <li className="px-4 py-10 text-center text-sm text-[#65676b]">Nenhum pacote ainda.</li>
+          )}
+        </ul>
+
+        {/* Desktop (a partir de 1024 px): tabela */}
+        <div className="hidden overflow-x-auto lg:block">
           <table className="w-full text-sm">
-            <thead className="bg-stone-50/80 text-left text-xs text-stone-500">
+            <thead className="border-b border-[#dadde1] bg-[#f5f6f7] text-left text-xs font-semibold text-[#65676b]">
               <tr>
-                <th className="px-5 py-3 font-medium sm:px-6">Pessoa</th>
-                <th className="px-3 py-3 font-medium">Pacote</th>
-                <th className="px-3 py-3 text-right font-medium">Valor</th>
-                <th className="px-3 py-3 font-medium">Créditos</th>
-                <th className="px-3 py-3 font-medium">Situação</th>
-                <th className="px-5 py-3 text-right font-medium sm:px-6">Ações</th>
+                <th className="px-4 py-3.5">Pessoa</th>
+                <th className="px-3 py-3.5">{pagos.length} {pagos.length === 1 ? "pacote ativo" : "pacotes ativos"}</th>
+                <th className="px-3 py-3.5 text-right">Valor</th>
+                <th className="px-3 py-3.5">Créditos</th>
+                <th className="px-3 py-3.5">Situação</th>
+                <th className="px-4 py-3.5"><span className="sr-only">Ações</span></th>
               </tr>
             </thead>
             <tbody>
               {pacotes.length ? pacotes.map((p) => (
-                <tr key={p.$id} className="border-t border-stone-100 align-top transition hover:bg-stone-50/70">
-                  <td className="px-5 py-2.5 sm:px-6"><Pessoa id={p.usuario_id} usuarios={usuarios} /></td>
-                  <td className="px-3 py-2.5 text-stone-700">
-                    <span className="flex items-center gap-1.5">
-                      <Ticket size={15} className="shrink-0 text-violet-600" aria-hidden />
-                      <span>{p.nome ?? "Pacote"} <span className="text-stone-400">· {p.quantidade}</span></span>
-                    </span>
-                    {p.observacao && <p className="text-xs text-stone-500">{p.observacao}</p>}
-                    <p className="mt-0.5 flex items-center gap-1 text-xs text-stone-400">
-                      <CalendarDays size={12} className="shrink-0" aria-hidden />
-                      <span>{dataHora(p.$createdAt)}{p.origem === "equipe" ? ` · lançado por ${(p.criado_por && usuarios.get(p.criado_por)?.nome) || "a equipe"}` : ""}</span>
-                    </p>
-                  </td>
-                  <td className="px-3 py-2.5 text-right tabular-nums">{p.valor != null ? formatoReal(p.valor) : <span className="text-stone-300">—</span>}</td>
-                  <td className="px-3 py-2.5"><IndicadorCreditos p={p} /></td>
-                  <td className="px-3 py-2.5">
-                    <span className={`chip ${ROTULO_PACOTE[p.situacao].cor}`}>{ROTULO_PACOTE[p.situacao].rotulo}</span>
-                    {p.comprovante_file_id && (
-                      <a href={`/api/comprovante/${p.comprovante_file_id}`} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-mata-700 hover:underline">
-                        <FileImage size={13} aria-hidden /> Comprovante
-                      </a>
-                    )}
-                  </td>
-                  <td className="px-5 py-2.5 sm:px-6"><AcoesPacote pacoteId={p.$id} situacao={p.situacao} quantidade={p.quantidade} dados={{ nome: p.nome ?? "Pacote", valor: p.valor, observacao: p.observacao, comprovante: p.comprovante_file_id }} /></td>
-                </tr>
+                <PacoteClicavel key={p.$id} as="tr" className="border-b border-[#dadde1] align-middle transition last:border-0 hover:bg-[#f5f6f7] focus-visible:bg-[#f5f6f7]" {...propsModal(p, usuarios)}>
+                  <td className="px-4 py-3"><Pessoa id={p.usuario_id} usuarios={usuarios} semLink /></td>
+                  <td className="px-3 py-3"><NomePacote p={p} /></td>
+                  <td className="px-3 py-3 text-right font-medium text-[#1c1e21] tabular-nums">{p.valor != null ? formatoReal(p.valor) : <span className="text-[#8a8d91]">—</span>}</td>
+                  <td className="px-3 py-3"><IndicadorCreditos p={p} /></td>
+                  <td className="px-3 py-3"><SituacaoPacote p={p} /></td>
+                  <td className="px-4 py-3"><AcoesPacote pacoteId={p.$id} situacao={p.situacao} /></td>
+                </PacoteClicavel>
               )) : (
-                <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-stone-400 sm:px-6">Nenhum pacote ainda.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-[#65676b]">Nenhum pacote ainda.</td></tr>
               )}
             </tbody>
           </table>
@@ -156,20 +229,53 @@ async function AbaPacotes() {
   );
 }
 
-async function AbaSaldos({ negativos }: { negativos: boolean }) {
-  const [saldos, usuarios] = await Promise.all([saldosDeTodos(), mapaUsuarios()]);
+async function AbaSaldos({ negativos, agrupar }: { negativos: boolean; agrupar: boolean }) {
+  const [saldos, usuarios, resumo] = await Promise.all([saldosDeTodos(), mapaUsuarios(), resumoGeral()]);
   const linhas = [...saldos.entries()]
     .filter(([, s]) => s.disponiveis || s.bloqueados || s.utilizados || s.debitos)
     .filter(([, s]) => !negativos || s.saldo < 0)
     .sort((a, b) => a[1].saldo - b[1].saldo || (usuarios.get(a[0])?.nome ?? "").localeCompare(usuarios.get(b[0])?.nome ?? "", "pt-BR"));
 
+  const hrefSaldos = (neg: boolean, agr: boolean) => "/admin/creditos?aba=saldos" + (neg ? "&negativos=1" : "") + (agr ? "&agrupar=1" : "");
+
+  // Linha de cada pessoa (igual com ou sem agrupamento)
+  const linhaPessoa = ([id, sd]: (typeof linhas)[number]) => (
+    <tr key={id} className="border-t border-stone-100 transition hover:bg-stone-50/70">
+      <td className="px-5 py-2.5 sm:px-6"><Pessoa id={id} usuarios={usuarios} /></td>
+      <td className="px-3 py-2.5 text-right tabular-nums">{sd.disponiveis}</td>
+      <td className="px-3 py-2.5 text-right tabular-nums text-stone-500">{sd.bloqueados || "—"}</td>
+      <td className="px-3 py-2.5 text-right tabular-nums text-stone-500">{sd.utilizados || "—"}</td>
+      <td className="px-3 py-2.5 text-right tabular-nums text-stone-500">{sd.debitos || "—"}</td>
+      <td className={`px-5 py-2.5 text-right text-base font-semibold tabular-nums sm:px-6 ${sd.saldo < 0 ? "text-red-700" : "text-mata-800"}`}>{sd.saldo}</td>
+    </tr>
+  );
+  // Agrupado: mestres, guardiões e participantes, nessa ordem
+  const GRUPOS = [
+    { chave: "mestre", rotulo: "Mestres" },
+    { chave: "guardiao", rotulo: "Guardiões" },
+    { chave: "nenhuma", rotulo: "Participantes" },
+  ] as const;
+  const grupos = GRUPOS.map((g) => ({ ...g, itens: linhas.filter(([id]) => (usuarios.get(id)?.funcao ?? "nenhuma") === g.chave) })).filter((g) => g.itens.length);
+
   return (
+    <>
+    <CartoesResumo dados={resumo} />
     <section className="cartao overflow-hidden p-0 sm:p-0">
+      <div className="border-b border-[#dadde1] px-4"><AbasCreditos aba="saldos" /></div>
       <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3 sm:px-6">
         <p className="text-sm text-stone-500">{linhas.length} {linhas.length === 1 ? "pessoa" : "pessoas"}</p>
-        <Link href={negativos ? "/admin/creditos?aba=saldos" : "/admin/creditos?aba=saldos&negativos=1"} className="btn-secundario h-9 px-3 text-sm">
-          {negativos ? "Mostrar todos" : "Só saldo negativo"}
-        </Link>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Link
+            href={hrefSaldos(negativos, !agrupar)}
+            aria-pressed={agrupar}
+            className={"btn-secundario h-9 px-3 text-sm " + (agrupar ? "border-mata-300! bg-mata-50! text-mata-700!" : "")}
+          >
+            <Users size={15} aria-hidden /> {agrupar ? "Desagrupar" : "Agrupar por função"}
+          </Link>
+          <Link href={hrefSaldos(!negativos, agrupar)} className="btn-secundario h-9 px-3 text-sm">
+            {negativos ? "Mostrar todos" : "Só saldo negativo"}
+          </Link>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -184,22 +290,23 @@ async function AbaSaldos({ negativos }: { negativos: boolean }) {
             </tr>
           </thead>
           <tbody>
-            {linhas.length ? linhas.map(([id, s]) => (
-              <tr key={id} className="border-t border-stone-100 transition hover:bg-stone-50/70">
-                <td className="px-5 py-2.5 sm:px-6"><Pessoa id={id} usuarios={usuarios} /></td>
-                <td className="px-3 py-2.5 text-right tabular-nums">{s.disponiveis}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-stone-500">{s.bloqueados || "—"}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-stone-500">{s.utilizados || "—"}</td>
-                <td className="px-3 py-2.5 text-right tabular-nums text-stone-500">{s.debitos || "—"}</td>
-                <td className={`px-5 py-2.5 text-right text-base font-semibold tabular-nums sm:px-6 ${s.saldo < 0 ? "text-red-700" : "text-mata-800"}`}>{s.saldo}</td>
-              </tr>
-            )) : (
+            {linhas.length ? (agrupar ? grupos.map((g) => (
+              <Fragment key={g.chave}>
+                <tr className="border-t border-stone-200 bg-stone-50">
+                  <th colSpan={6} scope="colgroup" className="px-5 py-2 text-left text-xs font-semibold tracking-wide text-stone-600 uppercase sm:px-6">
+                    {g.rotulo} <span className="font-medium text-stone-400 normal-case tabular-nums">· {g.itens.length}</span>
+                  </th>
+                </tr>
+                {g.itens.map(linhaPessoa)}
+              </Fragment>
+            )) : linhas.map(linhaPessoa)) : (
               <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-stone-400 sm:px-6">{negativos ? "Ninguém com saldo negativo." : "Nenhum saldo registrado ainda."}</td></tr>
             )}
           </tbody>
         </table>
       </div>
     </section>
+    </>
   );
 }
 
@@ -211,6 +318,7 @@ async function AbaDebitos() {
         Pessoas inscritas (vaga confirmada) em rituais que já começaram, sem crédito e sem contribuição resolvida. Quite com um crédito da pessoa, ou abra o evento para confirmar ou isentar a contribuição avulsa — o débito some sozinho.
       </p>
       <section className="cartao overflow-hidden p-0 sm:p-0">
+        <div className="border-b border-[#dadde1] px-4"><AbasCreditos aba="debitos" /></div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-stone-50/80 text-left text-xs text-stone-500">
@@ -278,21 +386,26 @@ async function AbaHistorico({ filtros, paginas }: { filtros: { usuario: string; 
   });
 
   return (
-    <section className="cartao overflow-hidden p-0 sm:p-0">
-      <div className="flex flex-col gap-3 border-b border-stone-100 px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
-        <FiltrosHistorico
-          pessoas={pessoas.map((p) => ({ id: p.id, nome: p.nome })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))}
-          eventos={rituais.map((e) => ({ id: e.$id, titulo: `${e.titulo} (${dataCurta(e.data)})` })).reverse()}
-          pacotes={pacotesLista.slice(0, 200).map((p) => ({ id: p.$id, titulo: `${nome(p.usuario_id)} · ${p.nome ?? "Pacote"}` }))}
-        />
-        <div className="shrink-0 max-lg:[&>button]:w-full">
+    <>
+      {/* Exportar fica fora e acima do cartão, à direita */}
+      <div className="mb-3 flex justify-end max-lg:[&>button]:w-full">
         <ExportarHistoricoCsv
           nomeArquivo="historico-creditos.csv"
           cabecalho={["Data", "Ação", "Pessoa", "Ritual", "Pacote", "Feito por", "Detalhe"]}
           linhas={linhas.map(({ m, evento, pacote, detalhe }) => [dataHora(m.$createdAt), ROTULO_ACAO[m.acao], nome(m.usuario_id), evento, pacote, nome(m.por), detalhe])}
         />
-        </div>
       </div>
+    <section className="cartao overflow-hidden p-0 sm:p-0">
+      <CabecalhoComFiltros
+        abas={<AbasCreditos aba="historico" />}
+        filtros={
+          <FiltrosHistorico
+            pessoas={pessoas.map((p) => ({ id: p.id, nome: p.nome })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))}
+            eventos={rituais.map((e) => ({ id: e.$id, titulo: `${e.titulo} (${dataCurta(e.data)})` })).reverse()}
+            pacotes={pacotesLista.slice(0, 200).map((p) => ({ id: p.$id, titulo: `${nome(p.usuario_id)} · ${p.nome ?? "Pacote"}` }))}
+          />
+        }
+      />
 
       {/* Celular: um cartão por movimentação (sem rolagem lateral) */}
       <ul className="divide-y divide-stone-100 lg:hidden">
@@ -355,52 +468,40 @@ async function AbaHistorico({ filtros, paginas }: { filtros: { usuario: string; 
         </div>
       )}
     </section>
+    </>
   );
 }
 
 /**
- * Indicador dos créditos de um pacote: uma bolinha por crédito (usado = cinza, disponível = verde,
- * aguardando pagamento = âmbar vazado). Pacotes grandes viram uma barra empilhada.
+ * Créditos de um pacote: barra fina segmentada (usado azul, disponível verde, aguardando pagamento âmbar) e a
+ * contagem em texto, sem depender só da cor.
  */
 function IndicadorCreditos({ p }: { p: PacoteResumo }) {
-  if (p.situacao === "cancelado") return <span className="text-stone-300">—</span>;
-  const total = Math.max(p.quantidade, p.disponiveis + p.utilizados + p.bloqueados);
+  if (p.situacao === "cancelado") return <span className="text-[#8a8d91]">—</span>;
+  const total = Math.max(p.quantidade, p.disponiveis + p.utilizados + p.bloqueados) || 1;
+  // Um segmento por crédito: usados, disponíveis, aguardando pagamento e, se sobrar, vazios
+  const estados = [
+    ...Array.from({ length: p.utilizados }, () => ({ rotulo: "Usado", cor: "bg-mata-600" })),
+    ...Array.from({ length: p.disponiveis }, () => ({ rotulo: "Disponível", cor: "bg-[#31a24c]" })),
+    ...Array.from({ length: p.bloqueados }, () => ({ rotulo: "Aguardando pagamento", cor: "bg-[#f7b928]" })),
+  ];
+  const segmentos = Array.from({ length: total }, (_, i) => estados[i] ?? { rotulo: "Sem estado", cor: "bg-[#e4e6eb]" });
   const resumo = [
-    `${p.disponiveis} ${p.disponiveis === 1 ? "disponível" : "disponíveis"}`,
-    `${p.utilizados} ${p.utilizados === 1 ? "usado" : "usados"}`,
-    p.bloqueados ? `${p.bloqueados} aguardando` : "",
-    p.cedidos ? `${p.cedidos} ${p.cedidos === 1 ? "cedido" : "cedidos"}` : "",
+    p.disponiveis + " de " + total + (p.disponiveis === 1 ? " disponível" : " disponíveis"),
+    p.utilizados + (p.utilizados === 1 ? " usado" : " usados"),
+    p.bloqueados ? p.bloqueados + " aguardando" : "",
+    p.cedidos ? p.cedidos + (p.cedidos === 1 ? " cedido" : " cedidos") : "",
   ].filter(Boolean);
-  const contagens = [
-    { n: p.disponiveis, rotulo: "disponíveis", singular: "disponível", cor: "text-emerald-700", sempre: true },
-    { n: p.utilizados, rotulo: "usados", singular: "usado", cor: "text-stone-700", sempre: true },
-    { n: p.bloqueados, rotulo: "aguardando", singular: "aguardando", cor: "text-amber-600", sempre: false },
-    { n: p.cedidos, rotulo: "cedidos", singular: "cedido", cor: "text-sky-700", sempre: false },
-  ];
-  const grupos = [
-    { n: p.utilizados, rotulo: "Usado", dot: "bg-stone-400", barra: "bg-stone-400" },
-    { n: p.disponiveis, rotulo: "Disponível", dot: "bg-emerald-500", barra: "bg-emerald-500" },
-    { n: p.bloqueados, rotulo: "Aguardando pagamento", dot: "border-2 border-amber-400 bg-white", barra: "bg-amber-300" },
-  ];
   return (
-    <div className="min-w-32" role="img" aria-label={resumo.join(", ")}>
-      {total <= 20 ? (
-        <div className="flex flex-wrap gap-1">
-          {grupos.flatMap((g) => Array.from({ length: g.n }, (_, i) => (
-            <span key={`${g.rotulo}-${i}`} title={g.rotulo} className={`h-3 w-3 rounded-full ${g.dot}`} />
-          )))}
-        </div>
-      ) : (
-        <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-stone-100">
-          {grupos.map((g) => g.n > 0 && <span key={g.rotulo} title={`${g.rotulo}: ${g.n}`} className={g.barra} style={{ width: `${(g.n / total) * 100}%` }} />)}
-        </div>
-      )}
-      <p className="mt-1.5 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs text-stone-500 tabular-nums">
-        {contagens.map((c) => c.n > 0 || c.sempre ? (
-          <span key={c.rotulo} className="whitespace-nowrap">
-            <strong className={`text-base font-bold ${c.cor}`}>{c.n}</strong> {c.n === 1 ? c.singular : c.rotulo}
-          </span>
-        ) : null)}
+    <div className="min-w-36" role="img" aria-label={resumo.join(", ")}>
+      <div className={"flex h-2 w-full " + (total > 30 ? "gap-px" : "gap-0.5")}>
+        {segmentos.map((g, i) => <span key={i} title={"Crédito " + (i + 1) + ": " + g.rotulo} className={"h-full min-w-0 flex-1 rounded-full " + g.cor} />)}
+      </div>
+      <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[#65676b] tabular-nums">
+        <span className="whitespace-nowrap"><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#31a24c]" aria-hidden /><strong className="font-semibold text-[#1c1e21]">{p.disponiveis}</strong> de {total}</span>
+        <span className="whitespace-nowrap"><span className="mr-1 inline-block h-2 w-2 rounded-full bg-mata-600" aria-hidden /><strong className="font-semibold text-[#1c1e21]">{p.utilizados}</strong> {p.utilizados === 1 ? "usado" : "usados"}</span>
+        {p.bloqueados > 0 && <span className="whitespace-nowrap"><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f7b928]" aria-hidden /><strong className="font-semibold text-[#1c1e21]">{p.bloqueados}</strong> aguardando</span>}
+        {p.cedidos > 0 && <span className="whitespace-nowrap">{p.cedidos} {p.cedidos === 1 ? "cedido" : "cedidos"}</span>}
       </p>
     </div>
   );
