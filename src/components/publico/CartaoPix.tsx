@@ -1,45 +1,79 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, QrCode } from "lucide-react";
 import type { ChavePix } from "@/lib/types";
-import { ROTULO_PIX } from "@/lib/pix";
+import { gerarPayloadPix, ROTULO_PIX } from "@/lib/pix";
 
-/** Chave Pix com botão de copiar. Aparece na janela “Participar”. */
-export function CartaoPix({ chave }: { chave: ChavePix }) {
+const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/**
+ * Chave Pix com um botão de copiar. Com `valor`, mostra o QR Code com esse valor e o botão copia o código
+ * copia e cola; sem valor, copia a chave. Aparece na janela “Participar” e na compra de pacotes.
+ */
+export function CartaoPix({ chave, valor, descricao }: { chave: ChavePix; valor?: number | null; descricao?: string }) {
   const [copiado, setCopiado] = useState(false);
+  const [qr, setQr] = useState<{ imagem: string; codigo: string } | null>(null);
+
+  useEffect(() => {
+    if (!valor || valor <= 0) { setQr(null); return; }
+    let cancelado = false;
+    const codigo = gerarPayloadPix({ tipo: chave.tipo, chave: chave.chave, favorecido: chave.favorecido, cidade: chave.cidade, valor, descricao });
+    (async () => {
+      const QRCode = (await import("qrcode")).default;
+      const imagem = await QRCode.toDataURL(codigo, { margin: 1, width: 320, errorCorrectionLevel: "M" });
+      if (!cancelado) setQr({ imagem, codigo });
+    })();
+    return () => { cancelado = true; };
+  }, [chave, valor, descricao]);
+
+  const textoCopiar = qr ? qr.codigo : chave.chave;
 
   const copiar = async () => {
     try {
-      await navigator.clipboard.writeText(chave.chave);
+      await navigator.clipboard.writeText(textoCopiar);
       setCopiado(true);
       setTimeout(() => setCopiado(false), 2500);
-    } catch {
-      // sem permissão de área de transferência: a chave continua selecionável
-    }
+    } catch { /* sem permissão: o texto continua selecionável */ }
   };
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-ouro-100 via-ouro-50 to-mata-100 p-5 text-stone-900 ring-1 ring-ouro-300/80">
+    <div className="rounded-2xl border border-mata-100 bg-gradient-to-br from-mata-50/70 via-white to-ouro-50/60 p-4 text-stone-900 shadow-sm sm:p-5">
       <div className="flex items-center justify-between gap-3">
-        <p className="flex shrink-0 items-center gap-2 text-[11px] font-semibold tracking-[0.16em] text-ouro-700 uppercase">
-          <QrCode size={14} /> Pix · {ROTULO_PIX[chave.tipo] || chave.tipo}
-        </p>
-        {/* Titular do Pix na mesma linha do tipo da chave, alinhado à direita */}
-        <p className="min-w-0 truncate text-right text-xs font-medium text-stone-600" title={chave.favorecido}>{chave.favorecido}</p>
+        <div className="flex items-center gap-2">
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-white text-mata-700 shadow-sm ring-1 ring-mata-100"><QrCode size={15} aria-hidden /></span>
+          <p className="text-sm font-semibold text-stone-900">Pix <span className="font-normal text-stone-500">· {ROTULO_PIX[chave.tipo] || chave.tipo}</span></p>
+        </div>
+        <p className="min-w-0 truncate text-right text-xs text-stone-500" title={chave.favorecido}>{chave.favorecido}</p>
       </div>
-      <p className="mt-2 rounded-lg bg-white px-3 py-2 font-mono text-[15px] leading-snug font-semibold break-all text-stone-900 ring-1 ring-stone-200 select-all">{chave.chave}</p>
-      {chave.banco && <p className="mt-1.5 text-xs text-stone-500">{chave.banco}</p>}
+
+      <div className="mt-3 rounded-xl bg-white/80 px-3 py-2.5 ring-1 ring-mata-100">
+        <p className="text-[11px] font-medium text-stone-500">Chave</p>
+        <p className="mt-0.5 font-mono text-sm leading-snug font-semibold break-all text-stone-900 select-all">{chave.chave}</p>
+      </div>
+
+      {qr && valor ? (
+        <div className="mt-4 flex flex-col items-center">
+          <div className="rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-mata-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qr.imagem} alt={`QR Code Pix de ${formatoReal(valor)}`} className="h-40 w-40 sm:h-44 sm:w-44" />
+          </div>
+          <p className="mt-3 text-[11px] font-medium tracking-wide text-stone-500 uppercase">Valor a pagar</p>
+          <p className="text-2xl font-semibold tracking-tight text-stone-900 tabular-nums">{formatoReal(valor)}</p>
+        </div>
+      ) : null}
+
       <button
         type="button"
         onClick={copiar}
-        className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition active:scale-[0.98] ${
-          copiado ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ring-inset" : "bg-mata-50 text-mata-800 ring-1 ring-mata-200 ring-inset hover:bg-mata-100"
+        className={`mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm font-semibold transition active:scale-[0.98] ${
+          copiado ? "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 ring-inset" : "bg-mata-700 text-white shadow-sm hover:bg-mata-800"
         }`}
       >
-        {copiado ? <Check size={16} /> : <Copy size={15} />}
-        {copiado ? "Chave copiada" : "Copiar chave Pix"}
+        {copiado ? <Check size={16} aria-hidden /> : <Copy size={15} aria-hidden />}
+        {copiado ? "Copiado" : qr ? "Copiar código Pix (copia e cola)" : "Copiar chave Pix"}
       </button>
+      {chave.banco && <p className="mt-3 text-center text-[11px] text-stone-400">{chave.banco}</p>}
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { RodapePublico } from "@/components/publico/RodapePublico";
 import { ProximoRitualCard } from "@/components/publico/ProximoRitualCard";
 import { CancelarParticipacao } from "@/components/publico/CancelarParticipacao";
 import { BotaoComprovante } from "./BotaoComprovante";
-import { CederCredito, ComprarPacote } from "./CreditosCliente";
+import { CederCreditos, ComprarPacote, type PacoteCedivel } from "./CreditosCliente";
 
 export const metadata: Metadata = { title: "Minha conta" };
 
@@ -189,6 +189,16 @@ function Lista({ itens, vazio, mostrarPagamento, cancelar = false }: { itens: It
 const dataHora = (iso: string) =>
   new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(iso)).replace(",", " às");
 
+/** Texto de um grupo de créditos: o que foi usado, aguardando, cedido ou recebido. */
+function resumoGrupo(g: { usados: number; aguardando: number; cedidos: number; recebidos: number }): string {
+  return [
+    g.usados ? `${g.usados} ${g.usados === 1 ? "usado" : "usados"}` : "",
+    g.aguardando ? `${g.aguardando} aguardando pagamento` : "",
+    g.cedidos ? `${g.cedidos} ${g.cedidos === 1 ? "cedido" : "cedidos"} para outra pessoa` : "",
+    g.recebidos ? `${g.recebidos} ${g.recebidos === 1 ? "recebido" : "recebidos"} de outra pessoa` : "",
+  ].filter(Boolean).join(" · ");
+}
+
 async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId: string; saldo: Awaited<ReturnType<typeof saldoDoUsuario>>; creditos: CreditoItem[]; chavePix: Awaited<ReturnType<typeof getDadosInstituto>>["pix"][number] | null }) {
   const [pacotes, movimentos, planos, usuarios] = await Promise.all([
     pacotesComResumo(usuarioId),
@@ -200,10 +210,32 @@ async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId
   const eventoIds = [...new Set(movimentos.flatMap((m) => (m.evento_id ? [m.evento_id] : [])))];
   const eventos = new Map((eventoIds.length ? await listarEventos({ ids: eventoIds.slice(0, 100) }) : []).map((e) => [e.$id, e]));
   const negativo = saldo.saldo < 0;
+  // Créditos agrupados por pacote (sem card por crédito). Só entra para cessão o que a pessoa tem e não recebeu.
+  const grupos = new Map<string, { id: string; nome: string; disponiveis: number; usados: number; aguardando: number; cedidos: number; recebidos: number; cediveis: number }>();
+  for (const c of creditos) {
+    if (c.situacao === "cancelado") continue;
+    const g = grupos.get(c.pacote_id) ?? { id: c.pacote_id, nome: c.pacoteNome ?? "Pacote", disponiveis: 0, usados: 0, aguardando: 0, cedidos: 0, recebidos: 0, cediveis: 0 };
+    if (c.cedidoParaOutro) g.cedidos++;
+    else if (c.situacao === "utilizado") g.usados++;
+    else if (c.situacao === "bloqueado") g.aguardando++;
+    else if (c.situacao === "disponivel") {
+      g.disponiveis++;
+      if (c.cedido_de) g.recebidos++; else g.cediveis++;
+    }
+    grupos.set(c.pacote_id, g);
+  }
+  const gruposLista = [...grupos.values()];
+  const cediveis: PacoteCedivel[] = gruposLista.filter((g) => g.cediveis > 0).map((g) => ({ id: g.id, nome: g.nome, cediveis: g.cediveis }));
+  // Soma de todos os pacotes: cada crédito disponível vira uma unidade (círculo com ticket)
+  const totais = gruposLista.reduce(
+    (t, g) => ({ disponiveis: t.disponiveis + g.disponiveis, usados: t.usados + g.usados, aguardando: t.aguardando + g.aguardando, cedidos: t.cedidos + g.cedidos, recebidos: t.recebidos + g.recebidos }),
+    { disponiveis: 0, usados: 0, aguardando: 0, cedidos: 0, recebidos: 0 },
+  );
+  const LIMITE_CIRCULOS = 40;
 
   return (
     <div className="space-y-6">
-      <section className={`cartao !p-5 ${negativo ? "ring-2 ring-red-200" : ""}`}>
+      <section className={`cartao !p-4 sm:!p-5 ${negativo ? "ring-2 ring-red-200" : ""}`}>
         <p className="text-xs font-medium text-stone-500">Seu saldo</p>
         <p className={`mt-1 text-4xl font-semibold tabular-nums ${negativo ? "text-red-700" : "text-mata-800"}`}>{saldo.saldo}</p>
         <p className="mt-1 text-sm text-stone-500">
@@ -226,31 +258,25 @@ async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold text-stone-800">Meus créditos</h2>
-        {!creditos.length ? <p className="cartao text-center text-sm text-stone-400">Você ainda não tem créditos.</p> : (
-          <ul className="space-y-2">
-            {creditos.map((c) => {
-              const rec = !c.cedidoParaOutro && c.cedido_de;
-              const sit = c.cedidoParaOutro ? { rotulo: `Cedido para ${nome(c.titular_id)}`, cor: "bg-sky-50 text-sky-700" } : ROTULO_CREDITO[c.situacao];
-              return (
-                <li key={c.$id} className="cartao !p-3.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-stone-900">Crédito {c.rotulo}{c.pacoteNome ? <span className="font-normal text-stone-500"> · {c.pacoteNome}</span> : null}</p>
-                      <p className="mt-0.5 text-xs text-stone-500">
-                        {rec && `Recebido de ${nome(c.cedido_de)}`}
-                        {c.situacao === "utilizado" && c.evento && `${rec ? " · " : ""}Usado em ${c.evento.ritualNumero ? `Ritual ${formatarIdRitual(c.evento.ritualNumero, null, null)}: ` : ""}${c.evento.titulo} (${dataCurta(c.evento.data)})`}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`chip ${sit.cor}`}>{sit.rotulo}</span>
-                      {!c.cedidoParaOutro && c.situacao === "disponivel" && !c.cedido_de && <CederCredito creditoId={c.$id} rotulo={c.rotulo} />}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold text-stone-800">Meus créditos</h2>
+          {cediveis.length > 0 && <CederCreditos pacotes={cediveis} />}
+        </div>
+        {!gruposLista.length ? <p className="cartao text-center text-sm text-stone-400">Você ainda não tem créditos.</p> : (
+          <div className="cartao">
+            <div className="flex flex-wrap items-center gap-2" role="img" aria-label={`${totais.disponiveis} ${totais.disponiveis === 1 ? "crédito disponível" : "créditos disponíveis"}`}>
+              {Array.from({ length: Math.min(totais.disponiveis, LIMITE_CIRCULOS) }, (_, i) => (
+                <span key={i} title="Crédito disponível" className="grid h-9 w-9 place-items-center rounded-full bg-mata-600 text-white shadow-sm">
+                  <Ticket size={16} aria-hidden />
+                </span>
+              ))}
+              {totais.disponiveis > LIMITE_CIRCULOS && <span className="text-sm font-semibold text-stone-500 tabular-nums">+{totais.disponiveis - LIMITE_CIRCULOS}</span>}
+            </div>
+            <p className="mt-3 text-sm text-stone-700">
+              <strong className="font-semibold text-stone-900 tabular-nums">{totais.disponiveis}</strong> {totais.disponiveis === 1 ? "crédito disponível" : "créditos disponíveis"}
+              {resumoGrupo(totais) && <span className="text-stone-500"> · {resumoGrupo(totais)}</span>}
+            </p>
+          </div>
         )}
       </section>
 
@@ -259,7 +285,7 @@ async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId
         {!pacotes.length ? <p className="cartao text-center text-sm text-stone-400">Nenhum pacote comprado ainda.</p> : (
           <ul className="space-y-2">
             {pacotes.map((p) => (
-              <li key={p.$id} className="cartao !p-3.5">
+              <li key={p.$id} className="cartao !p-3 sm:!p-3.5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-stone-900">{p.nome ?? "Pacote"} <span className="font-normal text-stone-500">· {p.quantidade} {p.quantidade === 1 ? "crédito" : "créditos"}</span></p>

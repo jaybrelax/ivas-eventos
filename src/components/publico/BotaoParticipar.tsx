@@ -44,6 +44,8 @@ type Props = {
   /** Ritual: “Participar do Ritual”; demais tipos: “Participar do Encontro”. */
   ehRitual?: boolean;
   variante?: "hero" | "sidebar" | "sticky";
+  /** Texto fixo do botão; vale enquanto a pessoa não está inscrita (ex.: “Quero participar”). */
+  rotulo?: string;
   className?: string;
 
   /** Sessão e inscrição de quem está vendo a página (undefined/null = não logado). */
@@ -77,6 +79,7 @@ export function BotaoParticipar({
   ehRitual = true,
   chavePix,
   variante = "hero",
+  rotulo: rotuloFixo,
   className = "",
   eventoId,
   abrirAoCarregar = false,
@@ -128,7 +131,7 @@ export function BotaoParticipar({
     sticky: "h-11 gap-2 rounded-xl px-4 text-sm",
   }[variante];
 
-  const rotuloBotao = variante === "sticky"
+  const rotuloBotao = rotuloFixo && !minhaInscricao ? rotuloFixo : variante === "sticky"
     ? (minhaInscricao?.situacao === "confirmada" ? "Confirmado" : minhaInscricao?.situacao === "espera" ? "Na espera" : "Participar")
     : minhaInscricao?.situacao === "confirmada"
       ? "Inscrição confirmada"

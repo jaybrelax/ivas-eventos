@@ -288,6 +288,12 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
                   // no celular o botão fica só na barra fixa, que surge depois de rolar
                   <div className="hidden sm:block"><BotaoParticipar {...participar} variante="hero" /></div>
                 )}
+                {/* Celular: botão verde logo abaixo das informações, antes de compartilhar */}
+                {!sit.passou && (
+                  <div className="w-full sm:hidden">
+                    <BotaoParticipar {...participar} variante="sidebar" rotulo="Quero participar" />
+                  </div>
+                )}
                 <BotoesCompartilhar titulo={evento.titulo} data={dataExtenso} hora={evento.hora_inicio} />
               </div>
             </div>

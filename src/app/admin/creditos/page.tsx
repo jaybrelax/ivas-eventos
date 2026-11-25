@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { AlertTriangle, Clock, History, ListChecks, Package, Ticket, Users, Wallet } from "lucide-react";
+import { AlertTriangle, Clock, ListChecks, Ticket, Users, Wallet } from "lucide-react";
 import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import {
@@ -10,9 +10,12 @@ import { consomeCredito } from "@/lib/creditos-regras";
 import { ROTULO_ACAO, ROTULO_PACOTE } from "@/lib/creditos-rotulos";
 import { listarEventos, listarTipos } from "@/lib/data";
 import { dataCurta } from "@/lib/format";
+import { casaBusca } from "@/lib/busca-texto";
 import { listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
 import { Titulo } from "@/components/Titulo";
 import { Avatar } from "@/components/Avatar";
+import { AbasCreditos } from "./AbasCreditos";
+import { BuscaCreditos } from "./BuscaCreditos";
 import { AcoesPacote, CabecalhoComFiltros, ExportarHistoricoCsv, FiltrosHistorico, LancarPacote, PacoteClicavel, QuitarDebito } from "./Cliente";
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -20,47 +23,26 @@ const dataHora = (iso: string) =>
   new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
     .format(new Date(iso)).replace(",", " às");
 
-const ABAS = [
-  { chave: "pacotes", rotulo: "Pacotes", Icone: Package },
-  { chave: "saldos", rotulo: "Saldos", Icone: Users },
-  { chave: "debitos", rotulo: "Débitos", Icone: AlertTriangle },
-  { chave: "historico", rotulo: "Histórico", Icone: History },
-] as const;
-type Aba = (typeof ABAS)[number]["chave"];
+const CHAVES_ABAS = ["pacotes", "saldos", "debitos", "historico"] as const;
+type Aba = (typeof CHAVES_ABAS)[number];
 
 const str = (v: unknown) => (typeof v === "string" ? v : "");
-
-/** Abas dos créditos, dentro do cabeçalho de cada tabela (estilo Meta: sublinhado azul na aba ativa). */
-function AbasCreditos({ aba }: { aba: Aba }) {
-  return (
-    <nav className="-mb-px flex min-w-0 gap-1 overflow-x-auto" aria-label="Seções dos créditos">
-      {ABAS.map(({ chave, rotulo, Icone }) => (
-        <Link
-          key={chave}
-          href={"/admin/creditos?aba=" + chave}
-          aria-current={aba === chave ? "page" : undefined}
-          className={"inline-flex shrink-0 items-center gap-1.5 border-b-2 px-3 py-4 text-sm font-medium whitespace-nowrap transition max-lg:min-h-11 " + (aba === chave ? "border-mata-600 text-mata-700" : "border-transparent text-[#65676b] hover:text-[#1c1e21]")}
-        >
-          <Icone size={15} aria-hidden /> {rotulo}
-        </Link>
-      ))}
-    </nav>
-  );
-}
 
 /** Painel dos pacotes de créditos: compras, saldo de cada pessoa, débitos (participou sem crédito) e histórico auditável. */
 export default async function Creditos({ searchParams }: PageProps<"/admin/creditos">) {
   await exigir(PODE.editarEventos);
   const sp = await searchParams;
-  const aba: Aba = (ABAS.some((a) => a.chave === str(sp.aba)) ? str(sp.aba) : "pacotes") as Aba;
+  const aba: Aba = ((CHAVES_ABAS as readonly string[]).includes(str(sp.aba)) ? str(sp.aba) : "pacotes") as Aba;
+  // Busca de pessoa: vale para as quatro abas
+  const q = str(sp.q).trim().slice(0, 80);
 
   return (
     <>
-      <Titulo sobre="Relatório" titulo="Créditos" subtitulo="Pacotes vendidos, saldo de cada pessoa, participações sem crédito e histórico de uso." />
-      {aba === "pacotes" && <AbaPacotes />}
-      {aba === "saldos" && <AbaSaldos negativos={str(sp.negativos) === "1"} agrupar={str(sp.agrupar) === "1"} />}
-      {aba === "debitos" && <AbaDebitos />}
-      {aba === "historico" && <AbaHistorico filtros={{ usuario: str(sp.usuario), evento: str(sp.evento), pacote: str(sp.pacote), de: str(sp.de), ate: str(sp.ate) }} paginas={Math.min(10, Math.max(1, Number(str(sp.paginas)) || 1))} />}
+      <Titulo sobre="Relatório" titulo="Pacotes" subtitulo="Pacotes vendidos, saldo de cada pessoa, participações sem crédito e histórico de uso." />
+      {aba === "pacotes" && <AbaPacotes q={q} />}
+      {aba === "saldos" && <AbaSaldos negativos={str(sp.negativos) === "1"} agrupar={str(sp.agrupar) === "1"} q={q} />}
+      {aba === "debitos" && <AbaDebitos q={q} />}
+      {aba === "historico" && <AbaHistorico q={q} filtros={{ usuario: str(sp.usuario), evento: str(sp.evento), pacote: str(sp.pacote), de: str(sp.de), ate: str(sp.ate) }} paginas={Math.min(10, Math.max(1, Number(str(sp.paginas)) || 1))} />}
     </>
   );
 }
@@ -142,12 +124,13 @@ function propsModal(p: PacoteResumo, usuarios: Awaited<ReturnType<typeof mapaUsu
   };
 }
 
-async function AbaPacotes() {
+async function AbaPacotes({ q }: { q: string }) {
   // Uma leitura só da tabela de créditos para pacotes, saldos e débitos
   const [dados, planos, pessoas, usuarios] = await Promise.all([
     resumoGeral(), listarPlanos(true), listarTodasAsPessoas(), mapaUsuarios(),
   ]);
-  const { pacotes } = dados;
+  // Com busca, só os pacotes da pessoa procurada (os cards do topo continuam com os totais gerais)
+  const pacotes = q ? dados.pacotes.filter((p) => casaBusca(q, usuarios.get(p.usuario_id)?.nome ?? "")) : dados.pacotes;
   const pagos = pacotes.filter((p) => p.situacao === "pago");
 
   const botaoLancar = (
@@ -160,16 +143,17 @@ async function AbaPacotes() {
     <>
       <CartoesResumo dados={dados} />
 
-      {/* Celular: contagem de pacotes ativos à esquerda e o botão à direita, entre os cards e a tabela */}
-      <div className="mb-3 flex items-center justify-between gap-3 lg:hidden">
-        <p className="text-sm text-[#65676b]"><strong className="font-semibold text-[#1c1e21]">{pagos.length}</strong> {pagos.length === 1 ? "pacote ativo" : "pacotes ativos"}</p>
+      {/* Busca de pessoa e Lançar pacote na mesma linha, entre os cards e a tabela */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <BuscaCreditos className="w-full sm:max-w-sm sm:flex-1" />
         {botaoLancar}
       </div>
+      {/* Celular: sem cabeçalho de tabela, a contagem de pacotes ativos fica aqui */}
+      <p className="mb-3 text-sm text-[#65676b] lg:hidden"><strong className="font-semibold text-[#1c1e21]">{pagos.length}</strong> {pagos.length === 1 ? "pacote ativo" : "pacotes ativos"}</p>
 
       <section className="overflow-hidden rounded-lg border border-[#dadde1] bg-white">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[#dadde1] px-4">
-          <AbasCreditos aba="pacotes" />
-          <div className="max-lg:hidden">{botaoLancar}</div>
+          <AbasCreditos aba="pacotes" q={q} />
         </div>
 
         {/* Celular e tablet: um cartão por pacote (sem rolagem lateral) */}
@@ -191,7 +175,7 @@ async function AbaPacotes() {
               </div>
             </PacoteClicavel>
           )) : (
-            <li className="px-4 py-10 text-center text-sm text-[#65676b]">Nenhum pacote ainda.</li>
+            <li className="px-4 py-10 text-center text-sm text-[#65676b]">{q ? "Nenhum pacote encontrado para “" + q + "”." : "Nenhum pacote ainda."}</li>
           )}
         </ul>
 
@@ -219,7 +203,7 @@ async function AbaPacotes() {
                   <td className="px-4 py-3"><AcoesPacote pacoteId={p.$id} situacao={p.situacao} /></td>
                 </PacoteClicavel>
               )) : (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-[#65676b]">Nenhum pacote ainda.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-[#65676b]">{q ? "Nenhum pacote encontrado para “" + q + "”." : "Nenhum pacote ainda."}</td></tr>
               )}
             </tbody>
           </table>
@@ -229,14 +213,15 @@ async function AbaPacotes() {
   );
 }
 
-async function AbaSaldos({ negativos, agrupar }: { negativos: boolean; agrupar: boolean }) {
+async function AbaSaldos({ negativos, agrupar, q }: { negativos: boolean; agrupar: boolean; q: string }) {
   const [saldos, usuarios, resumo] = await Promise.all([saldosDeTodos(), mapaUsuarios(), resumoGeral()]);
   const linhas = [...saldos.entries()]
     .filter(([, s]) => s.disponiveis || s.bloqueados || s.utilizados || s.debitos)
     .filter(([, s]) => !negativos || s.saldo < 0)
+    .filter(([id]) => !q || casaBusca(q, usuarios.get(id)?.nome ?? ""))
     .sort((a, b) => a[1].saldo - b[1].saldo || (usuarios.get(a[0])?.nome ?? "").localeCompare(usuarios.get(b[0])?.nome ?? "", "pt-BR"));
 
-  const hrefSaldos = (neg: boolean, agr: boolean) => "/admin/creditos?aba=saldos" + (neg ? "&negativos=1" : "") + (agr ? "&agrupar=1" : "");
+  const hrefSaldos = (neg: boolean, agr: boolean) => "/admin/creditos?aba=saldos" + (neg ? "&negativos=1" : "") + (agr ? "&agrupar=1" : "") + (q ? "&q=" + encodeURIComponent(q) : "");
 
   // Linha de cada pessoa (igual com ou sem agrupamento)
   const linhaPessoa = ([id, sd]: (typeof linhas)[number]) => (
@@ -260,8 +245,9 @@ async function AbaSaldos({ negativos, agrupar }: { negativos: boolean; agrupar: 
   return (
     <>
     <CartoesResumo dados={resumo} />
+    <div className="mb-3"><BuscaCreditos className="w-full sm:max-w-sm" /></div>
     <section className="cartao overflow-hidden p-0 sm:p-0">
-      <div className="border-b border-[#dadde1] px-4"><AbasCreditos aba="saldos" /></div>
+      <div className="border-b border-[#dadde1] px-4"><AbasCreditos aba="saldos" q={q} /></div>
       <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3 sm:px-6">
         <p className="text-sm text-stone-500">{linhas.length} {linhas.length === 1 ? "pessoa" : "pessoas"}</p>
         <div className="flex flex-wrap items-center justify-end gap-2">
@@ -300,7 +286,7 @@ async function AbaSaldos({ negativos, agrupar }: { negativos: boolean; agrupar: 
                 {g.itens.map(linhaPessoa)}
               </Fragment>
             )) : linhas.map(linhaPessoa)) : (
-              <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-stone-400 sm:px-6">{negativos ? "Ninguém com saldo negativo." : "Nenhum saldo registrado ainda."}</td></tr>
+              <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-stone-400 sm:px-6">{q ? "Ninguém encontrado para “" + q + "”." : negativos ? "Ninguém com saldo negativo." : "Nenhum saldo registrado ainda."}</td></tr>
             )}
           </tbody>
         </table>
@@ -310,15 +296,17 @@ async function AbaSaldos({ negativos, agrupar }: { negativos: boolean; agrupar: 
   );
 }
 
-async function AbaDebitos() {
-  const [{ debitos, saldos }, usuarios] = await Promise.all([saldosEDebitos(), mapaUsuarios()]);
+async function AbaDebitos({ q }: { q: string }) {
+  const [{ debitos: todosDebitos, saldos }, usuarios] = await Promise.all([saldosEDebitos(), mapaUsuarios()]);
+  const debitos = q ? todosDebitos.filter((d) => casaBusca(q, usuarios.get(d.usuarioId)?.nome ?? "")) : todosDebitos;
   return (
     <>
       <p className="mb-4 max-w-3xl text-sm text-stone-500">
         Pessoas inscritas (vaga confirmada) em rituais que já começaram, sem crédito e sem contribuição resolvida. Quite com um crédito da pessoa, ou abra o evento para confirmar ou isentar a contribuição avulsa — o débito some sozinho.
       </p>
+      <div className="mb-3"><BuscaCreditos className="w-full sm:max-w-sm" /></div>
       <section className="cartao overflow-hidden p-0 sm:p-0">
-        <div className="border-b border-[#dadde1] px-4"><AbasCreditos aba="debitos" /></div>
+        <div className="border-b border-[#dadde1] px-4"><AbasCreditos aba="debitos" q={q} /></div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-stone-50/80 text-left text-xs text-stone-500">
@@ -345,7 +333,7 @@ async function AbaDebitos() {
                   </tr>
                 );
               }) : (
-                <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-stone-400 sm:px-6">Nenhuma participação sem crédito. 🎉</td></tr>
+                <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-stone-400 sm:px-6">{q ? "Nenhum débito encontrado para “" + q + "”." : "Nenhuma participação sem crédito. 🎉"}</td></tr>
               )}
             </tbody>
           </table>
@@ -355,14 +343,17 @@ async function AbaDebitos() {
   );
 }
 
-async function AbaHistorico({ filtros, paginas }: { filtros: { usuario: string; evento: string; pacote: string; de: string; ate: string }; paginas: number }) {
+async function AbaHistorico({ filtros, paginas, q }: { filtros: { usuario: string; evento: string; pacote: string; de: string; ate: string }; paginas: number; q: string }) {
   const limite = PAGINA_HISTORICO * paginas;
   // Leituras leves: só os eventos de ritual (os únicos que usam crédito) e os pacotes sem a contagem de créditos
   const tiposRitual = (await listarTipos()).filter((t) => consomeCredito(t)).map((t) => t.$id);
-  const [movimentos, pessoas, usuarios, pacotesLista, rituais] = await Promise.all([
-    historicoCreditos({ usuarioId: filtros.usuario || undefined, eventoId: filtros.evento || undefined, pacoteId: filtros.pacote || undefined, de: filtros.de || undefined, ate: filtros.ate || undefined, limite }),
+  // Busca por nome: uma pessoa só vira filtro no banco; várias são filtradas depois, na lista carregada
+  const idsBusca = q ? [...(await mapaUsuarios()).values()].filter((u) => casaBusca(q, u.nome)).map((u) => u.id) : null;
+  const [movimentosBrutos, pessoas, usuarios, pacotesLista, rituais] = await Promise.all([
+    historicoCreditos({ usuarioId: filtros.usuario || (idsBusca?.length === 1 ? idsBusca[0] : undefined), eventoId: filtros.evento || undefined, pacoteId: filtros.pacote || undefined, de: filtros.de || undefined, ate: filtros.ate || undefined, limite }),
     listarTodasAsPessoas(), mapaUsuarios(), listarPacotes(), tiposRitual.length ? listarEventos({ tipos: tiposRitual }) : Promise.resolve([]),
   ]);
+  const movimentos = idsBusca ? movimentosBrutos.filter((m) => idsBusca.includes(m.usuario_id) || (!!m.para_usuario && idsBusca.includes(m.para_usuario))) : movimentosBrutos;
   const eventos = new Map(rituais.map((e) => [e.$id, e]));
   // Evento citado que não é (mais) ritual: busca só ele, pelo ID
   const faltam = [...new Set(movimentos.flatMap((m) => (m.evento_id && !eventos.has(m.evento_id) ? [m.evento_id] : [])))].slice(0, 100);
@@ -371,9 +362,10 @@ async function AbaHistorico({ filtros, paginas }: { filtros: { usuario: string; 
   const maisUrl = (() => {
     const p = new URLSearchParams({ aba: "historico", paginas: String(paginas + 1) });
     for (const [k, v] of Object.entries(filtros)) if (v) p.set(k, v);
+    if (q) p.set("q", q);
     return `/admin/creditos?${p}`;
   })();
-  const temMais = movimentos.length >= limite && paginas < 10;
+  const temMais = movimentosBrutos.length >= limite && paginas < 10;
 
   const nome = (id: string | null) => (id ? (usuarios.get(id)?.nome ?? "Usuário removido") : "");
   const linhas = movimentos.map((m) => {
@@ -387,17 +379,20 @@ async function AbaHistorico({ filtros, paginas }: { filtros: { usuario: string; 
 
   return (
     <>
-      {/* Exportar fica fora e acima do cartão, à direita */}
-      <div className="mb-3 flex justify-end max-lg:[&>button]:w-full">
+      {/* Busca à esquerda e Exportar CSV à direita, fora e acima do cartão */}
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <BuscaCreditos className="w-full sm:max-w-sm sm:flex-1" />
+        <div className="max-lg:w-full max-lg:[&>button]:w-full">
         <ExportarHistoricoCsv
           nomeArquivo="historico-creditos.csv"
           cabecalho={["Data", "Ação", "Pessoa", "Ritual", "Pacote", "Feito por", "Detalhe"]}
           linhas={linhas.map(({ m, evento, pacote, detalhe }) => [dataHora(m.$createdAt), ROTULO_ACAO[m.acao], nome(m.usuario_id), evento, pacote, nome(m.por), detalhe])}
         />
+        </div>
       </div>
     <section className="cartao overflow-hidden p-0 sm:p-0">
       <CabecalhoComFiltros
-        abas={<AbasCreditos aba="historico" />}
+        abas={<AbasCreditos aba="historico" q={q} />}
         filtros={
           <FiltrosHistorico
             pessoas={pessoas.map((p) => ({ id: p.id, nome: p.nome })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))}
@@ -495,7 +490,7 @@ function IndicadorCreditos({ p }: { p: PacoteResumo }) {
   return (
     <div className="min-w-36" role="img" aria-label={resumo.join(", ")}>
       <div className={"flex h-2 w-full " + (total > 30 ? "gap-px" : "gap-0.5")}>
-        {segmentos.map((g, i) => <span key={i} title={"Crédito " + (i + 1) + ": " + g.rotulo} className={"h-full min-w-0 flex-1 rounded-full " + g.cor} />)}
+        {segmentos.map((g, i) => <span key={i} title={"Crédito " + (i + 1) + ": " + g.rotulo} className={(total < 5 ? "h-full w-1/5 shrink-0 " : "h-full min-w-0 flex-1 ") + "rounded-full " + g.cor} />)}
       </div>
       <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[#65676b] tabular-nums">
         <span className="whitespace-nowrap"><span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#31a24c]" aria-hidden /><strong className="font-semibold text-[#1c1e21]">{p.disponiveis}</strong> de {total}</span>

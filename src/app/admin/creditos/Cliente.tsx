@@ -301,7 +301,7 @@ export function CabecalhoComFiltros({ abas, filtros }: { abas: ReactNode; filtro
         <div id="filtros-historico" className="flex flex-col gap-3 border-b border-[#dadde1] bg-[#f5f6f7] px-4 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
           {filtros}
           {ativos > 0 && (
-            <button type="button" onClick={() => router.replace("/admin/creditos?aba=historico", { scroll: false })} className="btn-fantasma h-9 shrink-0 px-3 text-sm max-lg:h-11">Limpar filtros</button>
+            <button type="button" onClick={() => { const p = new URLSearchParams({ aba: "historico" }); const q = sp.get("q"); if (q) p.set("q", q); router.replace(`/admin/creditos?${p}`, { scroll: false }); }} className="btn-fantasma h-9 shrink-0 px-3 text-sm max-lg:h-11">Limpar filtros</button>
           )}
         </div>
       )}

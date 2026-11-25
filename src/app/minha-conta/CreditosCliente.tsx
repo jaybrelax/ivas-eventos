@@ -6,7 +6,7 @@ import { ArrowLeft, ImagePlus, Send, ShoppingBag, Upload, X } from "lucide-react
 import { CartaoPix } from "@/components/publico/CartaoPix";
 import { useImagem } from "@/components/useImagem";
 import type { ChavePix } from "@/lib/types";
-import { cederCreditoAction, comprarPacoteAction, localizarDestinatarioAction } from "./creditos-actions";
+import { cederCreditosAction, comprarPacoteAction, localizarDestinatarioAction } from "./creditos-actions";
 
 type Resultado = { ok?: string; erro?: string };
 export type PlanoVisivel = { id: string; nome: string; quantidade: number; valor: number; descricao: string | null };
@@ -43,25 +43,27 @@ export function ComprarPacote({ planos, chavePix }: { planos: PlanoVisivel[]; ch
   const fechar = () => { setAberto(false); setPlanoId(null); };
 
   return (
-    <div className="space-y-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+    <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-stone-900">{plano ? "Pagar o pacote" : "Escolha um pacote"}</h3>
         <button type="button" onClick={fechar} className="grid h-8 w-8 place-items-center rounded-full text-stone-500 hover:bg-stone-100" aria-label="Fechar"><X size={16} /></button>
       </div>
 
       {!plano && (
-        <ul className="grid gap-2 sm:grid-cols-2">
+        <ul className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
           {planos.map((p) => (
-            <li key={p.id}>
+            <li key={p.id} className="flex">
               <button
                 type="button"
                 onClick={() => { setPlanoId(p.id); setMsg(undefined); }}
-                className="w-full rounded-xl border border-stone-200 bg-stone-50/60 p-3 text-left transition hover:border-mata-300 hover:bg-white active:scale-[0.99]"
+                aria-label={`${p.nome}: ${p.quantidade} ${p.quantidade === 1 ? "crédito" : "créditos"} por ${formatoReal(p.valor)}`}
+                className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-stone-200 bg-gradient-to-br from-white via-white to-mata-50 p-3.5 text-left sm:p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-mata-300 hover:shadow-cartao focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mata-600 active:scale-[0.99]"
               >
-                <span className="block text-sm font-semibold text-stone-900">{p.nome}</span>
-                <span className="mt-0.5 block text-xs text-stone-500">{p.quantidade} {p.quantidade === 1 ? "crédito" : "créditos"} · 1 por ritual</span>
-                <span className="mt-1.5 block text-lg font-semibold tabular-nums text-mata-800">{formatoReal(p.valor)}</span>
-                {p.descricao && <span className="mt-1 block text-xs text-stone-500">{p.descricao}</span>}
+                <span aria-hidden className="pointer-events-none absolute -right-3 -bottom-8 select-none text-[9rem] leading-none font-black tracking-tighter tabular-nums text-mata-100/80 transition duration-300 group-hover:text-mata-200/80">{p.quantidade}</span>
+                <span className="relative text-sm font-semibold text-stone-900">{p.nome}</span>
+                <span className="relative mt-0.5 text-xs text-stone-500">{p.quantidade} {p.quantidade === 1 ? "crédito" : "créditos"} · 1 por ritual</span>
+                <span className="relative mt-auto pt-10 text-xl font-semibold tracking-tight tabular-nums text-mata-800">{formatoReal(p.valor)}</span>
+                {p.descricao && <span className="relative mt-1 text-xs text-stone-500">{p.descricao}</span>}
               </button>
             </li>
           ))}
@@ -89,7 +91,7 @@ export function ComprarPacote({ planos, chavePix }: { planos: PlanoVisivel[]; ch
           </div>
 
           {chavePix
-            ? <CartaoPix chave={chavePix} />
+            ? <CartaoPix chave={chavePix} valor={plano.valor} descricao={plano.nome} />
             : <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800 ring-1 ring-amber-200">A chave Pix ainda não está cadastrada. Fale com a coordenação para pagar.</p>}
 
           <div className="space-y-1.5">
@@ -107,7 +109,15 @@ export function ComprarPacote({ planos, chavePix }: { planos: PlanoVisivel[]; ch
           </div>
 
           <Mensagem r={msg} />
-          <p className="text-xs text-stone-500">Depois de pagar, toque em “Já paguei”. Seus créditos ficam disponíveis assim que a coordenação confirmar o pagamento.</p>
+          <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-900 ring-1 ring-amber-200">
+            <p className="font-semibold">Antes de finalizar:</p>
+            <ol className="mt-1 list-decimal space-y-0.5 pl-4">
+              <li>Pague pelo QR Code ou pela chave Pix.</li>
+              <li>Anexe o comprovante do pagamento aqui em cima.</li>
+              <li>Toque em “Já paguei”.</li>
+            </ol>
+            <p className="mt-1.5 text-amber-800">Os créditos ficam disponíveis assim que a coordenação confirmar o pagamento.</p>
+          </div>
           <div className="flex gap-2">
             <button type="button" className="btn-secundario flex-1" onClick={() => setPlanoId(null)} disabled={pendente}><ArrowLeft size={15} aria-hidden /> Voltar</button>
             <button type="submit" disabled={pendente || otimizando || !!msg?.ok} className="btn-primario flex-1">
@@ -120,30 +130,43 @@ export function ComprarPacote({ planos, chavePix }: { planos: PlanoVisivel[]; ch
   );
 }
 
-/** Cessão em dois passos: e-mail da pessoa, confirmação com o nome dela. Só o destinatário poderá usar o crédito. */
-export function CederCredito({ creditoId, rotulo }: { creditoId: string; rotulo: string }) {
+export type PacoteCedivel = { id: string; nome: string; cediveis: number };
+
+/** Ceder créditos: escolhe o pacote e quantos, informa o e-mail, confirma com o nome da pessoa. Um botão só, sem card por crédito. */
+export function CederCreditos({ pacotes }: { pacotes: PacoteCedivel[] }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
+  const [pacoteId, setPacoteId] = useState(pacotes[0]?.id ?? "");
+  const [qtd, setQtd] = useState("1");
   const [email, setEmail] = useState("");
   const [destino, setDestino] = useState<string | null>(null);
   const [msg, setMsg] = useState<Resultado>();
   const [pendente, iniciar] = useTransition();
 
-  const fechar = () => { setAberto(false); setEmail(""); setDestino(null); setMsg(undefined); };
+  const pacote = pacotes.find((p) => p.id === pacoteId) ?? pacotes[0] ?? null;
+  const maximo = pacote?.cediveis ?? 0;
+  const quantidade = Math.min(Math.max(1, Math.floor(Number(qtd) || 1)), maximo);
+
+  const fechar = () => { setAberto(false); setEmail(""); setDestino(null); setQtd("1"); setMsg(undefined); };
 
   if (!aberto) {
     return (
-      <button type="button" className="inline-flex items-center gap-1 text-xs font-semibold text-mata-700 hover:underline" onClick={() => setAberto(true)}>
-        <Send size={12} aria-hidden /> Ceder
+      <button type="button" className="btn-secundario h-9 px-3 text-sm" onClick={() => { setAberto(true); setMsg(undefined); }}>
+        <Send size={14} aria-hidden /> Ceder créditos
       </button>
     );
   }
 
   return (
-    <div className="mt-2 w-full space-y-2 rounded-xl bg-stone-50 p-3 ring-1 ring-stone-200">
+    <div className="w-full space-y-3 rounded-2xl bg-stone-50 p-3 ring-1 ring-stone-200 sm:p-4">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-stone-900">Ceder créditos</h3>
+        <button type="button" onClick={fechar} className="grid h-8 w-8 place-items-center rounded-full text-stone-500 hover:bg-stone-100" aria-label="Fechar"><X size={16} /></button>
+      </div>
+
       {!destino ? (
         <form
-          className="space-y-2"
+          className="space-y-3"
           onSubmit={(e) => {
             e.preventDefault();
             setMsg(undefined);
@@ -153,30 +176,49 @@ export function CederCredito({ creditoId, rotulo }: { creditoId: string; rotulo:
             });
           }}
         >
-          <label className="block text-xs font-medium text-stone-700" htmlFor={`ceder-${creditoId}`}>E-mail de quem vai receber o crédito {rotulo}</label>
-          <input id={`ceder-${creditoId}`} type="email" required autoFocus autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@email.com" className="campo h-10 text-sm" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="rotulo" htmlFor="ceder-pacote">Pacote</label>
+              <select id="ceder-pacote" value={pacote?.id ?? ""} onChange={(e) => { setPacoteId(e.target.value); setQtd("1"); }} className="campo h-10 text-sm">
+                {pacotes.map((p) => <option key={p.id} value={p.id}>{p.nome} · {p.cediveis} disponíveis</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="rotulo" htmlFor="ceder-qtd">Quantidade</label>
+              <input id="ceder-qtd" type="number" inputMode="numeric" min={1} max={maximo} value={qtd} onChange={(e) => setQtd(e.target.value)} className="campo h-10 text-sm tabular-nums" />
+            </div>
+          </div>
+          <div>
+            <label className="rotulo" htmlFor="ceder-email">E-mail de quem vai receber</label>
+            <input id="ceder-email" type="email" required autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@email.com" className="campo h-10 text-sm" />
+          </div>
           <Mensagem r={msg} />
           <div className="flex gap-2">
             <button type="button" className="btn-secundario h-9 flex-1 text-xs" onClick={fechar} disabled={pendente}>Cancelar</button>
-            <button type="submit" className="btn-primario h-9 flex-1 text-xs" disabled={pendente || !email.trim()}>{pendente ? "Procurando…" : "Continuar"}</button>
+            <button type="submit" className="btn-primario h-9 flex-1 text-xs" disabled={pendente || !email.trim() || maximo < 1}>{pendente ? "Procurando…" : "Continuar"}</button>
           </div>
         </form>
       ) : (
-        <div className="space-y-2">
-          <p className="text-sm text-stone-800">Ceder o crédito <strong>{rotulo}</strong> para <strong>{destino}</strong>?</p>
-          <p className="text-xs text-stone-500">Depois da cessão, só essa pessoa poderá usar o crédito, e ele não poderá ser cedido de novo.</p>
+        <div className="space-y-3">
+          <p className="text-sm text-stone-800">
+            Ceder <strong>{quantidade} {quantidade === 1 ? "crédito" : "créditos"}</strong> do pacote <strong>{pacote?.nome}</strong> para <strong>{destino}</strong>?
+          </p>
+          <p className="text-xs text-stone-500">Depois da cessão, só essa pessoa poderá usar esses créditos, e eles não poderão ser cedidos de novo.</p>
           <Mensagem r={msg} />
           <div className="flex gap-2">
             <button type="button" className="btn-secundario h-9 flex-1 text-xs" onClick={() => { setDestino(null); setMsg(undefined); }} disabled={pendente}>Voltar</button>
             <button
               type="button"
               className="btn-primario h-9 flex-1 text-xs"
-              disabled={pendente || !!msg?.ok}
-              onClick={() => iniciar(async () => {
-                const r = await cederCreditoAction(creditoId, email);
-                setMsg(r);
-                if (r.ok) { router.refresh(); setTimeout(fechar, 1500); }
-              })}
+              disabled={pendente || !!msg?.ok || !pacote}
+              onClick={() => {
+                if (!pacote) return;
+                iniciar(async () => {
+                  const r = await cederCreditosAction(pacote.id, quantidade, email);
+                  setMsg(r);
+                  if (r.ok) { router.refresh(); setTimeout(fechar, 1800); }
+                });
+              }}
             >
               {pendente ? "Cedendo…" : "Confirmar cessão"}
             </button>
