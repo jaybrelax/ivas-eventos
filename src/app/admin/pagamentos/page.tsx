@@ -3,12 +3,13 @@ import { ChevronLeft, ChevronRight, Clock, FileImage, HandCoins, ShieldCheck, Wa
 import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { dataCurta, hoje } from "@/lib/format";
-import { pagamentosDoAno } from "@/lib/pagamentos";
+import { pagamentosDoAno, type ItemPagamento } from "@/lib/pagamentos";
 import type { SituacaoPagamento } from "@/lib/types";
 import { Titulo } from "@/components/Titulo";
 import { Avatar } from "@/components/Avatar";
 import { FiltrosPagamentos } from "./FiltrosPagamentos";
 import { ExportarCsv } from "./ExportarCsv";
+import { LinhaPagamento, type DadosPagamento } from "./LinhaPagamento";
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -20,6 +21,24 @@ const PAGAMENTO: Record<SituacaoPagamento, { rotulo: string; cor: string }> = {
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
   credito: { rotulo: "Crédito de pacote", cor: "bg-violet-50 text-violet-700" },
 };
+
+const dataHora = (iso: string) =>
+  new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    .format(new Date(iso)).replace(",", " às");
+
+const SITUACAO_INSCRICAO: Record<ItemPagamento["situacao"], string> = { confirmada: "Confirmada", espera: "Lista de espera", cancelada: "Cancelada" };
+
+/** O que o modal do pagamento mostra, já formatado. */
+function dadosModal(i: ItemPagamento): DadosPagamento {
+  return {
+    usuarioId: i.usuarioId, nome: i.nome, foto: i.foto, eventoId: i.eventoId, evento: i.titulo, dataEvento: dataCurta(i.data), tipoNome: i.tipoNome,
+    situacaoInscricao: SITUACAO_INSCRICAO[i.situacao] ?? i.situacao,
+    pagamentoRotulo: PAGAMENTO[i.pagamento].rotulo, pagamentoCor: PAGAMENTO[i.pagamento].cor,
+    valor: i.valor != null ? formatoReal(i.valor) : null,
+    informadoEm: i.informadoEm ? dataHora(i.informadoEm) : null, pagoEm: i.pagoEm ? dataHora(i.pagoEm) : null,
+    comprovante: i.comprovante,
+  };
+}
 
 export default async function Pagamentos({ searchParams }: PageProps<"/admin/pagamentos">) {
   await exigir(PODE.editarEventos);
@@ -89,48 +108,83 @@ export default async function Pagamentos({ searchParams }: PageProps<"/admin/pag
           <FiltrosPagamentos eventos={eventosUnicos} />
           <ExportarCsv itens={itens} nomeArquivo={`pagamentos-${ano}.csv`} />
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-stone-50/80 text-left text-xs text-stone-500">
+
+        {/* Celular e tablet: um cartão por pagamento (sem rolagem lateral) */}
+        <ul className="divide-y divide-stone-100 lg:hidden">
+          {itens.length ? itens.map((i) => (
+            <LinhaPagamento key={i.inscricaoId} as="li" className="space-y-2 px-4 py-3.5 transition active:bg-stone-50" dados={dadosModal(i)}>
+              <div className="flex items-start justify-between gap-3">
+                <Link href={`/admin/participantes/${i.usuarioId}`} className="flex min-w-0 items-center gap-2.5 py-1 hover:underline">
+                  <Avatar nome={i.nome} foto={i.foto} tamanho={32} className="ring-0" />
+                  <span className="min-w-0 truncate text-sm font-medium text-stone-800">{i.nome}</span>
+                </Link>
+                <span className="shrink-0 text-sm font-semibold text-stone-900 tabular-nums">{i.valor != null ? formatoReal(i.valor) : <span className="text-stone-300">—</span>}</span>
+              </div>
+              <p className="text-sm text-stone-600">
+                <Link href={`/admin/eventos/${i.eventoId}`} className="hover:text-mata-700 hover:underline">{i.titulo}</Link>
+                <span className="text-stone-400"> · {dataCurta(i.data)}</span>
+              </p>
+              <div className="flex items-center justify-between gap-3">
+                <span className={`chip ${PAGAMENTO[i.pagamento].cor}`}>{PAGAMENTO[i.pagamento].rotulo}</span>
+                {i.comprovante && (
+                  <a href={`/api/comprovante/${i.comprovante}`} target="_blank" rel="noopener noreferrer" aria-label={`Abrir o comprovante de ${i.nome}`} className="inline-flex h-11 items-center gap-1.5 rounded-lg px-2 text-xs font-medium text-mata-700 hover:bg-mata-50">
+                    <FileImage size={15} aria-hidden /> Comprovante
+                  </a>
+                )}
+              </div>
+            </LinhaPagamento>
+          )) : (
+            <li className="px-4 py-10 text-center text-sm text-stone-400">Nenhum pagamento encontrado para este filtro.</li>
+          )}
+        </ul>
+
+        {/* Desktop (a partir de 1024 px): tabela de colunas fixas, sem rolagem lateral */}
+        <div className="hidden lg:block">
+          <table className="w-full table-fixed text-sm">
+            <colgroup>
+              <col className="w-[26%]" />
+              <col />
+              <col className="w-28" />
+              <col className="w-28" />
+              <col className="w-48" />
+            </colgroup>
+            <thead className="border-b border-stone-100 bg-stone-50/80 text-left text-xs text-stone-500">
               <tr>
-                <th className="px-5 py-3 font-medium sm:px-6">Pessoa</th>
-                <th className="px-3 py-3 font-medium">Evento</th>
-                <th className="px-3 py-3 font-medium whitespace-nowrap">Data</th>
-                <th className="px-3 py-3 text-right font-medium">Valor</th>
-                <th className="px-3 py-3 font-medium">Situação</th>
-                <th className="px-5 py-3 font-medium sm:px-6" />
+                <th className="px-5 py-3.5 font-medium">Pessoa</th>
+                <th className="px-3 py-3.5 font-medium">Evento</th>
+                <th className="px-3 py-3.5 font-medium whitespace-nowrap">Data</th>
+                <th className="px-3 py-3.5 text-right font-medium">Valor</th>
+                <th className="px-3 py-3.5 font-medium">Situação</th>
               </tr>
             </thead>
             <tbody>
-              {itens.length ? (
-                itens.map((i) => (
-                  <tr key={i.inscricaoId} className="border-t border-stone-100 transition hover:bg-stone-50/70">
-                    <td className="px-5 py-2.5 sm:px-6">
-                      <div className="flex items-center gap-2.5">
-                        <Avatar nome={i.nome} foto={i.foto} tamanho={26} className="ring-0" />
-                        <span className="font-medium text-stone-800">{i.nome}</span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5 text-stone-600">
-                      <Link href={`/admin/eventos/${i.eventoId}`} className="hover:text-mata-700 hover:underline">{i.titulo}</Link>
-                    </td>
-                    <td className="px-3 py-2.5 whitespace-nowrap text-stone-500 tabular-nums">{dataCurta(i.data)}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{i.valor != null ? formatoReal(i.valor) : <span className="text-stone-300">—</span>}</td>
-                    <td className="px-3 py-2.5">
-                      <span className={`chip ${PAGAMENTO[i.pagamento].cor}`}>{PAGAMENTO[i.pagamento].rotulo}</span>
-                    </td>
-                    <td className="px-5 py-2.5 text-right sm:px-6">
+              {itens.length ? itens.map((i) => (
+                <LinhaPagamento key={i.inscricaoId} as="tr" className="border-b border-stone-100 align-middle transition last:border-0 hover:bg-stone-50/70 focus-visible:bg-stone-50" dados={dadosModal(i)}>
+                  <td className="px-5 py-3">
+                    <Link href={`/admin/participantes/${i.usuarioId}`} title={`Ver o perfil de ${i.nome}`} className="flex min-w-0 items-center gap-2.5 hover:underline">
+                      <Avatar nome={i.nome} foto={i.foto} tamanho={32} className="ring-0" />
+                      <span className="min-w-0 truncate font-medium text-stone-800">{i.nome}</span>
+                    </Link>
+                  </td>
+                  <td className="px-3 py-3 text-stone-600">
+                    <Link href={`/admin/eventos/${i.eventoId}`} title={i.titulo} className="line-clamp-2 leading-snug hover:text-mata-700 hover:underline">{i.titulo}</Link>
+                  </td>
+                  <td className="px-3 py-3 whitespace-nowrap text-stone-500 tabular-nums">{dataCurta(i.data)}</td>
+                  <td className="px-3 py-3 text-right whitespace-nowrap tabular-nums">{i.valor != null ? formatoReal(i.valor) : <span className="text-stone-300">—</span>}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`chip whitespace-nowrap ${PAGAMENTO[i.pagamento].cor}`}>{PAGAMENTO[i.pagamento].rotulo}</span>
                       {i.comprovante && (
-                        <a href={`/api/comprovante/${i.comprovante}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-mata-700 hover:underline">
-                          <FileImage size={13} /> Comprovante
+                        <a href={`/api/comprovante/${i.comprovante}`} target="_blank" rel="noopener noreferrer" title="Abrir o comprovante" aria-label={`Abrir o comprovante de ${i.nome}`} className="inline-grid h-8 w-8 shrink-0 place-items-center rounded-lg text-mata-700 transition hover:bg-mata-50">
+                          <FileImage size={16} aria-hidden />
                         </a>
                       )}
-                    </td>
-                  </tr>
-                ))
-              ) : (
+                    </div>
+                  </td>
+                </LinhaPagamento>
+              )) : (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-sm text-stone-400 sm:px-6">Nenhum pagamento encontrado para este filtro.</td>
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-stone-400">Nenhum pagamento encontrado para este filtro.</td>
                 </tr>
               )}
             </tbody>
