@@ -13,7 +13,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/login">): P
   const sp = await searchParams;
   const next = typeof sp.next === "string" ? sp.next : "";
   if (!/^\/admin\/eventos\/[^/?]+/.test(next)) return {};
-  const imagem = `${SITE_URL}/og-gestao-ritual.jpg`;
+  const imagem = `${SITE_URL}/icons/og-gestao-ritual.jpg`;
   return {
     title: "Gestão do ritual",
     openGraph: { title: "Gestão do ritual", images: [{ url: imagem, width: 1200, height: 1200, type: "image/jpeg", alt: "Gestão do ritual" }] },
