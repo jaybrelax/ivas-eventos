@@ -65,6 +65,14 @@ export function HeroAgendaForm({ inicial }: { inicial: HeroAgenda }) {
             </label>
           ))}
         </div>
+        <div className="mt-4 rounded-xl border border-stone-200 bg-stone-50/70 px-4 py-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <label className="text-sm font-medium text-stone-700" htmlFor="hero-opacidade-gradiente">Opacidade sobre a imagem</label>
+            <output className="min-w-12 text-right text-sm font-semibold tabular-nums text-mata-800" htmlFor="hero-opacidade-gradiente">{hero.opacidadeGradiente}%</output>
+          </div>
+          <input id="hero-opacidade-gradiente" name="opacidadeGradiente" type="range" min="0" max="100" step="1" value={hero.opacidadeGradiente} onChange={(e) => atualizar("opacidadeGradiente", Number(e.target.value))} className="mt-3 w-full cursor-pointer accent-mata-700" />
+          <p className="ajuda mt-1">Ajusta o gradiente sobre as fotos de fundo, sem alterar as cores do fundo.</p>
+        </div>
       </div>
 
       <div>

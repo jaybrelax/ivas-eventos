@@ -238,9 +238,9 @@ export function ModalInscricao({
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label={`Inscrição de ${p.nome}`} className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div className="fixed inset-0 bg-stone-950/60 backdrop-blur-sm" onClick={fechar} />
+      <div className="modal-inscricao-fundo fixed inset-0 bg-stone-950/60" onClick={fechar} />
 
-      <div className="relative z-10 flex max-h-[92dvh] w-full max-w-lg animate-surgir flex-col overflow-hidden rounded-t-3xl border border-stone-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl">
+      <div className="modal-inscricao-painel relative z-10 flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-stone-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl">
         {/* Cabeçalho: quem é a pessoa e a situação da inscrição */}
         <header className="relative shrink-0 border-b border-stone-100 bg-gradient-to-b from-mata-50/80 to-white px-5 pt-5 pb-4 sm:px-6">
           <button type="button" onClick={fechar} className="absolute top-4 right-4 grid h-8 w-8 place-items-center rounded-full text-stone-400 transition hover:bg-stone-100 hover:text-stone-700" aria-label="Fechar">
@@ -545,7 +545,7 @@ export function ModalInscricao({
                       )}
                     </div>
                       {/* Isentar: só o Admin e o mestre escalado no evento; fica abaixo, centralizado, sem caixa */}
-                      {!podeBonificarAniversario && dados.podeIsentar && p.pagamento !== "isento" && (
+                      {!p.bonusAniversarioDisponivel && dados.podeIsentar && p.pagamento !== "isento" && (
                         <button
                           type="button"
                           disabled={pendente}

@@ -185,7 +185,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         </div>
 
         {/* Mobile: ao lado da capa, data em destaque, local e numeração do ritual */}
-        <div className="vidro flex flex-col overflow-hidden rounded-2xl md:hidden">
+        <div className="vidro vidro-evento-entrada flex flex-col overflow-hidden rounded-2xl md:hidden">
           <div className="flex flex-1 flex-col justify-center px-3 py-2.5 text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.3)]">
             <p className="text-[11px] font-semibold tracking-[0.16em] text-mata-100 uppercase">{data.diaSemana}</p>
             <div className="mt-1 flex items-center gap-2">

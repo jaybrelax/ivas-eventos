@@ -107,9 +107,11 @@ export async function salvarHeroAgenda(_: Resultado, form: FormData): Promise<Re
   const corTopo = texto("corTopo");
   const corMeio = texto("corMeio");
   const corBase = texto("corBase");
+  const opacidadeGradiente = Number(texto("opacidadeGradiente"));
   if (!selo || !titulo || !descricao) return { erro: "Preencha o selo, o título e a descrição." };
   if (selo.length > 60 || titulo.length > 120 || descricao.length > 500) return { erro: "Confira os limites de caracteres dos textos." };
   if (![corTopo, corMeio, corBase].every((cor) => HEX.test(cor))) return { erro: "Escolha cores válidas para o fundo." };
+  if (!/^\d{1,3}$/.test(texto("opacidadeGradiente")) || !Number.isInteger(opacidadeGradiente) || opacidadeGradiente < 0 || opacidadeGradiente > 100) return { erro: "Escolha uma opacidade entre 0% e 100%." };
   const fundos = [
     { campo: "fundo_desktop", id: "fundoDesktopFileId", rotulo: "Fundo desktop" },
     { campo: "fundo_mobile", id: "fundoMobileFileId", rotulo: "Fundo celular" },
@@ -122,7 +124,7 @@ export async function salvarHeroAgenda(_: Resultado, form: FormData): Promise<Re
     }
   }
   const atual = lerHeroAgenda(await getInstituto());
-  const dados = { selo, titulo, descricao, corTopo, corMeio, corBase,
+  const dados = { selo, titulo, descricao, corTopo, corMeio, corBase, opacidadeGradiente,
     fundoDesktopFileId: atual.fundoDesktopFileId, fundoMobileFileId: atual.fundoMobileFileId };
   const novos: string[] = [];
   const antigos: string[] = [];

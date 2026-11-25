@@ -7,6 +7,7 @@ export type HeroAgenda = {
   corTopo: string;
   corMeio: string;
   corBase: string;
+  opacidadeGradiente: number;
   fundoDesktopFileId: string | null;
   fundoMobileFileId: string | null;
 };
@@ -22,6 +23,7 @@ export function heroAgendaPadrao(nomeCurto = "IVAS"): HeroAgenda {
     corTopo: "#170d26",
     corMeio: "#251639",
     corBase: "#1c1917",
+    opacidadeGradiente: 100,
     fundoDesktopFileId: null,
     fundoMobileFileId: null,
   };
@@ -39,6 +41,7 @@ export function lerHeroAgenda(instituto: Instituto): HeroAgenda {
       corTopo: typeof salvo.corTopo === "string" && HEX.test(salvo.corTopo) ? salvo.corTopo : padrao.corTopo,
       corMeio: typeof salvo.corMeio === "string" && HEX.test(salvo.corMeio) ? salvo.corMeio : padrao.corMeio,
       corBase: typeof salvo.corBase === "string" && HEX.test(salvo.corBase) ? salvo.corBase : padrao.corBase,
+      opacidadeGradiente: typeof salvo.opacidadeGradiente === "number" && Number.isInteger(salvo.opacidadeGradiente) && salvo.opacidadeGradiente >= 0 && salvo.opacidadeGradiente <= 100 ? salvo.opacidadeGradiente : padrao.opacidadeGradiente,
       fundoDesktopFileId: typeof salvo.fundoDesktopFileId === "string" && FILE_ID.test(salvo.fundoDesktopFileId) ? salvo.fundoDesktopFileId : null,
       fundoMobileFileId: typeof salvo.fundoMobileFileId === "string" && FILE_ID.test(salvo.fundoMobileFileId) ? salvo.fundoMobileFileId : null,
     };
@@ -52,5 +55,7 @@ export function fundoHeroAgenda(hero: HeroAgenda) {
 }
 
 export function sobreposicaoHeroAgenda(hero: HeroAgenda) {
-  return `linear-gradient(to bottom, ${hero.corTopo}C7, ${hero.corMeio}AD, ${hero.corBase}E0)`;
+  const opacidade = Math.max(0, Math.min(100, hero.opacidadeGradiente)) / 100;
+  const corComOpacidade = (cor: string, alpha: number) => `${cor}${Math.round(alpha * opacidade).toString(16).padStart(2, "0")}`;
+  return `linear-gradient(to bottom, ${corComOpacidade(hero.corTopo, 0xC7)}, ${corComOpacidade(hero.corMeio, 0xAD)}, ${corComOpacidade(hero.corBase, 0xE0)})`;
 }
