@@ -22,6 +22,8 @@ export type Instituto = {
   gestao_guardiao_ativa?: boolean | null;
   /** Duração do acesso de gestão, em horas, a partir das 00:00 do dia do ritual (padrão 48). */
   gestao_guardiao_horas?: number | null;
+  /** Gestão do ritual para os mestres: só o escalado naquele ritual (padrão) ou todos os mestres. */
+  gestao_mestre_escopo?: "escalado" | "todos" | null;
   /** Estado (sigla) e cidade do Instituto: já vêm escolhidos nos formulários de cadastro. */
   estado: string | null;
   cidade: string | null;

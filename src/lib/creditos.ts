@@ -605,13 +605,13 @@ export async function usuarioPorEmail(email: string): Promise<{ id: string; nome
 }
 
 /**
- * Passa o crédito para outra pessoa (que passa a ser a única que pode usá-lo — RN004). Só crédito disponível (RN003).
- * `equipe` deixa a coordenação corrigir qualquer crédito disponível, inclusive um já cedido.
+ * Passa o crédito para outra pessoa (que passa a ser a única que pode usá-lo — RN004). Só o titular cede, e só
+ * crédito disponível (RN003). A equipe não cede nem devolve créditos.
  */
-export async function cederCredito(creditoId: string, deUsuarioId: string, paraUsuarioId: string, porId: string, equipe = false): Promise<ResultadoCredito> {
+export async function cederCredito(creditoId: string, deUsuarioId: string, paraUsuarioId: string, porId: string): Promise<ResultadoCredito> {
   const c = await lerLinha<Credito>(T.creditos, creditoId);
   if (!c) return { erro: "Crédito não encontrado." };
-  const bloqueio = bloqueioCessao(c, deUsuarioId, paraUsuarioId, equipe);
+  const bloqueio = bloqueioCessao(c, deUsuarioId, paraUsuarioId);
   if (bloqueio) return { erro: bloqueio };
   const voltaAoDono = paraUsuarioId === c.comprador_id;
   await gravar(T.creditos, c.$id, voltaAoDono
@@ -627,14 +627,6 @@ export async function cederCredito(creditoId: string, deUsuarioId: string, paraU
     acao: "cessao", usuario_id: c.titular_id, credito_id: c.$id, pacote_id: c.pacote_id, de_usuario: c.titular_id, para_usuario: paraUsuarioId, por: porId,
   });
   return { ok: "Crédito cedido." };
-}
-
-/** A equipe devolve ao comprador um crédito cedido (só enquanto disponível). */
-export async function desfazerCessao(creditoId: string, porId: string): Promise<ResultadoCredito> {
-  const c = await lerLinha<Credito>(T.creditos, creditoId);
-  if (!c) return { erro: "Crédito não encontrado." };
-  if (c.titular_id === c.comprador_id) return { erro: "Este crédito não foi cedido." };
-  return cederCredito(creditoId, c.titular_id, c.comprador_id, porId, true);
 }
 
 /** Quantos pacotes e créditos (fora os cancelados) a pessoa tem: registro financeiro que impede excluir a conta. */

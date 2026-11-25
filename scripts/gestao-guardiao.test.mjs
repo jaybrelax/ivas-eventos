@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dentroDaJanelaDeGestao, HORAS_GESTAO_PADRAO, janelaGestao, lerRegrasGestaoGuardiao } from "../src/lib/gestao-guardiao-regras.ts";
+import { dentroDaJanelaDeGestao, HORAS_GESTAO_PADRAO, janelaGestao, lerEscopoMestre, lerRegrasGestaoGuardiao } from "../src/lib/gestao-guardiao-regras.ts";
 
 const evento = { data: "2026-11-28" };
 const regras = { ativa: true, horas: 48 };
@@ -28,4 +28,11 @@ test("antes, durante e depois da janela", () => {
 test("desligada ou com 0 hora, nunca libera", () => {
   assert.equal(dentroDaJanelaDeGestao(evento, { ativa: false, horas: 48 }, em("2026-11-28T15:00:00Z")), false);
   assert.equal(dentroDaJanelaDeGestao(evento, { ativa: true, horas: 0 }, em("2026-11-28T15:00:00Z")), false);
+});
+
+test("escopo dos mestres: padrão só o escalado; \"todos\" libera todos", () => {
+  assert.equal(lerEscopoMestre({}), "escalado");
+  assert.equal(lerEscopoMestre({ gestao_mestre_escopo: "escalado" }), "escalado");
+  assert.equal(lerEscopoMestre({ gestao_mestre_escopo: "todos" }), "todos");
+  assert.equal(lerEscopoMestre({ gestao_mestre_escopo: "qualquer" }), "escalado");
 });

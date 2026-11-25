@@ -8,6 +8,12 @@
 export const HORAS_GESTAO_PADRAO = 48;
 export const HORAS_GESTAO_MAXIMO = 240;
 
+/** Quem mais ganha a gestão do ritual: só o mestre escalado naquele ritual (padrão) ou todos os mestres. */
+export type EscopoMestre = "escalado" | "todos";
+export function lerEscopoMestre(i: { gestao_mestre_escopo?: string | null }): EscopoMestre {
+  return i.gestao_mestre_escopo === "todos" ? "todos" : "escalado";
+}
+
 export type RegrasGestaoGuardiao = { ativa: boolean; horas: number };
 
 /** Lê as regras do Instituto; colunas ausentes ou inválidas viram o padrão (ligada, 48 h). */

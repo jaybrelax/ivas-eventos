@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { exigir, getUsuario, pode, type Usuario } from "./auth";
 import { PODE, type Perfil } from "./config";
 import { getEvento, getInstituto } from "./data";
-import { dentroDaJanelaDeGestao, lerRegrasGestaoGuardiao } from "./gestao-guardiao-regras";
+import { dentroDaJanelaDeGestao, lerEscopoMestre, lerRegrasGestaoGuardiao } from "./gestao-guardiao-regras";
 import type { Evento } from "./types";
 
 /**
@@ -38,9 +38,15 @@ export async function guardiaoEmGestao(u: Pick<Usuario, "id" | "funcaoRitual"> |
   return (await guardioesDoEvento(evento)).includes(u.id);
 }
 
-/** Gestão do evento por perfil (admin, coordenação, mestre escalado) ou pelo guardião no período de gestão. */
+/** Mestre com a gestão liberada a todos os mestres (escopo "todos" em Configurações). Vale em qualquer ritual, sem prazo. */
+export async function mestreLiberado(u: Pick<Usuario, "funcaoRitual"> | null): Promise<boolean> {
+  if (!u || u.funcaoRitual !== "mestre") return false;
+  return lerEscopoMestre(await getInstituto()) === "todos";
+}
+
+/** Gestão do evento por perfil (admin, coordenação, mestre escalado), pelo guardião no período ou pelos mestres liberados. */
 export async function podeGerenciarOuGuardiao(u: Usuario | null, evento: Evento): Promise<boolean> {
-  return podeGerenciarEvento(u, evento) || (await guardiaoEmGestao(u, evento));
+  return podeGerenciarEvento(u, evento) || (await guardiaoEmGestao(u, evento)) || (await mestreLiberado(u));
 }
 
 /** Guardião sem perfil de painel passa a agir como perfil "normal" no evento em que está em gestão. */
@@ -53,7 +59,7 @@ export function comoUsuarioDePainel(u: Usuario): Usuario & { perfil: Perfil } {
  * e não está em gestão neste evento é mandado para a própria área (como antes).
  */
 export async function acessoAoEvento(u: Usuario, evento: Evento): Promise<{ u: Usuario & { perfil: Perfil }; emGestao: boolean }> {
-  const emGestao = !(u.perfil && podeGerenciarEvento(u, evento)) && (await guardiaoEmGestao(u, evento));
+  const emGestao = !(u.perfil && podeGerenciarEvento(u, evento)) && ((await guardiaoEmGestao(u, evento)) || (await mestreLiberado(u)));
   if (!u.perfil && !emGestao) await exigir(); // redireciona
   return { u: comoUsuarioDePainel(u), emGestao };
 }
@@ -68,7 +74,7 @@ export async function exigirGestaoDoEvento(eventoId: string, opcoes: { guardiao?
   const evento = await getEvento(eventoId);
   if (!evento) return { erro: "Evento não encontrado." };
   if (u.perfil && podeGerenciarEvento(u, evento)) return { u: comoUsuarioDePainel(u), evento };
-  if (opcoes.guardiao !== false && (await guardiaoEmGestao(u, evento))) return { u: comoUsuarioDePainel(u), evento };
+  if (opcoes.guardiao !== false && ((await guardiaoEmGestao(u, evento)) || (await mestreLiberado(u)))) return { u: comoUsuarioDePainel(u), evento };
   if (!u.perfil) await exigir(); // participante sem gestão: vai para a própria área
   return { erro: "Você não tem permissão para gerenciar este evento." };
 }

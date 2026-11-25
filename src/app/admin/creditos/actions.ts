@@ -7,7 +7,7 @@ import { conferirImagem } from "@/lib/imagem";
 import { exigir } from "@/lib/auth";
 import { COMPROVANTES_BUCKET_ID, PODE } from "@/lib/config";
 import {
-  cancelarPacote, cederCredito, confirmarPacote, desfazerCessao, editarPacote, excluirPacote, lancarPacote, listarPlanos, quitarDebito, type ResultadoCredito,
+  cancelarPacote, confirmarPacote, editarPacote, excluirPacote, lancarPacote, listarPlanos, quitarDebito, type ResultadoCredito,
 } from "@/lib/creditos";
 import type { SituacaoPacote } from "@/lib/types";
 import { lerQuantidade } from "@/lib/creditos-regras";
@@ -87,18 +87,6 @@ export async function excluirPacoteAction(pacoteId: string) {
 /** Quita um débito (ritual que a pessoa já frequentou) com um crédito dela. */
 export async function quitarDebitoAction(inscricaoId: string) {
   return executar((por) => quitarDebito(por, String(inscricaoId)));
-}
-
-export async function cederCreditoEquipeAction(creditoId: string, paraUsuarioId: string) {
-  return executar(async (por) => {
-    if (!paraUsuarioId) return { erro: "Escolha quem vai receber o crédito." };
-    // O titular atual é lido dentro de cederCredito; aqui só passamos um "de" qualquer, pois a equipe ignora o dono
-    return cederCredito(String(creditoId), "", String(paraUsuarioId), por, true);
-  });
-}
-
-export async function desfazerCessaoAction(creditoId: string) {
-  return executar((por) => desfazerCessao(String(creditoId), por));
 }
 
 /** Lança um pacote para uma pessoa (venda feita fora do app). Marcado como pago, já libera os créditos. */

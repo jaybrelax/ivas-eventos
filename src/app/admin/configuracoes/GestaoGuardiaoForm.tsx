@@ -4,13 +4,14 @@ import { useActionState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { salvarGestaoGuardiao } from "./actions";
 import { Aviso, BotaoEnviar } from "@/components/ui";
-import { lerRegrasGestaoGuardiao, HORAS_GESTAO_MAXIMO } from "@/lib/gestao-guardiao-regras";
+import { lerEscopoMestre, lerRegrasGestaoGuardiao, HORAS_GESTAO_MAXIMO } from "@/lib/gestao-guardiao-regras";
 import type { Instituto } from "@/lib/types";
 
 /** Gestão do ritual pelo guardião escalado: liga/desliga e por quantas horas, a partir do começo do dia do ritual. */
 export function GestaoGuardiaoForm({ instituto }: { instituto: Instituto }) {
   const [estado, acao] = useActionState(salvarGestaoGuardiao, undefined);
   const regras = lerRegrasGestaoGuardiao(instituto);
+  const escopo = lerEscopoMestre(instituto);
   return (
     <form action={acao} className="cartao space-y-6">
       <div>
@@ -27,6 +28,19 @@ export function GestaoGuardiaoForm({ instituto }: { instituto: Instituto }) {
         <input type="checkbox" name="ativa" defaultChecked={regras.ativa} className="h-5 w-5 accent-[var(--color-mata-600)]" />
         <span className="flex items-center gap-1.5 text-sm font-medium text-stone-800"><ShieldCheck size={16} className="text-mata-600" /> Liberar a gestão do ritual aos guardiões escalados</span>
       </label>
+
+      <fieldset className="space-y-2">
+        <legend className="rotulo">Gestão do ritual para os mestres</legend>
+        <label className="flex min-h-11 cursor-pointer items-center gap-3">
+          <input type="radio" name="escopo_mestre" value="escalado" defaultChecked={escopo === "escalado"} className="h-5 w-5 accent-[var(--color-mata-600)]" />
+          <span className="text-sm text-stone-800">Só o mestre escalado no ritual</span>
+        </label>
+        <label className="flex min-h-11 cursor-pointer items-center gap-3">
+          <input type="radio" name="escopo_mestre" value="todos" defaultChecked={escopo === "todos"} className="h-5 w-5 accent-[var(--color-mata-600)]" />
+          <span className="text-sm text-stone-800">Todos os mestres, em qualquer ritual</span>
+        </label>
+        <p className="ajuda">Sem prazo. O acesso de cada mestre é o mesmo do guardião no período de gestão.</p>
+      </fieldset>
 
       <div>
         <label className="rotulo" htmlFor="gestao_guardiao_horas">Duração do acesso (horas)</label>

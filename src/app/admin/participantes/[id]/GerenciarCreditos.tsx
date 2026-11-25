@@ -1,11 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { Send, Ticket, X } from "lucide-react";
-import { toast } from "@/components/Toaster";
-import { BuscaPessoa, type OpcaoPessoa } from "@/components/BuscaPessoa";
-import { cederCreditoEquipeAction, desfazerCessaoAction } from "@/app/admin/creditos/actions";
+import { useEffect, useState } from "react";
+import { Ticket, X } from "lucide-react";
 import { ROTULO_PACOTE } from "@/lib/creditos-rotulos";
 
 export type CreditoVisual = {
@@ -54,61 +50,26 @@ const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency"
 const data = (iso: string) => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(iso));
 
 /**
- * Créditos da pessoa como ícones, com os pacotes acima. Toque num crédito disponível para escolher; "Ceder crédito"
- * pede o destinatário numa busca por nome. Crédito cedido a outra pessoa pode ser devolvido ao comprador.
+ * Créditos da pessoa como ícones, com os pacotes acima. Só consulta: a cessão de crédito é feita pela própria pessoa,
+ * no app dela (Minha conta). A equipe não cede nem devolve créditos.
  */
 export function GerenciarCreditos({
-  pessoaId, nome, creditos, pessoas, pacotes,
-}: { pessoaId: string; nome: string; creditos: CreditoVisual[]; pessoas: PessoaVisual[]; pacotes: PacoteVisual[] }) {
-  const router = useRouter();
+  nome, creditos, pacotes,
+}: { pessoaId: string; nome: string; creditos: CreditoVisual[]; pessoas?: PessoaVisual[]; pacotes: PacoteVisual[] }) {
   const [aberto, setAberto] = useState(false);
-  const [escolhido, setEscolhido] = useState<string | null>(null);
-  const [destino, setDestino] = useState(false);
-  const [para, setPara] = useState("");
-  const [pendente, iniciar] = useTransition();
 
   useEffect(() => {
     if (!aberto) return;
-    const esc = (e: KeyboardEvent) => e.key === "Escape" && fechar();
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setAberto(false);
     document.addEventListener("keydown", esc);
     const rolagem = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.removeEventListener("keydown", esc); document.body.style.overflow = rolagem; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto]);
 
-  const fechar = () => { setAberto(false); setEscolhido(null); setDestino(false); setPara(""); };
+  const fechar = () => setAberto(false);
 
   const disponiveis = creditos.filter((c) => c.situacao === "disponivel");
-  const sel = creditos.find((c) => c.id === escolhido) ?? null;
-  // Sem escolha, cede o primeiro disponível; com escolha, cede o escolhido (se ele estiver disponível)
-  const alvo = escolhido ? (sel?.situacao === "disponivel" ? sel : null) : (disponiveis[0] ?? null);
-  const devolvivel = !!sel && sel.cedidoParaOutro && sel.situacao === "disponivel";
-  const opcoesDestino: OpcaoPessoa[] = pessoas.filter((p) => p.id !== pessoaId).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto ?? null }));
-
-  const ceder = () => {
-    if (!alvo || !para) return;
-    iniciar(async () => {
-      const r = await cederCreditoEquipeAction(alvo.id, para);
-      if (r.erro) toast(r.erro, "erro");
-      else toast(r.ok ?? "Crédito cedido.", "ok");
-      setDestino(false);
-      setPara("");
-      setEscolhido(null);
-      router.refresh();
-    });
-  };
-
-  const devolver = () => {
-    if (!sel) return;
-    iniciar(async () => {
-      const r = await desfazerCessaoAction(sel.id);
-      if (r.erro) toast(r.erro, "erro");
-      else toast(r.ok ?? "Crédito devolvido.", "ok");
-      setEscolhido(null);
-      router.refresh();
-    });
-  };
 
   return (
     <>
@@ -131,23 +92,15 @@ export function GerenciarCreditos({
             </div>
 
             <div className="flex flex-wrap gap-2.5" role="group" aria-label="Créditos">
-              {creditos.map((c) => {
-                const ativo = escolhido === c.id;
-                const clicavel = c.situacao === "disponivel" || c.cedidoParaOutro;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    aria-pressed={ativo}
-                    disabled={!clicavel || pendente}
-                    onClick={() => { setEscolhido(ativo ? null : c.id); setDestino(false); setPara(""); }}
-                    title={`Crédito ${c.rotulo} · ${c.detalhe} · ${c.cedidoParaOutro ? `cedido para ${c.titularNome ?? "outra pessoa"}` : ROTULO[c.situacao]}`}
-                    className={`grid h-12 w-12 place-items-center rounded-full transition disabled:cursor-default ${estiloDe(c)} ${ativo ? "ring-2 ring-violet-500 ring-offset-2" : ""}`}
-                  >
-                    <Ticket size={20} aria-hidden />
-                  </button>
-                );
-              })}
+              {creditos.map((c) => (
+                <span
+                  key={c.id}
+                  title={`Crédito ${c.rotulo} · ${c.detalhe} · ${c.cedidoParaOutro ? `cedido para ${c.titularNome ?? "outra pessoa"}` : ROTULO[c.situacao]}`}
+                  className={`grid h-12 w-12 place-items-center rounded-full ${estiloDe(c)}`}
+                >
+                  <Ticket size={20} aria-hidden />
+                </span>
+              ))}
             </div>
 
             {pacotes.length > 0 && (
@@ -174,36 +127,6 @@ export function GerenciarCreditos({
               </div>
             )}
 
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-stone-100 pt-3">
-              {!destino ? (
-                <>
-                  <p className="text-xs text-stone-500">
-                    {sel ? `Crédito ${sel.rotulo} selecionado` : "Toque num crédito para escolher, ou ceda o primeiro disponível."}
-                  </p>
-                  <div className="flex gap-2">
-                    {devolvivel && (
-                      <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={devolver}>Devolver ao comprador</button>
-                    )}
-                    <button type="button" className="btn-primario h-10" disabled={!alvo || pendente} onClick={() => setDestino(true)}>
-                      <Send size={15} aria-hidden /> Ceder crédito
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="w-full space-y-2.5">
-                  <p className="text-sm text-stone-800">Ceder o crédito <strong>{alvo?.rotulo}</strong> para:</p>
-                  <div className="flex flex-wrap items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <BuscaPessoa id="gc-para" name="para" opcoes={opcoesDestino} aoMudar={(o) => setPara(o?.id ?? "")} placeholder="Busque pelo nome…" />
-                    </div>
-                    <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={() => { setDestino(false); setPara(""); }}>Voltar</button>
-                    <button type="button" className="btn-primario h-10" disabled={!para || pendente} onClick={ceder}>
-                      {pendente ? "Cedendo…" : "Confirmar cessão"}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       )}

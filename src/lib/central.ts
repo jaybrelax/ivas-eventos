@@ -2,7 +2,7 @@ import "server-only";
 import { exigir, getUsuario, pode, type Usuario } from "./auth";
 import { PODE } from "./config";
 import { getDadosInstituto, getEvento } from "./data";
-import { comoUsuarioDePainel, guardiaoEmGestao, podeGerenciarEvento } from "./gestao-evento";
+import { comoUsuarioDePainel, guardiaoEmGestao, mestreLiberado, podeGerenciarEvento } from "./gestao-evento";
 import { candidaturasDoEvento, ehReuniao, guardioesDaReuniao, temGuarnicao } from "./guarnicao";
 import type { Evento } from "./types";
 
@@ -35,7 +35,7 @@ export async function exigirCentral(eventoId: string): Promise<
   const evento = await getEvento(eventoId);
   if (!evento) return { erro: "Evento não encontrado." };
   // Guardião no período de gestão do ritual age como gestão, mesmo sem perfil de painel
-  const emGestao = await guardiaoEmGestao(sessao, evento);
+  const emGestao = (await guardiaoEmGestao(sessao, evento)) || (await mestreLiberado(sessao));
   if (!sessao!.perfil && !emGestao) await exigir(); // participante: vai para a própria área
   const u = comoUsuarioDePainel(sessao!);
   const gestao = (!!sessao!.perfil && podeGerenciarEvento(u, evento)) || emGestao;

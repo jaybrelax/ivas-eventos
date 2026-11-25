@@ -75,9 +75,7 @@ test("cessão: só disponível, só do titular, sem ceder de novo (equipe corrig
   assert.match(bloqueioCessao({ ...meu, situacao: "cancelado" }, "ana", "bia"), /cancelado/);
   assert.match(bloqueioCessao(meu, "bia", "caio"), /não é seu/);
   assert.match(bloqueioCessao({ ...meu, cedido_de: "caio" }, "ana", "bia"), /de novo/);
-  assert.equal(bloqueioCessao({ ...meu, cedido_de: "caio" }, "ana", "bia", true), null, "equipe pode corrigir");
-  assert.match(bloqueioCessao(meu, "ana", "ana", true), /já é a titular/);
-  assert.match(bloqueioCessao({ ...meu, situacao: "utilizado" }, "ana", "bia", true), /utilizado/, "nem a equipe cede crédito usado");
+  assert.match(bloqueioCessao(meu, "ana", "ana"), /já é a titular/);
 });
 
 test("situações do pacote", () => {

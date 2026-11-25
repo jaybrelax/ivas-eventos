@@ -10,7 +10,7 @@ import { toast } from "@/components/Toaster";
 import { Carregando } from "@/components/ui";
 import { csvCampo } from "@/lib/csv";
 import {
-  cederCreditoEquipeAction, confirmarPacoteAction, desfazerCessaoAction, editarPacoteAction, excluirPacoteAction, lancarPacoteAction, quitarDebitoAction,
+  confirmarPacoteAction, editarPacoteAction, excluirPacoteAction, lancarPacoteAction, quitarDebitoAction,
 } from "./actions";
 
 type Resultado = { ok?: string; erro?: string };
@@ -227,35 +227,6 @@ export function LancarPacote({ planos, pessoas, pessoaFixa }: { planos: PlanoOpc
         <button type="submit" className="btn-primario h-10" disabled={pendente}>{pendente ? "Lançando…" : "Lançar pacote"}</button>
       </div>
     </form>
-  );
-}
-
-/** Ceder um crédito disponível para outra pessoa (a equipe pode corrigir qualquer crédito disponível). */
-export function CederEquipe({ creditoId, pessoas, excluirId }: { creditoId: string; pessoas: PessoaOpcao[]; excluirId: string }) {
-  const { pendente, rodar } = useAcao();
-  const [aberto, setAberto] = useState(false);
-  const [para, setPara] = useState("");
-  if (!aberto) {
-    return <button type="button" onClick={() => setAberto(true)} className="inline-flex items-center gap-1 text-xs font-semibold text-mata-700 hover:underline"><Send size={12} aria-hidden /> Ceder</button>;
-  }
-  return (
-    <span className="inline-flex flex-wrap items-center gap-1.5">
-      <select value={para} onChange={(e) => setPara(e.target.value)} className="campo h-8 w-44 py-0 text-xs" aria-label="Quem recebe o crédito">
-        <option value="">Para quem…</option>
-        {pessoas.filter((p) => p.id !== excluirId).map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-      </select>
-      <button type="button" className="btn-primario h-8 px-2.5 text-xs" disabled={pendente || !para} onClick={() => rodar(async () => { const r = await cederCreditoEquipeAction(creditoId, para); if (r.ok) setAberto(false); return r; })}>Confirmar</button>
-      <button type="button" className="btn-fantasma h-8 px-2 text-xs" onClick={() => setAberto(false)} disabled={pendente}>Cancelar</button>
-    </span>
-  );
-}
-
-export function DesfazerCessao({ creditoId }: { creditoId: string }) {
-  const { pendente, rodar } = useAcao();
-  return (
-    <button type="button" disabled={pendente} onClick={() => rodar(() => desfazerCessaoAction(creditoId))} className="inline-flex items-center gap-1 text-xs font-semibold text-stone-600 hover:underline">
-      <Undo2 size={12} aria-hidden /> Devolver ao comprador
-    </button>
   );
 }
 

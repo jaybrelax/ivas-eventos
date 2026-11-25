@@ -79,13 +79,12 @@ export function bloqueioCessao(
   c: { situacao: SituacaoCredito; titular_id: string; cedido_de?: string | null },
   de: string,
   para: string,
-  equipe = false,
 ): string | null {
   if (c.situacao === "utilizado") return "Crédito já utilizado não pode ser cedido.";
   if (c.situacao === "bloqueado") return "Este crédito ainda aguarda a confirmação do pagamento do pacote.";
   if (c.situacao === "cancelado") return "Este crédito foi cancelado.";
-  if (!equipe && c.titular_id !== de) return "Este crédito não é seu.";
-  if (!equipe && c.cedido_de) return "Um crédito recebido por cessão não pode ser cedido de novo.";
+  if (c.titular_id !== de) return "Este crédito não é seu.";
+  if (c.cedido_de) return "Um crédito recebido por cessão não pode ser cedido de novo.";
   if (c.titular_id === para) return "Essa pessoa já é a titular deste crédito.";
   return null;
 }

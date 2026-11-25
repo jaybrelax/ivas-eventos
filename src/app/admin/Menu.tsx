@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
 import type { Perfil } from "@/lib/config";
-import { BarChart3, CalendarDays, Download, Image as ImageIcon, LogOut, Menu as MenuIcone, PanelLeftClose, PanelLeftOpen, Plus, Receipt, Settings, Share, Shield, Ticket, Users, UsersRound, X } from "lucide-react";
+import { UserRound, BarChart3, CalendarDays, Download, Image as ImageIcon, LogOut, Menu as MenuIcone, PanelLeftClose, PanelLeftOpen, Plus, Receipt, Settings, Share, Shield, Ticket, Users, UsersRound, X } from "lucide-react";
 import { useInstalar } from "@/components/useInstalar";
 
 const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users, shield: Shield, receipt: Receipt, participantes: UsersRound, ticket: Ticket };
@@ -25,6 +25,9 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
   // Visualização e edição do evento: no mobile a página tem a própria barra (voltar + menu ⋮)
   const semBarra = /^\/admin\/eventos\/(?!novo$)[^/]+(\/editar)?$/.test(path);
   const [aberto, setAberto] = useState(false);
+  // Mobile: submenu da conta (avatar no canto direito da barra)
+  const [contaAberta, setContaAberta] = useState(false);
+  useEffect(() => setContaAberta(false), [path]);
   // Menu lateral fino (só ícones): escolha guardada; sem escolha, fica fino em tablet (< 1024 px)
   const [fino, setFino] = useState(false);
   useEffect(() => { setFino(document.documentElement.dataset.menu === "colapsado"); }, []);
@@ -159,10 +162,44 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
 
       {/* Mobile: barra no topo + gaveta */}
       <div className={`sticky top-0 z-30 items-center justify-between gap-3 border-b border-white/10 bg-mata-950 px-4 py-3 md:hidden ${semBarra ? "hidden" : "flex"}`}>
-        <div className="min-w-0 [&_img]:!h-9 [&_p.text-xs]:hidden">{marca}</div>
-        <button onClick={() => setAberto(true)} className="grid h-10 w-10 place-items-center rounded-xl text-mata-100 hover:bg-white/10" aria-label="Abrir menu">
-          <MenuIcone size={22} />
-        </button>
+        <div className="flex min-w-0 items-center gap-2">
+          <button onClick={() => setAberto(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-mata-100 hover:bg-white/10" aria-label="Abrir menu">
+            <MenuIcone size={22} />
+          </button>
+          <div className="min-w-0 [&_img]:!h-9 [&_p.text-xs]:hidden">{marca}</div>
+        </div>
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setContaAberta((v) => !v)}
+            aria-label={`Conta de ${usuario.nome}`}
+            aria-haspopup="menu"
+            aria-expanded={contaAberta}
+            className="grid place-items-center rounded-full transition active:scale-95"
+          >
+            <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={36} className="ring-white/30" />
+          </button>
+          {contaAberta && (
+            <>
+              <button type="button" aria-label="Fechar" className="fixed inset-0 z-40 cursor-default" onClick={() => setContaAberta(false)} />
+              <div role="menu" className="absolute top-full right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-white/10 bg-mata-950 p-1.5 shadow-2xl">
+                <div className="px-3 pt-2 pb-2.5">
+                  <p className="truncate text-sm font-semibold text-white">{usuario.nome}</p>
+                  <p className="text-xs text-mata-300">{usuario.perfil}</p>
+                </div>
+                <div className="mx-1 mb-1 h-px bg-white/10" aria-hidden />
+                <Link href="/admin/perfil" role="menuitem" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-mata-100 transition hover:bg-white/[0.06]">
+                  <UserRound size={17} className="text-mata-300" /> Editar perfil
+                </Link>
+                <form action={sair}>
+                  <button type="submit" role="menuitem" className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-mata-100 transition hover:bg-white/[0.06]">
+                    <LogOut size={17} className="text-mata-300" /> Sair
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
+        </div>
       </div>
       {aberto && (
         <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true">

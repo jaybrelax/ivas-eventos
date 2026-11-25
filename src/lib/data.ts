@@ -24,6 +24,7 @@ export const INSTITUTO_PADRAO: Instituto = {
   guarnicao_aprovacao_automatica: true,
   gestao_guardiao_ativa: true,
   gestao_guardiao_horas: 48,
+  gestao_mestre_escopo: "escalado",
   estado: null,
   cidade: null,
   info_rituais: null,
