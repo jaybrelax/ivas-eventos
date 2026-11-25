@@ -24,6 +24,7 @@ test("participante só informa contribuição aberta de inscrição ativa", () =
   assert.ok(participantePodeInformar({ situacao: "cancelada", pagamento: "pendente" }));
   assert.ok(participantePodeInformar({ situacao: "confirmada", pagamento: "pago" }));
   assert.ok(participantePodeInformar({ situacao: "confirmada", pagamento: "isento" }));
+  assert.ok(participantePodeInformar({ situacao: "confirmada", pagamento: "aniversario" }));
   assert.equal(participantePodeInformar({ situacao: "confirmada", pagamento: "na_hora" }), null);
   assert.equal(participantePodeInformar({ situacao: "espera", pagamento: "informado" }), null);
 });

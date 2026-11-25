@@ -103,7 +103,7 @@ export type SituacaoInscricao = "confirmada" | "espera" | "cancelada";
 /** na_hora: o participante avisou que vai contribuir no dia do ritual. credito: paga com 1 crédito de um pacote. */
 /** Como a contribuição confirmada foi paga. Pacote = crédito (pagamento "credito"); pix e dinheiro ficam em `forma_pagamento`. */
 export type FormaPagamento = "pix" | "dinheiro" | "pacote";
-export type SituacaoPagamento = "pendente" | "informado" | "pago" | "isento" | "na_hora" | "credito";
+export type SituacaoPagamento = "pendente" | "informado" | "pago" | "isento" | "na_hora" | "credito" | "aniversario";
 
 /** Inscrição de um participante (público geral) num evento. */
 export type Inscricao = {
@@ -127,6 +127,8 @@ export type Inscricao = {
   primeira_vez?: boolean | null;
   /** Crédito consumido por esta inscrição (quando pagamento = "credito"). */
   credito_id?: string | null;
+  /** Bônus anual de aniversário usado nesta participação, sem vínculo financeiro. */
+  bonus_aniversario_id?: string | null;
   /** Forma da contribuição confirmada (pix ou dinheiro). Com crédito, a forma é pacote. */
   forma_pagamento?: FormaPagamento | null;
   alterado_por: string | null;

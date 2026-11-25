@@ -4,6 +4,7 @@
 
 import { Client, ID, Permission, Query, Role, Storage, TablesDB, Users, AppwriteException } from "node-appwrite";
 import { HISTORICO_ACOES, INSCRICOES_COLUNA_CREDITO, INSCRICOES_COLUNA_FORMA, INSCRICOES_PAGAMENTO, TABELAS_CREDITOS } from "./creditos-schema.mjs";
+import { HISTORICO_ACOES_BONUS, INSCRICOES_COLUNA_BONUS_ANIVERSARIO, INSCRICOES_PAGAMENTO_BONUS, TABELAS_BONUS_ANIVERSARIO } from "./bonus-aniversario-schema.mjs";
 
 const { APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_NAME } = process.env;
 if (!APPWRITE_ENDPOINT || !APPWRITE_PROJECT_ID || !APPWRITE_API_KEY) {
@@ -163,7 +164,7 @@ const TABELAS = {
       v("evento_id", 36, { required: true }), v("usuario_id", 36, { required: true }),
       en("situacao", ["confirmada", "espera", "cancelada"], "espera"),
       i("ordem", { min: 0 }),
-      en("pagamento", INSCRICOES_PAGAMENTO, "pendente"),
+      en("pagamento", [...INSCRICOES_PAGAMENTO, INSCRICOES_PAGAMENTO_BONUS], "pendente"),
       f("valor", { min: 0 }), dt("informado_em"), dt("pago_em"),
       v("comprovante_file_id", 36), t("observacao"), v("alterado_por", 36),
       // Doses consumidas na participação, em JSON: [{"n":1,"ml":40},{"n":2,"ml":20}]
@@ -176,6 +177,7 @@ const TABELAS = {
       INSCRICOES_COLUNA_CREDITO,
       // Forma da contribuição confirmada: pix, dinheiro ou pacote
       INSCRICOES_COLUNA_FORMA,
+      INSCRICOES_COLUNA_BONUS_ANIVERSARIO,
     ],
     indices: [
       ["ux_inscricao", "unique", ["evento_id", "usuario_id"]],
@@ -190,7 +192,7 @@ const TABELAS = {
     nome: "Histórico das inscrições",
     colunas: [
       v("inscricao_id", 36, { required: true }), v("evento_id", 36, { required: true }), v("usuario_id", 36, { required: true }),
-      en("acao", HISTORICO_ACOES, "inscricao"),
+      en("acao", [...HISTORICO_ACOES, ...HISTORICO_ACOES_BONUS], "inscricao"),
       v("pagamento_de", 20), v("pagamento_para", 20), f("valor", { min: 0 }), v("por", 36, { required: true }),
     ],
     indices: [
@@ -201,6 +203,7 @@ const TABELAS = {
   },
   // Pacotes de créditos: catálogo, compras, créditos (1 por participação), trava de uso e histórico
   ...TABELAS_CREDITOS,
+  ...TABELAS_BONUS_ANIVERSARIO,
   modelos_banner: {
     nome: "Modelos de banner",
     colunas: [v("nome", 80, { required: true }), t("config", { required: true })],

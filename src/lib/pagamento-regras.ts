@@ -37,6 +37,7 @@ export function participantePodeInformar(atual: { situacao: SituacaoInscricao; p
   if (atual.pagamento === "pago") return "Esta contribuição já foi confirmada.";
   if (atual.pagamento === "isento") return "Esta inscrição está isenta de contribuição.";
   if (atual.pagamento === "credito") return "Esta participação já está paga com crédito.";
+  if (atual.pagamento === "aniversario") return "Esta participação está confirmada com o bônus de aniversário.";
   return null;
 }
 

@@ -35,6 +35,8 @@ export const TABLES = {
   pacotes: "pacotes",
   creditos: "creditos",
   movimentosCredito: "movimentos_credito",
+  /** Bônus anual de aniversário: separado de pacotes e da movimentação financeira. */
+  bonusAniversario: "bonus_aniversario",
 } as const;
 
 export type Perfil = "admin" | "coordenador" | "normal";

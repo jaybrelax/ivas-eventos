@@ -352,9 +352,10 @@ export async function aplicarEmInscricoesFuturas(usuarioId: string, porId: strin
  * A coordenação marca a participação como paga com pacote. Serve também quando a contribuição já estava confirmada,
  * isenta ou informada: ela é reaberta e troca por 1 crédito. Sem crédito disponível, nada muda.
  */
-export async function usarCreditoNaInscricao(porId: string, inscricaoId: string): Promise<ResultadoCredito> {
+export async function usarCreditoNaInscricao(porId: string, inscricaoId: string, exigirTitular = false): Promise<ResultadoCredito> {
   const insc = await lerLinha<Inscricao>(T.inscricoes, inscricaoId);
   if (!insc) return { erro: "Inscrição não encontrada." };
+  if (exigirTitular && insc.usuario_id !== porId) return { erro: "Você só pode usar créditos nas suas próprias participações." };
   if (insc.situacao !== "confirmada") return { erro: "Só a participação confirmada pode ser paga com pacote." };
   if (insc.pagamento === "credito") return { erro: "Esta participação já está paga com pacote." };
 

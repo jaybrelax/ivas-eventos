@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import {
   ArrowRight, Calendar, CalendarCheck, Check, CheckCircle2, Clock3, Hourglass,
-  ImagePlus, MessageCircle, QrCode, Receipt, ShieldCheck, Ticket, Upload, X,
+  Gift, ImagePlus, MessageCircle, QrCode, Receipt, ShieldCheck, Ticket, Upload, X,
 } from "lucide-react";
 import { CartaoPix } from "./CartaoPix";
-import { confirmarParticipacaoAction, contribuirNaHoraAction, informarPagamentoAction } from "@/app/eventos/inscricao-actions";
+import { confirmarParticipacaoAction, contribuirNaHoraAction, informarPagamentoAction, usarBonusAniversarioAction, usarCreditoDoParticipanteAction } from "@/app/eventos/inscricao-actions";
 import type { ChavePix, SituacaoPagamento } from "@/lib/types";
 import { useImagem } from "@/components/useImagem";
 import { BotaoGoogle } from "@/components/BotaoGoogle";
@@ -60,6 +60,8 @@ type Props = {
   valorContribuicao?: number | null;
   /** Créditos de pacote do usuário (só para rituais): quantos tem disponíveis e o saldo (negativo = deve participações). */
   creditos?: { disponiveis: number; saldo: number } | null;
+  /** Bônus anual disponível para este ritual no mês do aniversário. */
+  bonusAniversario?: { disponivel: boolean; mesNome: string | null } | null;
 };
 
 let reivindicado: string | null = null;
@@ -91,6 +93,7 @@ export function BotaoParticipar({
   minhaInscricao,
   valorContribuicao,
   creditos = null,
+  bonusAniversario = null,
 }: Props) {
   const [aberto, setAberto] = useState(false);
   // Etapa de anexar o comprovante (vem de "Já fiz a contribuição" ou do link "Avisar contribuição")
@@ -146,8 +149,9 @@ export function BotaoParticipar({
         ? "Você está na lista de espera"
         : ehRitual ? "Participar do Ritual" : "Participar do encontro";
   const exigeContribuicao = ehRitual && !!valorContribuicao && valorContribuicao > 0;
-  const etapa = !logado || !minhaInscricao ? "participacao" : exigeContribuicao &&
-    minhaInscricao.pagamento === "pendente" && !mostrarResultado
+  const podeEscolherBonus = !!bonusAniversario?.disponivel && minhaInscricao?.situacao === "confirmada" &&
+    ["pendente", "na_hora", "credito"].includes(minhaInscricao.pagamento);
+  const etapa = !logado || !minhaInscricao ? "participacao" : (exigeContribuicao && minhaInscricao.pagamento === "pendente" || podeEscolherBonus) && !mostrarResultado
     ? "contribuicao" : "resultado";
   const miniaturaId = etapa === "resultado" ? fotoLocal ?? capaEvento : capaEvento ?? fotoLocal;
   const miniaturaAlt = miniaturaId === fotoLocal ? "Foto do local" : "Capa do evento";
@@ -221,12 +225,15 @@ export function BotaoParticipar({
               </div>
             )}
 
-            {etapa === "contribuicao" && minhaInscricao && valorContribuicao && (
+            {etapa === "contribuicao" && minhaInscricao && (
               <div className="mt-5">
                 <PagamentoBloco
                   eventoId={eventoId}
                   inscricaoId={minhaInscricao.id}
-                  valorContribuicao={valorContribuicao}
+                  valorContribuicao={valorContribuicao ?? 0}
+                  pagamentoAtual={minhaInscricao.pagamento}
+                  bonusAniversario={bonusAniversario}
+                  creditosDisponiveis={creditos?.disponiveis ?? 0}
                   chavePix={chavePix}
                   abrirForm={pagando}
                   setAbrirForm={setPagando}
@@ -432,8 +439,12 @@ function StatusInscricao({ inscricao }: { inscricao: NonNullable<MinhaInscricao>
 }
 
 function PagamentoBloco({
-  eventoId, inscricaoId, valorContribuicao, chavePix, abrirForm, setAbrirForm, onContribuicaoConcluida,
-}: { eventoId: string; inscricaoId: string; valorContribuicao: number; chavePix?: ChavePix | null; abrirForm: boolean; setAbrirForm: (v: boolean) => void; onContribuicaoConcluida: () => void }) {
+  eventoId, inscricaoId, valorContribuicao, pagamentoAtual, bonusAniversario, creditosDisponiveis, chavePix, abrirForm, setAbrirForm, onContribuicaoConcluida,
+}: {
+  eventoId: string; inscricaoId: string; valorContribuicao: number; pagamentoAtual: SituacaoPagamento;
+  bonusAniversario: { disponivel: boolean; mesNome: string | null } | null; creditosDisponiveis: number;
+  chavePix?: ChavePix | null; abrirForm: boolean; setAbrirForm: (v: boolean) => void; onContribuicaoConcluida: () => void;
+}) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [msg, setMsg] = useState<{ ok?: string; erro?: string }>();
@@ -454,9 +465,48 @@ function PagamentoBloco({
     return (
       <div className="space-y-3 rounded-2xl border border-ouro-200/80 bg-gradient-to-br from-ouro-50/60 to-white p-4">
         {cabecalho}
-        <p className="text-xs text-stone-500">Escolha como prefere contribuir:</p>
+        <p className="text-xs text-stone-500">Escolha como deseja confirmar sua participação:</p>
 
         <div className="space-y-2">
+          {bonusAniversario?.disponivel && (
+            <button
+              type="button"
+              disabled={pendente}
+              onClick={() => iniciar(async () => {
+                const r = await usarBonusAniversarioAction(eventoId, inscricaoId);
+                setMsg(r);
+                if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
+              })}
+              className={`${opcao} border-violet-300 bg-gradient-to-r from-violet-50 via-fuchsia-50 to-amber-50 text-violet-950 hover:border-violet-400`}
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-violet-600 text-white shadow-sm"><Gift size={18} aria-hidden /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold">Usar bônus de aniversário</span>
+                <span className="block text-xs text-violet-800/80">Uma participação especial válida neste mês{bonusAniversario.mesNome ? ` de ${bonusAniversario.mesNome}` : ""}</span>
+              </span>
+            </button>
+          )}
+          {pagamentoAtual === "credito" && (
+            <button type="button" onClick={onContribuicaoConcluida} className={`${opcao} border-violet-200 bg-violet-50/70`}>
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-violet-600 text-white"><Ticket size={18} aria-hidden /></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-violet-950">Manter crédito de pacote</span><span className="block text-xs text-violet-800/80">Este ritual já está confirmado com 1 crédito.</span></span>
+            </button>
+          )}
+          {pagamentoAtual !== "credito" && creditosDisponiveis > 0 && (
+            <button
+              type="button"
+              disabled={pendente}
+              onClick={() => iniciar(async () => {
+                const r = await usarCreditoDoParticipanteAction(eventoId, inscricaoId);
+                setMsg(r);
+                if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
+              })}
+              className={`${opcao} border-violet-200 bg-violet-50/70 hover:border-violet-300`}
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-700"><Ticket size={18} aria-hidden /></span>
+              <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-violet-950">Usar 1 crédito de pacote</span><span className="block text-xs text-violet-800/80">Você tem {creditosDisponiveis} {creditosDisponiveis === 1 ? "crédito disponível" : "créditos disponíveis"}.</span></span>
+            </button>
+          )}
           <button type="button" onClick={() => { setNaHoraSelecionada(false); setMostrarPix((v) => !v); }} aria-expanded={mostrarPix} className={`${opcao} ${mostrarPix ? "border-emerald-500 bg-emerald-50/70" : "border-stone-200 bg-white hover:border-stone-300"}`}>
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><QrCode size={18} /></span>
             <span className="min-w-0 flex-1">

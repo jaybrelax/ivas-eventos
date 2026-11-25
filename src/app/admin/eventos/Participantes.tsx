@@ -3,7 +3,7 @@
 import { createPortal } from "react-dom";
 import { capitalizarNomeProprio } from "@/lib/format";
 import { createContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Check, ChevronRight, Clock, Crown, Receipt, Search, Shield, SlidersHorizontal, Sprout, Ticket, UserPlus, Users, X } from "lucide-react";
+import { Check, ChevronRight, Clock, Crown, Gift, Receipt, Search, Shield, SlidersHorizontal, Sprout, Ticket, UserPlus, Users, X } from "lucide-react";
 import type { ChavePix, FormaPagamento, Sexo, SituacaoPagamento } from "@/lib/types";
 import type { Dose } from "@/lib/doses";
 import { Avatar } from "@/components/Avatar";
@@ -25,6 +25,8 @@ export type ItemParticipanteInscrito = PessoaParticipante & {
   /** Como foi paga a contribuição confirmada (pix, dinheiro ou pacote). */
   forma?: FormaPagamento | null;
   saldoCredito?: { disponiveis: number; debitos: number; saldo: number } | null;
+  /** Participante elegível para o benefício anual neste ritual. A data de nascimento não é enviada ao cliente. */
+  bonusAniversarioDisponivel?: boolean;
   /** Primeira vez da pessoa em um ritual (só para quem gerencia o evento). */
   primeiraVez?: boolean;
   /** Já tem participação confirmada em outro evento (então não é a primeira vez). */
@@ -76,6 +78,7 @@ const PAGAMENTO: Record<SituacaoPagamento, { rotulo: string; cor: string }> = {
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
   credito: { rotulo: "Crédito", cor: "bg-violet-50 text-violet-700" },
+  aniversario: { rotulo: "Bônus de aniversário", cor: "bg-fuchsia-50 text-fuchsia-800" },
 };
 
 type FiltroPg = "todos" | "conferir" | "aberto" | "pago" | "isento";
@@ -123,7 +126,7 @@ function ChipsDose({ doses }: { doses: Dose[] }) {
 const CLASSE_PRESENTE = "border-l-4 border-emerald-500 bg-gradient-to-r from-emerald-100/80 via-emerald-50/40 to-white ring-1 ring-emerald-100";
 
 /** Sigla da situação da contribuição (participante com dose registrada). */
-const SIGLA_PAGAMENTO: Record<SituacaoPagamento, string> = { pendente: "PEN", informado: "PC", pago: "OK", isento: "IN", na_hora: "NH", credito: "CR" };
+const SIGLA_PAGAMENTO: Record<SituacaoPagamento, string> = { pendente: "PEN", informado: "PC", pago: "OK", isento: "IN", na_hora: "NH", credito: "CR", aniversario: "ANI" };
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -595,6 +598,14 @@ function ValorContribuicao({ p, esperado }: { p: ItemParticipanteInscrito; esper
       </span>
     );
   }
+  if (p.pagamento === "aniversario") {
+    return (
+      <span className="min-w-[4.5rem] shrink-0 text-right leading-tight">
+        <span className="block truncate text-sm font-semibold text-fuchsia-800">Bônus</span>
+        <span className="block truncate text-[11px] text-stone-400">aniversário</span>
+      </span>
+    );
+  }
   if (p.pagamento === "pago") { valor = formatoReal(p.valor ?? 0); detalhe = p.pagoEm ? `pago ${dataCurta(p.pagoEm)}` : "pago"; cor = "text-emerald-800"; }
   else if (p.pagamento === "informado") { valor = p.valor != null ? formatoReal(p.valor) : "—"; detalhe = p.informadoEm ? `informou ${haQuanto(p.informadoEm)}` : "informado"; cor = "text-amber-800"; }
   else if (p.pagamento === "isento") { valor = "—"; detalhe = "não paga"; cor = "text-stone-400"; }
@@ -655,11 +666,16 @@ function Linha({
               <Ticket size={11} strokeWidth={2.3} aria-hidden />Confirmado
             </span>
           )}
+          {mostrarTagPresenca && p.pagamento === "aniversario" && (
+            <span className="chip shrink-0 gap-1 bg-fuchsia-100 px-2 py-px text-[11px] whitespace-nowrap text-fuchsia-800" title="Confirmado com bônus de aniversário" aria-label="Confirmado com bônus de aniversário">
+              <Gift size={11} strokeWidth={2.3} aria-hidden />Bônus
+            </span>
+          )}
         </span>
         {/* Financeiro: a tag da situação embaixo do nome, um pouco menor */}
         {financeiro && temContribuicao && (
           <span className={`chip mt-0.5 gap-0.5 px-2 py-px text-[11px] ${p.pagamento === "pago" && p.usouPacote ? "bg-violet-100 text-violet-800" : pg.cor}`} title={p.pagamento === "pago" && p.usouPacote ? "Pago com pacote" : pg.rotulo}>
-            {p.pagamento === "pago" && <Check size={11} className="shrink-0" />}{p.pagamento === "credito" ? <Ticket size={11} className="shrink-0" aria-hidden /> : null}{conferir && <Receipt size={11} className="shrink-0" />}{p.pagamento === "credito" ? "Crédito de pacote" : pg.rotulo}
+            {p.pagamento === "pago" && <Check size={11} className="shrink-0" />}{p.pagamento === "credito" ? <Ticket size={11} className="shrink-0" aria-hidden /> : p.pagamento === "aniversario" ? <Gift size={11} className="shrink-0" aria-hidden /> : null}{conferir && <Receipt size={11} className="shrink-0" />}{p.pagamento === "credito" ? "Crédito de pacote" : pg.rotulo}
           </span>
         )}
         {conferir && !financeiro && p.informadoEm && (

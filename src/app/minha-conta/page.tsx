@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { History, Receipt, Ticket } from "lucide-react";
+import { Gift, History, Receipt, Ticket } from "lucide-react";
 import { exigirSessao } from "@/lib/auth";
 import { urlImagem } from "@/lib/links";
 import { creditosESaldo, historicoCreditos, pacotesComResumo, listarPlanos, saldoDoUsuario, type CreditoItem } from "@/lib/creditos";
+import { resumoBonusAniversario } from "@/lib/bonus-aniversario";
 import { ROTULO_ACAO, ROTULO_CREDITO, ROTULO_PACOTE } from "@/lib/creditos-rotulos";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
 import { mapaUsuarios } from "@/lib/usuarios";
@@ -26,6 +27,7 @@ const PAGAMENTO: Record<ItemInscricao["pagamento"], { rotulo: string; cor: strin
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
   credito: { rotulo: "Crédito", cor: "bg-violet-50 text-violet-700" },
+  aniversario: { rotulo: "Bônus de aniversário", cor: "bg-fuchsia-50 text-fuchsia-800" },
 };
 
 const SITUACAO: Record<ItemInscricao["situacao"], { rotulo: string; cor: string }> = {
@@ -42,7 +44,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
   const abaBruta = String(sp?.aba ?? "proximos");
   const aba: AbaMinhaConta = abaBruta === "pagamentos" || abaBruta === "creditos" ? abaBruta : "proximos";
 
-  const [{ instituto, enderecos, telefones, redes, pix }, itens, conta] = await Promise.all([
+  const [{ instituto, enderecos, telefones, redes, pix }, itens, conta, bonusAniversario] = await Promise.all([
     getDadosInstituto(),
     inscricoesComEventos(u.id),
     // Saldo aparece na aba Créditos e como aviso quando está negativo; se o banco dos créditos ainda não existe, a conta segue funcionando.
@@ -50,6 +52,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
     aba === "creditos" ? creditosESaldo(u.id).catch(() => null)
       : aba === "proximos" ? saldoDoUsuario(u.id).then((saldo) => ({ saldo, creditos: [] })).catch(() => null)
       : Promise.resolve(null),
+    aba === "proximos" ? resumoBonusAniversario(u).catch(() => null) : Promise.resolve(null),
   ]);
   const saldo = conta?.saldo ?? null;
 
@@ -77,6 +80,18 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
         )}
 
         {aba === "proximos" && <ProximoRitualCard usuarioId={u.id} />}
+
+        {aba === "proximos" && bonusAniversario && (
+          <section className={`mb-6 rounded-2xl border p-4 sm:p-5 ${bonusAniversario.disponivel ? "border-fuchsia-200 bg-gradient-to-r from-fuchsia-50 via-violet-50 to-amber-50" : "border-violet-200 bg-violet-50/70"}`} aria-label="Bônus de aniversário">
+            <div className="flex items-start gap-3">
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${bonusAniversario.disponivel ? "bg-fuchsia-600 text-white" : "bg-violet-600 text-white"}`}><Gift size={20} aria-hidden /></span>
+              <div>
+                <h2 className="font-semibold text-stone-900">{bonusAniversario.disponivel ? "Seu bônus de aniversário está disponível" : "Bônus de aniversário utilizado"}</h2>
+                <p className="mt-0.5 text-sm text-stone-600">{bonusAniversario.disponivel ? `Use uma participação especial em qualquer ritual de ${bonusAniversario.mesNome}.` : `Sua participação especial de ${bonusAniversario.mesNome} já foi usada este ano.`}</p>
+              </div>
+            </div>
+          </section>
+        )}
 
         {aba === "proximos" && (
           <>
@@ -156,7 +171,8 @@ function Lista({ itens, vazio, mostrarPagamento, cancelar = false }: { itens: It
           {((mostrarPagamento && i.temContribuicao) || (cancelar && i.podeCancelar)) && (
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-500">
               {mostrarPagamento && i.temContribuicao && i.pagamento === "credito" && <span>Participação paga com 1 crédito</span>}
-              {mostrarPagamento && i.temContribuicao && i.pagamento !== "credito" && i.valor != null && <span>Contribuição: {formatoReal(i.valor)}</span>}
+              {mostrarPagamento && i.temContribuicao && i.pagamento === "aniversario" && <span>Participação confirmada com bônus de aniversário</span>}
+              {mostrarPagamento && i.temContribuicao && i.pagamento !== "credito" && i.pagamento !== "aniversario" && i.valor != null && <span>Contribuição: {formatoReal(i.valor)}</span>}
               {mostrarPagamento && i.temContribuicao && i.comprovante && <BotaoComprovante id={i.comprovante} />}
               {mostrarPagamento && i.temContribuicao && i.pagamento === "pendente" && (
                 <Link

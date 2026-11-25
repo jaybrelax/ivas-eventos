@@ -38,6 +38,8 @@ export async function pagamentosDoAno(ano: number): Promise<ItemPagamento[]> {
   const inscricoes = await inscricoesDosEventos(eventosComContribuicao.map((e) => e.$id));
 
   return inscricoes
+    // O bônus é um benefício de participação, nunca um item financeiro.
+    .filter((i) => i.pagamento !== "aniversario")
     .flatMap((i) => {
       const e = eventoPorId.get(i.evento_id);
       if (!e) return [];

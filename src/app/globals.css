@@ -483,6 +483,24 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
 /* Versão mais grossa da borda animada (card da reunião na página inicial) */
 .borda-animada-grossa::before { padding: 5px; }
 
+/* Gradiente contínuo gira suavemente ao redor do ícone do comprovante. */
+.comprovante-gradiente::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(from var(--borda-angulo), #8668ac, #c5a6cf, #74a8b1, #d4b47c, #8668ac);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: borda-girar 9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .comprovante-gradiente::before { animation: none; }
+}
+
 /* Contorno com a mesma cor do fundo dos cards (branco no claro; ver .bg-white nos temas escuros). */
 .ring-fundo-card { --tw-ring-color: rgb(255 255 255 / 0.5) !important; }
 

@@ -106,7 +106,7 @@ export const listarEquipe = cache(async (): Promise<Pessoa[]> => {
 });
 
 /** Resumo de todos os usuários (ativos ou não), por ID: para exibir nomes e fotos em listas. */
-export type ResumoUsuario = { id: string; nome: string; foto: string | null; sexo: Sexo | null; funcao: FuncaoRitual; ativo: boolean; suspensoAte: string | null; first: boolean; mock: boolean };
+export type ResumoUsuario = { id: string; nome: string; foto: string | null; sexo: Sexo | null; funcao: FuncaoRitual; ativo: boolean; suspensoAte: string | null; first: boolean; mock: boolean; /** Uso exclusivamente no servidor, para regras de benefícios. */ dataNascimento: string | null };
 
 export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> => {
   const { users } = createAdminClient();
@@ -114,7 +114,7 @@ export const mapaUsuarios = cache(async (): Promise<Map<string, ResumoUsuario>> 
   return new Map(
     res.users.map((u) => {
       const p = prefsDe(u.prefs);
-      return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: p.funcao_ritual, ativo: !!u.status, first: (u.labels ?? []).includes("first"), mock: (u.labels ?? []).includes("mock"), suspensoAte: p.guarnicao_suspenso_ate }];
+      return [u.$id, { id: u.$id, nome: u.name || u.email, foto: p.foto_file_id, sexo: p.sexo, funcao: p.funcao_ritual, ativo: !!u.status, first: (u.labels ?? []).includes("first"), mock: (u.labels ?? []).includes("mock"), suspensoAte: p.guarnicao_suspenso_ate, dataNascimento: p.data_nascimento }];
     }),
   );
 });

@@ -9,6 +9,8 @@ import { COMPROVANTES_BUCKET_ID } from "@/lib/config";
 import { getEvento, getInstituto, listarTipos } from "@/lib/data";
 import { conferirImagem } from "@/lib/imagem";
 import { cancelarInscricao, contribuirNaHora, informarPagamento, inscrever, type Resultado } from "@/lib/inscricoes";
+import { usarBonusAniversario } from "@/lib/bonus-aniversario";
+import { usarCreditoNaInscricao } from "@/lib/creditos";
 import { lerValor } from "@/lib/pagamento-regras";
 
 async function contexto(eventoId: string) {
@@ -77,5 +79,24 @@ export async function contribuirNaHoraAction(eventoId: string, inscricaoId: stri
   const u = await exigirSessao(`/eventos/${eventoId}`);
   const r = await contribuirNaHora(inscricaoId, u.id, desfazer);
   revalidar(eventoId);
+  return r;
+}
+
+/** Aplica o bônus anual do próprio participante. Não entra em pacotes ou relatórios financeiros. */
+export async function usarBonusAniversarioAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
+  const u = await exigirSessao(`/eventos/${eventoId}`);
+  const r = await usarBonusAniversario(inscricaoId, u);
+  const evento = await getEvento(eventoId);
+  if (evento) revalidar(eventoId, evento.ritual_numero_geral);
+  return r;
+}
+
+/** O participante confirma que prefere gastar um crédito de pacote, quando o bônus de aniversário também está disponível. */
+export async function usarCreditoDoParticipanteAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
+  const u = await exigirSessao(`/eventos/${eventoId}`);
+  const { evento } = await contexto(eventoId);
+  if (!evento) return { erro: "Evento não encontrado." };
+  const r = await usarCreditoNaInscricao(u.id, inscricaoId, true);
+  revalidar(eventoId, evento.ritual_numero_geral);
   return r;
 }

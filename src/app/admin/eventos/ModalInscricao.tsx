@@ -6,14 +6,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Camera, CalendarClock, CalendarX2, Check, CheckCircle2, ChevronDown, ExternalLink, IdCard, Pencil, FileImage, Hourglass, Lock, Mail, MapPin,
-  Banknote, ImagePlus, GlassWater, MessageCircle, QrCode, Receipt, Settings2, ShieldCheck, Ticket, Trash2, Undo2, UserRound, X, ZoomIn,
+  Banknote, Gift, ImagePlus, GlassWater, MessageCircle, QrCode, Receipt, Settings2, ShieldCheck, Ticket, Trash2, Undo2, UserRound, X, ZoomIn,
 } from "lucide-react";
 import type { SituacaoInscricao, SituacaoPagamento } from "@/lib/types";
 import { urlImagem } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
 import { IconeGenero } from "@/components/genero";
 import { Carregando } from "@/components/ui";
-import { anexarComprovanteAction, excluirComprovanteAction, salvarDosesAction, definirPrimeiraVezAction, confirmarPagamentoAction, informarDadosAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction, excluirInscricaoAction, usarCreditoAction } from "./participantes-actions";
+import { anexarComprovanteAction, excluirComprovanteAction, salvarDosesAction, definirPrimeiraVezAction, confirmarPagamentoAction, informarDadosAction, isentarPagamentoAction, reabrirPagamentoAction, removerParticipanteAction, excluirInscricaoAction, usarCreditoAction, bonificarAniversarioAction } from "./participantes-actions";
 import { InputTelefone } from "@/components/InputTelefone";
 import { useImagem } from "@/components/useImagem";
 import { Dosagem } from "./Dosagem";
@@ -44,6 +44,7 @@ const SITUACAO_CONTRIBUICAO: Record<SituacaoPagamento, { rotulo: string; detalhe
   pago: { rotulo: "Confirmada", detalhe: "Contribuição confirmada pela coordenação.", cor: "bg-emerald-50 text-emerald-800 ring-emerald-200", bloco: "bg-emerald-50 border-emerald-500 text-emerald-900 [&_svg]:text-emerald-600", Icone: CheckCircle2 },
   isento: { rotulo: "Isento", detalhe: "Participação isenta de contribuição.", cor: "bg-sky-50 text-sky-800 ring-sky-200", bloco: "bg-sky-50 border-sky-400 text-sky-900 [&_svg]:text-sky-600", Icone: ShieldCheck },
   credito: { rotulo: "Crédito", detalhe: "Participação paga com 1 crédito de um pacote. Mudar a contribuição devolve o crédito ao pacote.", cor: "bg-violet-50 text-violet-800 ring-violet-200", bloco: "bg-violet-50 border-violet-400 text-violet-900 [&_svg]:text-violet-600", Icone: Ticket },
+  aniversario: { rotulo: "Bônus de aniversário", detalhe: "Participação confirmada com o benefício anual de aniversário, sem lançamento financeiro.", cor: "bg-fuchsia-50 text-fuchsia-800 ring-fuchsia-200", bloco: "bg-fuchsia-50 border-fuchsia-400 text-fuchsia-900 [&_svg]:text-fuchsia-600", Icone: Gift },
 };
 
 /** Cor do texto e do ícone do status, sem caixa: família quente da seção, com um toque semântico por situação. */
@@ -54,6 +55,7 @@ const TEXTO_SITUACAO: Record<SituacaoPagamento, string> = {
   pago: "[&_svg]:text-emerald-600",
   isento: "[&_svg]:text-sky-600",
   credito: "[&_svg]:text-violet-600",
+  aniversario: "[&_svg]:text-fuchsia-600",
 };
 
 /**
@@ -164,7 +166,7 @@ export function ModalInscricao({
   const informar = () => { setMsg(undefined); setVerDados(true); setEditando(true); };
   const router = useRouter();
   // Contribuição já resolvida (confirmada ou isenta) começa recolhida; pendente/informada começa aberta
-  const [contribAberta, setContribAberta] = useState(p.pagamento !== "pago" && p.pagamento !== "isento" && p.pagamento !== "credito");
+  const [contribAberta, setContribAberta] = useState(p.pagamento !== "pago" && p.pagamento !== "isento" && p.pagamento !== "credito" && p.pagamento !== "aniversario");
   // Os ícones "viajam" da linha para a coluna: View Transitions quando o navegador suporta
   const alternarDados = () => {
     // Recém-incluído, sem nenhum dado: "Exibir dados" já abre o formulário para preencher
@@ -194,9 +196,9 @@ export function ModalInscricao({
   const pago = p.pagamento === "pago";
   // Comprovante só faz sentido depois do aviso/pagamento: fica oculto em pendente e pago por crédito (a menos que já exista um anexo)
   // Tema do card: lilás (pacote), verde (pago em Pix/dinheiro) ou azul (ainda não pago)
-  const t = TEMA[p.pagamento === "credito" ? "violet" : p.pagamento === "pago" ? "emerald" : "sky"];
-  const mostrarComprovante = !(p.pagamento === "pendente" || p.pagamento === "credito" || (p.pagamento === "pago" && p.forma === "dinheiro")) || !!p.comprovante;
-  const formaRotulo = p.pagamento === "credito" || p.forma === "pacote" ? "Pacote" : p.forma === "pix" ? "Pix" : p.forma === "dinheiro" ? "Dinheiro" : null;
+  const t = TEMA[p.pagamento === "credito" || p.pagamento === "aniversario" ? "violet" : p.pagamento === "pago" ? "emerald" : "sky"];
+  const mostrarComprovante = !(p.pagamento === "pendente" || p.pagamento === "credito" || p.pagamento === "aniversario" || (p.pagamento === "pago" && p.forma === "dinheiro")) || !!p.comprovante;
+  const formaRotulo = p.pagamento === "aniversario" ? "Bônus de aniversário" : p.pagamento === "credito" || p.forma === "pacote" ? "Pacote" : p.forma === "pix" ? "Pix" : p.forma === "dinheiro" ? "Dinheiro" : null;
   const whatsapp = c?.telefone ? `https://wa.me/${(c.telefone.replace(/\D/g, "").startsWith("55") ? "" : "55") + c.telefone.replace(/\D/g, "")}` : null;
   const local = [c?.cidade, c?.estado].filter(Boolean).join(" — ");
   const contatos = c ? [
@@ -229,6 +231,10 @@ export function ModalInscricao({
       <span className="chip bg-emerald-50 text-emerald-800"><CheckCircle2 size={12} /> Presença confirmada</span>
     );
   const cancelavel = dados.gerenciar && podeCancelar && inscricao !== "cancelada";
+  const podeBonificarAniversario = dados.gerenciar
+    && inscricao === "confirmada"
+    && !!p.bonusAniversarioDisponivel
+    && (p.pagamento === "pendente" || p.pagamento === "na_hora" || p.pagamento === "credito");
 
   return createPortal(
     <div role="dialog" aria-modal="true" aria-label={`Inscrição de ${p.nome}`} className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
@@ -437,7 +443,7 @@ export function ModalInscricao({
                   {!contribAberta && (
                     <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}><situacao.Icone size={11} aria-hidden /> {situacao.rotulo}{pago && formaRotulo ? ` · ${formaRotulo}` : ""}</span>
-                    {p.pagamento === "credito" ? <span className="font-semibold text-stone-800">1 crédito{p.creditoRotulo ? ` · ${p.creditoRotulo}` : ""}</span> : p.usouPacote ? <span className="font-semibold text-stone-800">Pacote{p.pacoteObs ? ` ${p.pacoteObs}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-stone-800">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
+                    {p.pagamento === "aniversario" ? <span className="font-semibold text-fuchsia-800">Participação bonificada</span> : p.pagamento === "credito" ? <span className="font-semibold text-stone-800">1 crédito{p.creditoRotulo ? ` · ${p.creditoRotulo}` : ""}</span> : p.usouPacote ? <span className="font-semibold text-stone-800">Pacote{p.pacoteObs ? ` ${p.pacoteObs}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-stone-800">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
                   </p>
                   )}
                 </div>
@@ -453,7 +459,7 @@ export function ModalInscricao({
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm font-bold">
                     <span>{situacao.rotulo}{pago && formaRotulo && <span className="font-medium opacity-75"> · {formaRotulo}</span>}</span>
-                    {(p.valor ?? dados.valorContribuicao) != null && (
+                    {p.pagamento === "aniversario" ? <span className="text-base">Participação bonificada</span> : (p.valor ?? dados.valorContribuicao) != null && (
                       <span className="text-base tabular-nums">{p.pagamento === "credito" ? `1 crédito${p.creditoRotulo ? ` · ${p.creditoRotulo}` : ""}` : p.usouPacote ? `Pacote${p.pacoteObs ? ` ${p.pacoteObs}` : ""}` : formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>
                     )}
                   </p>
@@ -469,7 +475,7 @@ export function ModalInscricao({
 
               {/* Comprovante: miniatura com ampliar e um botão que abre as opções (oculto em pendente e pago por crédito) */}
               {mostrarComprovante && (
-              <div className={`mt-3 flex items-center gap-3 border-t ${t.div60} pt-3`}>
+              <div className="mt-3 flex items-center gap-3 rounded-xl border border-stone-200/80 bg-white/75 p-3 shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
                 {comprovante ? (
                   <button type="button" onClick={() => setAmpliado(true)} className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-100 ring-1 ring-stone-200" aria-label="Ampliar comprovante">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -477,7 +483,7 @@ export function ModalInscricao({
                     <span className="absolute right-0.5 bottom-0.5 grid h-5 w-5 place-items-center rounded-full bg-black/55 text-white backdrop-blur-sm transition group-hover:bg-black/75"><ZoomIn size={11} aria-hidden /></span>
                   </button>
                 ) : (
-                  <span className={`grid h-14 w-14 shrink-0 place-items-center rounded-lg ${t.anexo}`}><FileImage size={24} strokeWidth={1.6} aria-hidden /></span>
+                  <span className="comprovante-gradiente relative isolate grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-stone-100 text-stone-500"><FileImage size={24} strokeWidth={1.6} className="relative z-10" aria-hidden /></span>
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-stone-900">Comprovante</p>
@@ -487,7 +493,7 @@ export function ModalInscricao({
                   <button
                     type="button"
                     onClick={() => setComprovanteAberto(true)}
-                    className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition ${comprovante ? t.btnSec : t.btnPri}`}
+                    className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition ${comprovante ? t.btnSec : "border border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-300 hover:bg-stone-100"}`}
                   >
                     {comprovante ? <><Settings2 size={13} aria-hidden /> Gerenciar</> : <><ImagePlus size={13} aria-hidden /> Anexar</>}
                   </button>
@@ -509,8 +515,19 @@ export function ModalInscricao({
                   {/* Ações conforme a situação: pendente → Confirmar; confirmada/isenta/pacote → editar ou reabrir */}
                   {!escolhendoForma && !pedirValor && (
                     <div className="flex flex-col items-center gap-1.5">
+                    {podeBonificarAniversario && (
+                      <button
+                        type="button"
+                        disabled={pendente}
+                        onClick={() => rodar(() => bonificarAniversarioAction(dados.eventoId, p.inscricaoId))}
+                        className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl bg-fuchsia-100/90 px-4 text-sm font-semibold text-fuchsia-800 ring-1 ring-fuchsia-200 transition hover:bg-fuchsia-200/80 hover:ring-fuchsia-300 active:scale-[0.99] disabled:opacity-60"
+                        title="Aplica o benefício anual sem lançar contribuição ou consumir pacote"
+                      >
+                        <Gift size={16} aria-hidden /> Aplicar bônus de aniversário
+                      </button>
+                    )}
                     <div className="flex items-center gap-2">
-                      {p.pagamento === "pago" || p.pagamento === "credito" || p.pagamento === "isento" ? (
+                      {p.pagamento === "aniversario" ? null : p.pagamento === "pago" || p.pagamento === "credito" || p.pagamento === "isento" ? (
                         <>
                           {(p.pagamento === "pago" || p.pagamento === "isento") && (
                             <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={() => { setMsg(undefined); setEscolhendoForma(true); }}>
@@ -522,13 +539,13 @@ export function ModalInscricao({
                           </button>
                         </>
                       ) : (
-                        <button type="button" className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60" disabled={pendente} onClick={() => { setMsg(undefined); setEscolhendoForma(true); }}>
+                        <button type="button" className="mt-2 inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60" disabled={pendente} onClick={() => { setMsg(undefined); setEscolhendoForma(true); }}>
                           <CheckCircle2 size={16} aria-hidden /> Confirmar pagamento
                         </button>
                       )}
                     </div>
                       {/* Isentar: só o Admin e o mestre escalado no evento; fica abaixo, centralizado, sem caixa */}
-                      {dados.podeIsentar && p.pagamento !== "isento" && (
+                      {!podeBonificarAniversario && dados.podeIsentar && p.pagamento !== "isento" && (
                         <button
                           type="button"
                           disabled={pendente}

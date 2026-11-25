@@ -7,7 +7,8 @@ export type AcaoHistorico =
   | "inscricao" | "inclusao" | "cancelamento" | "remocao"
   | "pagamento_informado" | "pagamento_na_hora" | "pagamento_desfeito"
   | "pagamento_confirmado" | "pagamento_isento" | "pagamento_reaberto"
-  | "credito_usado" | "credito_devolvido";
+  | "credito_usado" | "credito_devolvido"
+  | "bonus_aniversario_usado" | "bonus_aniversario_devolvido";
 
 export type RegistroHistorico = {
   inscricao_id: string;

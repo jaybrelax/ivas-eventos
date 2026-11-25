@@ -20,6 +20,7 @@ const PAGAMENTO: Record<SituacaoPagamento, { rotulo: string; cor: string }> = {
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
   credito: { rotulo: "Crédito de pacote", cor: "bg-violet-50 text-violet-700" },
+  aniversario: { rotulo: "Bônus de aniversário", cor: "bg-fuchsia-50 text-fuchsia-800" },
 };
 
 const dataHora = (iso: string) =>

@@ -3,6 +3,7 @@ import { AppwriteException, ID, Query } from "node-appwrite";
 import { createAdminClient } from "./appwrite";
 import { COMPROVANTES_BUCKET_ID, DB_ID, TABLES } from "./config";
 import { consumirCredito, devolverCredito } from "./creditos";
+import { deveAguardarEscolhaDoBonus, devolverBonusAniversario } from "./bonus-aniversario";
 import { consomeCredito } from "./creditos-regras";
 import { getEvento, listar, listarEventos, listarTipos } from "./data";
 import { hoje } from "./format";
@@ -166,7 +167,10 @@ async function ajustarCreditos(eventoId: string, promovidas: Inscricao[], rebaix
     const tipo = (await listarTipos()).find((t) => t.$id === evento.tipo_id);
     if (!consomeCredito(tipo)) return;
     for (const insc of rebaixadas) if (insc.credito_id) await devolverCredito(insc, alteradoPor ?? insc.usuario_id);
-    for (const insc of promovidas) await consumirCredito(insc.$id, alteradoPor ?? insc.usuario_id);
+    for (const insc of promovidas) {
+      // No mês do aniversário, a pessoa escolhe entre o bônus e o pacote no modal.
+      if (!(await deveAguardarEscolhaDoBonus(insc.usuario_id, evento, tipo))) await consumirCredito(insc.$id, alteradoPor ?? insc.usuario_id);
+    }
   } catch (e) {
     console.error("Créditos da inscrição:", e instanceof Error ? e.message : e);
   }
@@ -198,7 +202,7 @@ async function entrarNaFila(eventoId: string, usuarioId: string, alteradoPor: st
 }
 
 /** Cancela a inscrição ativa. Com a contribuição já confirmada, não cancela (só depois de reabrir a contribuição). */
-async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: string): Promise<"saiu" | "saiu_com_credito" | "nao_inscrito" | "pago"> {
+async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: string): Promise<"saiu" | "saiu_com_credito" | "saiu_com_bonus" | "nao_inscrito" | "pago"> {
   const { tablesDB } = createAdminClient();
   const existente = await inscricaoDe(eventoId, usuarioId);
   if (!existente || (existente.situacao !== "confirmada" && existente.situacao !== "espera")) return "nao_inscrito";
@@ -212,6 +216,13 @@ async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: stri
   if (existente.pagamento === "credito" || existente.credito_id) {
     await devolverCredito(existente, alteradoPor);
     return "saiu_com_credito";
+  }
+  if (existente.pagamento === "aniversario" || existente.bonus_aniversario_id) {
+    await devolverBonusAniversario(existente, alteradoPor);
+    await tablesDB.updateRow({ ...base, rowId: existente.$id, data: {
+      pagamento: "pendente", valor: null, informado_em: null, pago_em: null, bonus_aniversario_id: null, alterado_por: alteradoPor,
+    } });
+    return "saiu_com_bonus";
   }
   return "saiu";
 }
@@ -241,7 +252,7 @@ export async function cancelarInscricao(evento: Evento, usuarioId: string): Prom
   if (r === "nao_inscrito") return { erro: "Você não está inscrito neste evento." };
   if (r === "pago") return { erro: "Sua contribuição já foi confirmada, então a participação não pode ser cancelada pelo site. Fale com a coordenação." };
   await reorganizarInscricoes(evento, usuarioId);
-  return { ok: r === "saiu_com_credito" ? "Participação cancelada. Seu crédito foi devolvido." : "Participação cancelada." };
+  return { ok: r === "saiu_com_credito" ? "Participação cancelada. Seu crédito foi devolvido." : r === "saiu_com_bonus" ? "Participação cancelada. Seu bônus de aniversário foi devolvido." : "Participação cancelada." };
 }
 
 /** Coordenador inclui alguém manualmente (entra na fila como qualquer inscrição). */
@@ -259,7 +270,7 @@ export async function removerParticipante(evento: Evento, usuarioId: string, por
   if (r === "nao_inscrito") return { erro: "Essa pessoa não está neste evento." };
   if (r === "pago") return { erro: "A contribuição desta pessoa já foi confirmada. Reabra a contribuição antes de cancelar a participação." };
   await reorganizarInscricoes(evento, porId);
-  return { ok: r === "saiu_com_credito" ? "Participação cancelada. O crédito foi devolvido." : "Participação cancelada." };
+  return { ok: r === "saiu_com_credito" ? "Participação cancelada. O crédito foi devolvido." : r === "saiu_com_bonus" ? "Participação cancelada. O bônus de aniversário foi devolvido." : "Participação cancelada." };
 }
 
 /**
@@ -331,6 +342,7 @@ export async function definirPagamento(
   const { tablesDB } = createAdminClient();
   const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
   if (!row || row.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };
+  if (row.pagamento === "aniversario") return { erro: "Esta participação usa o bônus de aniversário. Cancele a participação para devolver o bônus durante o mês vigente." };
   // Já confirmada: confirmar de novo é editar o valor (ou o pacote); a data da confirmação original fica
   const edicao = situacao === "pago" && row.pagamento === "pago" && row.situacao !== "cancelada";
   const bloqueio = edicao ? null : transicaoPermitida(row, situacao);

@@ -10,6 +10,7 @@ import { conferirImagem } from "@/lib/imagem";
 import { lerDosesEquipe, validarDoses } from "@/lib/doses";
 import { candidaturasDoEvento } from "@/lib/guarnicao";
 import { usarCreditoNaInscricao } from "@/lib/creditos";
+import { bonificarParticipanteAniversario } from "@/lib/bonus-aniversario";
 import { listar } from "@/lib/data";
 import type { Inscricao } from "@/lib/types";
 import { ehParticipante, salvarContato } from "@/lib/usuarios";
@@ -317,6 +318,17 @@ export async function usarCreditoAction(eventoId: string, inscricaoId: string): 
   const insc = (await tablesDBInscricao(inscricaoId));
   if (!insc || insc.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };
   const r = await usarCreditoNaInscricao(g.u.id, inscricaoId);
+  revalidar(eventoId);
+  return r;
+}
+
+/** Coordenação (ou mestre do evento) aplica o bônus anual ao participante elegível, sem lançamento financeiro. */
+export async function bonificarAniversarioAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
+  const g = await exigirGestaoDoEvento(eventoId);
+  if (g.erro !== undefined) return { erro: g.erro };
+  const insc = await tablesDBInscricao(inscricaoId);
+  if (!insc || insc.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };
+  const r = await bonificarParticipanteAniversario(inscricaoId, g.u.id);
   revalidar(eventoId);
   return r;
 }

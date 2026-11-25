@@ -6,6 +6,7 @@ import { rotulosDosCreditos, saldosDe } from "@/lib/creditos";
 import { listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
 import { ocultarCpf } from "@/lib/cpf";
 import { lerDoses, lerDosesEquipe } from "@/lib/doses";
+import { bonusAniversarioDisponivel } from "@/lib/bonus-aniversario";
 import type { ChavePix, Evento, Inscricao, TipoEvento } from "@/lib/types";
 import type { DadosParticipantes, ItemParticipanteInscrito, PessoaParticipante } from "./Participantes";
 
@@ -41,6 +42,18 @@ export async function dadosParticipantes(
         rotulosDosCreditos(inscricoes.flatMap((i) => (i.credito_id ? [i.credito_id] : []))).catch(() => new Map<string, string>()),
       ])
     : [null, new Map<string, string>()];
+  // A data de nascimento nunca vai para o navegador: só traduzimos a regra em uma flag para a ação do painel.
+  const bonusPorInscricao = new Map<string, boolean>();
+  if (gerenciar && tipo?.conta_como_ritual) {
+    const resultados = await Promise.all(inscricoes.map(async (i) => {
+      const u = usuarios.get(i.usuario_id);
+      const bonus = u
+        ? await bonusAniversarioDisponivel({ id: u.id, dataNascimento: u.dataNascimento }, evento, tipo)
+        : { disponivel: false };
+      return [i.$id, bonus.disponivel] as const;
+    }));
+    resultados.forEach(([id, disponivel]) => bonusPorInscricao.set(id, disponivel));
+  }
   const jaParticiparam = new Set(todas.filter((i) => i.situacao === "confirmada" && i.evento_id !== evento.$id).map((i) => i.usuario_id));
   const contatoPorId = new Map(pessoas.map((p) => [p.id, p]));
   const pessoa = (id: string): PessoaParticipante => {
@@ -60,6 +73,7 @@ export async function dadosParticipantes(
       forma: gerenciar ? (i.pagamento === "credito" ? "pacote" : (i.forma_pagamento ?? null)) : null,
       creditoRotulo: gerenciar && i.credito_id ? (rotulosCredito.get(i.credito_id) ?? null) : null,
       saldoCredito: saldos?.get(i.usuario_id) ? { disponiveis: saldos.get(i.usuario_id)!.disponiveis, debitos: saldos.get(i.usuario_id)!.debitos, saldo: saldos.get(i.usuario_id)!.saldo } : null,
+      bonusAniversarioDisponivel: gerenciar ? (bonusPorInscricao.get(i.$id) ?? false) : false,
       contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm, cpf: c.cpf ? ocultarCpf(c.cpf) || null : null } : null,
       doses: gerenciar ? lerDoses(i.doses) : [],
     };

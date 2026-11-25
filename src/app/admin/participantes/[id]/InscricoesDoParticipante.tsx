@@ -23,6 +23,7 @@ const PAGAMENTO: Record<ItemInscricao["pagamento"], { rotulo: string; cor: strin
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
   credito: { rotulo: "Crédito", cor: "bg-violet-50 text-violet-700" },
+  aniversario: { rotulo: "Bônus de aniversário", cor: "bg-fuchsia-50 text-fuchsia-800" },
 };
 
 /** Inscrições da ficha do participante: card com a miniatura do evento; ao tocar, abre o modal da participação. */
