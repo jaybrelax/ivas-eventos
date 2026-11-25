@@ -18,6 +18,7 @@ import { dataCurta, hoje, partesData } from "@/lib/format";
 import { IconeTipo } from "@/components/IconeTipo";
 import { CabecalhoPublico } from "@/components/publico/CabecalhoPublico";
 import { RodapePublico } from "@/components/publico/RodapePublico";
+import { fundoHeroAgenda, lerHeroAgenda, sobreposicaoHeroAgenda } from "@/lib/hero-agenda";
 import { RolagemInfinita } from "@/components/publico/RolagemInfinita";
 
 // Filtros do topo: pílulas de vidro; a ativa fica branca e o número vira um selo
@@ -65,6 +66,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
     getDadosInstituto(),
     listarEventos({ inicio: hoje() }),
   ]);
+  const hero = lerHeroAgenda(instituto);
 
   const tipoPorId = new Map(tipos.map((t) => [t.$id, t]));
   const endPorId = new Map(enderecos.map((e) => [e.$id, e]));
@@ -86,7 +88,17 @@ export default async function AgendaPublica({ searchParams }: Props) {
       <CabecalhoPublico instituto={instituto} mostrarAgenda={false} />
 
       {/* Hero da Agenda */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-mata-950 via-mata-900 to-stone-900 py-12 text-white sm:py-16">
+      <section className="relative overflow-hidden py-12 text-white sm:py-16" style={{ background: fundoHeroAgenda(hero) }}>
+        {(hero.fundoDesktopFileId || hero.fundoMobileFileId) && (
+          <>
+            <picture aria-hidden="true" className="absolute inset-0">
+              <source media="(max-width: 639px)" srcSet={srcsetImagem(hero.fundoMobileFileId ?? hero.fundoDesktopFileId!, [640, 960])} sizes="100vw" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={urlImagem(hero.fundoDesktopFileId ?? hero.fundoMobileFileId!, 1600)} alt="" fetchPriority="high" className="h-full w-full object-cover" />
+            </picture>
+            <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: sobreposicaoHeroAgenda(hero) }} />
+          </>
+        )}
         <div
           aria-hidden
           className="pointer-events-none absolute -top-24 left-1/2 -z-0 h-80 w-full -translate-x-1/2 rounded-full bg-gradient-to-tr from-ouro-500/20 via-mata-500/25 to-purple-600/10 blur-3xl"
@@ -95,15 +107,15 @@ export default async function AgendaPublica({ searchParams }: Props) {
         <div className="relative z-10 mx-auto max-w-6xl px-4 text-center sm:px-6 lg:px-8">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-ouro-400/30 bg-ouro-400/10 px-3.5 py-1 text-xs font-semibold text-ouro-300">
             <Clock size={13} />
-            Programação Oficial
+            {hero.selo}
           </span>
 
           <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Rituais & Encontros Sagrados
+            {hero.titulo}
           </h1>
 
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-stone-300 sm:text-base">
-            Participe de nossos encontros de consagração da Ayahuasca, autoconhecimento e conexão com a espiritualidade divina no {instituto.nome_curto || "Instituto IVAS"}.
+            {hero.descricao}
           </p>
 
           {/* Filtros por Tipo de Encontro */}

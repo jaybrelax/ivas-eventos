@@ -13,6 +13,7 @@ import { lerValor } from "@/lib/pagamento-regras";
 import { getConfigIA } from "@/lib/ia";
 import { FONTES_TEXTO, FONTES_TITULO, fonteValida } from "@/lib/tipografia";
 import { getInstituto, listarTags, listarTipos } from "@/lib/data";
+import { lerHeroAgenda } from "@/lib/hero-agenda";
 import { slugify } from "@/lib/format";
 import { conferirImagem } from "@/lib/imagem";
 import { arquivoOtimizado } from "@/lib/imagem-servidor";
@@ -94,6 +95,67 @@ export async function salvarTipografia(_: Resultado, form: FormData): Promise<Re
   }
   revalidatePath("/", "layout");
   return { ok: "Tipografia salva. A página pública já usa as novas fontes." };
+}
+
+/** Conteúdo, gradiente e imagens responsivas do topo da agenda pública. */
+export async function salvarHeroAgenda(_: Resultado, form: FormData): Promise<Resultado> {
+  await exigir(["admin"]);
+  const texto = (nome: string) => String(form.get(nome) ?? "").trim();
+  const selo = texto("selo");
+  const titulo = texto("titulo");
+  const descricao = texto("descricao");
+  const corTopo = texto("corTopo");
+  const corMeio = texto("corMeio");
+  const corBase = texto("corBase");
+  if (!selo || !titulo || !descricao) return { erro: "Preencha o selo, o título e a descrição." };
+  if (selo.length > 60 || titulo.length > 120 || descricao.length > 500) return { erro: "Confira os limites de caracteres dos textos." };
+  if (![corTopo, corMeio, corBase].every((cor) => HEX.test(cor))) return { erro: "Escolha cores válidas para o fundo." };
+  const fundos = [
+    { campo: "fundo_desktop", id: "fundoDesktopFileId", rotulo: "Fundo desktop" },
+    { campo: "fundo_mobile", id: "fundoMobileFileId", rotulo: "Fundo celular" },
+  ] as const;
+  for (const { campo, rotulo } of fundos) {
+    const arquivo = form.get(campo);
+    if (arquivo instanceof File && arquivo.size > 0) {
+      const erro = conferirImagem(arquivo, "hero");
+      if (erro) return { erro: `${rotulo}: ${erro}` };
+    }
+  }
+  const atual = lerHeroAgenda(await getInstituto());
+  const dados = { selo, titulo, descricao, corTopo, corMeio, corBase,
+    fundoDesktopFileId: atual.fundoDesktopFileId, fundoMobileFileId: atual.fundoMobileFileId };
+  const novos: string[] = [];
+  const antigos: string[] = [];
+  const { tablesDB, storage } = createAdminClient();
+  try {
+    for (const { campo, id } of fundos) {
+      const arquivo = form.get(campo);
+      const antigo = atual[id];
+      if (arquivo instanceof File && arquivo.size > 0) {
+        const { input } = await arquivoOtimizado(arquivo, arquivo.name, "hero");
+        const novo = await storage.createFile({ bucketId: BUCKET_ID, fileId: ID.unique(), file: input });
+        dados[id] = novo.$id;
+        novos.push(novo.$id);
+        if (antigo) antigos.push(antigo);
+      } else if (form.get(`remover_${campo}`) === "on") {
+        dados[id] = null;
+        if (antigo) antigos.push(antigo);
+      }
+    }
+    await tablesDB.upsertRow({
+      databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID,
+      data: { config_hero_agenda: JSON.stringify(dados) },
+    });
+  } catch (e) {
+    await Promise.all(novos.map((id) => storage.deleteFile({ bucketId: BUCKET_ID, fileId: id }).catch(() => {})));
+    console.error("Hero da agenda:", e instanceof Error ? e.message : e);
+    return { erro: "Não foi possível salvar o hero. Confira os arquivos e tente novamente." };
+  }
+  const semUso = [...new Set(antigos)].filter((id) => id !== dados.fundoDesktopFileId && id !== dados.fundoMobileFileId);
+  await Promise.all(semUso.map((id) => storage.deleteFile({ bucketId: BUCKET_ID, fileId: id }).catch(() => {})));
+  revalidatePath("/eventos");
+  revalidatePath("/admin/configuracoes");
+  return { ok: "Hero da agenda atualizado." };
 }
 
 /** Chave da OpenAI e prompt das capas geradas por IA. Chave em branco mantém a atual. */

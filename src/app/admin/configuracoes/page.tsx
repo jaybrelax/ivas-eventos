@@ -10,6 +10,8 @@ import { InformacoesForm } from "./InformacoesForm";
 import { GestaoGuardiaoForm } from "./GestaoGuardiaoForm";
 import { ChavesApiForm } from "./ChavesApiForm";
 import { TipografiaForm } from "./TipografiaForm";
+import { HeroAgendaForm } from "./HeroAgendaForm";
+import { lerHeroAgenda } from "@/lib/hero-agenda";
 import { getConfigIA, mascararChave } from "@/lib/ia";
 import { ListaEditavel } from "./ListaEditavel";
 import { TiposEvento, type TipoItem } from "./TiposEvento";
@@ -84,7 +86,12 @@ export default async function Configuracoes({ searchParams }: PageProps<"/admin/
         <div className="animate-aparecer" key={atual}>
           {atual === "instituto" && <InstitutoForm instituto={d.instituto} />}
           {atual === "informacoes" && <InformacoesForm instituto={d.instituto} />}
-          {atual === "publica" && <TipografiaForm titulo={d.instituto.fonte_publica_titulo} texto={d.instituto.fonte_publica_texto} />}
+          {atual === "publica" && (
+            <div className="space-y-6">
+              <HeroAgendaForm inicial={lerHeroAgenda(d.instituto)} />
+              <TipografiaForm titulo={d.instituto.fonte_publica_titulo} texto={d.instituto.fonte_publica_texto} />
+            </div>
+          )}
           {atual === "enderecos" && <ListaEditavel tabela="enderecos" itens={limpo(d.enderecos)} />}
           {atual === "telefones" && <ListaEditavel tabela="telefones" itens={limpo(d.telefones)} />}
           {atual === "redes" && <ListaEditavel tabela="redes" itens={limpo(d.redes)} />}

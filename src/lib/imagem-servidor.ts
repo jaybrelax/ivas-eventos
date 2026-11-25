@@ -11,6 +11,7 @@ import type { UsoImagem } from "./imagem";
  */
 const REGRAS: Record<UsoImagem, { lado: number; qualidade: number; semPerda?: boolean }> = {
   capa: { lado: 1600, qualidade: 78 },
+  hero: { lado: 2200, qualidade: 76 },
   foto: { lado: 600, qualidade: 80 },
   comprovante: { lado: 1600, qualidade: 75 },
   galeria: { lado: 1600, qualidade: 72 },

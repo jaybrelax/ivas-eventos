@@ -35,6 +35,8 @@ export type Instituto = {
   fonte_publica_titulo: string | null;
   /** Fonte dos textos na página pública. */
   fonte_publica_texto: string | null;
+  /** Textos e cores do topo da agenda pública, em JSON. */
+  config_hero_agenda?: string | null;
 };
 
 export type Endereco = { $id: string; apelido: string; endereco: string; cidade: string; link_maps: string | null; foto_file_id: string | null; padrao: boolean };

@@ -31,6 +31,7 @@ export const INSTITUTO_PADRAO: Instituto = {
   info_contribuicao: null,
   fonte_publica_titulo: null,
   fonte_publica_texto: null,
+  config_hero_agenda: null,
 };
 
 /** Linhas do SDK vêm como instâncias de classe; os Client Components só aceitam objetos simples. */

@@ -11,6 +11,8 @@ const MB = 1024 * 1024;
 /** Lado maior (px) e tamanho máximo do arquivo já reduzido, por uso. */
 export const LIMITES_IMAGEM = {
   capa: { lado: 1600, maxBytes: 3.5 * MB },
+  // As duas versões do hero podem ser enviadas no mesmo formulário (até 3,4 MB juntas).
+  hero: { lado: 2200, maxBytes: 1.7 * MB },
   foto: { lado: 600, maxBytes: 2 * MB },
   // O formulário do Instituto pode mandar as duas logos juntas: 2 × 1,5 MB.
   logo: { lado: 1200, maxBytes: 1.5 * MB },

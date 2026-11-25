@@ -619,6 +619,9 @@ function Linha({
   const pg = PAGAMENTO[p.pagamento];
   const conferir = temContribuicao && p.pagamento === "informado";
   const temDose = gerenciar && !financeiro && (p.doses ?? []).some((d) => d.ml > 0);
+  const duasDosesConsumidas = (p.doses ?? []).filter((d) => d.ml > 0).length >= 2;
+  const mostrarTagPresenca = temContribuicao && !financeiro && !duasDosesConsumidas;
+  const confirmadoComPacote = p.pagamento === "credito" || (p.pagamento === "pago" && (p.usouPacote || p.forma === "pacote"));
   const conteudo = (
     <>
       {posicao !== undefined && <span className="w-5 shrink-0 text-center text-xs font-semibold text-stone-400 tabular-nums">{posicao}º</span>}
@@ -641,9 +644,16 @@ function Linha({
               <span className="sr-only">Guardião</span>
             </span>
           )}
-          {/* Contribuição pendente (fora da aba Financeiro): tag logo depois do nome e dos ícones */}
-          {temContribuicao && !financeiro && p.pagamento === "pendente" && (
-            <span className={`chip shrink-0 gap-0.5 px-2 py-px text-[11px] whitespace-nowrap ${pg.cor}`} title={pg.rotulo}>{pg.rotulo}</span>
+          {/* Situação da contribuição na lista de presença; após duas doses, os copos ocupam esse espaço. */}
+          {mostrarTagPresenca && p.pagamento === "pendente" && (
+            <span className={`chip shrink-0 gap-1 px-2 py-px text-[11px] whitespace-nowrap ${pg.cor}`} title={pg.rotulo}>
+              <Clock size={11} strokeWidth={2.4} aria-hidden />{pg.rotulo}
+            </span>
+          )}
+          {mostrarTagPresenca && confirmadoComPacote && (
+            <span className="chip shrink-0 gap-1 bg-violet-100 px-2 py-px text-[11px] whitespace-nowrap text-violet-800" title="Confirmado com pacote" aria-label="Confirmado com pacote">
+              <Ticket size={11} strokeWidth={2.3} aria-hidden />Confirmado
+            </span>
           )}
         </span>
         {/* Financeiro: a tag da situação embaixo do nome, um pouco menor */}

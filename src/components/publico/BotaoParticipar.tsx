@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
 import {
@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { CartaoPix } from "./CartaoPix";
 import { confirmarParticipacaoAction, contribuirNaHoraAction, informarPagamentoAction } from "@/app/eventos/inscricao-actions";
-import { CancelarParticipacao } from "./CancelarParticipacao";
 import type { ChavePix, SituacaoPagamento } from "@/lib/types";
 import { useImagem } from "@/components/useImagem";
 import { BotaoGoogle } from "@/components/BotaoGoogle";
@@ -90,15 +89,23 @@ export function BotaoParticipar({
   motivoBloqueio,
   vagasLivres,
   minhaInscricao,
-  podeCancelar,
-  prazoTexto,
   valorContribuicao,
   creditos = null,
 }: Props) {
   const [aberto, setAberto] = useState(false);
   // Etapa de anexar o comprovante (vem de "Já fiz a contribuição" ou do link "Avisar contribuição")
   const [pagando, setPagando] = useState(false);
-  const fechar = () => { setAberto(false); setPagando(false); };
+  const [mostrarResultado, setMostrarResultado] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
+  const fechar = () => { setAberto(false); setPagando(false); setMostrarResultado(false); };
+  const revelarResultado = () => {
+    setMostrarResultado(true);
+    setPagando(false);
+    window.requestAnimationFrame(() => modalRef.current?.scrollTo({
+      top: 0,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+    }));
+  };
 
   // A página tem mais de um botão de participar: só o primeiro a carregar abre a janela (ela sai num portal, então aparece igual).
   useEffect(() => {
@@ -138,13 +145,12 @@ export function BotaoParticipar({
       : minhaInscricao?.situacao === "espera"
         ? "Você está na lista de espera"
         : ehRitual ? "Participar do Ritual" : "Participar do encontro";
-  // Miniatura do card: a capa do evento nas primeiras etapas; o local só no fim (confirmado e com a contribuição avisada/resolvida).
   const exigeContribuicao = ehRitual && !!valorContribuicao && valorContribuicao > 0;
-  const temCredito = ehRitual && !!creditos && creditos.disponiveis > 0;
-  const concluiu = !!minhaInscricao && (!exigeContribuicao || minhaInscricao.pagamento !== "pendente");
-  const miniatura = concluiu && fotoLocal
-    ? { id: fotoLocal, alt: "Foto do local" }
-    : capaEvento ? { id: capaEvento, alt: "Capa do evento" } : null;
+  const etapa = !logado || !minhaInscricao ? "participacao" : exigeContribuicao &&
+    minhaInscricao.pagamento === "pendente" && !mostrarResultado
+    ? "contribuicao" : "resultado";
+  const miniaturaId = etapa === "resultado" ? fotoLocal ?? capaEvento : capaEvento ?? fotoLocal;
+  const miniaturaAlt = miniaturaId === fotoLocal ? "Foto do local" : "Capa do evento";
   const IconeBotao = minhaInscricao?.situacao === "confirmada" ? CheckCircle2 : minhaInscricao?.situacao === "espera" ? Hourglass : CalendarCheck;
 
   return (
@@ -159,7 +165,7 @@ export function BotaoParticipar({
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-sm transition-opacity" onClick={fechar} />
 
-          <div className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg animate-surgir overflow-y-auto rounded-3xl border border-stone-200/90 bg-white p-6 shadow-2xl sm:p-8">
+          <div ref={modalRef} className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg animate-surgir overflow-y-auto rounded-3xl border border-stone-200/90 bg-white p-6 shadow-2xl sm:p-8">
             <button
               type="button"
               onClick={fechar}
@@ -179,61 +185,64 @@ export function BotaoParticipar({
               </div>
             </div>
 
-            {logado && minhaInscricao && (pagando && (minhaInscricao.pagamento === "pendente" || minhaInscricao.pagamento === "na_hora") ? (
-              <p className="mt-5 rounded-xl bg-emerald-50/70 px-3.5 py-2.5 text-[13px] leading-snug text-emerald-900 ring-1 ring-emerald-200/70">
-                <strong>Quase lá!</strong> Anexe o comprovante do Pix e toque em <strong>Confirmar contribuição</strong>.
-              </p>
-            ) : (
-              <StatusInscricao inscricao={minhaInscricao} />
-            ))}
+            {etapa === "resultado" && minhaInscricao && <StatusInscricao inscricao={minhaInscricao} />}
 
-            <div className="mt-5 flex items-center gap-3 rounded-2xl bg-stone-50 p-4 ring-1 ring-stone-200/70">
-              {miniatura && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={urlImagem(miniatura.id, 160)} width={64} height={64} decoding="async" alt={miniatura.alt} className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-stone-200" />
-              )}
-              <div className="min-w-0">
-                <p className="font-semibold text-stone-900">{tituloEvento}</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-stone-600">
-                  <Calendar size={13} className="text-mata-600" />
-                  <span>{dataCompacta ?? dataEvento} às {horaEvento}</span>
-                </p>
-                {localEvento && <p className="mt-1 text-xs text-stone-500">📍 {localEvento}</p>}
+            {(etapa === "participacao" || etapa === "resultado") && (
+              <div className={`mt-5 flex items-center gap-3 rounded-2xl bg-stone-50 p-4 ring-1 ring-stone-200/70 ${etapa === "resultado" ? "animate-surgir [animation-delay:0.15s]" : ""}`}>
+                {miniaturaId && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={urlImagem(miniaturaId, 160)} width={64} height={64} decoding="async" alt={miniaturaAlt} className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-stone-200" />
+                )}
+                <div className="min-w-0">
+                  <p className="font-semibold text-stone-900">{tituloEvento}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-stone-600">
+                    <Calendar size={13} className="text-mata-600" />
+                    <span>{dataCompacta ?? dataEvento} às {horaEvento}</span>
+                  </p>
+                  {localEvento && <p className="mt-1 text-xs text-stone-500">📍 {localEvento}</p>}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="mt-5">
-              {!logado ? (
-                <SemSessao next={next} linkWhatsApp={linkWhatsApp} />
-              ) : minhaInscricao ? (
-                <Inscrito
+            {etapa === "participacao" && (
+              <div className="mt-5">
+                {!logado ? (
+                  <SemSessao next={next} linkWhatsApp={linkWhatsApp} />
+                ) : (
+                  <SemInscricao
+                    eventoId={eventoId}
+                    podeInscrever={podeInscrever}
+                    motivoBloqueio={motivoBloqueio}
+                    vagasLivres={vagasLivres}
+                    linkWhatsApp={linkWhatsApp}
+                    creditos={ehRitual ? creditos : null}
+                  />
+                )}
+              </div>
+            )}
+
+            {etapa === "contribuicao" && minhaInscricao && valorContribuicao && (
+              <div className="mt-5">
+                <PagamentoBloco
                   eventoId={eventoId}
-                  minhaInscricao={minhaInscricao}
-                  ehRitual={ehRitual}
-                  chavePix={chavePix}
+                  inscricaoId={minhaInscricao.id}
                   valorContribuicao={valorContribuicao}
+                  chavePix={chavePix}
                   abrirForm={pagando}
                   setAbrirForm={setPagando}
-                  podeCancelar={podeCancelar}
-                  prazoTexto={prazoTexto}
+                  onContribuicaoConcluida={revelarResultado}
                 />
-              ) : (
-                <SemInscricao
-                  eventoId={eventoId}
-                  podeInscrever={podeInscrever}
-                  motivoBloqueio={motivoBloqueio}
-                  vagasLivres={vagasLivres}
-                  linkWhatsApp={linkWhatsApp}
-                  exigeContribuicao={exigeContribuicao && !temCredito}
-                  creditos={ehRitual ? creditos : null}
-                />
-              )}
-            </div>
+              </div>
+            )}
 
-            {logado && !minhaInscricao && (
+            {etapa === "participacao" && logado && (
               <button type="button" onClick={fechar} className="btn-secundario mt-5 w-full">
                 Voltar à página
               </button>
+            )}
+
+            {etapa === "resultado" && (
+              <button type="button" onClick={fechar} className="btn-primario mt-5 w-full">Fechar</button>
             )}
           </div>
         </div>,
@@ -263,9 +272,9 @@ function SemSessao({ next, linkWhatsApp }: { next: string; linkWhatsApp: string 
 }
 
 function SemInscricao({
-  eventoId, podeInscrever, motivoBloqueio, vagasLivres, linkWhatsApp, exigeContribuicao, creditos,
+  eventoId, podeInscrever, motivoBloqueio, vagasLivres, linkWhatsApp, creditos,
 }: {
-  eventoId: string; podeInscrever: boolean; motivoBloqueio?: string | null; vagasLivres: number; linkWhatsApp: string; exigeContribuicao: boolean;
+  eventoId: string; podeInscrever: boolean; motivoBloqueio?: string | null; vagasLivres: number; linkWhatsApp: string;
   creditos: { disponiveis: number; saldo: number } | null;
 }) {
   const router = useRouter();
@@ -288,7 +297,6 @@ function SemInscricao({
   return (
     <div className="space-y-4">
       {msg?.erro && <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-700 ring-1 ring-red-200">{msg.erro}</p>}
-      {msg?.ok && <p className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3.5 py-2.5 text-sm text-emerald-800 ring-1 ring-emerald-200"><Check size={16} />{msg.ok}</p>}
       <p className="text-sm text-stone-600">
         {vagasLivres > 0
           ? `${vagasLivres} vaga${vagasLivres > 1 ? "s" : ""} disponíve${vagasLivres > 1 ? "is" : "l"}.`
@@ -314,12 +322,9 @@ function SemInscricao({
         onClick={() =>
           iniciar(async () => {
             const r = await confirmarParticipacaoAction(eventoId);
-            setMsg(r);
-            // Confirmou: com contribuição, continua aqui para escolher como contribuir; sem, segue para Minhas inscrições
-            if (r.ok) {
-              if (exigeContribuicao) router.refresh();
-              else router.push("/minha-conta?aba=proximos");
-            }
+            if (r.erro) setMsg(r);
+            // A inscrição atualizada determina se a próxima etapa é a contribuição ou o resultado.
+            if (r.ok) router.refresh();
           })
         }
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-70"
@@ -426,81 +431,16 @@ function StatusInscricao({ inscricao }: { inscricao: NonNullable<MinhaInscricao>
   );
 }
 
-function Inscrito({
-  eventoId, minhaInscricao, ehRitual, chavePix, valorContribuicao, abrirForm, setAbrirForm, podeCancelar, prazoTexto,
-}: {
-  eventoId: string; minhaInscricao: NonNullable<MinhaInscricao>;
-  ehRitual: boolean; chavePix?: ChavePix | null; valorContribuicao?: number | null; abrirForm: boolean; setAbrirForm: (v: boolean) => void;
-  podeCancelar: boolean; prazoTexto?: string;
-}) {
-  // Cancelar: só enquanto a contribuição não foi confirmada (e dentro do prazo)
-  const cancelavel = minhaInscricao.pagamento !== "pago" && !abrirForm;
-
-  return (
-    <div className="space-y-4">
-      {ehRitual && minhaInscricao.pagamento === "credito" && (
-        <div className="flex items-start gap-2.5 rounded-xl bg-violet-50 px-3.5 py-3 text-sm font-medium text-violet-900 ring-1 ring-violet-200">
-          <Ticket size={18} className="mt-0.5 shrink-0" aria-hidden />
-          <span>Participação paga com 1 crédito.<span className="mt-0.5 block text-xs font-normal text-violet-800/80">Se você cancelar, o crédito volta para você.</span></span>
-        </div>
-      )}
-      {ehRitual && minhaInscricao.pagamento !== "credito" && !!valorContribuicao && valorContribuicao > 0 && (
-        <PagamentoBloco
-          eventoId={eventoId}
-          inscricaoId={minhaInscricao.id}
-          pagamento={minhaInscricao.pagamento}
-          valorContribuicao={valorContribuicao}
-          chavePix={chavePix}
-          abrirForm={abrirForm}
-          setAbrirForm={setAbrirForm}
-        />
-      )}
-
-      {cancelavel && (podeCancelar ? (
-        <CancelarParticipacao eventoId={eventoId} className="flex flex-col items-center border-t border-stone-100 pt-3" />
-      ) : (
-        <p className="border-t border-stone-100 pt-3 text-center text-xs text-stone-500">
-          O prazo para cancelar pelo site terminou{prazoTexto ? ` (${prazoTexto})` : ""}. Para cancelar, fale com a coordenação.
-        </p>
-      ))}
-    </div>
-  );
-}
-
 function PagamentoBloco({
-  eventoId, inscricaoId, pagamento, valorContribuicao, chavePix, abrirForm, setAbrirForm,
-}: { eventoId: string; inscricaoId: string; pagamento: SituacaoPagamento; valorContribuicao: number; chavePix?: ChavePix | null; abrirForm: boolean; setAbrirForm: (v: boolean) => void }) {
+  eventoId, inscricaoId, valorContribuicao, chavePix, abrirForm, setAbrirForm, onContribuicaoConcluida,
+}: { eventoId: string; inscricaoId: string; valorContribuicao: number; chavePix?: ChavePix | null; abrirForm: boolean; setAbrirForm: (v: boolean) => void; onContribuicaoConcluida: () => void }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
   const [msg, setMsg] = useState<{ ok?: string; erro?: string }>();
   const [mostrarPix, setMostrarPix] = useState(false);
+  const [naHoraSelecionada, setNaHoraSelecionada] = useState(false);
   const { local, erro: erroFoto, otimizando, escolher } = useImagem("comprovante");
 
-  if (pagamento === "pago")
-    return (
-      <div className="flex items-center gap-2.5 rounded-xl bg-emerald-50 px-3.5 py-3 text-sm font-medium text-emerald-800 ring-1 ring-emerald-200">
-        <CheckCircle2 size={18} /> Contribuição confirmada — obrigado pela contribuição!
-      </div>
-    );
-  if (pagamento === "isento")
-    return (
-      <div className="flex items-center gap-2.5 rounded-xl bg-stone-50 px-3.5 py-3 text-sm font-medium text-stone-700 ring-1 ring-stone-200">
-        <ShieldCheck size={18} /> Contribuição: isento.
-      </div>
-    );
-  if (pagamento === "informado")
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2.5 rounded-xl bg-amber-50 px-3.5 py-3 text-sm font-medium text-amber-800 ring-1 ring-amber-200">
-          <Hourglass size={18} className="shrink-0" /> Contribuição informada — aguardando confirmação da coordenação.
-        </div>
-        <a href="/minha-conta?aba=proximos" className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98]">
-          <Ticket size={18} /> Ver minhas inscrições
-        </a>
-      </div>
-    );
-
-  const naHora = pagamento === "na_hora";
   const cabecalho = (
     <p className="flex items-center justify-between text-sm font-semibold text-stone-800">
       <span className="flex items-center gap-1.5"><Receipt size={15} className="text-ouro-600" /> Contribuição</span>
@@ -517,27 +457,27 @@ function PagamentoBloco({
         <p className="text-xs text-stone-500">Escolha como prefere contribuir:</p>
 
         <div className="space-y-2">
-          <button type="button" onClick={() => setMostrarPix((v) => !v)} aria-expanded={mostrarPix} className={`${opcao} ${mostrarPix ? "border-emerald-500 bg-emerald-50/70" : "border-stone-200 bg-white hover:border-stone-300"}`}>
+          <button type="button" onClick={() => { setNaHoraSelecionada(false); setMostrarPix((v) => !v); }} aria-expanded={mostrarPix} className={`${opcao} ${mostrarPix ? "border-emerald-500 bg-emerald-50/70" : "border-stone-200 bg-white hover:border-stone-300"}`}>
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><QrCode size={18} /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-stone-900">Contribuir agora</span>
-              <span className="block text-xs text-stone-500">Veja a chave Pix para contribuir</span>
+              <span className="block text-xs text-stone-500">Pague com QR Code ou Pix copiar e colar</span>
             </span>
           </button>
           {mostrarPix && (
             <div className="space-y-2.5">
-              {chavePix ? <CartaoPix chave={chavePix} /> : <p className="rounded-xl bg-stone-50 px-3.5 py-2.5 text-xs text-stone-600 ring-1 ring-stone-200">A chave Pix ainda não foi cadastrada. Fale com a coordenação.</p>}
+              {chavePix ? <CartaoPix chave={chavePix} valor={valorContribuicao} exibirChave={false} /> : <p className="rounded-xl bg-stone-50 px-3.5 py-2.5 text-xs text-stone-600 ring-1 ring-stone-200">A chave Pix ainda não foi cadastrada. Fale com a coordenação.</p>}
               <p className="text-xs text-stone-500">Depois de contribuir pelo Pix, toque em Finalizar.</p>
               <button
                 type="button"
-                disabled={pendente}
+                disabled={pendente || !chavePix}
                 onClick={() =>
                   iniciar(async () => {
                     const fd = new FormData();
                     fd.set("valor", String(valorContribuicao));
                     const r = await informarPagamentoAction(eventoId, inscricaoId, fd);
                     setMsg(r);
-                    if (r.ok) router.refresh();
+                    if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
                   })
                 }
                 className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60"
@@ -547,7 +487,7 @@ function PagamentoBloco({
             </div>
           )}
 
-          <button type="button" onClick={() => setAbrirForm(true)} className={`${opcao} border-stone-200 bg-white hover:border-stone-300`}>
+          <button type="button" onClick={() => { setNaHoraSelecionada(false); setAbrirForm(true); }} className={`${opcao} border-stone-200 bg-white hover:border-stone-300`}>
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><Check size={18} strokeWidth={2.6} /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-stone-900">Já fiz a contribuição</span>
@@ -558,23 +498,32 @@ function PagamentoBloco({
           <button
             type="button"
             disabled={pendente}
-            onClick={() =>
-              iniciar(async () => {
-                const r = await contribuirNaHoraAction(eventoId, inscricaoId, naHora);
-                setMsg(r);
-                if (r.ok) router.refresh();
-              })
-            }
-            aria-pressed={naHora}
-            className={`${opcao} ${naHora ? "border-emerald-500 bg-emerald-50/70" : "border-stone-200 bg-white hover:border-stone-300"}`}
+            onClick={() => { setMostrarPix(false); setNaHoraSelecionada((v) => !v); }}
+            aria-pressed={naHoraSelecionada}
+            className={`${opcao} ${naHoraSelecionada ? "border-emerald-500 bg-emerald-50/70" : "border-stone-200 bg-white hover:border-stone-300"}`}
           >
-            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${naHora ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700"}`}>{naHora ? <Check size={18} strokeWidth={2.6} /> : <Clock3 size={18} />}</span>
+            <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${naHoraSelecionada ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700"}`}>{naHoraSelecionada ? <Check size={18} strokeWidth={2.6} /> : <Clock3 size={18} />}</span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-stone-900">Vou contribuir na hora</span>
-              <span className="block text-xs text-stone-500">{naHora ? "Combinado! Você contribui no dia do ritual. Toque para desfazer." : "Contribuo no dia do ritual"}</span>
+              <span className="block text-xs text-stone-500">{naHoraSelecionada ? "Contribuo no dia do ritual. Toque em Finalizar para continuar." : "Contribuo no dia do ritual"}</span>
             </span>
           </button>
         </div>
+
+        {naHoraSelecionada && (
+          <button
+            type="button"
+            disabled={pendente}
+            onClick={() => iniciar(async () => {
+                const r = await contribuirNaHoraAction(eventoId, inscricaoId);
+                setMsg(r);
+                if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
+            })}
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60"
+          >
+            <Check size={18} /> {pendente ? "Finalizando…" : "Finalizar"}
+          </button>
+        )}
 
         {msg?.erro && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-200">{msg.erro}</p>}
       </div>
@@ -592,7 +541,7 @@ function PagamentoBloco({
         iniciar(async () => {
           const r = await informarPagamentoAction(eventoId, inscricaoId, fd);
           setMsg(r);
-          if (r.ok) setAbrirForm(false);
+          if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
         });
       }}
     >
