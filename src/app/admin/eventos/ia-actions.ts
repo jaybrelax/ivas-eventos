@@ -34,7 +34,7 @@ export async function gerarCapaComIA(entrada: { eventoId?: string; titulo: strin
   // Coordenação e admin; o mestre só na edição do evento em que está escalado
   const u = await exigir();
   if (!pode(u, PODE.editarEventos)) {
-    const g = entrada.eventoId ? await exigirGestaoDoEvento(entrada.eventoId, { guardiao: false }) : null;
+    const g = entrada.eventoId ? await exigirGestaoDoEvento(entrada.eventoId) : null;
     if (!g || g.erro !== undefined) return { ok: false, erro: "Você não tem permissão para gerar a capa." };
   }
   // Com a Appwrite Function compartilhada configurada, ela faz todo o trabalho (chave, prompt, logos e OpenAI).

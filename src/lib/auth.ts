@@ -3,6 +3,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createSessionClient } from "./appwrite";
 import type { Perfil } from "./config";
+import { podeAcessarAdmin, type PerfilAdmin } from "./acesso-admin";
 import { ehParticipante, prefsDe, type FuncaoRitual } from "./usuarios";
 import { suspensaoAtiva } from "./suspensao-guarnicao";
 import type { Sexo } from "./types";
@@ -15,7 +16,7 @@ export type Usuario = {
   cpf: string | null; dataNascimento: string | null;
   estado: string | null; cidade: string | null; profissao: string | null;
   experiencia: Experiencia | null; motivacao: string | null; expectativas: string | null;
-  /** "equipe": tem perfil de painel (admin/coordenador/normal). "participante": só cadastro público. */
+  /** "equipe": tem label de perfil (admin/coordenador/normal). "participante": só cadastro público. */
   tipo: "equipe" | "participante" | null;
   /** Guardião com candidaturas suspensas: até quando (ISO), ou null. */
   suspensoAte: string | null;
@@ -58,16 +59,13 @@ export const getUsuario = cache(async (): Promise<Usuario | null> => {
   }
 });
 
-/** Garante login com perfil de equipe (painel) e, se informado, um dos perfis. Participante é mandado para a própria área. */
-export async function exigir(perfis?: Perfil[]): Promise<Usuario & { perfil: Perfil }> {
+/** Garante acesso ao painel somente para admin e coordenador. */
+export async function exigir(perfis?: Perfil[]): Promise<Usuario & { perfil: PerfilAdmin }> {
   const u = await getUsuario();
   if (!u) redirect("/login");
-  if (!u.perfil) {
-    if (u.tipo === "participante") redirect("/minha-conta");
-    redirect("/login?erro=sem-perfil");
-  }
+  if (!podeAcessarAdmin(u.perfil)) redirect("/eventos");
   if (perfis && !perfis.includes(u.perfil)) redirect("/admin/eventos?erro=sem-permissao");
-  return u as Usuario & { perfil: Perfil };
+  return u as Usuario & { perfil: PerfilAdmin };
 }
 
 /** Garante só uma sessão válida (equipe ou participante) — páginas públicas que exigem login, como Minha conta. */

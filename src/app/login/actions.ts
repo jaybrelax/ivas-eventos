@@ -7,6 +7,7 @@ import { createAdminClient, createSessionClient } from "@/lib/appwrite";
 import { SESSION_COOKIE, DOMINIO_COOKIE } from "@/lib/config";
 import { perfilDosLabels } from "@/lib/usuarios";
 import { destinoSeguro } from "@/lib/destino-auth";
+import { destinoAposLogin } from "@/lib/acesso-admin";
 import { bloqueado, ipDe, limpar, registrarFalha, textoEspera } from "@/lib/limite-taxa";
 
 const JANELA_MS = 15 * 60_000;
@@ -36,11 +37,11 @@ export async function entrar(_: { erro?: string } | undefined, form: FormData) {
       ...DOMINIO_COOKIE,
       expires: new Date(sessao.expire),
     });
-    // Equipe (admin/coordenador/normal) entra no painel; qualquer outra conta vai para a área do participante.
+    // O destino também valida o perfil quando o formulário traz um next para /admin.
     limpar(chaveEmail);
     const conta = await users.get({ userId: sessao.userId });
     const perfil = perfilDosLabels(conta.labels);
-    destino = destinoSeguro(form.get("next")) ?? (perfil ? "/admin/eventos" : "/minha-conta");
+    destino = destinoAposLogin(perfil, destinoSeguro(form.get("next")));
   } catch (e) {
     const msg = e instanceof Error ? e.message : "";
     if (msg.includes("fetch failed") || msg.includes("ECONNREFUSED"))

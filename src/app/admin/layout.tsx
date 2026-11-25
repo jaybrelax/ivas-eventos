@@ -1,12 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { exigir, getUsuario, pode } from "@/lib/auth";
+import { exigir, pode } from "@/lib/auth";
 import { PERFIS, PODE } from "@/lib/config";
 import { getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
 import { Menu, type GrupoMenu } from "./Menu";
 import { sair } from "../login/actions";
 import { listarPendentes } from "@/lib/usuarios";
-import { mestreLiberado, regrasGestaoGuardiao } from "@/lib/gestao-evento";
 
 // O painel é um app instalável à parte: manifesto, nome e cor próprios (o site público mantém o dele)
 export const metadata: Metadata = {
@@ -18,12 +17,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#1a0b2e" };
 
 export default async function PainelLayout({ children }: LayoutProps<"/">) {
-  // Guardião sem perfil de painel só passa daqui com a gestão do ritual ligada; cada página confere o evento e o período
-  const sessao = await getUsuario();
-  const emGestaoPainel = !!sessao && !sessao.perfil && ((sessao.funcaoRitual === "guardiao" && (await regrasGestaoGuardiao()).ativa) || (sessao.funcaoRitual === "mestre" && (await mestreLiberado(sessao))));
-  const [u, instituto] = await Promise.all([emGestaoPainel ? Promise.resolve({ ...sessao!, perfil: "normal" as const }) : exigir(), getInstituto()]);
-  const GUARNICAO_URL = (process.env.GUARNICAO_URL ?? "https://guarnicao.virtudes.net.br").replace(/\/+$/, "");
-  const grupos: GrupoMenu[] = emGestaoPainel ? [{ titulo: "Guarnição", itens: [{ href: `${GUARNICAO_URL}/guarnicao`, rotulo: "Voltar ao app da Guarnição", icone: "shield" }] }] : [
+  const u = await exigir();
+  const instituto = await getInstituto();
+  const grupos: GrupoMenu[] = [
     {
       titulo: "Agenda",
       itens: [
@@ -44,7 +40,7 @@ export default async function PainelLayout({ children }: LayoutProps<"/">) {
     ...(pode(u, PODE.gerenciarUsuarios) ? [{ href: "/admin/usuarios", rotulo: "Usuários", icone: "users" as const, aviso: (await listarPendentes()).length }] : []),
   ];
   if (admin.length) grupos.push({ titulo: "Administração", itens: admin });
-  const perfil = emGestaoPainel ? (sessao?.funcaoRitual === "mestre" ? "Mestre em gestão" : "Guardião em gestão") : (PERFIS.find((p) => p.id === u.perfil)?.nome ?? "");
+  const perfil = PERFIS.find((p) => p.id === u.perfil)?.nome ?? "";
 
   const marca = <MarcaInstituto instituto={instituto} altura={52} />;
 

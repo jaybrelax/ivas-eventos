@@ -169,5 +169,5 @@ export async function completarCadastroGoogle(_: ResultadoCadastro, form: FormDa
       await users.updateLabels({ userId: contaId, labels: labelsComFuncao(conta.labels, "guardiao") });
     }
   }
-  redirect(destinoAposCadastro(form.get("next"), guardiao, "/minha-conta?aba=proximos"));
+  redirect(destinoAposCadastro(form.get("next"), guardiao, "/minha-conta?aba=proximos", u.perfil));
 }

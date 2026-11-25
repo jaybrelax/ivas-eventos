@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CalendarCheck, History, Receipt, Ticket } from "lucide-react";
+import { History, Receipt, Ticket } from "lucide-react";
 import { exigirSessao } from "@/lib/auth";
 import { urlImagem } from "@/lib/links";
 import { creditosESaldo, historicoCreditos, pacotesComResumo, listarPlanos, saldoDoUsuario, type CreditoItem } from "@/lib/creditos";
@@ -15,6 +15,7 @@ import { ProximoRitualCard } from "@/components/publico/ProximoRitualCard";
 import { CancelarParticipacao } from "@/components/publico/CancelarParticipacao";
 import { BotaoComprovante } from "./BotaoComprovante";
 import { CederCreditos, ComprarPacote, type PacoteCedivel } from "./CreditosCliente";
+import { AbasMinhaConta, type AbaMinhaConta } from "./AbasMinhaConta";
 
 export const metadata: Metadata = { title: "Minha conta" };
 
@@ -35,19 +36,11 @@ const SITUACAO: Record<ItemInscricao["situacao"], { rotulo: string; cor: string 
 
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const ABAS = [
-  { chave: "proximos", rotulo: "Próximos", Icone: CalendarCheck },
-  { chave: "historico", rotulo: "Histórico", Icone: History },
-  { chave: "pagamentos", rotulo: "Contribuições", Icone: Receipt },
-  { chave: "creditos", rotulo: "Créditos", Icone: Ticket },
-] as const;
-type Aba = (typeof ABAS)[number]["chave"];
-
 export default async function MinhaContaPage({ searchParams }: PageProps<"/minha-conta">) {
   const u = await exigirSessao("/minha-conta");
   const sp = await searchParams;
   const abaBruta = String(sp?.aba ?? "proximos");
-  const aba: Aba = (ABAS.some((a) => a.chave === abaBruta) ? abaBruta : "proximos") as Aba;
+  const aba: AbaMinhaConta = abaBruta === "pagamentos" || abaBruta === "creditos" ? abaBruta : "proximos";
 
   const [{ instituto, enderecos, telefones, redes, pix }, itens, conta] = await Promise.all([
     getDadosInstituto(),
@@ -75,19 +68,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">Olá, {u.nome.split(" ")[0]}</h1>
         </header>
 
-        <nav className="mb-6 flex flex-wrap gap-2 border-b border-stone-200/80 pb-3">
-          {ABAS.map(({ chave, rotulo, Icone }) => (
-            <Link
-              key={chave}
-              href={`/minha-conta?aba=${chave}`}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium transition ${
-                aba === chave ? "bg-mata-800 text-white shadow-cartao" : "text-stone-600 hover:bg-stone-100"
-              }`}
-            >
-              <Icone size={15} /> {rotulo}
-            </Link>
-          ))}
-        </nav>
+        <AbasMinhaConta aba={aba} />
 
         {aba === "proximos" && saldo && saldo.saldo < 0 && (
           <Link href="/minha-conta?aba=creditos" className="mb-4 block rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 ring-1 ring-red-200 transition hover:bg-red-100/70">
@@ -98,16 +79,24 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
         {aba === "proximos" && <ProximoRitualCard usuarioId={u.id} />}
 
         {aba === "proximos" && (
-          <Lista
-            vazio="Você ainda não confirmou participação em nenhum ritual futuro."
-            itens={proximos}
-            mostrarPagamento
-            cancelar
-          />
-        )}
+          <>
+            <section aria-labelledby="titulo-proximas">
+              <h2 id="titulo-proximas" className="mb-4 text-lg font-semibold tracking-tight text-stone-900">Próximas participações</h2>
+              <Lista
+                vazio="Você ainda não confirmou participação em nenhum ritual futuro."
+                itens={proximos}
+                mostrarPagamento
+                cancelar
+              />
+            </section>
 
-        {aba === "historico" && (
-          <Lista vazio="Nenhum ritual no seu histórico ainda." itens={historico} mostrarPagamento={false} />
+            <section id="historico" aria-labelledby="titulo-historico" className="mt-10 border-t border-stone-200/80 pt-7 sm:mt-12 sm:pt-8">
+              <h2 id="titulo-historico" className="mb-4 flex items-center gap-2 text-lg font-semibold tracking-tight text-stone-900">
+                <History size={19} className="text-mata-700" aria-hidden /> Histórico de participações
+              </h2>
+              <Lista vazio="Nenhum ritual no seu histórico ainda." itens={historico} mostrarPagamento={false} />
+            </section>
+          </>
         )}
 
         {aba === "creditos" && saldo && (

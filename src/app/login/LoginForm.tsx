@@ -10,7 +10,7 @@ export function LoginForm({ semPerfil, erroGoogle, next, guardiao = false }: { s
   const [estado, acao, pendente] = useActionState(entrar, undefined);
   return (
     <div className="space-y-3.5 lg:space-y-5">
-      {semPerfil && <Aviso tipo="info">Sua conta ainda não tem perfil (Admin, Coordenador ou Normal). Peça a um Admin.</Aviso>}
+      {semPerfil && <Aviso tipo="info">O painel é exclusivo de administradores e coordenadores.</Aviso>}
       {erroGoogle && <Aviso>Não foi possível entrar com o Google. Tente de novo ou use e-mail e senha.</Aviso>}
 
       <BotaoGoogle next={next} guardiao={guardiao} />

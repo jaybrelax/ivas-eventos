@@ -41,7 +41,7 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
   // Criar evento: só coordenação e admin. Editar: também o mestre escalado naquele evento.
   let u: Awaited<ReturnType<typeof exigir>>;
   if (id) {
-    const g = await exigirGestaoDoEvento(id, { guardiao: false });
+    const g = await exigirGestaoDoEvento(id);
     if (g.erro !== undefined) return { erro: g.erro };
     u = g.u;
   } else {
@@ -204,7 +204,7 @@ export async function salvarEvento(_: EstadoForm, form: FormData): Promise<Estad
  * como no salvar do formulário.
  */
 export async function definirMestresAction(eventoId: string, ids: string[]): Promise<{ ok?: string; erro?: string }> {
-  const g = await exigirGestaoDoEvento(eventoId, { guardiao: false });
+  const g = await exigirGestaoDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u, evento } = g;
   const [equipe, tipos] = await Promise.all([listarEquipe(), listarTipos()]);

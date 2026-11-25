@@ -27,9 +27,9 @@ export async function CabecalhoPublico({ instituto, mostrarAgenda = true }: { in
               nome={u.nome}
               foto={u.foto}
               sair={sair}
-              // Guarnição é outro app (outro domínio): guardião e coordenação têm o atalho; o painel é só do Admin
+              // Guarnição é outro app (outro domínio); o painel fica para admin e coordenação.
               guarnicaoUrl={u.funcaoRitual === "guardiao" || u.perfil === "coordenador" ? `${GUARNICAO_URL}/guarnicao` : null}
-              admin={u.perfil === "admin"}
+              admin={u.perfil === "admin" || u.perfil === "coordenador"}
             />
           ) : (
             <>

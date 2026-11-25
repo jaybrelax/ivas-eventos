@@ -1,4 +1,6 @@
 import { comParticiparAberto } from "./links";
+import { ehDestinoAdmin, podeAcessarAdmin } from "./acesso-admin";
+import type { Perfil } from "./config";
 
 /** Destino interno normalizado, inclusive para impedir que /guarnicao/../ saia do app. */
 export function destinoSeguro(next: unknown): string | null {
@@ -23,8 +25,9 @@ export function destinoGuarnicao(next: unknown): string {
   return destino && ehDestinoGuarnicao(destino) ? destino : "/guarnicao";
 }
 
-export function destinoAposCadastro(next: unknown, guardiao: boolean, padrao: string): string {
+export function destinoAposCadastro(next: unknown, guardiao: boolean, padrao: string, perfil: Perfil | null = null): string {
   if (guardiao || ehDestinoGuarnicao(next)) return destinoGuarnicao(next);
   const destino = destinoSeguro(next);
+  if (destino && ehDestinoAdmin(destino) && !podeAcessarAdmin(perfil)) return padrao;
   return destino ? comParticiparAberto(destino) : padrao;
 }

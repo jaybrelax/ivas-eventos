@@ -1,7 +1,7 @@
 import "server-only";
-import { redirect } from "next/navigation";
-import { exigir, getUsuario, pode, type Usuario } from "./auth";
-import { PODE, type Perfil } from "./config";
+import { exigir, pode, type Usuario } from "./auth";
+import type { PerfilAdmin } from "./acesso-admin";
+import { PODE } from "./config";
 import { getEvento, getInstituto } from "./data";
 import { dentroDaJanelaDeGestao, lerEscopoMestre, lerRegrasGestaoGuardiao } from "./gestao-guardiao-regras";
 import type { Evento } from "./types";
@@ -49,32 +49,10 @@ export async function podeGerenciarOuGuardiao(u: Usuario | null, evento: Evento)
   return podeGerenciarEvento(u, evento) || (await guardiaoEmGestao(u, evento)) || (await mestreLiberado(u));
 }
 
-/** Guardião sem perfil de painel passa a agir como perfil "normal" no evento em que está em gestão. */
-export function comoUsuarioDePainel(u: Usuario): Usuario & { perfil: Perfil } {
-  return { ...u, perfil: u.perfil ?? "normal" };
-}
-
-/**
- * Página do evento: devolve o usuário e se ele está ali como guardião em gestão. Quem não tem perfil de painel
- * e não está em gestão neste evento é mandado para a própria área (como antes).
- */
-export async function acessoAoEvento(u: Usuario, evento: Evento): Promise<{ u: Usuario & { perfil: Perfil }; emGestao: boolean }> {
-  const emGestao = !(u.perfil && podeGerenciarEvento(u, evento)) && ((await guardiaoEmGestao(u, evento)) || (await mestreLiberado(u)));
-  if (!u.perfil && !emGestao) await exigir(); // redireciona
-  return { u: comoUsuarioDePainel(u), emGestao };
-}
-
-/**
- * Para Server Actions: devolve o usuário e o evento, ou um erro se ele não puder gerenciar este evento.
- * `guardiao: false` deixa de fora o guardião em gestão (editar o evento e a escala continuam com coordenação e mestres).
- */
-export async function exigirGestaoDoEvento(eventoId: string, opcoes: { guardiao?: boolean } = {}): Promise<{ u: Usuario & { perfil: NonNullable<Usuario["perfil"]> }; evento: Evento; erro?: undefined } | { erro: string }> {
-  const u = await getUsuario();
-  if (!u) redirect("/login");
+/** Para ações do painel: somente admin e coordenação podem gerenciar eventos. */
+export async function exigirGestaoDoEvento(eventoId: string): Promise<{ u: Usuario & { perfil: PerfilAdmin }; evento: Evento; erro?: undefined } | { erro: string }> {
+  const u = await exigir();
   const evento = await getEvento(eventoId);
   if (!evento) return { erro: "Evento não encontrado." };
-  if (u.perfil && podeGerenciarEvento(u, evento)) return { u: comoUsuarioDePainel(u), evento };
-  if (opcoes.guardiao !== false && ((await guardiaoEmGestao(u, evento)) || (await mestreLiberado(u)))) return { u: comoUsuarioDePainel(u), evento };
-  if (!u.perfil) await exigir(); // participante sem gestão: vai para a própria área
-  return { erro: "Você não tem permissão para gerenciar este evento." };
+  return { u, evento };
 }

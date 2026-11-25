@@ -8,6 +8,7 @@ import { ehContaRapida } from "@/lib/conta-rapida-regras";
 import { BUCKET_ID, LABEL_PARTICIPANTE, SESSION_COOKIE, DOMINIO_COOKIE } from "@/lib/config";
 import { ehParticipante, perfilDosLabels } from "@/lib/usuarios";
 import { destinoGuarnicao, destinoSeguro, ehDestinoGuarnicao } from "@/lib/destino-auth";
+import { destinoAposLogin } from "@/lib/acesso-admin";
 
 type PerfilGoogle = { email: string; email_verified: boolean; name?: string; picture?: string };
 
@@ -135,13 +136,15 @@ export async function GET(req: NextRequest) {
     // No app da Guarnição, quem ainda não é guardião (e não teve o cargo retirado) completa o cadastro dele e entra na aprovação.
     const semAcessoGuarnicao = !prefs.guarnicao_cargo_removido && (perfilAcesso === null || perfilAcesso === "normal") && prefs.funcao_ritual !== "guardiao" && prefs.funcao_ritual !== "mestre";
     const telaCompletar = estado.origem === "cadastro" ? "/cadastro" : "/minha-conta/dados";
+    const destinoLogin = destinoAposLogin(perfilAcesso, next);
+    const nextAposCadastro = next && destinoLogin === next ? next : null;
     const destino = doApp
       ? contaNova || prefs.cadastro_guarnicao_incompleto === true || semAcessoGuarnicao
         ? `/cadastro-guarnicao?completar=1&next=${encodeURIComponent(next ?? "/guarnicao")}`
         : (next ?? "/guarnicao")
       : contaNova
-        ? `${telaCompletar}?completar=1${next ? `&next=${encodeURIComponent(next)}` : ""}`
-        : (next ?? (perfilAcesso ? "/admin/eventos" : "/minha-conta"));
+        ? `${telaCompletar}?completar=1${nextAposCadastro ? `&next=${encodeURIComponent(nextAposCadastro)}` : ""}`
+        : destinoLogin;
     return NextResponse.redirect(new URL(destino, req.url));
   } catch (e) {
     console.error("OAuth Google (retorno):", e instanceof Error ? e.message : e);

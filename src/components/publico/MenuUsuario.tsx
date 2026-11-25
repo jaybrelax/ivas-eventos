@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Calendar, ChevronDown, Download, LayoutDashboard, LogOut, Package, Settings, Share, Shield, Ticket } from "lucide-react";
+import { Calendar, CalendarCheck, ChevronDown, Download, LayoutDashboard, LogOut, Settings, Share, Shield, Ticket } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { useInstalar } from "@/components/useInstalar";
 
@@ -69,7 +69,7 @@ export function MenuUsuario({
             onClick={() => setAberto(false)}
             className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
           >
-            <Ticket size={16} className="text-stone-400" /> Minhas inscrições
+            <CalendarCheck size={16} className="text-stone-400" /> Minhas inscrições
           </Link>
           <Link
             href="/minha-conta?aba=creditos"
@@ -77,7 +77,7 @@ export function MenuUsuario({
             onClick={() => setAberto(false)}
             className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
           >
-            <Package size={16} className="text-stone-400" /> Pacotes de créditos
+            <Ticket size={16} className="text-stone-400" /> Pacotes de créditos
           </Link>
           <Link
             href="/eventos"

@@ -56,5 +56,5 @@ export async function salvarMeusDados(_: Resultado, form: FormData): Promise<Res
 
   // Veio direto do cadastro pelo Google, completando os dados: segue para onde a pessoa ia antes.
   // Nos demais casos, salvou com sucesso → volta para Minhas inscrições.
-  redirect(destinoAposCadastro(form.get("next"), guardiao, "/minha-conta?aba=proximos"));
+  redirect(destinoAposCadastro(form.get("next"), guardiao, "/minha-conta?aba=proximos", u.perfil));
 }

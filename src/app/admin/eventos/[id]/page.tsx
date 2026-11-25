@@ -3,14 +3,14 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CalendarDays, ChevronRight, CircleDollarSign, Clock, Crown, ExternalLink, Hash, MapPin, Pencil, Shield } from "lucide-react";
 import { CabecalhoAba } from "./CabecalhoAba";
 import type { Sexo } from "@/lib/types";
-import { exigir, getUsuario, pode } from "@/lib/auth";
+import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, getEvento } from "@/lib/data";
 import { contatosDeUsuarios, listarEquipe } from "@/lib/usuarios";
 import { dataPorExtenso, formatarIdRitual, partesData } from "@/lib/format";
 import { urlImagem, urlPublicaEvento } from "@/lib/links";
 import { SITE_URL } from "@/lib/site";
-import { acessoAoEvento, podeGerenciarEvento, podeIsentarContribuicao } from "@/lib/gestao-evento";
+import { podeGerenciarEvento, podeIsentarContribuicao } from "@/lib/gestao-evento";
 import { AtualizarAoVivo } from "./AtualizarAoVivo";
 import { ConsumoMedicina, type ConsumoPessoa } from "./ConsumoMedicina";
 import { AbasEvento, ID_PAGINA_EVENTO } from "./AbasEvento";
@@ -46,16 +46,14 @@ const SUPERFICIE = "md:rounded-[22px] md:border-white/70 md:bg-white/75 md:shado
  * (descrição, como participar, contribuição) ficam na página pública. Editar fica em /editar.
  */
 export default async function VerEvento({ params, searchParams }: PageProps<"/admin/eventos/[id]">) {
-  const sessao = await getUsuario();
-  if (!sessao) await exigir(); // redireciona para o login
+  const sessao = await exigir();
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const [evento, { tipos, enderecos, instituto, pix }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
   if (!evento) notFound();
 
-  // Guardião escalado no período de gestão entra aqui como gestão do evento (sem editar o evento nem a escala)
-  const { u, emGestao } = await acessoAoEvento(sessao!, evento);
+  const u = sessao;
   const editor = podeGerenciarEvento(u, evento);
-  const gerenciar = editor || emGestao;
+  const gerenciar = editor;
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const reuniaoTipo = ehReuniao(tipo);
   const [guarnicao, reuniao, participantes, guardioesDoRitual] = await Promise.all([
@@ -64,7 +62,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
     dadosParticipantes(evento, tipo, instituto.valor_contribuicao, gerenciar, { estado: instituto.estado, cidade: instituto.cidade }, podeIsentarContribuicao(u, evento), pix.find((c) => c.padrao) ?? pix[0] ?? null),
     gerenciar ? [] : guardioesDoEvento(evento),
   ]);
-  // Central de informações: coordenação, mestres escalados e guardiões deste ritual
+  // A Central nesta área é acessível apenas a admin e coordenação.
   const central = gerenciar || podeVerCentral(u, evento, guardioesDoRitual) ? await dadosCentral(evento, u, gerenciar) : null;
   const abaCentral = central && {
     id: "central", rotulo: "Central", icone: "central" as const, detalheSempre: true,

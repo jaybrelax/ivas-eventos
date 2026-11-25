@@ -44,7 +44,7 @@ export const LABEL_PARTICIPANTE = "participante";
 export const PERFIS: { id: Perfil; nome: string; descricao: string }[] = [
   { id: "admin", nome: "Admin", descricao: "Tudo, incluindo configurações e usuários" },
   { id: "coordenador", nome: "Coordenador", descricao: "Cria e edita eventos, vê o resumo e gera banners" },
-  { id: "normal", nome: "Normal", descricao: "Acesso padrão: vê a agenda e o resumo e gera banners" },
+  { id: "normal", nome: "Normal", descricao: "Acesso à agenda pública, sem acesso ao painel" },
 ];
 
 /** O que cada perfil pode fazer. */
