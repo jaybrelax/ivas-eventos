@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { exigir, pode } from "@/lib/auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { exigir, getUsuario, pode } from "@/lib/auth";
 import { PERFIS, PODE } from "@/lib/config";
-import { getInstituto } from "@/lib/data";
+import { getEvento, getInstituto } from "@/lib/data";
 import { MarcaInstituto } from "@/components/Marca";
 import { Menu, type GrupoMenu } from "./Menu";
 import { sair } from "../login/actions";
 import { listarPendentes } from "@/lib/usuarios";
+import { acessoLeituraGuardiao, guardiaoEmGestao } from "@/lib/gestao-evento";
 
 // O painel é um app instalável à parte: manifesto, nome e cor próprios (o site público mantém o dele)
 export const metadata: Metadata = {
@@ -17,6 +20,25 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#1a0b2e" };
 
 export default async function PainelLayout({ children }: LayoutProps<"/">) {
+  // Exceção restrita ao detalhe de um ritual: guardiões só entram nele durante a janela de gestão
+  // ou para leitura geral; qualquer outra rota administrativa continua exigindo perfil administrativo.
+  // O valor do header é definido pelo proxy, nunca aceito diretamente do navegador.
+  const pathname = (await headers()).get("x-ivas-pathname") ?? "";
+  const rotaRitual = pathname.match(/^\/admin\/eventos\/([^/]+)$/);
+  if (rotaRitual) {
+    const atual = await getUsuario();
+    if (!atual) redirect("/login");
+    const perfilAdmin = pode(atual, PODE.editarEventos);
+    const evento = await getEvento(decodeURIComponent(rotaRitual[1]));
+    if (!evento) redirect("/eventos");
+    const gestaoGuardiao = !perfilAdmin && await guardiaoEmGestao(atual, evento);
+    const acesso = await acessoLeituraGuardiao();
+    const leituraGuardiao = !perfilAdmin && !gestaoGuardiao && atual.funcaoRitual === "guardiao" && acesso.leituraTodos;
+    if (!perfilAdmin && !gestaoGuardiao && !leituraGuardiao) redirect("/eventos");
+    if (gestaoGuardiao || leituraGuardiao) {
+      return <main className="mx-auto min-h-screen w-full max-w-5xl px-3 py-4 sm:px-6 sm:py-8">{children}</main>;
+    }
+  }
   const u = await exigir();
   const instituto = await getInstituto();
   const podeEditarEventos = pode(u, PODE.editarEventos);

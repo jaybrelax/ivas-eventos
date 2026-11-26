@@ -123,7 +123,7 @@ export function CentralEvento({ eventoId, dados }: { eventoId: string; dados: Da
 
       {visiveis.length ? (
         <ul className="space-y-2.5">
-          {visiveis.map((p) => <Post key={p.id} eventoId={eventoId} post={p} pessoaPorId={pessoaPorId} pessoas={dados.pessoas} gestao={dados.gestao} />)}
+          {visiveis.map((p) => <Post key={p.id} eventoId={eventoId} post={p} pessoaPorId={pessoaPorId} pessoas={dados.pessoas} gestao={dados.gestao} somenteLeitura={dados.somenteLeitura} />)}
         </ul>
       ) : dados.posts.length ? (
         <p className="py-8 text-center text-sm text-stone-400">Nada neste filtro.</p>
@@ -464,7 +464,7 @@ function TextoPost({ texto, pessoaPorId }: { texto: string; pessoaPorId: Map<str
   );
 }
 
-function Post({ eventoId, post, pessoaPorId, pessoas, gestao }: { eventoId: string; post: PostCentral; pessoaPorId: Map<string, PessoaCentral>; pessoas: PessoaCentral[]; gestao: boolean }) {
+function Post({ eventoId, post, pessoaPorId, pessoas, gestao, somenteLeitura }: { eventoId: string; post: PostCentral; pessoaPorId: Map<string, PessoaCentral>; pessoas: PessoaCentral[]; gestao: boolean; somenteLeitura: boolean }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -549,16 +549,16 @@ function Post({ eventoId, post, pessoaPorId, pessoas, gestao }: { eventoId: stri
                 <span className="grid h-5 w-5 place-items-center rounded-full bg-emerald-600 text-white"><Check size={12} strokeWidth={3} aria-hidden /></span>
                 Concluída por {post.concluida!.por.split(/\s+/)[0]} <span className="font-normal text-stone-400 tabular-nums">{hora(post.concluida!.em)}</span>
               </span>
-              <button type="button" onClick={() => rodar(() => concluirTarefa(eventoId, post.id, false))} className="ml-auto inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold text-stone-500 transition hover:bg-stone-100">
+              {!somenteLeitura && <button type="button" onClick={() => rodar(() => concluirTarefa(eventoId, post.id, false))} className="ml-auto inline-flex h-8 items-center gap-1 rounded-full px-3 text-xs font-semibold text-stone-500 transition hover:bg-stone-100">
                 <RotateCcw size={13} aria-hidden /> Reabrir
-              </button>
+              </button>}
             </>
-          ) : (
+          ) : !somenteLeitura ? (
             <button type="button" onClick={() => rodar(() => concluirTarefa(eventoId, post.id, true))}
               className="inline-flex h-9 items-center gap-2 rounded-full bg-mata-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-mata-800 active:scale-[0.98]">
               <Check size={15} strokeWidth={2.6} aria-hidden /> Concluir tarefa
             </button>
-          )}
+          ) : <span className="text-xs text-stone-500">Tarefa</span>}
         </div>
       )}
     </li>

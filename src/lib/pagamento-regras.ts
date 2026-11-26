@@ -32,12 +32,34 @@ export function transicaoPermitida(
 }
 
 /** O participante só avisa a contribuição de inscrição ativa que ainda não foi confirmada nem isentada. */
-export function participantePodeInformar(atual: { situacao: SituacaoInscricao; pagamento: SituacaoPagamento }): string | null {
+export function participantePodeInformar(atual: { situacao: SituacaoInscricao; pagamento: SituacaoPagamento; comprovante_file_id?: string | null }): string | null {
   if (atual.situacao === "cancelada") return "Esta inscrição foi cancelada.";
+  if (atual.situacao !== "confirmada") return "Sua vaga ainda não foi confirmada. A contribuição será liberada quando houver uma vaga.";
+  if (atual.comprovante_file_id) return "Já existe um comprovante anexado a esta inscrição.";
+  if (atual.pagamento === "pago") return "Esta contribuição já foi confirmada.";
+  if (atual.pagamento === "informado") return "Esta contribuição já foi informada. Você pode anexar o comprovante pela sua conta.";
+  if (atual.pagamento === "isento") return "Esta inscrição está isenta de contribuição.";
+  if (atual.pagamento === "credito") return "Esta participação já está paga com crédito.";
+  if (atual.pagamento === "aniversario") return "Esta participação está confirmada com o bônus de aniversário.";
+  return null;
+}
+
+/** Anexar depois só é permitido se a participação estiver confirmada e ainda não houver comprovante. */
+export function participantePodeAnexarComprovante(atual: {
+  situacao: SituacaoInscricao;
+  pagamento: SituacaoPagamento;
+  comprovante_file_id?: string | null;
+}): string | null {
+  if (atual.situacao === "cancelada") return "Esta inscrição foi cancelada.";
+  if (atual.situacao !== "confirmada") return "Sua vaga ainda não foi confirmada. A contribuição será liberada quando houver uma vaga.";
+  if (atual.comprovante_file_id) return "Já existe um comprovante anexado a esta inscrição.";
   if (atual.pagamento === "pago") return "Esta contribuição já foi confirmada.";
   if (atual.pagamento === "isento") return "Esta inscrição está isenta de contribuição.";
   if (atual.pagamento === "credito") return "Esta participação já está paga com crédito.";
   if (atual.pagamento === "aniversario") return "Esta participação está confirmada com o bônus de aniversário.";
+  if (atual.pagamento !== "pendente" && atual.pagamento !== "informado" && atual.pagamento !== "na_hora") {
+    return "Não é possível anexar comprovante nesta situação.";
+  }
   return null;
 }
 

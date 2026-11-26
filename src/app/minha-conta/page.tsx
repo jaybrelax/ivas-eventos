@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Gift, History, Receipt, Ticket } from "lucide-react";
+import { Star } from "lucide-react";
 import { exigirSessao } from "@/lib/auth";
 import { urlImagem } from "@/lib/links";
 import { creditosESaldo, historicoCreditos, pacotesComResumo, listarPlanos, saldoDoUsuario, type CreditoItem } from "@/lib/creditos";
@@ -23,8 +24,8 @@ import { AbasMinhaConta, type AbaMinhaConta } from "./AbasMinhaConta";
 export const metadata: Metadata = { title: "Minha conta" };
 
 const PAGAMENTO: Record<ItemInscricao["pagamento"], { rotulo: string; cor: string }> = {
-  pendente: { rotulo: "Pendente", cor: "bg-stone-100 text-stone-600" },
-  informado: { rotulo: "Informada", cor: "bg-amber-50 text-amber-700" },
+  pendente: { rotulo: "Pagamento pendente", cor: "bg-amber-50 text-amber-700" },
+  informado: { rotulo: "Pagamento informado", cor: "bg-amber-50 text-amber-700" },
   pago: { rotulo: "Contribuiu", cor: "bg-emerald-50 text-emerald-700" },
   isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
   na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
@@ -33,7 +34,7 @@ const PAGAMENTO: Record<ItemInscricao["pagamento"], { rotulo: string; cor: strin
 };
 
 const SITUACAO: Record<ItemInscricao["situacao"], { rotulo: string; cor: string }> = {
-  confirmada: { rotulo: "Confirmado", cor: "bg-mata-100 text-mata-800" },
+  confirmada: { rotulo: "Inscrição confirmada", cor: "bg-mata-100 text-mata-800" },
   espera: { rotulo: "Lista de espera", cor: "bg-amber-50 text-amber-700" },
   cancelada: { rotulo: "Cancelado", cor: "bg-stone-100 text-stone-500" },
 };
@@ -58,7 +59,8 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
   ]);
   const saldo = conta?.saldo ?? null;
 
-  const proximos = itens.filter((i) => !i.passado && i.situacao !== "cancelada");
+  const proximos = itens.filter((i) => !i.passado && i.situacao !== "cancelada")
+    .sort((a, b) => `${a.data}T${a.hora}`.localeCompare(`${b.data}T${b.hora}`));
   const historico = itens.filter((i) => i.passado && i.situacao === "confirmada");
   const pagamentos = itens.filter((i) => i.temContribuicao);
   const totalPago = pagamentos.filter((i) => i.pagamento === "pago").reduce((s, i) => s + (i.valor ?? 0), 0);
@@ -148,44 +150,58 @@ function Lista({ itens, vazio, mostrarPagamento, cancelar = false, historico = f
     <ul className="space-y-2.5">
       {itens.map((i) => (
         <li key={i.inscricaoId} className="cartao !p-4">
+          {historico && <Link href={`/minha-conta/participacao/${i.inscricaoId}`} className="mb-2 block text-base font-semibold leading-snug text-stone-900 hover:text-mata-700 hover:underline sm:hidden">{i.titulo}</Link>}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <Link href={i.url} className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-mata-900 ring-1 ring-stone-200" aria-hidden tabIndex={-1}>
+              <Link href={historico ? `/minha-conta/participacao/${i.inscricaoId}` : i.url} className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-mata-900 ring-1 ring-stone-200 ${historico ? "sm:h-20 sm:w-20" : ""}`} aria-hidden tabIndex={-1}>
                 {i.capa && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={urlImagem(i.capa, 160)} width={64} height={64} loading="lazy" decoding="async" alt="" className="h-full w-full object-cover" />
                 )}
               </Link>
               <div className="min-w-0">
-                <Link href={i.url} className="font-semibold text-stone-900 hover:text-mata-700 hover:underline">
-                  {i.ritualNumero ? `Ritual ${formatarIdRitual(i.ritualNumero, null, null)}: ` : ""}{i.titulo}
-                </Link>
-                <p className="mt-0.5 text-sm text-stone-500">{dataPorExtenso(i.data)} · {dataCurta(i.data)} às {i.hora}</p>
+                <Link href={historico ? `/minha-conta/participacao/${i.inscricaoId}` : i.url} className={`font-semibold text-stone-900 hover:text-mata-700 hover:underline ${historico ? "hidden sm:inline" : ""}`}>{i.titulo}</Link>
+                <p className="mt-0.5 text-sm text-stone-600">{dataPorExtenso(i.data)}</p>
+                <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs font-medium text-stone-500">
+                  {i.ritualNumero && (historico
+                    ? <Link href={i.url} className="font-semibold tracking-wide text-violet-800 hover:underline">Ritual {formatarIdRitual(i.ritualNumero, null, null)}</Link>
+                    : <span className="font-semibold tracking-wide text-violet-800">Ritual {formatarIdRitual(i.ritualNumero, null, null)}</span>)}
+                  {i.ritualNumero && <span aria-hidden>·</span>}
+                  <span>{dataCurta(i.data).slice(-4)}</span><span aria-hidden>·</span><span>{i.hora}</span>
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:hidden">
+                  <span className={`chip ${SITUACAO[i.situacao].cor}`}>{SITUACAO[i.situacao].rotulo}</span>
+                  {mostrarPagamento && i.temContribuicao && <span className={`chip ${PAGAMENTO[i.pagamento].cor}`}>{PAGAMENTO[i.pagamento].rotulo}</span>}
+                </div>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="hidden flex-wrap items-center gap-1.5 sm:flex">
               <span className={`chip ${SITUACAO[i.situacao].cor}`}>{SITUACAO[i.situacao].rotulo}</span>
               {mostrarPagamento && i.temContribuicao && (
                 <span className={`chip ${PAGAMENTO[i.pagamento].cor}`}>{PAGAMENTO[i.pagamento].rotulo}</span>
               )}
             </div>
           </div>
-          {historico && <Link href={`/minha-conta/participacao/${i.inscricaoId}`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-mata-700 hover:underline">Ver minha participação →</Link>}
+          {historico && <Link href={`/minha-conta/participacao/${i.inscricaoId}`} className="mt-3 ml-auto flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(110deg,#4c1d95,#7c3aed,#a855f7,#4c1d95)] bg-[length:260%_100%] px-4 text-sm font-semibold text-white shadow-md animate-gradiente-suave transition-transform hover:-translate-y-0.5 sm:w-fit"><Star size={17} strokeWidth={2.4} /> Deixe sua avaliação</Link>}
           {((mostrarPagamento && i.temContribuicao) || (cancelar && i.podeCancelar)) && (
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-500">
+            <div className="mt-3 flex flex-col items-stretch gap-2 text-sm text-stone-500">
               {mostrarPagamento && i.temContribuicao && i.pagamento === "credito" && <span>Participação paga com 1 crédito</span>}
               {mostrarPagamento && i.temContribuicao && i.pagamento === "aniversario" && <span>Participação confirmada com bônus de aniversário</span>}
-              {mostrarPagamento && i.temContribuicao && i.pagamento !== "credito" && i.pagamento !== "aniversario" && i.valor != null && <span>Contribuição: {formatoReal(i.valor)}</span>}
-              {mostrarPagamento && i.temContribuicao && i.comprovante && <BotaoComprovante id={i.comprovante} />}
-              {mostrarPagamento && i.temContribuicao && i.pagamento === "pendente" && (
-                <Link
-                  href={`${i.url}?pagar=1`}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98]"
-                >
-                  <Receipt size={16} /> Avisar contribuição
-                </Link>
+              {mostrarPagamento && i.temContribuicao && (i.valor != null || i.comprovante || i.situacao === "confirmada" && ["pendente", "na_hora", "informado"].includes(i.pagamento)) && (
+                <div className="flex w-full flex-col items-stretch gap-2.5 sm:ml-auto sm:w-fit sm:items-end sm:pr-1">
+                  {i.pagamento !== "credito" && i.pagamento !== "aniversario" && i.valor != null && <span className="text-sm font-medium text-stone-600">Contribuição: <strong className="text-stone-900">{formatoReal(i.valor)}</strong></span>}
+                  {i.comprovante && <BotaoComprovante id={i.comprovante} />}
+                  {i.situacao === "confirmada" && (i.pagamento === "pendente" || i.pagamento === "na_hora" || (i.pagamento === "informado" && !i.comprovante)) && (
+                    <Link href={`${i.url}?pagar=1`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98] sm:w-fit">
+                      <Receipt size={16} /> {i.pagamento === "informado" ? "Anexar comprovante" : "Informar contribuição"}
+                    </Link>
+                  )}
+                </div>
               )}
-              {cancelar && i.podeCancelar && <CancelarParticipacao eventoId={i.eventoId} className="ml-auto" />}
+              {mostrarPagamento && i.temContribuicao && i.situacao === "espera" && i.pagamento === "pendente" && (
+                <span className="text-xs text-stone-500">A contribuição será liberada quando sua vaga for confirmada.</span>
+              )}
+              {cancelar && i.podeCancelar && (i.pagamento === "credito" || i.pagamento === "na_hora" || !i.temContribuicao || (["pendente", "informado"].includes(i.pagamento) && !i.comprovante)) && <CancelarParticipacao eventoId={i.eventoId} className="self-start" alinhar="esquerda" />}
             </div>
           )}
         </li>

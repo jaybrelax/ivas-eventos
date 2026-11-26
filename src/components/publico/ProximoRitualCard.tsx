@@ -19,17 +19,9 @@ export async function ProximoRitualCard({ usuarioId }: { usuarioId: string }) {
   });
   if (!evento) return null;
 
-  // Já inscrito no próximo ritual: o card some, a menos que a pessoa também esteja inscrita em um ritual depois dele
+  // O destaque é só para conversão; se a pessoa já tem inscrição nesse próximo ritual, não duplicamos o card.
   const minha = minhas.find((i) => i.eventoId === evento.$id && i.situacao !== "cancelada");
-  if (minha) {
-    const inicioProximo = inicioDe(evento).getTime();
-    const inscritoDepois = futuros.some((e) => {
-      const t = tipos.find((x) => x.$id === e.tipo_id);
-      return e.$id !== evento.$id && !!t?.conta_como_ritual && inicioDe(e).getTime() > inicioProximo
-        && minhas.some((i) => i.eventoId === e.$id && i.situacao !== "cancelada");
-    });
-    if (!inscritoDepois) return null;
-  }
+  if (minha) return null;
 
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const end = enderecos.find((e) => e.$id === evento.endereco_id);

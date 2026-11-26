@@ -20,6 +20,12 @@ export type Instituto = {
   guarnicao_aprovacao_automatica?: boolean | null;
   /** Guardião escalado gerencia o ritual (financeiro, consumo, central) por um período. Padrão: ligada. */
   gestao_guardiao_ativa?: boolean | null;
+  /** Todos os guardiões ativos podem ler a gestão dos rituais sem estarem escalados. */
+  gestao_guardiao_leitura_todos?: boolean | null;
+  /** Leitores gerais podem consultar as doses registradas. */
+  gestao_guardiao_ver_dosagens?: boolean | null;
+  /** Leitores gerais podem consultar valores e situação financeira. */
+  gestao_guardiao_ver_financeiro?: boolean | null;
   /** Duração do acesso de gestão, em horas, a partir das 00:00 do dia do ritual (padrão 48). */
   gestao_guardiao_horas?: number | null;
   /** Gestão do ritual para os mestres: só o escalado naquele ritual (padrão) ou todos os mestres. */

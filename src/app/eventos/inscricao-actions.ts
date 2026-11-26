@@ -8,7 +8,7 @@ import { exigirSessao } from "@/lib/auth";
 import { COMPROVANTES_BUCKET_ID } from "@/lib/config";
 import { getEvento, getInstituto, listarTipos } from "@/lib/data";
 import { conferirImagem } from "@/lib/imagem";
-import { cancelarInscricao, contribuirNaHora, informarPagamento, inscrever, type Resultado } from "@/lib/inscricoes";
+import { anexarComprovantePagamento, cancelarInscricao, contribuirNaHora, informarPagamento, inscrever, validarAnexoComprovante, validarInscricaoParaPagamento, type Resultado } from "@/lib/inscricoes";
 import { usarBonusAniversario } from "@/lib/bonus-aniversario";
 import { usarCreditoNaInscricao } from "@/lib/creditos";
 import { lerValor } from "@/lib/pagamento-regras";
@@ -48,9 +48,14 @@ export async function cancelarInscricaoAction(eventoId: string): Promise<Resulta
 /** Avisa que já contribuiu (comprovante opcional, reduzido no navegador antes do envio). */
 export async function informarPagamentoAction(eventoId: string, inscricaoId: string, form: FormData): Promise<Resultado> {
   const u = await exigirSessao(`/eventos/${eventoId}`);
+  const { evento, tipo } = await contexto(eventoId);
+  if (!evento || !tipo?.conta_como_ritual) return { erro: "Este evento não aceita contribuição por esta etapa." };
+  const valida = await validarInscricaoParaPagamento(inscricaoId, u.id, eventoId);
+  if ("erro" in valida) return valida;
   // O valor vem da configuração do Instituto, não do navegador: o participante não escolhe quanto "pagou".
   const lido = lerValor((await getInstituto()).valor_contribuicao);
-  const valor = "erro" in lido ? null : lido.valor;
+  if ("erro" in lido || lido.valor === null) return { erro: "A coordenação ainda não configurou o valor da contribuição." };
+  const valor = lido.valor;
 
   let comprovanteFileId: string | null = null;
   const arquivo = form.get("comprovante");
@@ -70,7 +75,55 @@ export async function informarPagamentoAction(eventoId: string, inscricaoId: str
   }
 
   const r = await informarPagamento(inscricaoId, u.id, valor, comprovanteFileId);
-  revalidar(eventoId);
+  if (r.erro && comprovanteFileId) {
+    const { storage } = createAdminClient();
+    await storage.deleteFile({ bucketId: COMPROVANTES_BUCKET_ID, fileId: comprovanteFileId }).catch(() => {});
+  }
+  revalidar(eventoId, evento.ritual_numero_geral);
+  revalidatePath(`/minha-conta/participacao/${inscricaoId}`);
+  return r;
+}
+
+/** Anexa um comprovante à própria inscrição; se o Pix ainda não tinha sido informado, registra o aviso. */
+export async function anexarComprovanteAction(eventoId: string, inscricaoId: string, form: FormData): Promise<Resultado> {
+  const u = await exigirSessao(`/eventos/${eventoId}`);
+  const { evento, tipo } = await contexto(eventoId);
+  if (!evento || !tipo?.conta_como_ritual) return { erro: "Este evento não aceita contribuição por esta etapa." };
+  const valida = await validarAnexoComprovante(inscricaoId, u.id, eventoId);
+  if ("erro" in valida) return valida;
+
+  const arquivo = form.get("comprovante");
+  if (!(arquivo instanceof File) || arquivo.size === 0) return { erro: "Escolha uma imagem do comprovante antes de enviar." };
+  const invalida = conferirImagem(arquivo, "comprovante");
+  if (invalida) return { erro: invalida };
+  let valor: number | null = valida.inscricao.pagamento === "informado" ? valida.inscricao.valor : null;
+  if (valida.inscricao.pagamento !== "informado") {
+    const lido = lerValor((await getInstituto()).valor_contribuicao);
+    if ("erro" in lido || lido.valor === null) return { erro: "A coordenação ainda não configurou o valor da contribuição." };
+    valor = lido.valor;
+  }
+
+  let comprovanteFileId: string | null = null;
+  try {
+    const { storage } = createAdminClient();
+    const novo = await storage.createFile({
+      bucketId: COMPROVANTES_BUCKET_ID,
+      fileId: ID.unique(),
+      file: (await arquivoOtimizado(arquivo, arquivo.name, "comprovante")).input,
+    });
+    comprovanteFileId = novo.$id;
+  } catch (e) {
+    console.error("Comprovante:", e instanceof Error ? e.message : e);
+    return { erro: "Não foi possível enviar o comprovante. Use PNG, JPG ou WEBP." };
+  }
+
+  const r = await anexarComprovantePagamento(inscricaoId, u.id, comprovanteFileId, valor);
+  if (r.erro) {
+    const { storage } = createAdminClient();
+    await storage.deleteFile({ bucketId: COMPROVANTES_BUCKET_ID, fileId: comprovanteFileId }).catch(() => {});
+  }
+  revalidar(eventoId, evento.ritual_numero_geral);
+  revalidatePath(`/minha-conta/participacao/${inscricaoId}`);
   return r;
 }
 

@@ -77,10 +77,10 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
                       <Icone size={18} className={on ? "text-ouro-400" : "text-mata-300/80"} aria-hidden />
                       {!fino && i.rotulo}
                     </Link>
-                    <Link href="/admin/eventos/novo" aria-label="Criar ritual" title="Criar ritual"
-                      className={`grid shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-mata-200 transition hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ouro-400 ${fino ? "h-6 w-7" : "h-8 w-12"}`}>
-                      <Plus size={fino ? 14 : 18} aria-hidden />
-                    </Link>
+                    {!fino && <Link href="/admin/eventos/novo" aria-label="Criar ritual" title="Criar ritual"
+                      className="grid h-8 w-12 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-mata-200 transition hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ouro-400">
+                      <Plus size={18} aria-hidden />
+                    </Link>}
                   </div>
                 );
                 return (

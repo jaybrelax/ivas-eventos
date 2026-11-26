@@ -218,7 +218,14 @@ export async function salvarGestaoGuardiao(_: Resultado, form: FormData): Promis
   try {
     await tablesDB.upsertRow({
       databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID,
-      data: { gestao_guardiao_ativa: form.get("ativa") === "on", gestao_guardiao_horas: horas, gestao_mestre_escopo: form.get("escopo_mestre") === "todos" ? "todos" : "escalado" },
+      data: {
+        gestao_guardiao_ativa: form.get("ativa") === "on",
+        gestao_guardiao_leitura_todos: form.get("leitura_todos") === "on",
+        gestao_guardiao_ver_dosagens: form.get("ver_dosagens") === "on",
+        gestao_guardiao_ver_financeiro: form.get("ver_financeiro") === "on",
+        gestao_guardiao_horas: horas,
+        gestao_mestre_escopo: form.get("escopo_mestre") === "todos" ? "todos" : "escalado",
+      },
     });
   } catch (e) {
     console.error("Gestão do guardião:", e instanceof Error ? e.message : e);

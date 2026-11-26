@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { exigirGestaoDoEvento, podeIsentarContribuicao } from "@/lib/gestao-evento";
+import { exigirGestaoOperacionalDoEvento, guardiaoEmGestao, podeIsentarContribuicao } from "@/lib/gestao-evento";
 import { ID, Query } from "node-appwrite";
 import { createAdminClient } from "@/lib/appwrite";
 import { COMPROVANTES_BUCKET_ID, DB_ID, LABEL_PARTICIPANTE, TABLES } from "@/lib/config";
@@ -30,7 +30,7 @@ function revalidar(eventoId: string) {
 
 /** Coordenação (ou o mestre do evento) inclui um participante manualmente. */
 export async function incluirParticipanteAction(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u, evento } = g;
   const r = await incluirParticipante(evento, usuarioId, u.id);
@@ -44,7 +44,7 @@ export async function incluirParticipanteAction(eventoId: string, usuarioId: str
  * aparece em todas as listas e contribuições como qualquer outra.
  */
 export async function incluirAvulsoAction(eventoId: string, nomeBruto: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u, evento } = g;
   const nome = capitalizarNomeProprio(String(nomeBruto ?? "").trim().replace(/\s+/g, " ").slice(0, 128));
@@ -70,7 +70,7 @@ export async function incluirAvulsoAction(eventoId: string, nomeBruto: string): 
 
 /** Coordenação (ou o mestre do evento) cancela a participação de alguém (bloqueado se a contribuição já foi confirmada). */
 export async function removerParticipanteAction(eventoId: string, usuarioId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u, evento } = g;
   const r = await removerParticipante(evento, usuarioId, u.id);
@@ -80,7 +80,7 @@ export async function removerParticipanteAction(eventoId: string, usuarioId: str
 
 /** Coordenação (ou o mestre do evento) exclui a participação (só com a contribuição pendente). */
 export async function excluirInscricaoAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const r = await excluirInscricao(g.evento, inscricaoId, g.u.id);
   revalidar(eventoId);
@@ -89,7 +89,7 @@ export async function excluirInscricaoAction(eventoId: string, inscricaoId: stri
 
 /** Coordenação (ou o mestre do evento) confirma o pagamento de uma inscrição, com o valor recebido (vazio mantém o valor informado). */
 export async function confirmarPagamentoAction(eventoId: string, inscricaoId: string, valorBruto?: unknown, pacoteBruto?: unknown, formaBruta?: unknown): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u } = g;
   // Pacote: sem valor em R$; a observação é livre (ex.: "2/4 1") e aparece na lista
@@ -110,10 +110,10 @@ export async function confirmarPagamentoAction(eventoId: string, inscricaoId: st
 
 /** Coordenação (ou o mestre do evento) marca a inscrição como isenta da contribuição. */
 export async function isentarPagamentoAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u, evento } = g;
-  if (!podeIsentarContribuicao(u, evento)) return { erro: "Só o mestre do evento ou o Admin pode isentar a contribuição." };
+  if (!podeIsentarContribuicao(u, evento) && !(await guardiaoEmGestao(u, evento))) return { erro: "Só a gestão autorizada deste ritual pode isentar a contribuição." };
   const r = await definirPagamento(eventoId, inscricaoId, "isento", u.id);
   revalidar(eventoId);
   return r;
@@ -121,7 +121,7 @@ export async function isentarPagamentoAction(eventoId: string, inscricaoId: stri
 
 /** Coordenação (ou o mestre do evento) desfaz a confirmação/isenção, voltando o pagamento para pendente. */
 export async function reabrirPagamentoAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u } = g;
   const r = await definirPagamento(eventoId, inscricaoId, "pendente", u.id);
@@ -135,7 +135,7 @@ export async function reabrirPagamentoAction(eventoId: string, inscricaoId: stri
  * Trocar um e-mail que já existe continua só com o Admin (o "esqueci a senha" iria para o novo endereço).
  */
 export async function informarDadosAction(eventoId: string, usuarioId: string, form: FormData): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { u } = g;
 
@@ -184,7 +184,7 @@ export async function informarDadosAction(eventoId: string, usuarioId: string, f
  * anexa confirma, isenta ou reabre depois, se quiser. O comprovante anterior é apagado.
  */
 export async function anexarComprovanteAction(eventoId: string, inscricaoId: string, form: FormData): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
 
   const arquivo = form.get("comprovante");
@@ -218,7 +218,7 @@ export async function anexarComprovanteAction(eventoId: string, inscricaoId: str
  * se houver, 3ª, cada uma de 0 a 70 ml. Grava em JSON na inscrição.
  */
 export async function salvarDosesAction(eventoId: string, inscricaoId: string, entrada: unknown): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const lido = validarDoses(entrada);
   if ("erro" in lido) return { erro: lido.erro };
@@ -239,7 +239,7 @@ export async function salvarDosesAction(eventoId: string, inscricaoId: string, e
 
 /** Coordenação (ou o mestre do evento) marca ou desmarca "1° VEZ": primeira vez da pessoa em um ritual. */
 export async function definirPrimeiraVezAction(eventoId: string, inscricaoId: string, valor: boolean): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { tablesDB } = createAdminClient();
   const row = (await tablesDB.getRow({ databaseId: DB_ID, tableId: TABLES.inscricoes, rowId: inscricaoId }).catch(() => null)) as unknown as Inscricao | null;
@@ -263,7 +263,7 @@ export async function definirPrimeiraVezAction(eventoId: string, inscricaoId: st
  * ficam no próprio evento, por pessoa. Mesmas regras e mesma permissão das doses da inscrição.
  */
 export async function salvarDosesEquipeAction(eventoId: string, usuarioId: string, entrada: unknown): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const lido = validarDoses(entrada);
   if ("erro" in lido) return { erro: lido.erro };
@@ -294,7 +294,7 @@ export async function salvarDosesEquipeAction(eventoId: string, usuarioId: strin
 
 /** Coordenação (ou o mestre do evento) exclui o comprovante de uma inscrição (apaga o arquivo). Não muda a situação da contribuição. */
 export async function excluirComprovanteAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const { tablesDB, storage } = createAdminClient();
   const row = (await tablesDB.getRow({ databaseId: DB_ID, tableId: TABLES.inscricoes, rowId: inscricaoId }).catch(() => null)) as unknown as Inscricao | null;
@@ -313,7 +313,7 @@ export async function excluirComprovanteAction(eventoId: string, inscricaoId: st
 
 /** Coordenação (ou o mestre do evento) usa 1 crédito da própria pessoa na inscrição dela (ex.: pacote comprado depois de se inscrever). */
 export async function usarCreditoAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const insc = (await tablesDBInscricao(inscricaoId));
   if (!insc || insc.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };
@@ -324,7 +324,7 @@ export async function usarCreditoAction(eventoId: string, inscricaoId: string): 
 
 /** Coordenação (ou mestre do evento) aplica o bônus anual ao participante elegível, sem lançamento financeiro. */
 export async function bonificarAniversarioAction(eventoId: string, inscricaoId: string): Promise<Resultado> {
-  const g = await exigirGestaoDoEvento(eventoId);
+  const g = await exigirGestaoOperacionalDoEvento(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
   const insc = await tablesDBInscricao(inscricaoId);
   if (!insc || insc.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." };

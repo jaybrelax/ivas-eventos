@@ -26,8 +26,11 @@ export async function dadosParticipantes(
   localPadrao?: { estado: string | null; cidade: string | null },
   podeIsentar = false,
   chavePix: ChavePix | null = null,
+  visibilidade: { verDosagens?: boolean; verFinanceiro?: boolean } = {},
 ): Promise<DadosParticipantes | null> {
   if (!aceitaParticipantes(tipo)) return null;
+  const verDosagens = gerenciar || visibilidade.verDosagens === true;
+  const verFinanceiro = gerenciar || visibilidade.verFinanceiro === true;
   const [inscricoes, usuarios, pessoas, todas] = await Promise.all([
     inscricoesDoEvento(evento.$id),
     mapaUsuarios(),
@@ -65,17 +68,17 @@ export async function dadosParticipantes(
     const c = gerenciar ? contatoPorId.get(i.usuario_id) : undefined;
     return {
       ...pessoa(i.usuario_id),
-      pagamento: i.pagamento, inscricaoId: i.$id, comprovante: i.comprovante_file_id,
-      inscritoEm: i.$createdAt, valor: i.valor, informadoEm: i.informado_em, pagoEm: i.pago_em,
+      pagamento: verFinanceiro ? i.pagamento : "pendente", inscricaoId: i.$id, comprovante: verFinanceiro ? i.comprovante_file_id : null,
+      inscritoEm: i.$createdAt, valor: verFinanceiro ? i.valor : null, informadoEm: verFinanceiro ? i.informado_em : null, pagoEm: verFinanceiro ? i.pago_em : null,
       primeiraVez: gerenciar ? !!i.primeira_vez : false,
       jaParticipou: gerenciar ? jaParticiparam.has(i.usuario_id) : false,
-      usouPacote: !!i.usou_pacote, pacoteObs: i.usou_pacote ? (i.observacao ?? null) : null,
-      forma: gerenciar ? (i.pagamento === "credito" ? "pacote" : (i.forma_pagamento ?? null)) : null,
-      creditoRotulo: gerenciar && i.credito_id ? (rotulosCredito.get(i.credito_id) ?? null) : null,
+      usouPacote: verFinanceiro && !!i.usou_pacote, pacoteObs: verFinanceiro && i.usou_pacote ? (i.observacao ?? null) : null,
+      forma: verFinanceiro ? (i.pagamento === "credito" ? "pacote" : (i.forma_pagamento ?? null)) : null,
+      creditoRotulo: verFinanceiro && gerenciar && i.credito_id ? (rotulosCredito.get(i.credito_id) ?? null) : null,
       saldoCredito: saldos?.get(i.usuario_id) ? { disponiveis: saldos.get(i.usuario_id)!.disponiveis, debitos: saldos.get(i.usuario_id)!.debitos, saldo: saldos.get(i.usuario_id)!.saldo } : null,
       bonusAniversarioDisponivel: gerenciar ? (bonusPorInscricao.get(i.$id) ?? false) : false,
       contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm, cpf: c.cpf ? ocultarCpf(c.cpf) || null : null } : null,
-      doses: gerenciar ? lerDoses(i.doses) : [],
+      doses: verDosagens ? lerDoses(i.doses) : [],
     };
   };
 
@@ -101,8 +104,8 @@ export async function dadosParticipantes(
     disponiveis: gerenciar
       ? pessoas.filter((p) => !inscritos.has(p.id) && !usuarios.get(p.id)?.mock).map((p) => ({ id: p.id, nome: p.nome, foto: p.foto })).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))
       : [],
-    dosesEquipe: gerenciar ? lerDosesEquipe(evento.doses_equipe) : {},
-    valorContribuicao,
+    dosesEquipe: verDosagens ? lerDosesEquipe(evento.doses_equipe) : {},
+    valorContribuicao: verFinanceiro ? valorContribuicao : null,
     localPadrao: localPadrao?.estado && localPadrao.cidade ? { estado: localPadrao.estado, cidade: localPadrao.cidade } : null,
     temContribuicao: !!tipo?.conta_como_ritual,
   };

@@ -1,8 +1,9 @@
 import "server-only";
-import { exigir, pode, type Usuario } from "./auth";
+import { exigir, getUsuario, pode, type Usuario } from "./auth";
 import { PODE } from "./config";
 import { getDadosInstituto, getEvento } from "./data";
 import { candidaturasDoEvento, ehReuniao, guardioesDaReuniao, temGuarnicao } from "./guarnicao";
+import { guardiaoComLeituraGeral, guardiaoEmGestao } from "./gestao-evento";
 import type { Evento } from "./types";
 
 /**
@@ -25,12 +26,18 @@ export function podeVerCentral(u: Pick<Usuario, "id" | "perfil"> | null, evento:
   return pode(u, PODE.editarEventos) || (evento.mestres ?? []).includes(u.id) || guardioes.includes(u.id);
 }
 
-/** Para Server Actions da área administrativa: somente admin e coordenação. */
+/** Autorização centralizada das ações da Central, incluindo leitores gerais dos guardiões. */
 export async function exigirCentral(eventoId: string): Promise<
-  { u: Usuario & { perfil: NonNullable<Usuario["perfil"]> }; evento: Evento; gestao: boolean; erro?: undefined } | { erro: string }
+  { u: Usuario; evento: Evento; gestao: boolean; somenteLeitura?: boolean; erro?: undefined } | { erro: string }
 > {
-  const u = await exigir();
+  const atual = await getUsuario();
+  if (!atual) return { erro: "Entre novamente para acessar a Central." };
   const evento = await getEvento(eventoId);
   if (!evento) return { erro: "Evento não encontrado." };
-  return { u, evento, gestao: true };
+  if (pode(atual, PODE.editarEventos)) return { u: atual, evento, gestao: true };
+  if (await guardiaoEmGestao(atual, evento)) return { u: atual, evento, gestao: true };
+  if (await guardiaoComLeituraGeral(atual)) return { u: atual, evento, gestao: false, somenteLeitura: true };
+  const guardioes = await guardioesDoEvento(evento);
+  if ((evento.mestres ?? []).includes(atual.id) || guardioes.includes(atual.id)) return { u: atual, evento, gestao: false };
+  return { erro: "Você não tem acesso à Central deste ritual." };
 }

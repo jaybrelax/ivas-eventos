@@ -8,7 +8,7 @@ import {
   Gift, ImagePlus, MessageCircle, QrCode, Receipt, ShieldCheck, Ticket, Upload, X,
 } from "lucide-react";
 import { CartaoPix } from "./CartaoPix";
-import { confirmarParticipacaoAction, contribuirNaHoraAction, informarPagamentoAction, usarBonusAniversarioAction, usarCreditoDoParticipanteAction } from "@/app/eventos/inscricao-actions";
+import { anexarComprovanteAction, confirmarParticipacaoAction, contribuirNaHoraAction, informarPagamentoAction, usarBonusAniversarioAction, usarCreditoDoParticipanteAction } from "@/app/eventos/inscricao-actions";
 import type { ChavePix, SituacaoPagamento } from "@/lib/types";
 import { useImagem } from "@/components/useImagem";
 import { BotaoGoogle } from "@/components/BotaoGoogle";
@@ -18,6 +18,7 @@ type MinhaInscricao = {
   id: string;
   situacao: "confirmada" | "espera";
   pagamento: SituacaoPagamento;
+  temComprovante?: boolean;
   posicaoEspera?: number | null;
 } | null;
 
@@ -97,7 +98,7 @@ export function BotaoParticipar({
 }: Props) {
   const [aberto, setAberto] = useState(false);
   // Etapa de anexar o comprovante (vem de "Já fiz a contribuição" ou do link "Avisar contribuição")
-  const [pagando, setPagando] = useState(false);
+  const [pagando, setPagando] = useState(abrirNoComprovante);
   const [mostrarResultado, setMostrarResultado] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const fechar = () => { setAberto(false); setPagando(false); setMostrarResultado(false); };
@@ -108,6 +109,10 @@ export function BotaoParticipar({
       top: 0,
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
     }));
+  };
+  const abrirComprovanteAgora = () => {
+    setMostrarResultado(false);
+    setPagando(true);
   };
 
   // A página tem mais de um botão de participar: só o primeiro a carregar abre a janela (ela sai num portal, então aparece igual).
@@ -151,7 +156,11 @@ export function BotaoParticipar({
   const exigeContribuicao = ehRitual && !!valorContribuicao && valorContribuicao > 0;
   const podeEscolherBonus = !!bonusAniversario?.disponivel && minhaInscricao?.situacao === "confirmada" &&
     ["pendente", "na_hora", "credito"].includes(minhaInscricao.pagamento);
-  const etapa = !logado || !minhaInscricao ? "participacao" : (exigeContribuicao && minhaInscricao.pagamento === "pendente" || podeEscolherBonus) && !mostrarResultado
+  const podeAnexarComprovante = minhaInscricao?.situacao === "confirmada" &&
+    !minhaInscricao.temComprovante && ["pendente", "informado", "na_hora"].includes(minhaInscricao.pagamento);
+  const etapa = !logado || !minhaInscricao ? "participacao" : (minhaInscricao.situacao === "confirmada" && (
+    exigeContribuicao && minhaInscricao.pagamento === "pendente" || podeEscolherBonus || (pagando && podeAnexarComprovante)
+  )) && !mostrarResultado
     ? "contribuicao" : "resultado";
   const miniaturaId = etapa === "resultado" ? fotoLocal ?? capaEvento : capaEvento ?? fotoLocal;
   const miniaturaAlt = miniaturaId === fotoLocal ? "Foto do local" : "Capa do evento";
@@ -232,6 +241,7 @@ export function BotaoParticipar({
                   inscricaoId={minhaInscricao.id}
                   valorContribuicao={valorContribuicao ?? 0}
                   pagamentoAtual={minhaInscricao.pagamento}
+                  temComprovante={!!minhaInscricao.temComprovante}
                   bonusAniversario={bonusAniversario}
                   creditosDisponiveis={creditos?.disponiveis ?? 0}
                   chavePix={chavePix}
@@ -249,7 +259,14 @@ export function BotaoParticipar({
             )}
 
             {etapa === "resultado" && (
-              <button type="button" onClick={fechar} className="btn-primario mt-5 w-full">Fechar</button>
+              <>
+                {minhaInscricao?.situacao === "confirmada" && minhaInscricao.pagamento === "informado" && !minhaInscricao.temComprovante && (
+                  <button type="button" onClick={abrirComprovanteAgora} className="btn-secundario mt-5 w-full">
+                    <ImagePlus size={16} /> Anexar comprovante agora
+                  </button>
+                )}
+                <button type="button" onClick={fechar} className="btn-primario mt-3 w-full">Fechar</button>
+              </>
             )}
           </div>
         </div>,
@@ -431,7 +448,9 @@ function StatusInscricao({ inscricao }: { inscricao: NonNullable<MinhaInscricao>
       {confirmada && <p className="animate-surgir text-lg font-bold text-emerald-800 [animation-delay:0.9s]">Presença confirmada!</p>}
       <p className={`text-sm ${confirmada ? "animate-surgir text-stone-600 [animation-delay:1s]" : "font-semibold text-stone-800"}`}>
         {confirmada
-          ? "Você está confirmado(a) neste evento."
+          ? inscricao.pagamento === "informado"
+            ? "Sua contribuição foi informada e aguarda a conferência da coordenação."
+            : "Você está confirmado(a) neste evento."
           : `Você está na lista de espera${inscricao.posicaoEspera ? ` (posição ${inscricao.posicaoEspera})` : ""}. Entra sozinho(a) se alguém sair.`}
       </p>
     </div>
@@ -439,9 +458,10 @@ function StatusInscricao({ inscricao }: { inscricao: NonNullable<MinhaInscricao>
 }
 
 function PagamentoBloco({
-  eventoId, inscricaoId, valorContribuicao, pagamentoAtual, bonusAniversario, creditosDisponiveis, chavePix, abrirForm, setAbrirForm, onContribuicaoConcluida,
+  eventoId, inscricaoId, valorContribuicao, pagamentoAtual, temComprovante, bonusAniversario, creditosDisponiveis, chavePix, abrirForm, setAbrirForm, onContribuicaoConcluida,
 }: {
   eventoId: string; inscricaoId: string; valorContribuicao: number; pagamentoAtual: SituacaoPagamento;
+  temComprovante: boolean;
   bonusAniversario: { disponivel: boolean; mesNome: string | null } | null; creditosDisponiveis: number;
   chavePix?: ChavePix | null; abrirForm: boolean; setAbrirForm: (v: boolean) => void; onContribuicaoConcluida: () => void;
 }) {
@@ -451,6 +471,7 @@ function PagamentoBloco({
   const [mostrarPix, setMostrarPix] = useState(false);
   const [naHoraSelecionada, setNaHoraSelecionada] = useState(false);
   const { local, erro: erroFoto, otimizando, escolher } = useImagem("comprovante");
+  const podeAnexar = !temComprovante && ["pendente", "informado", "na_hora"].includes(pagamentoAtual);
 
   const cabecalho = (
     <p className="flex items-center justify-between text-sm font-semibold text-stone-800">
@@ -465,7 +486,7 @@ function PagamentoBloco({
     return (
       <div className="space-y-3 rounded-2xl border border-ouro-200/80 bg-gradient-to-br from-ouro-50/60 to-white p-4">
         {cabecalho}
-        <p className="text-xs text-stone-500">Escolha como deseja confirmar sua participação:</p>
+        <p className="text-xs text-stone-500">Escolha como deseja registrar a contribuição:</p>
 
         <div className="space-y-2">
           {bonusAniversario?.disponivel && (
@@ -517,10 +538,18 @@ function PagamentoBloco({
           {mostrarPix && (
             <div className="space-y-2.5">
               {chavePix ? <CartaoPix chave={chavePix} valor={valorContribuicao} exibirChave={false} /> : <p className="rounded-xl bg-stone-50 px-3.5 py-2.5 text-xs text-stone-600 ring-1 ring-stone-200">A chave Pix ainda não foi cadastrada. Fale com a coordenação.</p>}
-              <p className="text-xs text-stone-500">Depois de contribuir pelo Pix, toque em Finalizar.</p>
+              <p className="text-xs text-stone-500">Você pode anexar o comprovante agora ou informar sem anexo e enviá-lo depois em Minha conta → Participações.</p>
               <button
                 type="button"
-                disabled={pendente || !chavePix}
+                disabled={pendente || !podeAnexar}
+                onClick={() => { setNaHoraSelecionada(false); setAbrirForm(true); }}
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-50"
+              >
+                <ImagePlus size={16} /> Anexar comprovante do Pix
+              </button>
+              <button
+                type="button"
+                disabled={pendente || !chavePix || pagamentoAtual === "informado" || temComprovante}
                 onClick={() =>
                   iniciar(async () => {
                     const fd = new FormData();
@@ -532,7 +561,7 @@ function PagamentoBloco({
                 }
                 className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60"
               >
-                {pendente ? <><Upload size={15} className="animate-pulse" /> Finalizando…</> : <><Check size={17} strokeWidth={2.6} /> Finalizar</>}
+                {pendente ? <><Upload size={15} className="animate-pulse" /> Enviando…</> : <><Check size={17} strokeWidth={2.6} /> Informar sem comprovante</>}
               </button>
             </div>
           )}
@@ -580,7 +609,7 @@ function PagamentoBloco({
     );
   }
 
-  // Já fiz a contribuição: anexar o comprovante. Cancelar e enviar ficam fora do cartão.
+  // Comprovante enviado junto ao aviso ou anexado depois pela inscrição.
   return (
     <form
       className="space-y-3"
@@ -589,7 +618,9 @@ function PagamentoBloco({
         const fd = new FormData(e.currentTarget);
         fd.set("valor", String(valorContribuicao));
         iniciar(async () => {
-          const r = await informarPagamentoAction(eventoId, inscricaoId, fd);
+          const r = pagamentoAtual === "informado"
+            ? await anexarComprovanteAction(eventoId, inscricaoId, fd)
+            : await informarPagamentoAction(eventoId, inscricaoId, fd);
           setMsg(r);
           if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
         });

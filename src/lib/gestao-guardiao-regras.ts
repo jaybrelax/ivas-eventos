@@ -16,6 +16,12 @@ export function lerEscopoMestre(i: { gestao_mestre_escopo?: string | null }): Es
 
 export type RegrasGestaoGuardiao = { ativa: boolean; horas: number };
 
+export type AcessoLeituraGuardiao = { leituraTodos: boolean; verDosagens: boolean; verFinanceiro: boolean };
+export function lerAcessoLeituraGuardiao(i: { gestao_guardiao_leitura_todos?: boolean | null; gestao_guardiao_ver_dosagens?: boolean | null; gestao_guardiao_ver_financeiro?: boolean | null }): AcessoLeituraGuardiao {
+  const leituraTodos = i.gestao_guardiao_leitura_todos === true;
+  return { leituraTodos, verDosagens: leituraTodos && i.gestao_guardiao_ver_dosagens === true, verFinanceiro: leituraTodos && i.gestao_guardiao_ver_financeiro === true };
+}
+
 /** Lê as regras do Instituto; colunas ausentes ou inválidas viram o padrão (ligada, 48 h). */
 export function lerRegrasGestaoGuardiao(i: { gestao_guardiao_ativa?: boolean | null; gestao_guardiao_horas?: number | null }): RegrasGestaoGuardiao {
   const bruto = Number(i.gestao_guardiao_horas);

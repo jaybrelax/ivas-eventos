@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowUpRight, CalendarDays, Globe, Lock, MapPin, MessageCircle, Phone } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Globe, MapPin, MessageCircle, Phone } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Endereco, Instituto, Rede, Telefone } from "@/lib/types";
 import { MarcaInstituto } from "@/components/Marca";
@@ -142,7 +142,7 @@ export function RodapePublico({
       </div>
       </>)}
 
-      {/* Socket: direitos, lema e acesso restrito */}
+      {/* Socket: direitos, lema e links legais */}
       <div className="relative border-t border-white/10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-4 py-5 text-xs text-white/45 sm:flex-row sm:px-6 lg:px-8">
           <p className="text-center sm:text-left">© {ano} {instituto.nome}</p>
@@ -152,9 +152,6 @@ export function RodapePublico({
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <Link href="/privacidade" className="transition hover:text-ouro-300">Privacidade</Link>
             <Link href="/termos" className="transition hover:text-ouro-300">Termos de uso</Link>
-            <Link href="/login" className="inline-flex items-center gap-1.5 transition hover:text-ouro-300">
-              <Lock size={12} /> Área restrita
-            </Link>
           </div>
         </div>
       </div>

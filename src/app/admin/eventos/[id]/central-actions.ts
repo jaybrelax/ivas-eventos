@@ -72,7 +72,7 @@ export async function criarPost(eventoId: string, entrada: Entrada): Promise<Res
   if (g.erro !== undefined) return { erro: g.erro };
   const tipo = validarTipo(String(entrada?.tipo ?? ""));
   if (!tipo) return { erro: "Escolha o tipo do post." };
-  const pessoas = await pessoasMencionaveis(g.evento);
+  const pessoas = await pessoasMencionaveis(g.evento, g.somenteLeitura);
   const { texto, mencoes } = filtrarMencoes(String(entrada?.texto ?? ""), pessoas.map((p) => p.id));
   const pedidas = [...new Set((Array.isArray(entrada?.imagens) ? entrada.imagens : []).map(String))].slice(0, IMAGENS_MAX);
   if (!texto && !pedidas.length) return { erro: "Escreva algo ou anexe uma foto." };
@@ -101,6 +101,7 @@ export async function criarPost(eventoId: string, entrada: Entrada): Promise<Res
 export async function editarPost(eventoId: string, postId: string, entrada: Entrada): Promise<Resultado> {
   const g = await exigirCentral(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
+  if (g.somenteLeitura) return { erro: "Seu acesso permite publicar na Central, mas não editar publicações." };
   const post = await lerPost(eventoId, postId);
   if (!post) return { erro: "Post não encontrado." };
   if (post.autor_id !== g.u.id) return { erro: "Só quem publicou pode editar." };
@@ -120,6 +121,7 @@ export async function editarPost(eventoId: string, postId: string, entrada: Entr
 export async function excluirPost(eventoId: string, postId: string): Promise<Resultado> {
   const g = await exigirCentral(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
+  if (g.somenteLeitura) return { erro: "Seu acesso permite publicar na Central, mas não excluir publicações." };
   const post = await lerPost(eventoId, postId);
   if (!post) return { erro: "Post não encontrado." };
   if (post.autor_id !== g.u.id && !g.gestao) return { erro: "Só quem publicou ou a coordenação pode excluir." };
@@ -133,6 +135,7 @@ export async function excluirPost(eventoId: string, postId: string): Promise<Res
 export async function concluirTarefa(eventoId: string, postId: string, feito: boolean): Promise<Resultado> {
   const g = await exigirCentral(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
+  if (g.somenteLeitura) return { erro: "Seu acesso permite publicar na Central, mas não alterar tarefas." };
   const post = await lerPost(eventoId, postId);
   if (!post || post.tipo !== "tarefa") return { erro: "Tarefa não encontrada." };
   const data = feito ? { concluida_por: g.u.id, concluida_em: new Date().toISOString() } : { concluida_por: null, concluida_em: null };
@@ -145,6 +148,7 @@ export async function concluirTarefa(eventoId: string, postId: string, feito: bo
 export async function fixarPost(eventoId: string, postId: string, fixado: boolean): Promise<Resultado> {
   const g = await exigirCentral(eventoId);
   if (g.erro !== undefined) return { erro: g.erro };
+  if (g.somenteLeitura) return { erro: "Seu acesso permite publicar na Central, mas não fixar publicações." };
   if (!g.gestao) return { erro: "Só a coordenação do evento pode fixar." };
   const post = await lerPost(eventoId, postId);
   if (!post) return { erro: "Post não encontrado." };

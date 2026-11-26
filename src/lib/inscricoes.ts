@@ -10,7 +10,7 @@ import { hoje } from "./format";
 import { HORAS_LIMITE_CANCELAMENTO, inicioDe, prazoCancelamento } from "./guarnicao";
 import { urlPublicaEvento } from "./links";
 import { registrarHistorico, type AcaoHistorico } from "./historico-inscricoes";
-import { participantePodeInformar, transicaoPermitida, type DestinoCoordenacao } from "./pagamento-regras";
+import { participantePodeAnexarComprovante, participantePodeInformar, transicaoPermitida, type DestinoCoordenacao } from "./pagamento-regras";
 import type { Evento, FormaPagamento, Inscricao, SituacaoInscricao, SituacaoPagamento, TipoEvento } from "./types";
 
 /**
@@ -289,6 +289,24 @@ export async function excluirInscricao(evento: Evento, inscricaoId: string, porI
   return { ok: "Participação excluída." };
 }
 
+/** Confere a inscrição antes de qualquer upload de comprovante feito pelo próprio participante. */
+export async function validarInscricaoParaPagamento(inscricaoId: string, usuarioId: string, eventoId: string) {
+  const { tablesDB } = createAdminClient();
+  const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
+  if (!row || row.usuario_id !== usuarioId || row.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." } as const;
+  const bloqueio = participantePodeInformar(row);
+  return bloqueio ? { erro: bloqueio } as const : { inscricao: row } as const;
+}
+
+/** Confere dono, evento e situação antes de persistir um arquivo de comprovante. */
+export async function validarAnexoComprovante(inscricaoId: string, usuarioId: string, eventoId: string) {
+  const { tablesDB } = createAdminClient();
+  const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
+  if (!row || row.usuario_id !== usuarioId || row.evento_id !== eventoId) return { erro: "Inscrição não encontrada neste evento." } as const;
+  const bloqueio = participantePodeAnexarComprovante(row);
+  return bloqueio ? { erro: bloqueio } as const : { inscricao: row } as const;
+}
+
 /** O próprio participante avisa que contribuiu (comprovante opcional); fica aguardando confirmação da coordenação. */
 export async function informarPagamento(inscricaoId: string, usuarioId: string, valor: number | null, comprovanteFileId: string | null): Promise<Resultado> {
   const { tablesDB } = createAdminClient();
@@ -305,6 +323,46 @@ export async function informarPagamento(inscricaoId: string, usuarioId: string, 
     pagamento_de: row.pagamento, pagamento_para: "informado", valor, por: usuarioId,
   });
   return { ok: "Contribuição informada! A coordenação vai confirmar em breve." };
+}
+
+/** Anexa o comprovante depois de informar o Pix; se ainda estava pendente, também registra o aviso. */
+export async function anexarComprovantePagamento(
+  inscricaoId: string, usuarioId: string, comprovanteFileId: string, valor: number | null,
+): Promise<Resultado> {
+  const { tablesDB } = createAdminClient();
+  const row = await tablesDB.getRow({ ...base, rowId: inscricaoId }).catch(() => null) as unknown as Inscricao | null;
+  if (!row || row.usuario_id !== usuarioId) return { erro: "Inscrição não encontrada." };
+  const bloqueio = participantePodeAnexarComprovante(row);
+  if (bloqueio) return { erro: bloqueio };
+
+  const informarAgora = row.pagamento !== "informado";
+  try {
+    await tablesDB.updateRow({
+      ...base,
+      rowId: inscricaoId,
+      data: {
+        comprovante_file_id: comprovanteFileId,
+        alterado_por: usuarioId,
+        ...(informarAgora ? { pagamento: "informado", valor, informado_em: new Date().toISOString() } : {}),
+      },
+    });
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "";
+    if (/Unknown attribute/i.test(msg) && /comprovante_file_id/.test(msg)) return { erro: "O envio de comprovantes ainda não está ativo no banco de dados. Avise a coordenação." };
+    throw e;
+  }
+
+  await registrarHistorico({
+    inscricao_id: inscricaoId,
+    evento_id: row.evento_id,
+    usuario_id: usuarioId,
+    acao: informarAgora ? "pagamento_informado" : "comprovante_anexado",
+    pagamento_de: row.pagamento,
+    pagamento_para: "informado",
+    valor: informarAgora ? valor : row.valor,
+    por: usuarioId,
+  });
+  return { ok: informarAgora ? "Comprovante enviado. A coordenação vai confirmar em breve." : "Comprovante anexado à sua inscrição." };
 }
 
 /** O participante avisa que vai contribuir no dia do ritual (ou desfaz o aviso e volta a "pendente"). */

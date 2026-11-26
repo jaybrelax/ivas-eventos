@@ -16,6 +16,8 @@ export type AbaEvento = {
   detalheSempre?: boolean;
   /** Só existe no celular (menu do rodapé); no computador o conteúdo já está na página (ex.: Financeiro). */
   soMobile?: boolean;
+  /** Monta o painel somente quando a aba é aberta pela primeira vez. */
+  sobDemanda?: boolean;
   painel: ReactNode;
 };
 
@@ -30,6 +32,7 @@ export const ID_PAGINA_EVENTO = "pagina-evento";
 export function AbasEvento({ abas, inicial }: { abas: AbaEvento[]; inicial?: string }) {
   const base = useId();
   const [ativa, setAtiva] = useState(abas.find((a) => a.id === inicial)?.id ?? abas[0].id);
+  const [visitadas, setVisitadas] = useState<Set<string>>(() => new Set([abas.find((a) => a.id === inicial)?.id ?? abas[0].id]));
   const [montado, setMontado] = useState(false);
   const botoes = useRef<(HTMLButtonElement | null)[]>([]);
   const deTopo = abas.filter((a) => !a.soMobile);
@@ -39,7 +42,7 @@ export function AbasEvento({ abas, inicial }: { abas: AbaEvento[]; inicial?: str
   useEffect(() => {
     setMontado(true);
     const id = new URLSearchParams(window.location.search).get("aba");
-    if (id && abas.some((a) => a.id === id)) setAtiva(id);
+    if (id && abas.some((a) => a.id === id)) { setAtiva(id); setVisitadas((v) => new Set(v).add(id)); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -74,6 +77,7 @@ export function AbasEvento({ abas, inicial }: { abas: AbaEvento[]; inicial?: str
     const para = abas.findIndex((a) => a.id === id);
     if (para !== de) setDirecao(para > de ? 1 : -1);
     setAtiva(id);
+    setVisitadas((v) => new Set(v).add(id));
     const url = new URL(window.location.href);
     if (id === abas[0].id) url.searchParams.delete("aba"); else url.searchParams.set("aba", id);
     window.history.replaceState(null, "", url);
@@ -153,7 +157,7 @@ export function AbasEvento({ abas, inicial }: { abas: AbaEvento[]; inicial?: str
             hidden={!visivel && !substituta}
             className={`${(visivel || substituta) && direcao ? (direcao > 0 ? "aba-da-direita" : "aba-da-esquerda") : ""} ${substituta ? "max-md:hidden" : ""} ${visivel && a.soMobile ? "md:hidden" : ""}`}
           >
-            {a.painel}
+            {(!a.sobDemanda || visitadas.has(a.id)) ? a.painel : null}
           </div>
         );
       })}

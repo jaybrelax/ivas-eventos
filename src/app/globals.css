@@ -497,6 +497,11 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
 }
 
 /* Borda animada: um brilho em degradê (ouro, coral e lilás) percorre a borda continuamente. */
+@keyframes gradiente-suave {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+.animate-gradiente-suave { animation: gradiente-suave 4s ease-in-out infinite; }
 @property --borda-angulo {
   syntax: "<angle>";
   initial-value: 0deg;

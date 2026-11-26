@@ -13,7 +13,9 @@ export function proxy(request: NextRequest) {
     if (destino !== "/") login.searchParams.set("next", destino);
     return NextResponse.redirect(login);
   }
-  return NextResponse.next();
+  const headers = new Headers(request.headers);
+  headers.set("x-ivas-pathname", request.nextUrl.pathname);
+  return NextResponse.next({ request: { headers } });
 }
 
 export const config = {

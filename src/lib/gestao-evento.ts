@@ -1,9 +1,9 @@
 import "server-only";
-import { exigir, pode, type Usuario } from "./auth";
+import { exigir, getUsuario, pode, type Usuario } from "./auth";
 import type { PerfilAdmin } from "./acesso-admin";
 import { PODE } from "./config";
 import { getEvento, getInstituto } from "./data";
-import { dentroDaJanelaDeGestao, lerEscopoMestre, lerRegrasGestaoGuardiao } from "./gestao-guardiao-regras";
+import { dentroDaJanelaDeGestao, lerAcessoLeituraGuardiao, lerEscopoMestre, lerRegrasGestaoGuardiao } from "./gestao-guardiao-regras";
 import type { Evento } from "./types";
 
 /**
@@ -27,6 +27,14 @@ export async function regrasGestaoGuardiao() {
   return lerRegrasGestaoGuardiao(await getInstituto());
 }
 
+export async function acessoLeituraGuardiao() {
+  return lerAcessoLeituraGuardiao(await getInstituto());
+}
+
+export async function guardiaoComLeituraGeral(u: Pick<Usuario, "id" | "funcaoRitual"> | null) {
+  return !!u && u.funcaoRitual === "guardiao" && (await acessoLeituraGuardiao()).leituraTodos;
+}
+
 /**
  * Guardião escalado neste ritual, dentro do período de gestão (dia do ritual + a duração definida pelo admin):
  * ganha o acesso de gestão daquele evento (financeiro, consumo, central e participantes). Fora disso, nada muda.
@@ -36,6 +44,18 @@ export async function guardiaoEmGestao(u: Pick<Usuario, "id" | "funcaoRitual"> |
   if (!dentroDaJanelaDeGestao(evento, await regrasGestaoGuardiao())) return false;
   const { guardioesDoEvento } = await import("./central");
   return (await guardioesDoEvento(evento)).includes(u.id);
+}
+
+/** Gestão operacional do ritual: admin/coordenação ou guardião escalado dentro da janela definida. */
+export async function exigirGestaoOperacionalDoEvento(eventoId: string): Promise<
+  { u: Usuario; evento: Evento; erro?: undefined } | { erro: string }
+> {
+  const u = await getUsuario();
+  if (!u) return { erro: "Entre novamente para gerenciar este ritual." };
+  const evento = await getEvento(eventoId);
+  if (!evento) return { erro: "Evento não encontrado." };
+  if (pode(u, PODE.editarEventos) || await guardiaoEmGestao(u, evento)) return { u, evento };
+  return { erro: "Você não tem permissão para gerenciar este ritual ou o período de acesso terminou." };
 }
 
 /** Mestre com a gestão liberada a todos os mestres (escopo "todos" em Configurações). Vale em qualquer ritual, sem prazo. */

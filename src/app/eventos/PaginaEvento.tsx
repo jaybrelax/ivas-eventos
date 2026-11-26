@@ -144,6 +144,7 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
         id: minhaRaw.$id,
         situacao: minhaRaw.situacao as "confirmada" | "espera",
         pagamento: minhaRaw.pagamento,
+        temComprovante: !!minhaRaw.comprovante_file_id,
         posicaoEspera: minhaRaw.situacao === "espera" ? filaEspera.findIndex((i) => i.$id === minhaRaw.$id) + 1 : null,
       }
     : null;

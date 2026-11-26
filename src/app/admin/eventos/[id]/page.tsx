@@ -1,24 +1,22 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, CalendarDays, ChevronRight, CircleDollarSign, Clock, Crown, ExternalLink, Hash, MapPin, Pencil, Shield } from "lucide-react";
 import { CabecalhoAba } from "./CabecalhoAba";
 import type { Sexo } from "@/lib/types";
-import { exigir, pode } from "@/lib/auth";
+import { exigir, getUsuario, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, getEvento } from "@/lib/data";
 import { contatosDeUsuarios, listarEquipe } from "@/lib/usuarios";
 import { dataPorExtenso, formatarIdRitual, partesData } from "@/lib/format";
 import { urlImagem, urlPublicaEvento } from "@/lib/links";
 import { SITE_URL } from "@/lib/site";
-import { podeGerenciarEvento, podeIsentarContribuicao } from "@/lib/gestao-evento";
+import { acessoLeituraGuardiao, guardiaoEmGestao, podeGerenciarEvento, podeIsentarContribuicao } from "@/lib/gestao-evento";
 import { AtualizarAoVivo } from "./AtualizarAoVivo";
 import { ConsumoMedicina, type ConsumoPessoa } from "./ConsumoMedicina";
 import { AbasEvento, ID_PAGINA_EVENTO } from "./AbasEvento";
 import { CentralEvento } from "./CentralEvento";
 import { dadosCentral } from "./central-dados";
-import { resumoDepoimentos } from "@/lib/depoimentos";
-import { DepoimentosRitual } from "@/components/DepoimentosRitual";
-import { Suspense } from "react";
+import { CarregarAvaliacoesRitual } from "@/components/CarregarAvaliacoesRitual";
 import { guardioesDoEvento, podeVerCentral } from "@/lib/central";
 import { lerDosesEquipe } from "@/lib/doses";
 import { MenuEventoMobile } from "./MenuEventoMobile";
@@ -36,16 +34,12 @@ import { dadosParticipantes } from "../participantes-dados";
 import { resumoContribuicoes } from "./EstatisticasEvento";
 import { ListaPresenca, type PessoaPresenca } from "./ListaPresenca";
 import { MenuEquipeCard, MenuEquipeMobile } from "./GerenciarEquipe";
+import { LeituraGuardiaoRitual } from "./LeituraGuardiaoRitual";
 
 type MembroEquipe = { id: string; nome: string; foto: string | null; sexo: Sexo | null };
 
 /** Superfície dos cards a partir do tablet: vidro claro, cantos generosos, borda e sombra suaves. */
 const SUPERFICIE = "md:rounded-[22px] md:border-white/70 md:bg-white/75 md:shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-14px_rgb(20_42_29/0.2)] md:ring-1 md:ring-black/[0.04] md:backdrop-blur-2xl md:backdrop-saturate-[1.8]";
-
-async function DepoimentosRitualLazy({ eventoId }: { eventoId: string }) {
-  const resumo = await resumoDepoimentos(eventoId);
-  return <DepoimentosRitual resumo={resumo} />;
-}
 
 /**
  * Visualização do evento para a equipe, numa página só: capa com data e local, estatísticas
@@ -54,23 +48,74 @@ async function DepoimentosRitualLazy({ eventoId }: { eventoId: string }) {
  * (descrição, como participar, contribuição) ficam na página pública. Editar fica em /editar.
  */
 export default async function VerEvento({ params, searchParams }: PageProps<"/admin/eventos/[id]">) {
-  const sessao = await exigir();
+  const atual = await getUsuario();
+  if (!atual) redirect("/login");
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const [evento, { tipos, enderecos, instituto, pix }, equipe] = await Promise.all([getEvento(id), getDadosInstituto(), listarEquipe()]);
   if (!evento) notFound();
 
+  // Guardião sem perfil administrativo: primeiro verifica gestão por escala e prazo; se não tiver,
+  // só pode entrar quando a leitura geral estiver habilitada.
+  const acessoLeitura = await acessoLeituraGuardiao();
+  const perfilGestor = pode(atual, PODE.editarEventos);
+  const gestaoGuardiao = !perfilGestor && await guardiaoEmGestao(atual, evento);
+  const somenteLeitura = !perfilGestor && !gestaoGuardiao;
+  if (somenteLeitura) {
+    if (atual.funcaoRitual !== "guardiao" || !acessoLeitura.leituraTodos) redirect("/eventos");
+    const tipoLeitura = tipos.find((t) => t.$id === evento.tipo_id);
+    const [guardioesIds, dados] = await Promise.all([
+      guardioesDoEvento(evento),
+      dadosParticipantes(evento, tipoLeitura, instituto.valor_contribuicao, false, undefined, false, null, acessoLeitura),
+    ]);
+    const equipePorId = new Map(equipe.filter((p) => !p.mock).map((p) => [p.$id, p]));
+    const membrosPresenca = (ids: string[], papel: "mestre" | "guardiao") => ids.flatMap((memberId) => {
+      const p = equipePorId.get(memberId);
+      return p ? [{ id: p.$id, nome: p.nome, foto: p.foto, papel }] : [];
+    });
+    const mestresLeitura = membrosPresenca(evento.mestres ?? [], "mestre");
+    const guardioesLeitura = membrosPresenca(guardioesIds, "guardiao");
+    const confirmados = dados?.confirmados ?? [];
+    const equipeDoses = lerDosesEquipe(evento.doses_equipe);
+    const dosesPorId = new Map<string, { id: string; nome: string; foto: string | null; papel: "mestre" | "guardiao" | "participante"; doses: import("@/lib/doses").Dose[] }>();
+    if (acessoLeitura.verDosagens) {
+      for (const p of [...mestresLeitura, ...guardioesLeitura]) {
+        const inscricao = confirmados.find((c) => c.id === p.id);
+        const doses = inscricao?.doses?.length ? inscricao.doses : (equipeDoses[p.id] ?? []);
+        if (doses.length) dosesPorId.set(p.id, { ...p, doses });
+      }
+      for (const p of confirmados) {
+        if (dosesPorId.has(p.id)) continue;
+        const doses = p.doses ?? [];
+        if (doses.length) dosesPorId.set(p.id, { id: p.id, nome: p.nome, foto: p.foto, papel: "participante", doses });
+      }
+    }
+    const centralLeitura = await dadosCentral(evento, atual, false, true);
+    const endLeitura = enderecos.find((e) => e.$id === evento.endereco_id);
+    return (
+      <LeituraGuardiaoRitual
+        eventoId={evento.$id} titulo={evento.titulo} data={dataPorExtenso(evento.data)} horario={evento.hora_inicio}
+        local={endLeitura?.apelido ?? evento.endereco_livre ?? "Local a definir"}
+        mestres={mestresLeitura} guardioes={guardioesLeitura} participantes={confirmados}
+        doses={[...dosesPorId.values()]} verDosagens={acessoLeitura.verDosagens}
+        financeiro={acessoLeitura.verFinanceiro ? confirmados : null} central={centralLeitura}
+      />
+    );
+  }
+
+  const sessao = perfilGestor ? await exigir() : atual;
+
   const u = sessao;
   const editor = podeGerenciarEvento(u, evento);
-  const gerenciar = editor;
+  const gerenciar = editor || gestaoGuardiao;
   const tipo = tipos.find((t) => t.$id === evento.tipo_id);
   const reuniaoTipo = ehReuniao(tipo);
   const [guarnicao, reuniao, participantes, guardioesDoRitual] = await Promise.all([
     temGuarnicao(tipo) ? dadosGuarnicao(evento, u, gerenciar) : null,
     reuniaoTipo ? dadosReuniao(evento, u.id, true) : null,
-    dadosParticipantes(evento, tipo, instituto.valor_contribuicao, gerenciar, { estado: instituto.estado, cidade: instituto.cidade }, podeIsentarContribuicao(u, evento), pix.find((c) => c.padrao) ?? pix[0] ?? null),
+    dadosParticipantes(evento, tipo, instituto.valor_contribuicao, gerenciar, { estado: instituto.estado, cidade: instituto.cidade }, podeIsentarContribuicao(u, evento) || gestaoGuardiao, pix.find((c) => c.padrao) ?? pix[0] ?? null),
     gerenciar ? [] : guardioesDoEvento(evento),
   ]);
-  // A Central nesta área é acessível apenas a admin e coordenação.
+  // A Central é liberada para a gestão do ritual e para mestres/guardiões do evento conforme as regras próprias.
   const central = gerenciar || podeVerCentral(u, evento, guardioesDoRitual) ? await dadosCentral(evento, u, gerenciar) : null;
   const podeLerDepoimentos = u.perfil === "admin" || u.perfil === "coordenador";
   const abaCentral = central && {
@@ -80,8 +125,8 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
     painel: <CentralEvento eventoId={evento.$id} dados={central} />,
   };
   const abaAvaliacoes = gerenciar && podeLerDepoimentos ? {
-    id: "avaliacoes", rotulo: "Avaliações", icone: "avaliacoes" as const,
-    painel: <Suspense fallback={<div className="m-4 h-32 animate-pulse rounded-2xl bg-stone-100" aria-label="Carregando avaliações" />}><DepoimentosRitualLazy eventoId={evento.$id} /></Suspense>,
+    id: "avaliacoes", rotulo: "Avaliações", icone: "avaliacoes" as const, sobDemanda: true,
+    painel: <CarregarAvaliacoesRitual eventoId={evento.$id} />,
   } : null;
   const end = enderecos.find((e) => e.$id === evento.endereco_id);
   const caminhoPublico = urlPublicaEvento(evento, tipo);
@@ -320,7 +365,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         {participantes ? (
           <Participantes
             dados={{ ...participantes, linkPerfil: pode(u, PODE.editarEventos) }} semResumo embutido equipe={membros} guardioes={guardioesGerais} titulo="Lista de presença"
-            acoes={gerenciar ? (
+            acoes={editor ? (
               <MenuEquipeMobile
                 mestres={{ eventoId: evento.$id, equipe: equipe.filter((p) => !p.mock), inicial: evento.mestres ?? [] }}
                 guarnicao={guarnicao}
@@ -357,7 +402,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         {participantes ? (
           <Participantes
             dados={{ ...participantes, linkPerfil: pode(u, PODE.editarEventos) }} semResumo equipe={membros} guardioes={guardioesGerais} titulo="Lista de presença"
-            acoes={gerenciar ? (
+            acoes={editor ? (
               <MenuEquipeMobile
                 mestres={{ eventoId: evento.$id, equipe: equipe.filter((p) => !p.mock), inicial: evento.mestres ?? [] }}
                 guarnicao={guarnicao}
