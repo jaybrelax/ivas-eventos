@@ -1,13 +1,15 @@
 import "server-only";
 import { cache } from "react";
+import { createHash } from "node:crypto";
 import { AppwriteException, ID, Query } from "node-appwrite";
 import { createAdminClient } from "./appwrite";
 import { COMPROVANTES_BUCKET_ID, DB_ID, TABLES } from "./config";
 import {
   bloqueioCancelarPacote, bloqueioCessao, bloqueioEditarSituacao, calcularSaldo, consomeCredito, creditosParaRemover, ehDebito, ordemDeUso,
-  ordemDoCredito, podeReceberCredito, rotuloCredito, situacaoDoCredito, transicaoPacote, travaOrfa, type SaldoCredito,
+  limiteCessao, ordemDoCredito, podeReceberCredito, rotuloCredito, situacaoDoCredito, transicaoPacote, travaOrfa, type SaldoCredito,
 } from "./creditos-regras";
-import { listar, listarEventos, listarTipos, simples } from "./data";
+import { getInstituto, listar, listarEventos, listarTipos, simples } from "./data";
+import { lerPreferenciasCreditos } from "./creditos-preferencias";
 import { inicioDe } from "./guarnicao";
 import type {
   AcaoMovimento, Credito, Evento, Inscricao, MovimentoCredito, Pacote, PlanoPacote, SituacaoPagamento, TipoEvento,
@@ -610,24 +612,65 @@ export async function usuarioPorEmail(email: string): Promise<{ id: string; nome
  * crédito disponível (RN003). A equipe não cede nem devolve créditos.
  */
 export async function cederCredito(creditoId: string, deUsuarioId: string, paraUsuarioId: string, porId: string): Promise<ResultadoCredito> {
-  const c = await lerLinha<Credito>(T.creditos, creditoId);
-  if (!c) return { erro: "Crédito não encontrado." };
-  const bloqueio = bloqueioCessao(c, deUsuarioId, paraUsuarioId);
-  if (bloqueio) return { erro: bloqueio };
-  const voltaAoDono = paraUsuarioId === c.comprador_id;
-  await gravar(T.creditos, c.$id, voltaAoDono
-    ? { titular_id: paraUsuarioId, cedido_de: null, cedido_em: null }
-    : { titular_id: paraUsuarioId, cedido_de: c.titular_id, cedido_em: new Date().toISOString() });
-  // Se o crédito foi gasto no meio do caminho, desfaz a cessão: crédito usado não se transfere
-  const depois = await lerLinha<Credito>(T.creditos, c.$id);
-  if (depois?.situacao !== "disponivel") {
-    await gravar(T.creditos, c.$id, { titular_id: c.titular_id, cedido_de: c.cedido_de ?? null, cedido_em: c.cedido_em ?? null });
-    return { erro: "Este crédito acabou de ser utilizado e não pode mais ser cedido." };
+  return cederCreditos({ creditoId, quantidade: 1 }, deUsuarioId, paraUsuarioId, porId);
+}
+
+/** Uma trava compartilhada no banco serializa as cessões do mesmo doador, inclusive em instâncias diferentes. */
+export async function cederCreditos(selecao: { creditoId?: string; pacoteId?: string; quantidade: number }, de: string, para: string, por: string): Promise<ResultadoCredito> {
+  if (por !== de) return { erro: "Somente o titular pode ceder seus créditos." };
+  if (!Number.isInteger(selecao.quantidade) || selecao.quantidade < 1 || selecao.quantidade > 100) return { erro: "Escolha de 1 a 100 créditos inteiros." };
+  if (de === para) return { erro: "Você não pode ceder créditos para si mesmo." };
+  const travaId = createHash("sha256").update(de).digest("hex").slice(0, 32);
+  try {
+    await db().createRow({ databaseId: DB_ID, tableId: "travas_cessao", rowId: travaId, data: { ativa: true } });
+  } catch (e) {
+    if (e instanceof AppwriteException && e.code === 409) return { erro: "Outra cessão sua está em andamento. Aguarde e tente novamente." };
+    throw e;
   }
-  await registrarMovimento({
-    acao: "cessao", usuario_id: c.titular_id, credito_id: c.$id, pacote_id: c.pacote_id, de_usuario: c.titular_id, para_usuario: paraUsuarioId, por: porId,
-  });
-  return { ok: "Crédito cedido." };
+  try {
+    const preferencias = lerPreferenciasCreditos(await getInstituto());
+    if (!preferencias.cessaoAtiva) return { erro: "A cessão de créditos está desativada pelo Instituto." };
+    const { saldo, creditos } = await creditosESaldo(de);
+    const limite = limiteCessao(saldo.saldo);
+    if (selecao.quantidade > limite) return { erro: `Seu saldo atual é ${saldo.saldo}. Você pode ceder no máximo ${limite} crédito(s), metade do saldo arredondada para baixo.` };
+    const candidatos = creditos.filter((c) => (selecao.creditoId ? c.$id === selecao.creditoId : c.pacote_id === selecao.pacoteId) && !bloqueioCessao(c, de, para, preferencias.permitirRecessao)).sort((a, b) => a.numero - b.numero);
+    if (candidatos.length < selecao.quantidade) return { erro: "Não há créditos elegíveis suficientes. Atualize a página e confira os créditos disponíveis e as regras de cessão." };
+    let cedidos = 0;
+    for (const c of candidatos.slice(0, selecao.quantidade)) {
+      const r = await transferirCredito(c.$id, de, para, por, preferencias.permitirRecessao);
+      if (r.erro) return cedidos ? { ok: `${cedidos} crédito(s) cedido(s). ${r.erro}` } : r;
+      cedidos++;
+    }
+    return { ok: `${cedidos} crédito(s) cedido(s).` };
+  } finally {
+    await db().deleteRow({ databaseId: DB_ID, tableId: "travas_cessao", rowId: travaId });
+  }
+}
+
+async function transferirCredito(creditoId: string, deUsuarioId: string, paraUsuarioId: string, porId: string, permitirRecessao: boolean): Promise<ResultadoCredito> {
+  if (!(await travar(creditoId))) return { erro: "Este crédito está sendo utilizado. Atualize a página e tente novamente." };
+  try {
+    const c = await lerLinha<Credito>(T.creditos, creditoId);
+    if (!c) return { erro: "Crédito não encontrado." };
+    const bloqueio = bloqueioCessao(c, deUsuarioId, paraUsuarioId, permitirRecessao);
+    if (bloqueio) return { erro: bloqueio };
+    const voltaAoDono = paraUsuarioId === c.comprador_id;
+    await gravar(T.creditos, c.$id, voltaAoDono
+      ? { titular_id: paraUsuarioId, cedido_de: null, cedido_em: null }
+      : { titular_id: paraUsuarioId, cedido_de: c.titular_id, cedido_em: new Date().toISOString() });
+    // Confere também cancelamentos do pacote durante a cessão.
+    const depois = await lerLinha<Credito>(T.creditos, c.$id);
+    if (depois?.situacao !== "disponivel") {
+      await gravar(T.creditos, c.$id, { titular_id: c.titular_id, cedido_de: c.cedido_de ?? null, cedido_em: c.cedido_em ?? null });
+      return { erro: "Este crédito deixou de estar disponível e não pode mais ser cedido." };
+    }
+    await registrarMovimento({
+      acao: "cessao", usuario_id: c.titular_id, credito_id: c.$id, pacote_id: c.pacote_id, de_usuario: c.titular_id, para_usuario: paraUsuarioId, por: porId,
+    });
+    return { ok: "Crédito cedido." };
+  } finally {
+    if ((await lerLinha<Credito>(T.creditos, creditoId))?.situacao === "disponivel") await soltar(creditoId);
+  }
 }
 
 /** Quantos pacotes e créditos (fora os cancelados) a pessoa tem: registro financeiro que impede excluir a conta. */

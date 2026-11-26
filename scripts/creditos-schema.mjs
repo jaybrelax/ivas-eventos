@@ -15,6 +15,8 @@ export const ACOES_MOVIMENTO = [
 ];
 
 export const TABELAS_CREDITOS = {
+  // Travas de cessão por doador: somente servidor. Linhas existem apenas durante a operação.
+  travas_cessao: { nome: "Travas de cessão", colunas: [["boolean", "ativa", { required: true }]] },
   // Catálogo: o que o participante pode comprar (editado em Configurações)
   planos_pacote: {
     nome: "Planos de pacote",

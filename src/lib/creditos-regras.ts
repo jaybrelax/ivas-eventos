@@ -13,6 +13,11 @@ import type { SituacaoCredito, SituacaoInscricao, SituacaoPacote, SituacaoPagame
 /** Quantidade máxima de créditos de um pacote. */
 export const QUANTIDADE_MAXIMA = 100;
 
+/** Metade do saldo líquido atual; débitos reduzem a quantidade que pode ser cedida. */
+export function limiteCessao(saldo: number): number {
+  return Number.isFinite(saldo) ? Math.max(0, Math.floor(saldo / 2)) : 0;
+}
+
 type TipoParaCredito = { conta_como_ritual: boolean; aberto_publico: boolean; fechado_guardioes: boolean };
 type InscricaoParaCredito = { situacao: SituacaoInscricao; pagamento: SituacaoPagamento; credito_id?: string | null };
 type CreditoOrdenavel = { situacao: SituacaoCredito; ordem: number | null; numero: number; $createdAt?: string };
@@ -79,12 +84,13 @@ export function bloqueioCessao(
   c: { situacao: SituacaoCredito; titular_id: string; cedido_de?: string | null },
   de: string,
   para: string,
+  permitirRecessao = false,
 ): string | null {
   if (c.situacao === "utilizado") return "Crédito já utilizado não pode ser cedido.";
   if (c.situacao === "bloqueado") return "Este crédito ainda aguarda a confirmação do pagamento do pacote.";
   if (c.situacao === "cancelado") return "Este crédito foi cancelado.";
   if (c.titular_id !== de) return "Este crédito não é seu.";
-  if (c.cedido_de) return "Um crédito recebido por cessão não pode ser cedido de novo.";
+  if (c.cedido_de && !permitirRecessao) return "Um crédito recebido por cessão não pode ser cedido de novo.";
   if (c.titular_id === para) return "Essa pessoa já é a titular deste crédito.";
   return null;
 }

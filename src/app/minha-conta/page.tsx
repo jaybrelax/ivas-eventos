@@ -6,7 +6,9 @@ import { urlImagem } from "@/lib/links";
 import { creditosESaldo, historicoCreditos, pacotesComResumo, listarPlanos, saldoDoUsuario, type CreditoItem } from "@/lib/creditos";
 import { resumoBonusAniversario } from "@/lib/bonus-aniversario";
 import { ROTULO_ACAO, ROTULO_CREDITO, ROTULO_PACOTE } from "@/lib/creditos-rotulos";
-import { getDadosInstituto, listarEventos } from "@/lib/data";
+import { getDadosInstituto, getInstituto, listarEventos } from "@/lib/data";
+import { lerPreferenciasCreditos } from "@/lib/creditos-preferencias";
+import { limiteCessao } from "@/lib/creditos-regras";
 import { mapaUsuarios } from "@/lib/usuarios";
 import { dataCurta, dataPorExtenso, formatarIdRitual } from "@/lib/format";
 import { inscricoesComEventos, type ItemInscricao } from "@/lib/inscricoes";
@@ -205,6 +207,8 @@ function resumoGrupo(g: { usados: number; aguardando: number; cedidos: number; r
 }
 
 async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId: string; saldo: Awaited<ReturnType<typeof saldoDoUsuario>>; creditos: CreditoItem[]; chavePix: Awaited<ReturnType<typeof getDadosInstituto>>["pix"][number] | null }) {
+  const preferencias = lerPreferenciasCreditos(await getInstituto());
+  const limite = limiteCessao(saldo.saldo);
   const [pacotes, movimentos, planos, usuarios] = await Promise.all([
     pacotesComResumo(usuarioId),
     historicoCreditos({ usuarioId, limite: 30 }),
@@ -215,7 +219,7 @@ async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId
   const eventoIds = [...new Set(movimentos.flatMap((m) => (m.evento_id ? [m.evento_id] : [])))];
   const eventos = new Map((eventoIds.length ? await listarEventos({ ids: eventoIds.slice(0, 100) }) : []).map((e) => [e.$id, e]));
   const negativo = saldo.saldo < 0;
-  // Créditos agrupados por pacote (sem card por crédito). Só entra para cessão o que a pessoa tem e não recebeu.
+  // Créditos agrupados por pacote; as preferências definem se recebidos podem ser cedidos novamente.
   const grupos = new Map<string, { id: string; nome: string; disponiveis: number; usados: number; aguardando: number; cedidos: number; recebidos: number; cediveis: number }>();
   for (const c of creditos) {
     if (c.situacao === "cancelado") continue;
@@ -225,7 +229,8 @@ async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId
     else if (c.situacao === "bloqueado") g.aguardando++;
     else if (c.situacao === "disponivel") {
       g.disponiveis++;
-      if (c.cedido_de) g.recebidos++; else g.cediveis++;
+      if (c.cedido_de) g.recebidos++;
+      if (!c.cedido_de || preferencias.permitirRecessao) g.cediveis++;
     }
     grupos.set(c.pacote_id, g);
   }
@@ -265,7 +270,7 @@ async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId
       <section>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-stone-800">Meus créditos</h2>
-          {cediveis.length > 0 && <CederCreditos pacotes={cediveis} />}
+          {preferencias.cessaoAtiva && limite > 0 && cediveis.length > 0 && <CederCreditos pacotes={cediveis} limite={limite} permitirRecessao={preferencias.permitirRecessao} />}
         </div>
         {!gruposLista.length ? <p className="cartao text-center text-sm text-stone-400">Você ainda não tem créditos.</p> : (
           <div className="cartao">

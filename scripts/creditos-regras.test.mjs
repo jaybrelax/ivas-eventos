@@ -2,10 +2,25 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   bloqueioCancelarPacote, bloqueioCessao, calcularSaldo, consomeCredito, ehDebito, escolherCredito, lerQuantidade,
-  ordemDeUso, ordemDoCredito, podeReceberCredito, rotuloCredito, transicaoPacote, QUANTIDADE_MAXIMA,
+  limiteCessao, ordemDeUso, ordemDoCredito, podeReceberCredito, rotuloCredito, transicaoPacote, QUANTIDADE_MAXIMA,
 } from "../src/lib/creditos-regras.ts";
 
 const ritual = { conta_como_ritual: true, aberto_publico: true, fechado_guardioes: false };
+
+test("limite de cessão é metade do saldo líquido, arredondada para baixo", () => {
+  for (const [saldo, limite] of [[-3, 0], [0, 0], [1, 0], [2, 1], [5, 2], [10, 5]]) assert.equal(limiteCessao(saldo), limite);
+  assert.equal(limiteCessao(calcularSaldo(Array.from({ length: 6 }, () => ({ situacao: "disponivel" })), 3).saldo), 1, "débitos reduzem o limite");
+  assert.equal(limiteCessao(NaN), 0);
+});
+
+test("recessão é opcional e preserva os bloqueios de titularidade e situação", () => {
+  const recebido = { situacao: "disponivel", titular_id: "receptor", cedido_de: "doador" };
+  assert.ok(bloqueioCessao(recebido, "receptor", "terceiro"));
+  assert.equal(bloqueioCessao(recebido, "receptor", "terceiro", true), null);
+  assert.ok(bloqueioCessao(recebido, "doador", "terceiro", true));
+  assert.ok(bloqueioCessao(recebido, "receptor", "receptor", true));
+  for (const situacao of ["utilizado", "bloqueado", "cancelado"]) assert.ok(bloqueioCessao({ ...recebido, situacao }, "receptor", "terceiro", true));
+});
 
 test("só ritual aberto ao público consome crédito", () => {
   assert.equal(consomeCredito(ritual), true);

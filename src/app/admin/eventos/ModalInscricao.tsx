@@ -194,10 +194,13 @@ export function ModalInscricao({
   const c = p.contato;
   const situacao = SITUACAO_CONTRIBUICAO[p.pagamento];
   const pago = p.pagamento === "pago";
-  // Comprovante só faz sentido depois do aviso/pagamento: fica oculto em pendente e pago por crédito (a menos que já exista um anexo)
+  // Isenção não exige comprovante, mesmo se houver um anexo antigo.
   // Tema do card: lilás (pacote), verde (pago em Pix/dinheiro) ou azul (ainda não pago)
   const t = TEMA[p.pagamento === "credito" || p.pagamento === "aniversario" ? "violet" : p.pagamento === "pago" ? "emerald" : "sky"];
-  const mostrarComprovante = !(p.pagamento === "pendente" || p.pagamento === "credito" || p.pagamento === "aniversario" || (p.pagamento === "pago" && p.forma === "dinheiro")) || !!p.comprovante;
+  const mostrarComprovante = p.pagamento !== "isento" && (
+    !(p.pagamento === "pendente" || p.pagamento === "credito" || p.pagamento === "aniversario" || (p.pagamento === "pago" && p.forma === "dinheiro"))
+    || !!p.comprovante
+  );
   const formaRotulo = p.pagamento === "aniversario" ? "Bônus de aniversário" : p.pagamento === "credito" || p.forma === "pacote" ? "Pacote" : p.forma === "pix" ? "Pix" : p.forma === "dinheiro" ? "Dinheiro" : null;
   const whatsapp = c?.telefone ? `https://wa.me/${(c.telefone.replace(/\D/g, "").startsWith("55") ? "" : "55") + c.telefone.replace(/\D/g, "")}` : null;
   const local = [c?.cidade, c?.estado].filter(Boolean).join(" — ");
@@ -500,7 +503,7 @@ export function ModalInscricao({
                 )}
               </div>
               )}
-              {comprovanteAberto && (
+              {mostrarComprovante && comprovanteAberto && (
                 <ModalComprovante
                   eventoId={dados.eventoId}
                   inscricaoId={p.inscricaoId}
@@ -512,7 +515,7 @@ export function ModalInscricao({
 
               {dados.gerenciar && (
                 <div className="mt-3 space-y-2.5">
-                  {/* Ações conforme a situação: pendente → Confirmar; confirmada/isenta/pacote → editar ou reabrir */}
+                  {/* Ações conforme a situação: isenção e pacote permitem apenas reabrir. */}
                   {!escolhendoForma && !pedirValor && (
                     <div className="flex flex-col items-center gap-1.5">
                     {podeBonificarAniversario && (
@@ -526,12 +529,12 @@ export function ModalInscricao({
                         <Gift size={16} aria-hidden /> Aplicar bônus de aniversário
                       </button>
                     )}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-center gap-2">
                       {p.pagamento === "aniversario" ? null : p.pagamento === "pago" || p.pagamento === "credito" || p.pagamento === "isento" ? (
                         <>
-                          {(p.pagamento === "pago" || p.pagamento === "isento") && (
+                          {p.pagamento === "pago" && (
                             <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={() => { setMsg(undefined); setEscolhendoForma(true); }}>
-                              <Pencil size={15} aria-hidden /> {p.pagamento === "pago" ? "Editar forma e valor" : "Confirmar pagamento"}
+                              <Pencil size={15} aria-hidden /> Editar forma e valor
                             </button>
                           )}
                           <button type="button" className="btn-secundario h-10" disabled={pendente} onClick={() => rodar(() => reabrirPagamentoAction(dados.eventoId, p.inscricaoId))}>
@@ -796,7 +799,7 @@ export function ModalInscricao({
       </div>
 
       {/* Comprovante ampliado */}
-      {ampliado && comprovante && (
+      {mostrarComprovante && ampliado && comprovante && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/90 p-4" onClick={() => setAmpliado(false)}>
           <button type="button" className="absolute top-4 right-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20" aria-label="Fechar comprovante">
             <X size={20} />

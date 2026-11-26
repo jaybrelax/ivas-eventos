@@ -53,7 +53,7 @@ const TABELAS = {
       t("info_rituais"), t("info_contribuicao"),
       // Tipografia da página pública
       v("fonte_publica_titulo", 60), v("fonte_publica_texto", 60),
-      t("config_hero_agenda"),
+      t("config_hero_agenda"), t("config_creditos"),
       // Capas com IA (linha própria "ia" da tabela; nunca vai para o navegador)
       v("openai_api_key", 255), t("prompt_imagem"), t("config_imagem"),
       // Contribuição sugerida aos participantes (um valor só, vale para todos os rituais)

@@ -6,7 +6,7 @@ import { arquivoOtimizado } from "@/lib/imagem-servidor";
 import { createAdminClient } from "@/lib/appwrite";
 import { exigirSessao } from "@/lib/auth";
 import { COMPROVANTES_BUCKET_ID } from "@/lib/config";
-import { cederCredito, comprarPacote, creditosDoUsuario, usuarioPorEmail, type ResultadoCredito } from "@/lib/creditos";
+import { cederCredito, cederCreditos, comprarPacote, usuarioPorEmail, type ResultadoCredito } from "@/lib/creditos";
 import { conferirImagem } from "@/lib/imagem";
 import { bloqueado, registrarFalha, textoEspera } from "@/lib/limite-taxa";
 
@@ -81,32 +81,21 @@ export async function cederCreditoAction(creditoId: string, email: string): Prom
 }
 
 /**
- * Cede de uma vez N créditos disponíveis de um pacote. Só entram os que a pessoa tem agora e não recebeu por cessão
- * (quem recebeu não pode ceder de novo). Para no primeiro que não puder ser cedido e avisa quantos foram.
+ * Cede créditos de um pacote usando as preferências e o saldo atual conferidos no servidor.
  */
 export async function cederCreditosAction(pacoteId: string, quantidade: number, email: string): Promise<ResultadoCredito> {
   const u = await exigirSessao("/minha-conta?aba=creditos");
-  const n = Math.floor(Number(quantidade));
-  if (!Number.isFinite(n) || n < 1 || n > 100) return { erro: "Escolha de 1 a 100 créditos." };
+  const n = Number(quantidade);
+  if (!Number.isInteger(n) || n < 1 || n > 100) return { erro: "Escolha de 1 a 100 créditos inteiros." };
   const achado = await usuarioPorEmail(String(email ?? ""));
   if (!achado) return { erro: "Não encontramos uma conta com esse e-mail." };
   if (achado.id === u.id) return { erro: "Esse é o seu próprio e-mail." };
-  const cediveis = (await creditosDoUsuario(u.id))
-    .filter((c) => c.pacote_id === pacoteId && c.titular_id === u.id && c.situacao === "disponivel" && !c.cedido_de && !c.cedidoParaOutro)
-    .sort((a, b) => a.numero - b.numero);
-  if (cediveis.length < n) return { erro: `Você tem ${cediveis.length} crédito(s) disponível(is) para ceder nesse pacote.` };
-  let cedidos = 0;
   try {
-    for (const c of cediveis.slice(0, n)) {
-      const r = await cederCredito(c.$id, u.id, achado.id, u.id);
-      if (r.erro) break;
-      cedidos++;
-    }
+    const r = await cederCreditos({ pacoteId: String(pacoteId), quantidade: n }, u.id, achado.id, u.id);
+    revalidar();
+    return r;
   } catch (e) {
     console.error("Ceder créditos:", e instanceof Error ? e.message : e);
   }
-  revalidar();
-  if (!cedidos) return { erro: "Não foi possível ceder os créditos agora. Tente de novo." };
-  const plural = cedidos === 1 ? "crédito cedido" : "créditos cedidos";
-  return { ok: `${cedidos} ${plural} para ${achado.nome}.` + (cedidos < n ? " Alguns não puderam ser cedidos." : "") };
+  return { erro: "Não foi possível concluir a cessão. Atualize a página para conferir seu saldo antes de tentar novamente." };
 }

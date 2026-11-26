@@ -19,17 +19,19 @@ export const viewport: Viewport = { themeColor: "#1a0b2e" };
 export default async function PainelLayout({ children }: LayoutProps<"/">) {
   const u = await exigir();
   const instituto = await getInstituto();
+  const podeEditarEventos = pode(u, PODE.editarEventos);
   const grupos: GrupoMenu[] = [
     {
       titulo: "Agenda",
       itens: [
-        { href: "/admin/eventos", rotulo: "Eventos", icone: "calendar" },
-        ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/eventos/novo", rotulo: "Novo evento", icone: "plus" as const }] : []),
-        // Gestão da guarnição: só coordenação e admin (o guardião se candidata pela página do evento)
-        ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/guarnicao", rotulo: "Guarnição", icone: "shield" as const }] : []),
-        ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/participantes", rotulo: "Participantes", icone: "participantes" as const }] : []),
-        ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/pagamentos", rotulo: "Pagamentos", icone: "receipt" as const }] : []),
-        ...(pode(u, PODE.editarEventos) ? [{ href: "/admin/creditos", rotulo: "Pacotes", icone: "ticket" as const }] : []),
+        { href: "/admin/eventos", rotulo: "Rituais", icone: "calendar", acaoCriar: podeEditarEventos },
+        ...(podeEditarEventos ? [
+          { href: "/admin/participantes", rotulo: "Participantes", icone: "participantes" as const },
+          { href: "/admin/creditos", rotulo: "Pacotes", icone: "ticket" as const },
+          { href: "/admin/pagamentos", rotulo: "Pagamentos", icone: "receipt" as const },
+          // Gestão da guarnição: só coordenação e admin (o guardião se candidata pela página do evento)
+          { href: "/admin/guarnicao", rotulo: "Guarnição", icone: "shield" as const },
+        ] : []),
         { href: "/admin/resumo", rotulo: "Resumo do ano", icone: "chart" },
       ],
     },

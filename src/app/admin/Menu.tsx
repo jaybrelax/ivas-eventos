@@ -10,7 +10,7 @@ import { useInstalar } from "@/components/useInstalar";
 
 const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users, shield: Shield, receipt: Receipt, participantes: UsersRound, ticket: Ticket };
 
-export type ItemMenu = { href: string; rotulo: string; icone: keyof typeof ICONES; /** contador ao lado (ex.: cadastros pendentes) */ aviso?: number };
+export type ItemMenu = { href: string; rotulo: string; icone: keyof typeof ICONES; /** contador ao lado (ex.: cadastros pendentes) */ aviso?: number; acaoCriar?: boolean };
 export type GrupoMenu = { titulo: string; itens: ItemMenu[] };
 
 type Props = {
@@ -22,8 +22,8 @@ type Props = {
 
 export function Menu({ grupos, marca, usuario, sair }: Props) {
   const path = usePathname();
-  // Visualização e edição do evento: no mobile a página tem a própria barra (voltar + menu ⋮)
-  const semBarra = /^\/admin\/eventos\/(?!novo$)[^/]+(\/editar)?$/.test(path);
+  // Eventos e configurações têm navegação própria no mobile.
+  const semBarra = path === "/admin/configuracoes" || /^\/admin\/eventos\/(?!novo$)[^/]+(\/editar)?$/.test(path);
   const [aberto, setAberto] = useState(false);
   // Mobile: submenu da conta (avatar no canto direito da barra)
   const [contaAberta, setContaAberta] = useState(false);
@@ -48,7 +48,7 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
   }, [aberto]);
 
   const ativo = (href: string) =>
-    href === "/admin/eventos" ? path === "/admin/eventos" || /^\/admin\/eventos\/(?!novo)/.test(path) : path.startsWith(href);
+    href === "/admin/eventos" ? path.startsWith("/admin/eventos") : path.startsWith(href);
 
   const montar = (fino: boolean) => (
     <div className="relative flex h-full flex-col overflow-hidden bg-mata-950 text-mata-100">
@@ -69,6 +69,20 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
               {g.itens.map((i) => {
                 const Icone = ICONES[i.icone];
                 const on = ativo(i.href);
+                if (i.acaoCriar) return (
+                  <div key={i.href} className={`relative flex items-center gap-1.5 rounded-xl transition ${fino ? "justify-center px-0.5" : "pr-2"} ${on ? "bg-white/[0.08] shadow-[inset_0_1px_0_rgb(255_255_255/0.06)]" : "hover:bg-white/[0.05]"}`}>
+                    {on && <span className="absolute top-2 bottom-2 left-0 w-[3px] rounded-r-full bg-ouro-400" aria-hidden />}
+                    <Link href={i.href} aria-current={on ? "page" : undefined} title={fino ? i.rotulo : undefined} aria-label={fino ? i.rotulo : undefined}
+                      className={`flex min-h-11 min-w-0 flex-1 items-center rounded-xl text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ouro-400 ${fino ? "justify-center px-0" : "gap-3 px-3"} ${on ? "text-white" : "text-mata-200/90 hover:text-white"}`}>
+                      <Icone size={18} className={on ? "text-ouro-400" : "text-mata-300/80"} aria-hidden />
+                      {!fino && i.rotulo}
+                    </Link>
+                    <Link href="/admin/eventos/novo" aria-label="Criar ritual" title="Criar ritual"
+                      className={`grid shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-mata-200 transition hover:border-white/20 hover:bg-white/10 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ouro-400 ${fino ? "h-6 w-7" : "h-8 w-12"}`}>
+                      <Plus size={fino ? 14 : 18} aria-hidden />
+                    </Link>
+                  </div>
+                );
                 return (
                   <Link
                     key={i.href}
@@ -127,16 +141,13 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
           {fino ? <PanelLeftOpen size={18} /> : <><PanelLeftClose size={18} /> Recolher menu</>}
         </button>
         {fino ? (
-          <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.04] p-1.5">
+          <div className="flex flex-col items-center rounded-2xl border border-white/10 bg-white/[0.04] p-1.5">
             <Link href="/admin/perfil" title={`${usuario.nome} · Meu perfil`} aria-label="Meu perfil" className="rounded-xl p-0.5 transition hover:bg-white/[0.06]">
               <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={34} className="ring-white/20" />
             </Link>
-            <form action={sair}>
-              <button className="grid h-8 w-8 place-items-center rounded-lg text-mata-300 transition hover:bg-white/10 hover:text-white" aria-label="Sair" title="Sair"><LogOut size={16} /></button>
-            </form>
           </div>
         ) : (
-          <div className={`flex items-center gap-1 rounded-2xl border p-1.5 transition ${path.startsWith("/admin/perfil") ? "border-ouro-400/40 bg-white/[0.08]" : "border-white/10 bg-white/[0.04]"}`}>
+          <div className={`flex items-center rounded-2xl border p-1.5 transition ${path.startsWith("/admin/perfil") ? "border-ouro-400/40 bg-white/[0.08]" : "border-white/10 bg-white/[0.04]"}`}>
             <Link href="/admin/perfil" className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.06]" title="Meu perfil">
               <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={36} className="ring-white/20" />
               <div className="min-w-0 flex-1">
@@ -144,11 +155,6 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
                 <p className="text-xs text-mata-300">{usuario.perfil} · Meu perfil</p>
               </div>
             </Link>
-            <form action={sair}>
-              <button className="grid h-8 w-8 place-items-center rounded-lg text-mata-300 transition hover:bg-white/10 hover:text-white" aria-label="Sair" title="Sair">
-                <LogOut size={16} />
-              </button>
-            </form>
           </div>
         )}
       </div>
@@ -161,12 +167,12 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
       <aside className={`fixed inset-y-0 left-0 z-30 hidden transition-[width] duration-200 md:block ${fino ? "w-[4.5rem]" : "w-64 xl:w-72"}`}>{montar(fino)}</aside>
 
       {/* Mobile: barra no topo + gaveta */}
-      <div className={`sticky top-0 z-30 items-center justify-between gap-3 border-b border-white/10 bg-mata-950 px-4 py-3 md:hidden ${semBarra ? "hidden" : "flex"}`}>
+      <div className={`sticky top-0 z-30 items-center justify-between gap-2 border-b border-white/10 bg-mata-950 px-3 py-1.5 md:hidden ${semBarra ? "hidden" : "flex"}`}>
         <div className="flex min-w-0 items-center gap-2">
           <button onClick={() => setAberto(true)} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-mata-100 hover:bg-white/10" aria-label="Abrir menu">
             <MenuIcone size={22} />
           </button>
-          <div className="min-w-0 [&_img]:!h-9 [&_p.text-xs]:hidden">{marca}</div>
+          <div className="min-w-0 [&_img]:!h-8 [&_p.text-xs]:hidden">{marca}</div>
         </div>
         <div className="relative shrink-0">
           <button
@@ -175,9 +181,9 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
             aria-label={`Conta de ${usuario.nome}`}
             aria-haspopup="menu"
             aria-expanded={contaAberta}
-            className="grid place-items-center rounded-full transition active:scale-95"
+            className="grid h-10 w-10 place-items-center rounded-full transition active:scale-95"
           >
-            <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={36} className="ring-white/30" />
+            <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={32} className="ring-white/30" />
           </button>
           {contaAberta && (
             <>

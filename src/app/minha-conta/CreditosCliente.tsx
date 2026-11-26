@@ -133,7 +133,7 @@ export function ComprarPacote({ planos, chavePix }: { planos: PlanoVisivel[]; ch
 export type PacoteCedivel = { id: string; nome: string; cediveis: number };
 
 /** Ceder créditos: escolhe o pacote e quantos, informa o e-mail, confirma com o nome da pessoa. Um botão só, sem card por crédito. */
-export function CederCreditos({ pacotes }: { pacotes: PacoteCedivel[] }) {
+export function CederCreditos({ pacotes, limite, permitirRecessao }: { pacotes: PacoteCedivel[]; limite: number; permitirRecessao: boolean }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [pacoteId, setPacoteId] = useState(pacotes[0]?.id ?? "");
@@ -144,7 +144,7 @@ export function CederCreditos({ pacotes }: { pacotes: PacoteCedivel[] }) {
   const [pendente, iniciar] = useTransition();
 
   const pacote = pacotes.find((p) => p.id === pacoteId) ?? pacotes[0] ?? null;
-  const maximo = pacote?.cediveis ?? 0;
+  const maximo = Math.min(pacote?.cediveis ?? 0, limite);
   const quantidade = Math.min(Math.max(1, Math.floor(Number(qtd) || 1)), maximo);
 
   const fechar = () => { setAberto(false); setEmail(""); setDestino(null); setQtd("1"); setMsg(undefined); };
@@ -164,6 +164,7 @@ export function CederCreditos({ pacotes }: { pacotes: PacoteCedivel[] }) {
         <button type="button" onClick={fechar} className="grid h-8 w-8 place-items-center rounded-full text-stone-500 hover:bg-stone-100" aria-label="Fechar"><X size={16} /></button>
       </div>
 
+      <p className="text-xs leading-relaxed text-stone-500">Você pode ceder até {maximo} crédito(s) deste pacote, respeitando o limite de metade do seu saldo atual.</p>
       {!destino ? (
         <form
           className="space-y-3"
@@ -203,7 +204,7 @@ export function CederCreditos({ pacotes }: { pacotes: PacoteCedivel[] }) {
           <p className="text-sm text-stone-800">
             Ceder <strong>{quantidade} {quantidade === 1 ? "crédito" : "créditos"}</strong> do pacote <strong>{pacote?.nome}</strong> para <strong>{destino}</strong>?
           </p>
-          <p className="text-xs text-stone-500">Depois da cessão, só essa pessoa poderá usar esses créditos, e eles não poderão ser cedidos de novo.</p>
+          <p className="text-xs text-stone-500">Depois da cessão, só essa pessoa poderá usar esses créditos.{permitirRecessao ? " Ela poderá cedê-los novamente, conforme as regras do Instituto." : " Eles não poderão ser cedidos de novo enquanto essa opção estiver desativada."}</p>
           <Mensagem r={msg} />
           <div className="flex gap-2">
             <button type="button" className="btn-secundario h-9 flex-1 text-xs" onClick={() => { setDestino(null); setMsg(undefined); }} disabled={pendente}>Voltar</button>

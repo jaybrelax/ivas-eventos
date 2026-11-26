@@ -21,6 +21,20 @@ import { CAMPOS, type Campo, type TabelaEditavel } from "./campos";
 
 export type Resultado = { ok?: string; erro?: string } | undefined;
 
+export async function salvarPreferenciasCreditos(_: Resultado, form: FormData): Promise<Resultado> {
+  await exigir(["admin"]);
+  const preferencias = { cessaoAtiva: form.get("cessaoAtiva") === "on", permitirRecessao: form.get("permitirRecessao") === "on" };
+  try {
+    await createAdminClient().tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { config_creditos: JSON.stringify(preferencias) } });
+  } catch (e) {
+    console.error("Preferências dos créditos:", e instanceof Error ? e.message : e);
+    return { erro: "Não foi possível salvar as preferências de créditos. Tente novamente." };
+  }
+  revalidatePath("/admin/configuracoes");
+  revalidatePath("/minha-conta");
+  return { ok: "Preferências de créditos atualizadas." };
+}
+
 const HEX = /^#[0-9a-fA-F]{6}$/;
 
 export async function salvarInstituto(_: Resultado, form: FormData): Promise<Resultado> {

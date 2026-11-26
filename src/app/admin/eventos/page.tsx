@@ -1,17 +1,20 @@
 import { urlImagem } from "@/lib/links";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, List, MapPin, Plus, Shield, Star, Users } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Crown, List, Plus, Shield, Star, Users } from "lucide-react";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
-import { listarEquipe } from "@/lib/usuarios";
-import { candidaturasDosEventos, temGuarnicao, vagasDe } from "@/lib/guarnicao";
-import { IconeGenero } from "@/components/genero";
+import { mapaUsuarios, type ResumoUsuario } from "@/lib/usuarios";
+import { candidaturasDosEventos, temGuarnicao } from "@/lib/guarnicao";
+import { inscricoesDosEventos } from "@/lib/inscricoes";
+import { compararFirst } from "@/lib/ordenacao-first";
+import { Avatar, iniciais } from "@/components/Avatar";
+import { IconeTipo } from "@/components/IconeTipo";
 import { dataPorExtenso, formatarIdRitual, hoje, limitesMes, nomeMes, partesData, somarMes } from "@/lib/format";
 import { CapaDiaCalendario } from "./CapaDiaCalendario";
-import { BadgeDestaque, BadgeTipo, Titulo, Vazio } from "@/components/Titulo";
+import { Titulo, Vazio } from "@/components/Titulo";
 import { Aviso } from "@/components/ui";
-import type { Endereco, Evento, Pessoa, TipoEvento } from "@/lib/types";
+import type { Evento, TipoEvento } from "@/lib/types";
 import { Filtros } from "./Filtros";
 
 const um = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
@@ -27,26 +30,38 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
   const { inicio, fim } = limitesMes(mes);
   const filtrando = !!tipo || destaque;
 
-  const [{ tipos, enderecos }, equipe, eventos, todosDoMes] = await Promise.all([
+  const [{ tipos, enderecos }, pessoas, eventos, todosDoMes] = await Promise.all([
     getDadosInstituto(),
-    listarEquipe(),
+    mapaUsuarios(),
     listarEventos({ inicio, fim, tipos: tipo ? [tipo] : undefined, apenasDestaque: destaque }),
     // Contagem do mês sem filtros (só busca de novo quando há filtro ativo)
     filtrando ? listarEventos({ inicio, fim }) : null,
   ]);
   const tipoPorId = new Map(tipos.map((t) => [t.$id, t]));
   const endPorId = new Map(enderecos.map((e) => [e.$id, e]));
-  const pessoaPorId = new Map(equipe.map((p) => [p.$id, p]));
   // Guarnição: guardiões confirmados por gênero em cada ritual do mês
   const rituaisDoMes = eventos.filter((e) => temGuarnicao(tipoPorId.get(e.tipo_id)));
-  const candidaturas = await candidaturasDosEventos(rituaisDoMes.map((e) => e.$id));
-  const guarnicaoPorId = new Map(
-    rituaisDoMes.map((e) => {
-      const conf = candidaturas.filter((c) => c.evento_id === e.$id && c.situacao === "confirmada");
-      const v = vagasDe(e);
-      return [e.$id, { m: conf.filter((c) => c.sexo === "masculino").length, f: conf.filter((c) => c.sexo === "feminino").length, vm: v.masculino, vf: v.feminino }];
-    }),
-  );
+  const [candidaturas, inscricoes] = await Promise.all([
+    candidaturasDosEventos(rituaisDoMes.map((e) => e.$id)),
+    inscricoesDosEventos(eventos.map((e) => e.$id)),
+  ]);
+  const confirmadosPorEvento = new Map<string, Set<string>>();
+  const adicionarConfirmado = (eventoId: string, usuarioId: string) => {
+    if (!confirmadosPorEvento.has(eventoId)) confirmadosPorEvento.set(eventoId, new Set());
+    confirmadosPorEvento.get(eventoId)!.add(usuarioId);
+  };
+  for (const c of candidaturas) if (c.situacao === "confirmada") adicionarConfirmado(c.evento_id, c.usuario_id);
+  for (const i of inscricoes) if (i.situacao === "confirmada") adicionarConfirmado(i.evento_id, i.usuario_id);
+  const participantesPorEvento = new Map(eventos.map((e) => [
+    e.$id,
+    new Set([...(e.mestres ?? []), ...(e.guardioes ?? []), ...(e.guardioes_escalados_reuniao ?? []), ...(confirmadosPorEvento.get(e.$id) ?? [])]).size,
+  ]));
+  const guardioesConfirmadosPorEvento = new Map<string, string[]>();
+  for (const c of candidaturas) if (c.situacao === "confirmada") {
+    const ids = guardioesConfirmadosPorEvento.get(c.evento_id) ?? [];
+    ids.push(c.usuario_id);
+    guardioesConfirmadosPorEvento.set(c.evento_id, ids);
+  }
   const totalDoMes = (todosDoMes ?? eventos).length;
   const contagemMes = (
     <span className="text-xs font-medium text-stone-500">
@@ -79,21 +94,19 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
       {um(sp.ok) === "excluido" && <div className="mb-5"><Aviso tipo="ok">Evento excluído.</Aviso></div>}
       {um(sp.erro) === "sem-permissao" && <div className="mb-5"><Aviso tipo="info">Seu perfil não tem acesso a essa página.</Aviso></div>}
 
-      {/* Uma barra só: filtros · mês · lista/calendário. No celular o mês ocupa a linha de cima. */}
+      {/* No celular o mês ocupa a linha de cima; a visualização fica à esquerda dos filtros. */}
       <div className="cartao mb-5 flex flex-wrap items-center justify-between gap-2 p-2.5 sm:flex-nowrap sm:p-3">
-        <div className="order-2 sm:order-1">
-          <Filtros tipos={tipos} />
-        </div>
-        <div className="order-1 flex w-full items-center justify-between gap-1 border-b border-stone-100 pb-2 sm:order-2 sm:w-auto sm:justify-center sm:border-0 sm:pb-0">
+        <div className="flex w-full items-center justify-between gap-1 border-b border-stone-100 pb-2 sm:w-auto sm:justify-center sm:border-0 sm:pb-0">
           <Link href={link({ mes: somarMes(mes, -1) })} className="btn-icone" aria-label="Mês anterior"><ChevronLeft size={18} /></Link>
           <span className="min-w-36 text-center text-base font-semibold tracking-tight text-stone-900 capitalize">{p.mesNome} {p.ano}</span>
           <Link href={link({ mes: somarMes(mes, 1) })} className="btn-icone" aria-label="Próximo mês"><ChevronRight size={18} /></Link>
           {mes !== hj.slice(0, 7) && <Link href={link({ mes: hj.slice(0, 7) })} className="btn-secundario h-8 px-3 text-xs">Hoje</Link>}
         </div>
-        <div className="segmentado order-3">
+        <div className="segmentado">
           <Link href={link({ vista: "lista" })} data-ativo={vista === "lista"}><List size={15} /> Lista</Link>
           <Link href={link({ vista: "calendario" })} data-ativo={vista === "calendario"}><CalendarDays size={15} /> Calendário</Link>
         </div>
+        <Filtros tipos={tipos} />
       </div>
 
       {vista === "lista" ? (
@@ -101,12 +114,12 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
           <div className="space-y-8">
             {proximos.length > 0 && (
               <Secao titulo={passados.length ? "Próximos" : undefined} total={proximos.length} direita={contagemMes}>
-                {proximos.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} end={e.endereco_id ? endPorId.get(e.endereco_id) : undefined} hj={hj} pessoas={pessoaPorId} guarnicao={guarnicaoPorId.get(e.$id)} />)}
+                {proximos.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} />)}
               </Secao>
             )}
             {passados.length > 0 && (
               <Secao titulo={proximos.length ? "Já aconteceram" : undefined} total={passados.length} direita={proximos.length ? undefined : contagemMes}>
-                {passados.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} end={e.endereco_id ? endPorId.get(e.endereco_id) : undefined} hj={hj} pessoas={pessoaPorId} guarnicao={guarnicaoPorId.get(e.$id)} passado />)}
+                {passados.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} passado />)}
               </Secao>
             )}
           </div>
@@ -147,79 +160,79 @@ function Secao({ titulo, total, direita, children }: { titulo?: string; total: n
   );
 }
 
-function resumoEquipe(e: Evento, pessoas: Map<string, Pessoa>) {
-  const mestres = (e.mestres ?? []).map((id) => pessoas.get(id)?.nome).filter(Boolean) as string[];
-  // Os guardiões aparecem no indicador da guarnição.
-  return mestres.length ? `${mestres.length > 1 ? "Mestres" : "Mestre"} ${mestres.map((n) => n.split(" ")[0]).join(", ")}` : "";
+function GrupoAvatares({ ids, pessoas, rotulo }: { ids: string[]; pessoas: Map<string, ResumoUsuario>; rotulo: string }) {
+  if (!ids.length) return null;
+  const visiveis = ids.slice(0, 3);
+  return (
+    <span className="inline-flex shrink-0 items-center -space-x-2" aria-label={`${rotulo}: ${ids.map((id) => pessoas.get(id)?.nome ?? "Usuário indisponível").join(", ")}`}>
+      {visiveis.map((id) => {
+        const pessoa = pessoas.get(id);
+        const nome = pessoa?.nome ?? "Usuário";
+        return <span key={id} className="relative grid size-5 shrink-0 place-items-center rounded-full bg-stone-200 text-[9px] font-bold text-stone-600 ring-2 ring-white" aria-hidden>
+          {iniciais(nome)}
+          <Avatar nome={nome} foto={pessoa?.foto} tamanho={20} leve className="absolute inset-0 ring-0" />
+        </span>;
+      })}
+      {ids.length > visiveis.length && <span className="relative grid size-5 shrink-0 place-items-center rounded-full bg-stone-200 text-[9px] font-bold text-stone-700 ring-2 ring-white">+{ids.length - visiveis.length}</span>}
+    </span>
+  );
 }
 
-function CartaoEvento({ e, t, end, hj, passado, pessoas, guarnicao }: { e: Evento; t?: TipoEvento; end?: Endereco; hj: string; passado?: boolean; pessoas: Map<string, Pessoa>; guarnicao?: { m: number; f: number; vm: number; vf: number } }) {
-  const equipeTxt = resumoEquipe(e, pessoas);
+function CartaoEvento({ e, t, hj, passado, pessoas, guardioesConfirmados, participantes }: { e: Evento; t?: TipoEvento; hj: string; passado?: boolean; pessoas: Map<string, ResumoUsuario>; guardioesConfirmados: string[]; participantes: number }) {
   const d = partesData(e.data);
-  const idR = formatarIdRitual(e.ritual_numero_geral, e.ritual_ano, e.ritual_numero_ano);
+  const mestres = [...new Set(e.mestres ?? [])].sort((a, b) => compararFirst(pessoas.get(a), pessoas.get(b)));
+  const guardioes = [...new Set([...(e.guardioes ?? []), ...(e.guardioes_escalados_reuniao ?? []), ...guardioesConfirmados])].filter((id) => !mestres.includes(id));
+  const guardioesHomens = guardioes.filter((id) => pessoas.get(id)?.sexo === "masculino").sort((a, b) => compararFirst(pessoas.get(a), pessoas.get(b)));
+  const guardias = guardioes.filter((id) => pessoas.get(id)?.sexo === "feminino").sort((a, b) => compararFirst(pessoas.get(a), pessoas.get(b)));
+  const guardioesSemGenero = guardioes.filter((id) => !pessoas.get(id)?.sexo);
   const cor = t?.cor ?? "#57534e";
   const ehHoje = e.data === hj;
   return (
     <Link
       href={`/admin/eventos/${e.$id}`}
-      className={`group relative flex items-stretch overflow-hidden rounded-xl border bg-white shadow-cartao transition hover:-translate-y-px hover:shadow-elevado ${
-        e.destaque ? "border-ouro-300 ring-1 ring-ouro-200" : "border-stone-200/80 hover:border-stone-300"
-      } ${passado ? "opacity-70 hover:opacity-100" : ""}`}
+      className={`group relative flex min-h-36 items-stretch overflow-hidden rounded-2xl border bg-white shadow-cartao transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-elevado focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mata-700 ${
+        e.destaque ? "border-ouro-300" : "border-stone-200/90 hover:border-stone-300"
+      } ${passado ? "bg-stone-50/70" : ""}`}
     >
-      {/* Coluna da data: a capa preenche a altura toda e a data fica num quadro de vidro */}
+      {/* A capa ocupa a primeira coluna; a data fica separada à direita. */}
       <div
-        className="relative isolate grid w-28 shrink-0 place-items-center overflow-hidden sm:w-36"
+        className="relative isolate w-[5.5rem] shrink-0 overflow-hidden min-[420px]:w-[7.5rem] sm:w-36"
         style={{ background: `linear-gradient(135deg, ${cor}, color-mix(in oklab, ${cor} 55%, #000))` }}
       >
         {e.capa_file_id && (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={urlImagem(e.capa_file_id, 320)} loading="lazy" decoding="async" alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
         )}
-        <div aria-hidden className="absolute inset-0 -z-10 bg-black/15" />
-        <div className="my-3 flex w-[5.25rem] flex-col items-center rounded-xl bg-white/20 px-1 py-2 text-center text-white shadow-[0_8px_24px_-8px_rgb(0_0_0/0.5)] ring-1 ring-white/35 backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_6px_rgb(0_0_0/0.45)] sm:w-20 sm:px-2">
-          {/* Celular: dia, mês (3 letras) e, no rodapé, o dia da semana por extenso */}
-          <span className="text-[2.1rem] leading-none font-black tabular-nums sm:hidden">{d.dia}</span>
-          <span className="text-[11px] font-bold tracking-[0.18em] uppercase sm:hidden">{d.mesCurto}</span>
-          <span className="mt-1.5 w-full border-t border-white/30 pt-1 text-[9.5px] font-semibold tracking-tight whitespace-nowrap capitalize sm:hidden">{d.diaSemana}</span>
-          {/* Tablet e computador: mês, dia e dia da semana abreviado */}
-          <span className="hidden text-[11px] font-bold tracking-[0.18em] uppercase sm:block">{d.mesCurto}</span>
-          <span className="hidden text-[2.4rem] leading-none font-black tabular-nums sm:block">{d.dia}</span>
-          <span className="mt-0.5 hidden text-[11px] font-medium capitalize opacity-90 sm:block">{d.diaSemana.slice(0, 3)}</span>
-        </div>
+        {t && <div className="absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-stone-950/70 to-transparent px-1 pb-2 pt-6">
+          <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm ring-1 ring-inset ring-white/35 backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_3px_rgb(0_0_0/0.5)]">
+            {t.icone ? <IconeTipo nome={t.icone} size={11} strokeWidth={2.4} /> : <span className="size-1.5 shrink-0 rounded-full bg-white" />}
+            <span className="truncate">{t.nome}</span>
+          </span>
+        </div>}
       </div>
 
       {/* Conteúdo */}
-      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 p-3 sm:p-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 px-3 py-3.5 sm:px-4">
+        <div className="flex min-w-0 items-start gap-2">
           {ehHoje && <span className="chip bg-mata-700 text-white">Hoje</span>}
-          <h3 className="truncate text-[17px] leading-snug font-semibold text-stone-900 transition group-hover:text-mata-700 sm:text-xl">{e.titulo}</h3>
+          <h3 className="min-w-0 flex-1 line-clamp-2 text-[16px] leading-snug font-bold tracking-tight text-stone-900 transition-colors group-hover:text-mata-700 sm:text-xl" title={e.titulo}>{e.titulo}</h3>
           {e.destaque && <Star size={15} className="shrink-0 fill-ouro-400 text-ouro-500 md:hidden" aria-label="Destaque" />}
         </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-stone-500">
-          <span className="inline-flex items-center gap-1.5"><Clock size={14} />{e.hora_inicio}</span>
-          <span className="inline-flex min-w-0 items-center gap-1.5"><MapPin size={14} /><span className="truncate">{end ? end.apelido : e.endereco_livre}</span></span>
-          {equipeTxt && <span className="inline-flex min-w-0 items-center gap-1.5"><Users size={14} /><span className="truncate">{equipeTxt}</span></span>}
-          {guarnicao && (
-            <span className="inline-flex items-center gap-1.5 tabular-nums" title={`Guardiões confirmados (vagas: ${guarnicao.vm} ♂ · ${guarnicao.vf} ♀)`}>
-              <Shield size={14} /> Guardiões
-              <IconeGenero genero="masculino" size={13} className="ml-0.5" />{guarnicao.m}
-              <IconeGenero genero="feminino" size={13} className="ml-1" />{guarnicao.f}
-            </span>
-          )}
-        </div>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 md:hidden">
-          {t && <BadgeTipo nome={t.nome} cor={t.cor} icone={t.icone} />}
-          {idR && <span className="font-mono text-[11px] font-medium tracking-tight text-mata-700">{idR}</span>}
+        {(mestres.length > 0 || guardioes.length > 0) && <div className="flex min-w-0 flex-wrap items-center gap-1" aria-label="Equipe do evento">
+          {mestres.length > 0 && <span className="inline-flex shrink-0 items-center gap-1"><Crown size={14} className="shrink-0 text-mata-700" aria-label="Mestres" /><GrupoAvatares ids={mestres} pessoas={pessoas} rotulo="Mestres" /></span>}
+          {guardioes.length > 0 && <span className="inline-flex shrink-0 items-center gap-1"><Shield size={14} className="shrink-0 text-mata-700" aria-label="Guardiões" /><GrupoAvatares ids={guardioesHomens} pessoas={pessoas} rotulo="Guardiões" />{guardioesHomens.length > 0 && guardias.length > 0 && <span className="w-1" aria-hidden />}<GrupoAvatares ids={guardias} pessoas={pessoas} rotulo="Guardiãs" /><GrupoAvatares ids={guardioesSemGenero} pessoas={pessoas} rotulo="Guardiões sem gênero informado" /></span>}
+        </div>}
+        <div className="mt-0.5 flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1 border-t border-stone-100 pt-2">
+          <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-700 tabular-nums" title="Participantes confirmados, incluindo mestres e guardiões"><Users size={12} aria-hidden />{participantes} {participantes === 1 ? "participante" : "participantes"}</span>
+          {e.ritual_numero_ano != null && e.ritual_numero_geral != null && <span className="whitespace-nowrap font-mono text-[11px] font-bold tracking-tight text-mata-800 tabular-nums" title={`Ritual ${formatarIdRitual(e.ritual_numero_geral, e.ritual_ano, e.ritual_numero_ano)}`}>N° {e.ritual_numero_ano}/{e.ritual_numero_geral}</span>}
         </div>
       </div>
 
-      <div className="hidden shrink-0 flex-col items-end justify-center gap-1.5 py-4 md:flex">
-        {t && <BadgeTipo nome={t.nome} cor={t.cor} icone={t.icone} />}
-        {e.destaque && <BadgeDestaque />}
-        {/* Número do ritual sem fundo, abaixo do destaque */}
-        {idR && <span className="pr-1 font-mono text-[11px] font-medium tracking-tight text-mata-700">{idR}</span>}
-      </div>
-      <ChevronRight size={18} className="mr-3 hidden shrink-0 self-center text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-stone-500 sm:block" />
+      <time dateTime={e.data} aria-label={dataPorExtenso(e.data)} className="flex w-16 shrink-0 flex-col items-center justify-center border-l border-stone-200 bg-stone-50/70 px-1 text-center text-stone-700 min-[420px]:w-[4.5rem] sm:w-24">
+        <span className="text-[2.1rem] leading-none font-black tracking-tight text-stone-900 tabular-nums sm:text-[2.6rem]">{d.dia}</span>
+        <span className="mt-0.5 text-xs font-extrabold tracking-[0.12em] uppercase text-mata-700 sm:text-sm">{d.mesCurto}</span>
+        <span className="mt-2 w-full border-t border-stone-200 pt-2 text-[10px] font-bold leading-tight uppercase sm:text-[11px]">{d.diaSemana}</span>
+      </time>
     </Link>
   );
 }
