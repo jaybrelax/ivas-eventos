@@ -47,7 +47,7 @@ export function BuscaCreditos({ className = "w-full sm:w-80" }: { className?: st
         placeholder="Buscar pessoa…"
         autoComplete="off"
         enterKeyHint="search"
-        className="campo h-11 w-full pr-10 pl-10 [&::-webkit-search-cancel-button]:hidden"
+        className="campo h-11 w-full pr-10 pl-10 text-base sm:text-sm [&::-webkit-search-cancel-button]:hidden"
       />
       <span className="absolute top-1/2 right-1.5 grid h-8 w-8 -translate-y-1/2 place-items-center">
         {pendente ? (

@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle, History, Package, Users } from "lucide-react";
 
 const ABAS = [
@@ -56,7 +57,8 @@ export function AbasCreditos({ aba, q = "" }: { aba: string; q?: string }) {
 
   const sufixo = q ? `&q=${encodeURIComponent(q)}` : "";
   return (
-    <nav ref={nav} className="relative -mb-px flex min-w-0 gap-1 overflow-x-auto" aria-label="Seções dos créditos">
+    <>
+    <nav ref={nav} className="relative -mb-px hidden min-w-0 gap-1 overflow-x-auto md:flex" aria-label="Seções dos créditos">
       {ABAS.map(({ chave, rotulo, Icone }) => {
         const ativa = aba === chave;
         return (
@@ -76,5 +78,33 @@ export function AbasCreditos({ aba, q = "" }: { aba: string; q?: string }) {
       })}
       <span ref={indicador} aria-hidden className="pointer-events-none absolute bottom-0 left-0 h-[3px] w-0 rounded-full bg-mata-600" />
     </nav>
+    </>
   );
+}
+
+/** Fica fora do conteúdo das abas para preservar a bolha durante a navegação. */
+export function NavbarCreditos({ aba, q = "" }: { aba: string; q?: string }) {
+  const [montado, setMontado] = useState(false);
+  useEffect(() => { setMontado(true); }, []);
+  const sufixo = q ? `&q=${encodeURIComponent(q)}` : "";
+  return <>
+    {montado && createPortal(
+      <nav aria-label="Seções dos créditos" className="fixed inset-x-0 bottom-0 z-40 border-t border-white/20 bg-gradient-to-b from-mata-800/70 to-mata-900/80 pb-[env(safe-area-inset-bottom)] shadow-[inset_0_1px_0_rgb(255_255_255/0.2),0_-8px_28px_-10px_rgb(20_42_29/0.45)] backdrop-blur-2xl backdrop-saturate-[1.8] md:hidden">
+        <ul className="relative mx-auto grid h-[4.5rem] max-w-lg grid-cols-4">
+          <li aria-hidden className="pointer-events-none absolute top-2 left-0 flex w-1/4 justify-center transition-transform duration-500 ease-[cubic-bezier(0.34,1.45,0.64,1)] motion-reduce:transition-none" style={{ transform: `translateX(${Math.max(0, ABAS.findIndex((a) => a.chave === aba)) * 100}%)` }}>
+            <span className="h-9 w-14 rounded-full bg-white" />
+          </li>
+          {ABAS.map(({ chave, rotulo, Icone }) => {
+            const ativa = aba === chave;
+            return <li key={chave}>
+              <Link href={`/admin/creditos?aba=${chave}${sufixo}`} scroll={false} aria-current={ativa ? "page" : undefined} className="group relative flex h-full w-full flex-col items-center justify-center gap-1 text-[11px] font-semibold">
+                <span className="relative grid h-9 w-14 place-items-center"><Icone size={20} strokeWidth={ativa ? 2.4 : 2} aria-hidden className={`transition-all duration-500 ease-[cubic-bezier(0.34,1.7,0.64,1)] motion-reduce:transition-none group-active:scale-90 ${ativa ? "-translate-y-px scale-110 text-mata-700" : "scale-100 text-white/65"}`} /></span>
+                <span className={`transition-all duration-300 motion-reduce:transition-none ${ativa ? "translate-y-0 text-white" : "translate-y-px text-white/60"}`}>{rotulo}</span>
+              </Link>
+            </li>;
+          })}
+        </ul>
+      </nav>, document.body,
+    )}
+    </>;
 }

@@ -178,7 +178,7 @@ export function QuitarDebito({ inscricaoId, temCredito }: { inscricaoId: string;
       onClick={() => rodar(() => quitarDebitoAction(inscricaoId))}
       className="btn-secundario h-8 px-3 text-xs"
     >
-      {pendente ? <Carregando /> : "Quitar com crédito"}
+      {pendente ? <Carregando /> : <Ticket size={15} className="shrink-0" aria-hidden />} Quitar com crédito
     </button>
   );
 }
@@ -196,7 +196,7 @@ export function LancarPacote({ planos, pessoas, pessoaFixa }: { planos: PlanoOpc
 
   if (!aberto) {
     return (
-      <button type="button" className="inline-flex h-9 items-center justify-center gap-1.5 rounded-md bg-mata-600 px-3.5 text-sm font-semibold text-white transition hover:bg-mata-800 active:scale-[0.98] max-lg:h-11" onClick={() => setAberto(true)}>
+      <button type="button" className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md bg-mata-600 px-3 text-sm font-semibold text-white transition hover:bg-mata-800 active:scale-[0.98] max-lg:h-11" onClick={() => setAberto(true)}>
         <Plus size={15} aria-hidden /> Lançar pacote
       </button>
     );
@@ -284,7 +284,8 @@ export function CabecalhoComFiltros({ abas, filtros }: { abas: ReactNode; filtro
   const ativos = ["usuario", "evento", "pacote", "de", "ate"].filter((c) => sp.get(c)).length;
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 border-b border-[#dadde1] px-4">
+      <div className="flex min-h-16 flex-wrap items-center justify-between gap-3 border-b border-[#dadde1] px-4 py-2 md:py-0">
+        <h2 className="text-sm font-semibold text-stone-800 md:hidden">Movimentações</h2>
         {abas}
         <button
           type="button"
@@ -322,7 +323,7 @@ export function FiltrosHistorico({ pessoas, eventos, pacotes }: { pessoas: Pesso
   };
   const v = (c: string) => sp.get(c) ?? "";
   return (
-    <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+    <div className="grid min-w-0 flex-1 grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-center max-sm:[&>select]:h-11 max-sm:[&>select]:text-base">
       <select value={v("usuario")} onChange={(e) => aplicar("usuario", e.target.value)} className="campo col-span-2 h-10 w-full text-sm sm:col-span-1 sm:h-9 sm:w-auto sm:max-w-48" aria-label="Filtrar por pessoa">
         <option value="">Todas as pessoas</option>
         {pessoas.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
@@ -335,8 +336,8 @@ export function FiltrosHistorico({ pessoas, eventos, pacotes }: { pessoas: Pesso
         <option value="">Todos os pacotes</option>
         {pacotes.map((p) => <option key={p.id} value={p.id}>{p.titulo}</option>)}
       </select>
-      <input type="date" value={v("de")} onChange={(e) => aplicar("de", e.target.value)} className="campo h-10 w-full min-w-0 text-sm sm:h-9 sm:w-auto" aria-label="Data inicial" />
-      <input type="date" value={v("ate")} onChange={(e) => aplicar("ate", e.target.value)} className="campo h-10 w-full min-w-0 text-sm sm:h-9 sm:w-auto" aria-label="Data final" />
+      <label className="min-w-0 text-xs font-medium text-stone-600">De<input type="date" value={v("de")} onChange={(e) => aplicar("de", e.target.value)} className="campo mt-1 h-11 w-full min-w-0 text-base sm:h-9 sm:w-auto sm:text-sm" /></label>
+      <label className="min-w-0 text-xs font-medium text-stone-600">Até<input type="date" value={v("ate")} onChange={(e) => aplicar("ate", e.target.value)} className="campo mt-1 h-11 w-full min-w-0 text-base sm:h-9 sm:w-auto sm:text-sm" /></label>
       {pendente && <Carregando />}
     </div>
   );

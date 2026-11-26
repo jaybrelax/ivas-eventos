@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import Link from "next/link";
-import { AlertTriangle, Clock, ListChecks, Ticket, Users, Wallet } from "lucide-react";
+import { AlertTriangle, Clock, Crown, ListChecks, Shield, Ticket, UserRound, Users, Wallet } from "lucide-react";
 import { exigir } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import {
@@ -14,7 +14,7 @@ import { casaBusca } from "@/lib/busca-texto";
 import { listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
 import { Titulo } from "@/components/Titulo";
 import { Avatar } from "@/components/Avatar";
-import { AbasCreditos } from "./AbasCreditos";
+import { AbasCreditos, NavbarCreditos } from "./AbasCreditos";
 import { BuscaCreditos } from "./BuscaCreditos";
 import { AcoesPacote, CabecalhoComFiltros, ExportarHistoricoCsv, FiltrosHistorico, LancarPacote, PacoteClicavel, QuitarDebito } from "./Cliente";
 
@@ -37,13 +37,14 @@ export default async function Creditos({ searchParams }: PageProps<"/admin/credi
   const q = str(sp.q).trim().slice(0, 80);
 
   return (
-    <>
+    <div className="pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
       <Titulo sobre="Relatório" titulo="Pacotes" subtitulo="Pacotes vendidos, saldo de cada pessoa, participações sem crédito e histórico de uso." />
+      <NavbarCreditos aba={aba} q={q} />
       {aba === "pacotes" && <AbaPacotes q={q} />}
       {aba === "saldos" && <AbaSaldos negativos={str(sp.negativos) === "1"} agrupar={str(sp.agrupar) === "1"} q={q} />}
       {aba === "debitos" && <AbaDebitos q={q} />}
       {aba === "historico" && <AbaHistorico q={q} filtros={{ usuario: str(sp.usuario), evento: str(sp.evento), pacote: str(sp.pacote), de: str(sp.de), ate: str(sp.ate) }} paginas={Math.min(10, Math.max(1, Number(str(sp.paginas)) || 1))} />}
-    </>
+    </div>
   );
 }
 
@@ -58,9 +59,9 @@ function Pessoa({ id, usuarios, semLink = false }: { id: string; usuarios: Await
     );
   }
   return (
-    <Link href={`/admin/participantes/${id}`} className="flex items-center gap-2.5 hover:underline">
+    <Link href={`/admin/participantes/${id}`} className="flex min-w-0 items-center gap-2.5 rounded-lg hover:underline">
       <Avatar nome={u?.nome ?? "Usuário removido"} foto={u?.foto ?? null} tamanho={26} className="ring-0" />
-      <span className="font-medium text-stone-800">{u?.nome ?? "Usuário removido"}</span>
+      <span className="min-w-0 break-words font-medium text-stone-800">{u?.nome ?? "Usuário removido"}</span>
     </Link>
   );
 }
@@ -73,11 +74,11 @@ function KpiMeta({ rotulo, valor, detalhe, Icone }: { rotulo: string; valor: str
   return (
     <div className="rounded-lg border border-[#dadde1] bg-white p-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="truncate text-[13px] font-medium text-[#65676b]">{rotulo}</p>
+        <p className="min-w-0 text-xs leading-relaxed font-medium text-[#65676b] sm:text-[13px]">{rotulo}</p>
         <Icone size={16} className="shrink-0 text-[#8a8d91]" aria-hidden />
       </div>
       <p className="mt-2 text-2xl font-bold tracking-tight text-[#1c1e21] tabular-nums">{valor}</p>
-      {detalhe && <p className="mt-0.5 truncate text-xs text-[#65676b]">{detalhe}</p>}
+      {detalhe && <p className="mt-1 text-xs leading-relaxed text-[#65676b]">{detalhe}</p>}
     </div>
   );
 }
@@ -144,15 +145,15 @@ async function AbaPacotes({ q }: { q: string }) {
       <CartoesResumo dados={dados} />
 
       {/* Busca de pessoa e Lançar pacote na mesma linha, entre os cards e a tabela */}
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <BuscaCreditos className="w-full sm:max-w-sm sm:flex-1" />
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <BuscaCreditos className="min-w-0 flex-1 sm:max-w-sm" />
         {botaoLancar}
       </div>
       {/* Celular: sem cabeçalho de tabela, a contagem de pacotes ativos fica aqui */}
       <p className="mb-3 text-sm text-[#65676b] lg:hidden"><strong className="font-semibold text-[#1c1e21]">{pagos.length}</strong> {pagos.length === 1 ? "pacote ativo" : "pacotes ativos"}</p>
 
       <section className="overflow-hidden rounded-lg border border-[#dadde1] bg-white">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-[#dadde1] px-4">
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 md:border-b border-[#dadde1] px-4">
           <AbasCreditos aba="pacotes" q={q} />
         </div>
 
@@ -236,34 +237,55 @@ async function AbaSaldos({ negativos, agrupar, q }: { negativos: boolean; agrupa
   );
   // Agrupado: mestres, guardiões e participantes, nessa ordem
   const GRUPOS = [
-    { chave: "mestre", rotulo: "Mestres" },
-    { chave: "guardiao", rotulo: "Guardiões" },
-    { chave: "nenhuma", rotulo: "Participantes" },
+    { chave: "mestre", rotulo: "Mestres", Icone: Crown },
+    { chave: "guardiao", rotulo: "Guardiões", Icone: Shield },
+    { chave: "nenhuma", rotulo: "Participantes", Icone: UserRound },
   ] as const;
   const grupos = GRUPOS.map((g) => ({ ...g, itens: linhas.filter(([id]) => (usuarios.get(id)?.funcao ?? "nenhuma") === g.chave) })).filter((g) => g.itens.length);
+  const cardSaldo = ([id, sd]: (typeof linhas)[number]) => (
+    <li key={id} className="px-4 py-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1 text-sm"><Pessoa id={id} usuarios={usuarios} /></div>
+        <div className="flex shrink-0 items-center gap-1.5">
+        {agrupar && <div className="flex items-center gap-2 rounded-lg bg-stone-100 px-2.5 py-1.5 text-stone-700"><span className="text-xs font-medium">Usados</span><span className="text-lg leading-none font-semibold tabular-nums">{sd.utilizados}</span></div>}
+        <div className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 ${sd.saldo < 0 ? "bg-red-50 text-red-700" : "bg-mata-50 text-mata-800"}`}>
+          <span className="text-xs font-medium">Saldo</span><span className="text-lg leading-none font-semibold tabular-nums">{sd.saldo}</span>
+        </div>
+        </div>
+      </div>
+      {!agrupar && <dl className="mt-2.5 grid grid-cols-2 gap-x-5 gap-y-1.5 rounded-lg bg-stone-50 px-3 py-2 text-xs">
+        {[{ titulo: "Disponíveis", valor: sd.disponiveis }, { titulo: "Aguardando", valor: sd.bloqueados }, { titulo: "Usados", valor: sd.utilizados }, { titulo: "Em débito", valor: sd.debitos }].map(({ titulo, valor }) => (
+          <div key={titulo} className="flex items-center justify-between gap-2"><dt className="text-stone-500">{titulo}</dt><dd className="font-semibold text-stone-800 tabular-nums">{valor}</dd></div>
+        ))}
+      </dl>}
+    </li>
+  );
 
   return (
     <>
     <CartoesResumo dados={resumo} />
     <div className="mb-3"><BuscaCreditos className="w-full sm:max-w-sm" /></div>
     <section className="cartao overflow-hidden p-0 sm:p-0">
-      <div className="border-b border-[#dadde1] px-4"><AbasCreditos aba="saldos" q={q} /></div>
-      <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3 sm:px-6">
+      <div className="md:border-b border-[#dadde1] px-4"><AbasCreditos aba="saldos" q={q} /></div>
+      <div className="flex flex-col gap-3 border-b border-stone-100 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <p className="text-sm text-stone-500">{linhas.length} {linhas.length === 1 ? "pessoa" : "pessoas"}</p>
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
           <Link
             href={hrefSaldos(negativos, !agrupar)}
             aria-pressed={agrupar}
-            className={"btn-secundario h-9 px-3 text-sm " + (agrupar ? "border-mata-300! bg-mata-50! text-mata-700!" : "")}
+            className={"btn-secundario min-h-11 px-2 text-xs sm:text-sm " + (agrupar ? "border-mata-300! bg-mata-50! text-mata-700!" : "")}
           >
             <Users size={15} aria-hidden /> {agrupar ? "Desagrupar" : "Agrupar por função"}
           </Link>
-          <Link href={hrefSaldos(!negativos, agrupar)} className="btn-secundario h-9 px-3 text-sm">
+          <Link href={hrefSaldos(!negativos, agrupar)} aria-pressed={negativos} className={`btn-secundario min-h-11 px-2 text-xs sm:text-sm ${negativos ? "border-red-200! bg-red-50! text-red-700!" : ""}`}>
             {negativos ? "Mostrar todos" : "Só saldo negativo"}
           </Link>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <ul className="divide-y divide-stone-300/80 lg:hidden" aria-label="Saldos por pessoa">
+        {linhas.length ? (agrupar ? grupos.map((g) => <li key={g.chave}><h2 className="flex items-center gap-2 border-y border-mata-200/50 bg-mata-100/60 px-4 py-2.5 text-base font-semibold text-mata-800"><g.Icone size={18} aria-hidden />{g.rotulo} <span className="font-medium tabular-nums">({g.itens.length})</span></h2><ul className="divide-y divide-stone-300/80">{g.itens.map(cardSaldo)}</ul></li>) : linhas.map(cardSaldo)) : <li className="px-4 py-10 text-center text-sm text-stone-500">{q ? "Nenhuma pessoa encontrada." : negativos ? "Ninguém com saldo negativo." : "Nenhum saldo registrado ainda."}</li>}
+      </ul>
+      <div className="hidden overflow-x-auto lg:block">
         <table className="w-full text-sm">
           <thead className="bg-stone-50/80 text-left text-xs text-stone-500">
             <tr>
@@ -278,9 +300,9 @@ async function AbaSaldos({ negativos, agrupar, q }: { negativos: boolean; agrupa
           <tbody>
             {linhas.length ? (agrupar ? grupos.map((g) => (
               <Fragment key={g.chave}>
-                <tr className="border-t border-stone-200 bg-stone-50">
-                  <th colSpan={6} scope="colgroup" className="px-5 py-2 text-left text-xs font-semibold tracking-wide text-stone-600 uppercase sm:px-6">
-                    {g.rotulo} <span className="font-medium text-stone-400 normal-case tabular-nums">· {g.itens.length}</span>
+                <tr className="border-y border-mata-200/50 bg-mata-100/60">
+                  <th colSpan={6} scope="colgroup" className="px-5 py-2.5 text-left text-base font-semibold text-mata-800 sm:px-6">
+                    <span className="flex items-center gap-2"><g.Icone size={18} aria-hidden />{g.rotulo} <span className="font-medium tabular-nums">({g.itens.length})</span></span>
                   </th>
                 </tr>
                 {g.itens.map(linhaPessoa)}
@@ -301,13 +323,27 @@ async function AbaDebitos({ q }: { q: string }) {
   const debitos = q ? todosDebitos.filter((d) => casaBusca(q, usuarios.get(d.usuarioId)?.nome ?? "")) : todosDebitos;
   return (
     <>
-      <p className="mb-4 max-w-3xl text-sm text-stone-500">
-        Pessoas inscritas (vaga confirmada) em rituais que já começaram, sem crédito e sem contribuição resolvida. Quite com um crédito da pessoa, ou abra o evento para confirmar ou isentar a contribuição avulsa — o débito some sozinho.
+      <p className="mb-4 max-w-3xl text-sm leading-relaxed text-stone-500">
+        Participações sem crédito ou contribuição resolvida em rituais já iniciados. Use um crédito disponível ou abra o ritual para resolver a contribuição.
       </p>
       <div className="mb-3"><BuscaCreditos className="w-full sm:max-w-sm" /></div>
       <section className="cartao overflow-hidden p-0 sm:p-0">
-        <div className="border-b border-[#dadde1] px-4"><AbasCreditos aba="debitos" q={q} /></div>
-        <div className="overflow-x-auto">
+        <div className="md:border-b border-[#dadde1] px-4"><AbasCreditos aba="debitos" q={q} /></div>
+        <div className="border-b border-stone-100 px-4 py-3 lg:hidden"><h2 className="text-sm font-semibold text-stone-800">Débitos <span className="ml-1 font-normal text-stone-500">· {debitos.length}</span></h2></div>
+        <ul className="divide-y divide-stone-300/80 lg:hidden" aria-label="Participações em débito">
+          {debitos.length ? debitos.map((d) => {
+            const disp = saldos.get(d.usuarioId)?.disponiveis ?? 0;
+            return <li key={d.inscricaoId} className="space-y-2.5 px-4 py-3">
+              <div className="text-sm"><Pessoa id={d.usuarioId} usuarios={usuarios} /></div>
+              <Link href={`/admin/eventos/${d.eventoId}`} className="block rounded-lg bg-stone-50 px-3 py-2 text-sm font-medium leading-snug text-stone-800 hover:bg-stone-100">Ritual{d.ritualNumero != null ? ` Nº ${d.ritualNumero}` : ""} · {d.titulo}<span className="mt-0.5 block text-xs font-normal text-stone-500">{dataCurta(d.data)} · Ver ritual →</span></Link>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0 space-y-1 text-xs leading-snug"><p className="font-medium text-amber-800">{d.pagamento === "na_hora" ? "Contribuição na hora" : "Contribuição pendente"}</p><p className="text-stone-600">{disp} {disp === 1 ? "crédito disponível" : "créditos disponíveis"}</p></div>
+                <div className="shrink-0 [&>button]:min-h-11 [&>button]:px-3.5 [&>button]:text-xs"><QuitarDebito inscricaoId={d.inscricaoId} temCredito={disp > 0} /></div>
+              </div>
+            </li>;
+          }) : <li className="px-4 py-10 text-center text-sm text-stone-500">{q ? "Nenhum débito encontrado." : "Nenhuma participação em débito."}</li>}
+        </ul>
+        <div className="hidden overflow-x-auto lg:block">
           <table className="w-full text-sm">
             <thead className="bg-stone-50/80 text-left text-xs text-stone-500">
               <tr>
@@ -403,17 +439,17 @@ async function AbaHistorico({ filtros, paginas, q }: { filtros: { usuario: strin
       />
 
       {/* Celular: um cartão por movimentação (sem rolagem lateral) */}
-      <ul className="divide-y divide-stone-100 lg:hidden">
+      <ul className="divide-y divide-stone-300/80 lg:hidden">
         {linhas.length ? linhas.map(({ m, evento, pacote, detalhe }) => (
-          <li key={m.$id} className="space-y-2 px-4 py-3.5">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+          <li key={m.$id} className="space-y-2 px-4 py-3">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
               <p className="font-semibold text-stone-900">{ROTULO_ACAO[m.acao]}</p>
-              <time dateTime={m.$createdAt} className="text-xs text-stone-400 tabular-nums">{dataHora(m.$createdAt)}</time>
+              <time dateTime={m.$createdAt} className="text-xs text-stone-500 tabular-nums">{dataHora(m.$createdAt)}</time>
             </div>
             <div className="text-sm"><Pessoa id={m.usuario_id} usuarios={usuarios} /></div>
             {detalhe && <p className="text-xs break-words text-stone-500">{detalhe}</p>}
             {(m.evento_id || pacote || m.por) && (
-              <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-xs">
+              <dl className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-lg bg-stone-50 px-3 py-2 text-xs leading-snug [&>dt]:text-stone-500">
                 {m.evento_id && (<><dt className="text-stone-400">Ritual</dt><dd className="min-w-0 break-words text-stone-700"><Link href={`/admin/eventos/${m.evento_id}`} className="hover:text-mata-700 hover:underline">{evento || "Evento removido"}</Link></dd></>)}
                 {pacote && (<><dt className="text-stone-400">Pacote</dt><dd className="min-w-0 break-words text-stone-700">{pacote}</dd></>)}
                 {m.por && (<><dt className="text-stone-400">Feito por</dt><dd className="min-w-0 break-words text-stone-700">{nome(m.por)}</dd></>)}
