@@ -30,6 +30,8 @@ export const TABLES = {
   sinais: "sinais",
   /** Central de informações do evento: ocorrências, lembretes e tarefas da equipe. */
   central: "central_posts",
+  avaliacoesRitual: "avaliacoes_ritual",
+  depoimentosRitual: "depoimentos_ritual",
   /** Pacotes de créditos: catálogo, compras, créditos (1 por participação, com trava atômica) e histórico. */
   planosPacote: "planos_pacote",
   pacotes: "pacotes",

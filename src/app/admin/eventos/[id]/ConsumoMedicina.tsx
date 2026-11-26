@@ -63,8 +63,9 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
 
           {/* Gráfico: uma barra empilhada por pessoa (1ª, 2ª, 3ª), na mesma escala */}
           <ol className="mt-5 space-y-2.5 sm:mt-3">
-            {com.map((p) => (
-              <li key={p.id} className="flex items-center gap-2.5">
+            {com.map((p, indice) => {
+              const atraso = Math.min(indice, 10) * 55;
+              return <li key={p.id} className="consumo-pessoa flex items-center gap-2.5" style={{ animationDelay: `${atraso}ms` }}>
                 <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="ring-0" />
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-baseline justify-between gap-2">
@@ -72,23 +73,25 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
                     <span className="shrink-0 text-xs font-bold text-amber-950 tabular-nums">{p.total} ml</span>
                   </div>
                   <div
-                    className="flex h-5 overflow-hidden rounded-md bg-stone-100"
+                    className="h-5 overflow-hidden rounded-md bg-stone-100"
                     role="img"
                     aria-label={`${p.nome}: ${p.doses.map((d) => `${d.n}ª dose ${d.ml} ml`).join(", ")}. Total ${p.total} ml.`}
                   >
-                    {p.doses.map((d) => (
-                      <span
-                        key={d.n}
-                        className={`grid min-w-0 place-items-center text-[10px] font-bold tabular-nums ${TOM[d.n].texto} border-r border-white/30 last:border-r-0`}
-                        style={{ width: `${(d.ml / maximo) * 100}%`, background: TOM[d.n].fundo }}
-                      >
-                        {d.ml >= 12 ? d.ml : ""}
-                      </span>
-                    ))}
+                    <div className="consumo-barra flex h-full" style={{ width: `${(p.total / maximo) * 100}%`, animationDelay: `${atraso + 120}ms` }}>
+                      {p.doses.map((d) => (
+                        <span
+                          key={d.n}
+                          className={`grid min-w-0 place-items-center text-[10px] font-bold tabular-nums ${TOM[d.n].texto} border-r border-white/30 last:border-r-0`}
+                          style={{ width: `${(d.ml / p.total) * 100}%`, background: TOM[d.n].fundo }}
+                        >
+                          {d.ml >= 12 ? d.ml : ""}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </li>
-            ))}
+              </li>;
+            })}
           </ol>
           <p className="mt-3 text-[11px] text-stone-400">Escala de 0 a {maximo} ml. Mestres, guardiões e participantes.</p>
         </div>

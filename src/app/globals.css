@@ -164,6 +164,24 @@ body {
   .modal-inscricao-fundo { animation: modal-inscricao-fundo-entrar 220ms ease-out both; }
 }
 
+/* Consumo: cada pessoa chega em sequência e sua barra revela a proporção real das doses. */
+@keyframes consumo-pessoa-entrar {
+  from { opacity: 0; transform: translate3d(0, 9px, 0); }
+  to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes consumo-barra-revelar {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  [role="tabpanel"]:not([hidden]) .consumo-pessoa {
+    animation: consumo-pessoa-entrar 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  [role="tabpanel"]:not([hidden]) .consumo-barra {
+    animation: consumo-barra-revelar 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
 /* ---------- Formulários ---------- */
 @utility campo {
   @apply h-10 w-full rounded-xl border border-stone-200 bg-white px-3 text-sm text-stone-900 shadow-[0_1px_2px_rgb(0_0_0/0.04)] outline-none transition placeholder:text-stone-400 hover:border-stone-300 focus:border-mata-400 focus:ring-4 focus:ring-mata-100 disabled:bg-stone-100 disabled:text-stone-500;

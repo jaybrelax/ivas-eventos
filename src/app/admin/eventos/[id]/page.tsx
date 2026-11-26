@@ -16,6 +16,8 @@ import { ConsumoMedicina, type ConsumoPessoa } from "./ConsumoMedicina";
 import { AbasEvento, ID_PAGINA_EVENTO } from "./AbasEvento";
 import { CentralEvento } from "./CentralEvento";
 import { dadosCentral } from "./central-dados";
+import { resumoDepoimentos } from "@/lib/depoimentos";
+import { DepoimentosRitual } from "@/components/DepoimentosRitual";
 import { guardioesDoEvento, podeVerCentral } from "@/lib/central";
 import { lerDosesEquipe } from "@/lib/doses";
 import { MenuEventoMobile } from "./MenuEventoMobile";
@@ -64,11 +66,12 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   ]);
   // A Central nesta área é acessível apenas a admin e coordenação.
   const central = gerenciar || podeVerCentral(u, evento, guardioesDoRitual) ? await dadosCentral(evento, u, gerenciar) : null;
+  const depoimentos = central && (u.perfil === "admin" || u.perfil === "coordenador") ? await resumoDepoimentos(evento.$id) : null;
   const abaCentral = central && {
     id: "central", rotulo: "Central", icone: "central" as const, detalheSempre: true,
     // Total de registros da Central (todos os tipos)
     detalhe: central.posts.length ? String(central.posts.length) : undefined,
-    painel: <CentralEvento eventoId={evento.$id} dados={central} />,
+    painel: <><CentralEvento eventoId={evento.$id} dados={central} />{depoimentos && <DepoimentosRitual resumo={depoimentos} />}</>,
   };
   const end = enderecos.find((e) => e.$id === evento.endereco_id);
   const caminhoPublico = urlPublicaEvento(evento, tipo);

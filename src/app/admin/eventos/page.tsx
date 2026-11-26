@@ -168,12 +168,12 @@ function GrupoAvatares({ ids, pessoas, rotulo }: { ids: string[]; pessoas: Map<s
       {visiveis.map((id) => {
         const pessoa = pessoas.get(id);
         const nome = pessoa?.nome ?? "Usuário";
-        return <span key={id} className="relative grid size-5 shrink-0 place-items-center rounded-full bg-stone-200 text-[9px] font-bold text-stone-600 ring-2 ring-white" aria-hidden>
+        return <span key={id} className="relative grid size-6 shrink-0 place-items-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-600 ring-2 ring-white" aria-hidden>
           {iniciais(nome)}
-          <Avatar nome={nome} foto={pessoa?.foto} tamanho={20} leve className="absolute inset-0 ring-0" />
+          <Avatar nome={nome} foto={pessoa?.foto} tamanho={24} leve className="absolute inset-0 ring-0" />
         </span>;
       })}
-      {ids.length > visiveis.length && <span className="relative grid size-5 shrink-0 place-items-center rounded-full bg-stone-200 text-[9px] font-bold text-stone-700 ring-2 ring-white">+{ids.length - visiveis.length}</span>}
+      {ids.length > visiveis.length && <span className="relative grid size-6 shrink-0 place-items-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-700 ring-2 ring-white">+{ids.length - visiveis.length}</span>}
     </span>
   );
 }
@@ -201,7 +201,7 @@ function CartaoEvento({ e, t, hj, passado, pessoas, guardioesConfirmados, partic
       >
         {e.capa_file_id && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={urlImagem(e.capa_file_id, 320)} loading="lazy" decoding="async" alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+          <img src={urlImagem(e.capa_file_id, 320)} loading="lazy" decoding="async" alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105" style={passado ? { filter: "saturate(0.1)" } : undefined} />
         )}
         {t && <div className="absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-stone-950/70 to-transparent px-1 pb-2 pt-6">
           <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm ring-1 ring-inset ring-white/35 backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_3px_rgb(0_0_0/0.5)]">
@@ -215,7 +215,7 @@ function CartaoEvento({ e, t, hj, passado, pessoas, guardioesConfirmados, partic
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 px-3 py-3.5 sm:px-4">
         <div className="flex min-w-0 items-start gap-2">
           {ehHoje && <span className="chip bg-mata-700 text-white">Hoje</span>}
-          <h3 className="min-w-0 flex-1 line-clamp-2 text-[16px] leading-snug font-bold tracking-tight text-stone-900 transition-colors group-hover:text-mata-700 sm:text-xl" title={e.titulo}>{e.titulo}</h3>
+          <h3 className="min-w-0 flex-1 line-clamp-2 text-[17px] leading-snug font-bold tracking-tight text-stone-900 transition-colors group-hover:text-mata-700 sm:text-[21px]" title={e.titulo}>{e.titulo}</h3>
           {e.destaque && <Star size={15} className="shrink-0 fill-ouro-400 text-ouro-500 md:hidden" aria-label="Destaque" />}
         </div>
         {(mestres.length > 0 || guardioes.length > 0) && <div className="flex min-w-0 flex-wrap items-center gap-1" aria-label="Equipe do evento">
@@ -224,7 +224,7 @@ function CartaoEvento({ e, t, hj, passado, pessoas, guardioesConfirmados, partic
         </div>}
         <div className="mt-0.5 flex flex-wrap items-center justify-between gap-x-1.5 gap-y-1 border-t border-stone-100 pt-2">
           <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2 py-0.5 text-[11px] font-semibold text-stone-700 tabular-nums" title="Participantes confirmados, incluindo mestres e guardiões"><Users size={12} aria-hidden />{participantes} {participantes === 1 ? "participante" : "participantes"}</span>
-          {e.ritual_numero_ano != null && e.ritual_numero_geral != null && <span className="whitespace-nowrap font-mono text-[11px] font-bold tracking-tight text-mata-800 tabular-nums" title={`Ritual ${formatarIdRitual(e.ritual_numero_geral, e.ritual_ano, e.ritual_numero_ano)}`}>N° {e.ritual_numero_ano}/{e.ritual_numero_geral}</span>}
+          {e.ritual_numero_ano != null && e.ritual_numero_geral != null && <span className="whitespace-nowrap font-mono text-xs font-bold tracking-tight text-mata-800 tabular-nums sm:text-[13px]" title={`Ritual ${formatarIdRitual(e.ritual_numero_geral, e.ritual_ano, e.ritual_numero_ano)}`}>N° {e.ritual_numero_ano}/{e.ritual_numero_geral}</span>}
         </div>
       </div>
 

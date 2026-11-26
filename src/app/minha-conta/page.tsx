@@ -111,7 +111,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
               <h2 id="titulo-historico" className="mb-4 flex items-center gap-2 text-lg font-semibold tracking-tight text-stone-900">
                 <History size={19} className="text-mata-700" aria-hidden /> Histórico de participações
               </h2>
-              <Lista vazio="Nenhum ritual no seu histórico ainda." itens={historico} mostrarPagamento={false} />
+              <Lista vazio="Nenhum ritual no seu histórico ainda." itens={historico} mostrarPagamento={false} historico />
             </section>
           </>
         )}
@@ -142,7 +142,7 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
   );
 }
 
-function Lista({ itens, vazio, mostrarPagamento, cancelar = false }: { itens: ItemInscricao[]; vazio: string; mostrarPagamento: boolean; cancelar?: boolean }) {
+function Lista({ itens, vazio, mostrarPagamento, cancelar = false, historico = false }: { itens: ItemInscricao[]; vazio: string; mostrarPagamento: boolean; cancelar?: boolean; historico?: boolean }) {
   if (!itens.length) return <p className="cartao text-center text-sm text-stone-400">{vazio}</p>;
   return (
     <ul className="space-y-2.5">
@@ -170,6 +170,7 @@ function Lista({ itens, vazio, mostrarPagamento, cancelar = false }: { itens: It
               )}
             </div>
           </div>
+          {historico && <Link href={`/minha-conta/participacao/${i.inscricaoId}`} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-mata-700 hover:underline">Ver minha participação →</Link>}
           {((mostrarPagamento && i.temContribuicao) || (cancelar && i.podeCancelar)) && (
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-500">
               {mostrarPagamento && i.temContribuicao && i.pagamento === "credito" && <span>Participação paga com 1 crédito</span>}
