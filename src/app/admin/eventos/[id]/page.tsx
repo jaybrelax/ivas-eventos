@@ -18,6 +18,7 @@ import { CentralEvento } from "./CentralEvento";
 import { dadosCentral } from "./central-dados";
 import { resumoDepoimentos } from "@/lib/depoimentos";
 import { DepoimentosRitual } from "@/components/DepoimentosRitual";
+import { Suspense } from "react";
 import { guardioesDoEvento, podeVerCentral } from "@/lib/central";
 import { lerDosesEquipe } from "@/lib/doses";
 import { MenuEventoMobile } from "./MenuEventoMobile";
@@ -40,6 +41,11 @@ type MembroEquipe = { id: string; nome: string; foto: string | null; sexo: Sexo 
 
 /** Superfície dos cards a partir do tablet: vidro claro, cantos generosos, borda e sombra suaves. */
 const SUPERFICIE = "md:rounded-[22px] md:border-white/70 md:bg-white/75 md:shadow-[0_1px_2px_rgb(0_0_0/0.04),0_12px_32px_-14px_rgb(20_42_29/0.2)] md:ring-1 md:ring-black/[0.04] md:backdrop-blur-2xl md:backdrop-saturate-[1.8]";
+
+async function DepoimentosRitualLazy({ eventoId }: { eventoId: string }) {
+  const resumo = await resumoDepoimentos(eventoId);
+  return <DepoimentosRitual resumo={resumo} />;
+}
 
 /**
  * Visualização do evento para a equipe, numa página só: capa com data e local, estatísticas
@@ -66,12 +72,12 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   ]);
   // A Central nesta área é acessível apenas a admin e coordenação.
   const central = gerenciar || podeVerCentral(u, evento, guardioesDoRitual) ? await dadosCentral(evento, u, gerenciar) : null;
-  const depoimentos = central && (u.perfil === "admin" || u.perfil === "coordenador") ? await resumoDepoimentos(evento.$id) : null;
+  const podeLerDepoimentos = u.perfil === "admin" || u.perfil === "coordenador";
   const abaCentral = central && {
     id: "central", rotulo: "Central", icone: "central" as const, detalheSempre: true,
     // Total de registros da Central (todos os tipos)
     detalhe: central.posts.length ? String(central.posts.length) : undefined,
-    painel: <><CentralEvento eventoId={evento.$id} dados={central} />{depoimentos && <DepoimentosRitual resumo={depoimentos} />}</>,
+    painel: <><CentralEvento eventoId={evento.$id} dados={central} />{podeLerDepoimentos && <Suspense fallback={<div className="mx-2 mb-4 h-32 animate-pulse rounded-2xl bg-stone-100 sm:mx-4" aria-label="Carregando depoimentos" />}><DepoimentosRitualLazy eventoId={evento.$id} /></Suspense>}</>,
   };
   const end = enderecos.find((e) => e.$id === evento.endereco_id);
   const caminhoPublico = urlPublicaEvento(evento, tipo);
