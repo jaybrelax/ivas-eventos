@@ -196,7 +196,7 @@ export function AbasEvento({ abas, inicial }: { abas: AbaEvento[]; inicial?: str
                         className={`transition-all duration-500 ease-[cubic-bezier(0.34,1.7,0.64,1)] motion-reduce:transition-none group-active:scale-90 ${on ? "-translate-y-px scale-110 text-mata-700" : "scale-100 text-white/65"}`}
                       />
                       {a.detalhe && a.detalheSempre && (
-                        <span className="absolute -top-1 right-1.5 grid h-4 min-w-4 animate-[surgir_0.35s_cubic-bezier(0.34,1.7,0.64,1)_both] place-items-center rounded-full bg-ouro-400 px-1 text-[10px] leading-none font-bold text-mata-950 tabular-nums ring-2 ring-mata-900">{a.detalhe}</span>
+                        <span className="absolute -top-1 right-1.5 grid h-4 min-w-4 animate-[surgir_0.35s_cubic-bezier(0.34,1.7,0.64,1)_both] place-items-center rounded-full bg-ouro-400 px-1 text-[10px] leading-none font-bold text-mata-950 tabular-nums">{a.detalhe}</span>
                       )}
                     </span>
                     <span className={`transition-all duration-300 ${on ? "translate-y-0 text-white" : "translate-y-px text-white/60"}`}>{a.rotulo}</span>

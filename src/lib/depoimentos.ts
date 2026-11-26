@@ -43,6 +43,13 @@ export async function resumoDepoimentos(eventoId: string) {
   return { quantidade: avaliacoes.length, medias, depoimentos, temMais: dr.total > depoimentos.length };
 }
 
+/** Só o total, usado como contador na aba sem carregar os relatos antecipadamente. */
+export async function contarAvaliacoesRitual(eventoId: string): Promise<number> {
+  const { tablesDB } = createAdminClient();
+  const r = await tablesDB.listRows({ ...base, tableId: TABLES.avaliacoesRitual, queries: [Query.equal("evento_id", eventoId), Query.limit(1)] });
+  return r.total;
+}
+
 export async function podeDepor(inscricao: Inscricao) {
   const evento = await getEvento(inscricao.evento_id);
   return !!evento && inscricao.situacao === "confirmada" && evento.data < hoje();

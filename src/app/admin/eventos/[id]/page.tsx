@@ -35,6 +35,7 @@ import { resumoContribuicoes } from "./EstatisticasEvento";
 import { ListaPresenca, type PessoaPresenca } from "./ListaPresenca";
 import { MenuEquipeCard, MenuEquipeMobile } from "./GerenciarEquipe";
 import { LeituraGuardiaoRitual } from "./LeituraGuardiaoRitual";
+import { contarAvaliacoesRitual } from "@/lib/depoimentos";
 
 type MembroEquipe = { id: string; nome: string; foto: string | null; sexo: Sexo | null };
 
@@ -128,6 +129,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
     id: "avaliacoes", rotulo: "Avaliações", icone: "avaliacoes" as const, sobDemanda: true,
     painel: <CarregarAvaliacoesRitual eventoId={evento.$id} />,
   } : null;
+  const totalAvaliacoes = abaAvaliacoes ? await contarAvaliacoesRitual(evento.$id).catch(() => 0) : 0;
   const end = enderecos.find((e) => e.$id === evento.endereco_id);
   const caminhoPublico = urlPublicaEvento(evento, tipo);
   const um = (v: unknown) => (typeof v === "string" ? v : Array.isArray(v) ? v[0] : undefined);
@@ -360,7 +362,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
           <AbasEvento
             inicial={um(sp.aba)}
             abas={[
-              { id: "lista", rotulo: "Participantes", icone: "lista", detalhe: String(participantes.confirmados.length + membros.filter((m) => !participantes.confirmados.some((c) => c.id === m.id)).length), painel: (
+              { id: "lista", rotulo: "Participantes", icone: "lista", detalhe: String(participantes.confirmados.length + membros.filter((m) => !participantes.confirmados.some((c) => c.id === m.id)).length), detalheSempre: true, painel: (
                 <div>
         {participantes ? (
           <Participantes
@@ -379,7 +381,6 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
               ) },
               { id: "consumo", rotulo: "Consumo", icone: "consumo", detalhe: totalMl ? `${totalMl} ml` : undefined, painel: <ConsumoMedicina pessoas={consumo} embutido /> },
               ...(abaCentral ? [abaCentral] : []),
-              ...(abaAvaliacoes ? [abaAvaliacoes] : []),
               ...(numeros ? [{ id: "financeiro", rotulo: "Financeiro", icone: "financeiro" as const, painel: (
                 <div>
                   <CabecalhoAba
@@ -394,6 +395,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
                   <Participantes dados={{ ...participantes, linkPerfil: pode(u, PODE.editarEventos) }} semResumo embutido financeiro guardioes={guardioesGerais} titulo="Participantes" />
                 </div>
               ) }] : []),
+              ...(abaAvaliacoes ? [{ ...abaAvaliacoes, detalhe: String(totalAvaliacoes), detalheSempre: true }] : []),
             ]}
           />
         </div>
