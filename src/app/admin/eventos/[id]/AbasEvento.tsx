@@ -2,9 +2,9 @@
 
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { CircleDollarSign, GlassWater, MessagesSquare, Users } from "lucide-react";
+import { CircleDollarSign, GlassWater, MessagesSquare, Star, Users } from "lucide-react";
 
-const ICONES = { lista: Users, consumo: GlassWater, central: MessagesSquare, financeiro: CircleDollarSign };
+const ICONES = { lista: Users, consumo: GlassWater, central: MessagesSquare, avaliacoes: Star, financeiro: CircleDollarSign };
 
 export type AbaEvento = {
   id: string;

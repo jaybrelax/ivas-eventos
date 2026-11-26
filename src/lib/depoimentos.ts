@@ -39,7 +39,7 @@ export async function resumoDepoimentos(eventoId: string) {
   ]);
   const avaliacoes = ar.rows as unknown as Avaliacao[];
   const medias = Object.fromEntries(ASPECTOS.map(([chave]) => [chave, avaliacoes.length ? Math.round(avaliacoes.reduce((s, a) => s + a[chave], 0) / avaliacoes.length * 10) / 10 : null])) as Record<keyof Notas, number | null>;
-  const depoimentos = (dr.rows as unknown as Depoimento[]).map((d) => ({ ...d, autor: usuarios.get(d.autor_id)?.nome ?? "Participante" }));
+  const depoimentos = (dr.rows as unknown as Depoimento[]).map((d) => ({ ...d, autor: usuarios.get(d.autor_id)?.nome ?? "Participante", autorFoto: usuarios.get(d.autor_id)?.foto ?? null }));
   return { quantidade: avaliacoes.length, medias, depoimentos, temMais: dr.total > depoimentos.length };
 }
 

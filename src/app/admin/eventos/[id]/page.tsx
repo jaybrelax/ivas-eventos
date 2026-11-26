@@ -77,8 +77,12 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
     id: "central", rotulo: "Central", icone: "central" as const, detalheSempre: true,
     // Total de registros da Central (todos os tipos)
     detalhe: central.posts.length ? String(central.posts.length) : undefined,
-    painel: <><CentralEvento eventoId={evento.$id} dados={central} />{podeLerDepoimentos && <Suspense fallback={<div className="mx-2 mb-4 h-32 animate-pulse rounded-2xl bg-stone-100 sm:mx-4" aria-label="Carregando depoimentos" />}><DepoimentosRitualLazy eventoId={evento.$id} /></Suspense>}</>,
+    painel: <CentralEvento eventoId={evento.$id} dados={central} />,
   };
+  const abaAvaliacoes = gerenciar && podeLerDepoimentos ? {
+    id: "avaliacoes", rotulo: "Avaliações", icone: "avaliacoes" as const,
+    painel: <Suspense fallback={<div className="m-4 h-32 animate-pulse rounded-2xl bg-stone-100" aria-label="Carregando avaliações" />}><DepoimentosRitualLazy eventoId={evento.$id} /></Suspense>,
+  } : null;
   const end = enderecos.find((e) => e.$id === evento.endereco_id);
   const caminhoPublico = urlPublicaEvento(evento, tipo);
   const um = (v: unknown) => (typeof v === "string" ? v : Array.isArray(v) ? v[0] : undefined);
@@ -150,7 +154,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
   ) : null;
   // Gestão do evento: abas (no celular, menu no rodapé). A aba aberta no carregamento vem do `?aba=`.
   const comAbas = gerenciar && !!participantes;
-  const abaInicial = ["lista", "consumo", "central", "financeiro"].includes(um(sp.aba) ?? "") ? um(sp.aba)! : "lista";
+  const abaInicial = ["lista", "consumo", "central", "avaliacoes", "financeiro"].includes(um(sp.aba) ?? "") ? um(sp.aba)! : "lista";
 
   return (
     <>
@@ -330,6 +334,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
               ) },
               { id: "consumo", rotulo: "Consumo", icone: "consumo", detalhe: totalMl ? `${totalMl} ml` : undefined, painel: <ConsumoMedicina pessoas={consumo} embutido /> },
               ...(abaCentral ? [abaCentral] : []),
+              ...(abaAvaliacoes ? [abaAvaliacoes] : []),
               ...(numeros ? [{ id: "financeiro", rotulo: "Financeiro", icone: "financeiro" as const, painel: (
                 <div>
                   <CabecalhoAba
