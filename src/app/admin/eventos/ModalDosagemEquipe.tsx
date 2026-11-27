@@ -80,7 +80,9 @@ export function ModalDosagemEquipe({ eventoId, pessoa, rotulo, inicial, fechar, 
               )}
             </section>
           )}
-          <Dosagem salvarDoses={(l) => salvarDosesEquipeAction(eventoId, pessoa.id, l)} inicial={inicial} aoSalvar={() => {}} />
+          <div className="modal-dosagem-cabecalho">
+            <Dosagem salvarDoses={(l) => salvarDosesEquipeAction(eventoId, pessoa.id, l)} inicial={inicial} aoSalvar={() => {}} />
+          </div>
           <div aria-hidden className="h-[100px]" />
         </div>
       </div>

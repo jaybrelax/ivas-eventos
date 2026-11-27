@@ -378,7 +378,7 @@ export function ModalInscricao({
                         onClick={alternarDados}
                         aria-expanded={verDados}
                         style={{ viewTransitionName: "contato-botao" }}
-                        className="inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50"
+                        className="modal-dados-botao inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50"
                       >
                         {verDados ? "Ocultar dados" : "Exibir dados"} <ChevronDown size={14} className={`transition duration-300 ${verDados ? "rotate-180" : ""}`} aria-hidden />
                       </button>
@@ -440,13 +440,13 @@ export function ModalInscricao({
                 aria-expanded={contribAberta}
                 className={`flex w-full items-center gap-3 px-3.5 py-3 text-left transition ${t.hover}`}
               >
-                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ring-1 ${t.icone}`}><Receipt size={17} aria-hidden /></span>
+                <span className={`modal-contribuicao-icone grid h-9 w-9 shrink-0 place-items-center rounded-xl ring-1 ${t.icone}`}><Receipt size={17} aria-hidden /></span>
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-semibold text-stone-900">Contribuição</h4>
                   {!contribAberta && (
                     <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
                     <span className={`modal-status-tag modal-status-${p.pagamento} inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}><situacao.Icone size={11} aria-hidden /> {situacao.rotulo}{pago && formaRotulo ? ` · ${formaRotulo}` : ""}</span>
-                    {p.pagamento === "aniversario" ? <span className="font-semibold text-fuchsia-800">Participação bonificada</span> : p.pagamento === "credito" ? <span className="font-semibold text-stone-800">1 crédito{p.creditoRotulo ? ` · ${p.creditoRotulo}` : ""}</span> : p.usouPacote ? <span className="font-semibold text-stone-800">Pacote{p.pacoteObs ? ` ${p.pacoteObs}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-stone-800">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
+                    {p.pagamento === "aniversario" ? <span className="modal-bonus-detalhe inline-flex items-center rounded-full px-2 py-0.5 font-semibold">Participação bonificada</span> : p.pagamento === "credito" ? <span className="font-semibold text-stone-800">1 crédito{p.creditoRotulo ? ` · ${p.creditoRotulo}` : ""}</span> : p.usouPacote ? <span className="font-semibold text-stone-800">Pacote{p.pacoteObs ? ` ${p.pacoteObs}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-stone-800">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
                   </p>
                   )}
                 </div>
@@ -693,7 +693,7 @@ export function ModalInscricao({
               <ol className="relative space-y-3.5 before:absolute before:top-3 before:bottom-3 before:left-[13px] before:w-px before:bg-stone-200">
                 {linhaDoTempo.map((x) => (
                   <li key={x.chave} className="relative flex items-center gap-3">
-                    <span className={`relative z-10 grid h-[27px] w-[27px] shrink-0 place-items-center rounded-full ring-4 ring-white ${x.cor}`} style={x.fundo ? { background: x.fundo } : undefined}>
+                    <span className={`modal-historico-icone relative z-10 grid h-[27px] w-[27px] shrink-0 place-items-center rounded-full ring-4 ring-white ${x.cor}`} style={x.fundo ? { background: x.fundo } : undefined}>
                       <x.Icone size={13} aria-hidden />
                     </span>
                     <span className="min-w-0 flex-1 text-[13px] leading-tight">
@@ -709,7 +709,7 @@ export function ModalInscricao({
         </div>
 
         {/* Rodapé: cancelar a participação (só sem contribuição confirmada) */}
-        <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-stone-100 bg-stone-50/70 px-5 py-3.5 sm:px-6">
+        <footer className="flex shrink-0 items-center gap-3 border-t border-stone-100 bg-stone-50/70 px-5 py-3.5 sm:px-6">
           {/* Excluir só aparece quando "Cancelar inscrição" não existe (ex.: ritual já realizado), para não duplicar */}
           {dados.gerenciar && p.pagamento === "pendente" && !cancelavel && (
             <button
@@ -721,30 +721,30 @@ export function ModalInscricao({
               <Trash2 size={16} /> Excluir participação
             </button>
           )}
-          {/* Retorno da última ação: aqui fica sempre à vista, mesmo com o conteúdo rolado */}
+          <div className="mr-auto flex shrink-0 flex-wrap items-center justify-start gap-2">
+            {cancelavel && (pago ? (
+              <span className="flex items-center gap-1.5 text-right text-xs text-stone-500">
+                <Lock size={13} className="shrink-0" /> Contribuição confirmada: para cancelar, marque como pendente.
+              </span>
+            ) : (
+              <button
+                type="button"
+                disabled={pendente}
+                onClick={() => setConfirmando(true)}
+                className="modal-cancelar-inscricao inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap text-red-700 ring-1 ring-red-200 transition hover:bg-red-50 disabled:opacity-60"
+              >
+                <CalendarX2 size={16} /> Cancelar inscrição
+              </button>
+            ))}
+          </div>
+          {/* Retorno da última ação: fica à vista sem empurrar o cancelamento para a direita. */}
           {pendente ? (
-            <span className="flex items-center gap-2 text-xs text-stone-500"><Carregando tamanho={14} /> Salvando…</span>
+            <span className="ml-auto flex items-center gap-2 text-xs text-stone-500"><Carregando tamanho={14} /> Salvando…</span>
           ) : msg ? (
-            <span role="status" className={`flex min-w-0 items-center gap-1.5 text-xs font-semibold ${msg.erro ? "text-red-700" : "text-emerald-700"}`}>
+            <span role="status" className={`ml-auto flex min-w-0 items-center gap-1.5 text-xs font-semibold ${msg.erro ? "text-red-700" : "text-emerald-700"}`}>
               {msg.erro ? <X size={14} className="shrink-0" /> : <CheckCircle2 size={14} className="shrink-0" />} {msg.erro ?? msg.ok}
             </span>
-          ) : <span />}
-          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          {cancelavel && (pago ? (
-            <span className="flex items-center gap-1.5 text-right text-xs text-stone-500">
-              <Lock size={13} className="shrink-0" /> Contribuição confirmada: para cancelar, marque como pendente.
-            </span>
-          ) : (
-            <button
-              type="button"
-              disabled={pendente}
-              onClick={() => setConfirmando(true)}
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3.5 text-sm font-semibold whitespace-nowrap text-red-700 ring-1 ring-red-200 transition hover:bg-red-50 disabled:opacity-60"
-            >
-              <CalendarX2 size={16} /> Cancelar inscrição
-            </button>
-          ))}
-          </div>
+          ) : null}
         </footer>
 
         {/* Exclusão definitiva da participação (só com a contribuição pendente) */}
@@ -844,7 +844,7 @@ function Info({ Icone, rotulo, valor, href, externo }: { Icone: typeof Mail; rot
 /** Ícone de um dado de contato: destacado quando existe (e clicável se tiver link), apagado quando falta. */
 function IconeContato({ Icone, rotulo, valor, href, externo, nome, aoInformar }: { Icone: typeof Mail; rotulo: string; valor: string | null; href?: string | null; externo?: boolean; /** view-transition-name: o mesmo ícone se move entre linha e coluna. */ nome?: string; /** Sem o dado: tocar no ícone abre o formulário para informar. */ aoInformar?: () => void }) {
   const tem = !!valor;
-  const classe = `grid h-10 w-10 place-items-center rounded-xl transition ${tem ? "bg-mata-50 text-mata-700 ring-1 ring-mata-200" : "bg-stone-50 text-stone-300 ring-1 ring-stone-100"}`;
+  const classe = `modal-dados-atalho grid h-10 w-10 place-items-center rounded-xl transition ${tem ? "bg-mata-50 text-mata-700 ring-1 ring-mata-200" : "bg-stone-50 text-stone-300 ring-1 ring-stone-100"}`;
   const dica = tem ? `${rotulo}: ${valor}` : `${rotulo}: não informado`;
   if (!tem && aoInformar) {
     return (

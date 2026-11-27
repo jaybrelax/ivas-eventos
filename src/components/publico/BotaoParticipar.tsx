@@ -138,8 +138,10 @@ export function BotaoParticipar({
   // Verde sólido, sem sombra; só o ícone (sem quadro) e o texto
   const base =
     "group inline-flex cursor-pointer items-center justify-center font-semibold text-white " +
-    "bg-emerald-600 transition duration-200 hover:bg-emerald-700 active:scale-[0.98] " +
-    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-400";
+    "transition duration-200 active:scale-[0.98] focus-visible:outline-2 focus-visible:outline-offset-2 " +
+    (minhaInscricao
+      ? "bg-violet-700 hover:bg-violet-800 focus-visible:outline-violet-400"
+      : "bg-emerald-600 hover:bg-emerald-700 focus-visible:outline-emerald-400");
   const estilosBotao = {
     hero: "h-13 gap-2.5 rounded-2xl px-7 text-base",
     sidebar: "h-12 w-full gap-2.5 rounded-xl px-5 text-[15px]",

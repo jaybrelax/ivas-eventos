@@ -72,13 +72,13 @@ export type DadosParticipantes = {
 };
 
 const PAGAMENTO: Record<SituacaoPagamento, { rotulo: string; cor: string }> = {
-  pendente: { rotulo: "Pendente", cor: "bg-yellow-50 text-yellow-800 ring-1 ring-yellow-200 ring-inset" },
-  informado: { rotulo: "Para conferir", cor: "bg-amber-50 text-amber-800 ring-1 ring-amber-200 ring-inset" },
-  pago: { rotulo: "Pago", cor: "bg-emerald-50 text-emerald-700" },
-  isento: { rotulo: "Isento", cor: "bg-sky-50 text-sky-700" },
-  na_hora: { rotulo: "Na hora", cor: "bg-ouro-100 text-ouro-700" },
-  credito: { rotulo: "Crédito", cor: "bg-violet-50 text-violet-700" },
-  aniversario: { rotulo: "Bônus de aniversário", cor: "bg-fuchsia-50 text-fuchsia-800" },
+  pendente: { rotulo: "Pendente", cor: "bg-amber-50 text-amber-800" },
+  informado: { rotulo: "Para conferir", cor: "bg-amber-50 text-amber-800" },
+  pago: { rotulo: "Pago", cor: "bg-emerald-50 text-emerald-800" },
+  isento: { rotulo: "Isento", cor: "bg-emerald-50 text-emerald-800" },
+  na_hora: { rotulo: "Na hora", cor: "bg-amber-50 text-amber-800" },
+  credito: { rotulo: "Crédito", cor: "bg-emerald-50 text-emerald-800" },
+  aniversario: { rotulo: "Bônus de aniversário", cor: "bg-emerald-50 text-emerald-800" },
 };
 
 type FiltroPg = "todos" | "conferir" | "aberto" | "pago" | "isento";
@@ -638,6 +638,7 @@ function Linha({
   const temDose = gerenciar && !financeiro && (p.doses ?? []).some((d) => d.ml > 0);
   const duasDosesConsumidas = (p.doses ?? []).filter((d) => d.ml > 0).length >= 2;
   const mostrarTagPresenca = temContribuicao && !financeiro && !duasDosesConsumidas;
+  const pagamentoOk = p.pagamento === "pago" || p.pagamento === "credito" || p.pagamento === "aniversario" || p.pagamento === "isento";
   const confirmadoComPacote = p.pagamento === "credito" || (p.pagamento === "pago" && (p.usouPacote || p.forma === "pacote"));
   const conteudo = (
     <>
@@ -648,7 +649,7 @@ function Linha({
           <span className="truncate text-sm font-medium text-stone-800">{p.nome}</span>
           {/* Primeira vez em um ritual: tag logo à direita do nome */}
           {gerenciar && p.primeiraVez && (
-            <span className="tag-primeira-vez inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-orange-50 px-2 text-[11px] font-bold tracking-wide whitespace-nowrap text-orange-700 uppercase ring-1 ring-orange-300 ring-inset" title="Primeira vez em um ritual">
+            <span className="chip tag-primeira-vez shrink-0 gap-1 bg-amber-50 px-2 py-px text-[11px] font-bold tracking-wide whitespace-nowrap text-amber-800 uppercase" title="Primeira vez em um ritual">
               <Sprout size={13} strokeWidth={2.4} className="text-orange-500" aria-hidden /> 1° VEZ
             </span>
           )}
@@ -668,19 +669,19 @@ function Linha({
             </span>
           )}
           {mostrarTagPresenca && confirmadoComPacote && (
-            <span className="chip tag-confirmado-pacote shrink-0 gap-1 bg-violet-100 px-2 py-px text-[11px] whitespace-nowrap text-violet-800" title="Confirmado com pacote" aria-label="Confirmado com pacote">
+            <span className="chip tag-confirmado-pacote shrink-0 gap-1 bg-emerald-100 px-2 py-px text-[11px] whitespace-nowrap text-emerald-800" title="Confirmado com pacote" aria-label="Confirmado com pacote">
               <Ticket size={11} strokeWidth={2.3} aria-hidden />Confirmado
             </span>
           )}
           {mostrarTagPresenca && p.pagamento === "aniversario" && (
-            <span className="chip tag-bonus-aniversario shrink-0 gap-1 bg-fuchsia-100 px-2 py-px text-[11px] whitespace-nowrap text-fuchsia-800" title="Confirmado com bônus de aniversário" aria-label="Confirmado com bônus de aniversário">
+            <span className="chip tag-bonus-aniversario shrink-0 gap-1 bg-emerald-100 px-2 py-px text-[11px] whitespace-nowrap text-emerald-800" title="Confirmado com bônus de aniversário" aria-label="Confirmado com bônus de aniversário">
               <Gift size={11} strokeWidth={2.3} aria-hidden />Bônus
             </span>
           )}
         </span>
         {/* Financeiro: a tag da situação embaixo do nome, um pouco menor */}
         {financeiro && temContribuicao && (
-          <span className={`chip mt-0.5 gap-0.5 px-2 py-px text-[11px] ${p.pagamento === "pago" && p.usouPacote ? "bg-violet-100 text-violet-800" : pg.cor}`} title={p.pagamento === "pago" && p.usouPacote ? "Pago com pacote" : pg.rotulo}>
+          <span className={`chip ${pagamentoOk ? "tag-pagamento-ok" : "tag-pagamento-pendente"} mt-0.5 gap-0.5 px-2 py-px text-[11px] ${pg.cor}`} title={p.pagamento === "pago" && p.usouPacote ? "Pago com pacote" : pg.rotulo}>
             {p.pagamento === "pago" && <Check size={11} className="shrink-0" />}{p.pagamento === "credito" ? <Ticket size={11} className="shrink-0" aria-hidden /> : p.pagamento === "aniversario" ? <Gift size={11} className="shrink-0" aria-hidden /> : null}{conferir && <Receipt size={11} className="shrink-0" />}{p.pagamento === "credito" ? "Crédito de pacote" : pg.rotulo}
           </span>
         )}

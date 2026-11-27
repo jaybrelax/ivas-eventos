@@ -25,7 +25,7 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
   return (
     <section className={embutido ? "overflow-hidden rounded-b-2xl md:rounded-b-[22px]" : "cartao overflow-hidden p-0 sm:p-0"} aria-labelledby="consumo-titulo">
       <header className={`flex items-center gap-3 px-3 py-2.5 sm:px-5 ${embutido ? "sm:px-4 md:px-5" : ""}`}>
-        <span className="consumo-icone grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow-sm shadow-amber-950/25" style={{ background: "linear-gradient(180deg, #8a4b26 0%, #2a1308 100%)" }}>
+        <span className="consumo-icone grid h-9 w-9 shrink-0 place-items-center rounded-xl text-[#332710] shadow-sm shadow-amber-950/25" style={{ background: "linear-gradient(145deg, #e2c57a, #c8a24a)" }}>
           <GlassWater size={17} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">

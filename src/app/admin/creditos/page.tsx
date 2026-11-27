@@ -121,7 +121,7 @@ function propsModal(p: PacoteResumo, usuarios: Awaited<ReturnType<typeof mapaUsu
   return {
     pacoteId: p.$id, situacao: p.situacao, quantidade: p.quantidade,
     dados: { nome: p.nome ?? "Pacote", valor: p.valor, observacao: p.observacao, comprovante: p.comprovante_file_id },
-    detalhes: { pessoa: { nome: usuarios.get(p.usuario_id)?.nome ?? "Usuário removido", foto: usuarios.get(p.usuario_id)?.foto ?? null }, criadoEm: dataHora(p.$createdAt), lancadoPor: p.origem === "equipe" ? ((p.criado_por && usuarios.get(p.criado_por)?.nome) || "a equipe") : null },
+    detalhes: { pessoa: { id: usuarios.has(p.usuario_id) ? p.usuario_id : null, nome: usuarios.get(p.usuario_id)?.nome ?? "Usuário removido", foto: usuarios.get(p.usuario_id)?.foto ?? null }, criadoEm: dataHora(p.$createdAt), lancadoPor: p.origem === "equipe" ? ((p.criado_por && usuarios.get(p.criado_por)?.nome) || "a equipe") : null },
   };
 }
 

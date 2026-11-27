@@ -793,6 +793,18 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-card-contribuicao {
   border-color: transparent !important;
   box-shadow: none !important;
 }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-contribuicao-icone {
+  border-color: transparent !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-bonus-detalhe {
+  background: rgb(191 132 65 / 0.16) !important;
+  color: #ddd4c8 !important;
+}
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-card-comprovante {
   background-color: #25202d !important;
   border-color: transparent !important;
@@ -1054,9 +1066,9 @@ html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-presenca-informada {
   border-left-color: #bd8d4d !important;
 }
 html[data-tema-ivas="escuro"] .lista-presenca-evento .copo-dose-consumo {
-  background: linear-gradient(180deg, #2b2534, #241e2c) !important;
-  border-color: #2b2534 !important;
-  box-shadow: none !important;
+  background: #352b47 !important;
+  border-color: #5b4b6d !important;
+  box-shadow: inset 0 0 0 1px rgb(238 225 255 / 0.06) !important;
 }
 html[data-tema-ivas="escuro"] .lista-presenca-evento .dose-copo-liquido {
   background: linear-gradient(180deg, #8b6030, #68451f) !important;
@@ -1080,17 +1092,77 @@ html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-primeira-vez {
 }
 html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-primeira-vez svg { color: #ffd17b !important; }
 
-/* Acabamento do modal de inscrição no tema escuro. */
+/* Acabamento dos modais de inscrição e dosagem no tema escuro. */
+html[data-tema-ivas="escuro"] .modal-inscricao-fundo {
+  background: rgb(27 23 34 / 0.9) !important;
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-valor-destaque { color: #f5efff !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-titulo {
+  color: #e9dcfb !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider::-webkit-slider-runnable-track {
+  width: 5px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.36);
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider::-moz-range-track {
+  width: 5px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.36);
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  margin-top: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #d39a61;
+  box-shadow: none;
+  transform: translateX(-5px);
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  border: 0;
+  border-radius: 50%;
+  background: #d39a61;
+  box-shadow: none;
+  transform: translateX(-5px);
+}
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho {
-  background: linear-gradient(110deg, #30263d, #292232) !important;
-  border-color: #393044 !important;
+  background: #1b1722 !important;
+  border-color: transparent !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-item {
-  background: #211b2b !important;
-  border-color: #342c40 !important;
+  background: #292332 !important;
+  border-color: #393044 !important;
+  color: #f3edf8 !important;
 }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-item .text-stone-500 { color: #c4b8d0 !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-item .text-stone-300 { color: #8e829b !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-item .text-amber-950 { color: #e5d5ff !important; }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-valor { color: #e5d5ff !important; }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-horario { color: #b7a9cc !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-medidor {
+  background: linear-gradient(180deg, #302a39, #25202d) !important;
+  border-color: #494052 !important;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35) !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-medidor-reflexo {
+  background-color: rgb(255 255 255 / 0.36) !important;
+}
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-primeira-vez {
   background: linear-gradient(110deg, #292132, #211b29) !important;
   border-color: #51415d !important;
@@ -1104,22 +1176,52 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-card {
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-atalho,
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao {
   border-color: transparent !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-atalho {
   background: #26202f !important;
-  box-shadow: none !important;
+  color: #cdbfe0 !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-atalho:hover {
+  background: #342a42 !important;
+  color: #f0e9fa !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao {
   background: #30283b !important;
   color: #e5d5ff !important;
-  box-shadow: none !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao:hover { background: #3a3048 !important; }
-html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho > section {
-  background: linear-gradient(180deg, #2d2438, #211b2a) !important;
-  border-color: #393044 !important;
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-historico-icone {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
 }
-html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho > section > div:nth-child(2) { border-color: #393044 !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-cancelar-inscricao {
+  border-color: transparent !important;
+  outline: 0 !important;
+  background-color: rgb(150 68 84 / 0.16) !important;
+  color: #e3a2ad !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-cancelar-inscricao:hover {
+  background-color: rgb(165 75 91 / 0.25) !important;
+  color: #f0bbc3 !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho > section {
+  background: #18141e !important;
+  border-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho > section > div:nth-child(2) { border-color: #342d3c !important; }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho .text-amber-950 { color: #e5d5ff !important; }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho .text-amber-900 { color: #d2c2e8 !important; }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho .text-stone-900 { color: #f1ebfa !important; }
@@ -1194,19 +1296,20 @@ html[data-tema-ivas="escuro"] .coluna-data-resumo-evento p:first-child { backgro
 html[data-tema-ivas="escuro"] .coluna-data-resumo-evento p:nth-child(2) { color: #fff !important; }
 html[data-tema-ivas="escuro"] .coluna-data-resumo-evento p:nth-child(3) { color: #d1c1e8 !important; }
 html[data-tema-ivas="escuro"] .consumo-icone {
-  background: linear-gradient(145deg, #72539b, #3f2b5c) !important;
-  box-shadow: 0 5px 14px rgb(0 0 0 / 0.26), inset 0 1px 0 rgb(255 255 255 / 0.12) !important;
+  background: linear-gradient(145deg, #e2c57a, #c8a24a) !important;
+  color: #332710 !important;
+  box-shadow: 0 5px 14px rgb(0 0 0 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.3) !important;
 }
 html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-1,
-html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-1 { background-color: #62477f !important; background-image: linear-gradient(135deg, #8061ad, #62458f) !important; }
+html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-1 { background-color: #725a2f !important; background-image: linear-gradient(135deg, #8e7138, #725a2f) !important; }
 html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-2,
-html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-2 { background-color: #715629 !important; background-image: linear-gradient(135deg, #8a6b35, #715629) !important; }
+html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-2 { background-color: #51401e !important; background-image: linear-gradient(135deg, #6b5328, #51401e) !important; }
 html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-3,
-html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-3 { background-color: #282033 !important; background-image: linear-gradient(135deg, #514163, #3d304d) !important; }
-html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-1 { background: linear-gradient(135deg, #8061ad, #62458f) !important; }
-html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-2 { background: linear-gradient(135deg, #8a6b35, #715629) !important; }
-html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-3 { background: linear-gradient(135deg, #514163, #3d304d) !important; }
-html[data-tema-ivas="escuro"] .consumo-dose-segment { border-color: rgb(24 18 34 / 0.55) !important; }
+html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-3 { background-color: #342916 !important; background-image: linear-gradient(135deg, #4b3a1c, #342916) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-1 { background: linear-gradient(135deg, #8e7138, #725a2f) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-2 { background: linear-gradient(135deg, #6b5328, #51401e) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-3 { background: linear-gradient(135deg, #4b3a1c, #342916) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment { border-color: rgb(42 31 13 / 0.5) !important; }
 html[data-tema-ivas="escuro"] .consumo-indicador-valor,
 html[data-tema-ivas="escuro"] .consumo-indicador-unidade,
 html[data-tema-ivas="escuro"] .consumo-pessoa-total { color: #e1d0ff !important; }
@@ -1217,6 +1320,12 @@ html[data-tema-ivas="escuro"] .consumo-avatar {
   --tw-ring-offset-shadow: 0 0 transparent !important;
   border: 0 !important;
   box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .consumo-avatar:not(img),
+html[data-tema-ivas="escuro"] .participantes-lista .participante-avatar:not(img) {
+  background-color: #40334f !important;
+  background-image: linear-gradient(135deg, #59456e, #40334f) !important;
+  color: #f0e7ff !important;
 }
 html[data-tema-ivas="escuro"] .consumo-indicador {
   background-color: #191521 !important;
@@ -1358,3 +1467,72 @@ html[data-tema-ivas="escuro"] .calendario-imagem-skeleton {
 }
 .evento-passado-atenuado > div:not(.capa-evento-admin),
 .evento-passado-atenuado > time { opacity: 0.6; }
+
+/* Etiquetas financeiras da lista de presença: cores semânticas, compactas e sem aro. */
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-confirmado-pacote,
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-bonus-aniversario,
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-pagamento-ok {
+  background-color: rgb(35 147 99 / 0.2) !important;
+  color: #8de0b3 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-confirmado-pacote svg,
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-bonus-aniversario svg,
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-pagamento-ok svg { color: #8de0b3 !important; }
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-pagamento-pendente,
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-primeira-vez {
+  background-color: rgb(194 126 39 / 0.2) !important;
+  color: #f4c579 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-pagamento-pendente svg,
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-primeira-vez svg { color: #f4c579 !important; }
+html[data-tema-ivas="escuro"] .lista-presenca-evento img.avatar-presenca {
+  transform: scale(1.08);
+  border-color: transparent !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+}
+
+/* Modal de edição de pacote e atalho para a ficha do participante. */
+html[data-tema-ivas="escuro"] .modal-pacote-backdrop { background: rgb(8 6 12 / 0.82) !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-editor {
+  background: #1b1722 !important;
+  border-color: #342d3c !important;
+  color: #f4f1f7 !important;
+}
+html[data-tema-ivas="escuro"] .modal-pacote-fechar { color: #b8adca !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-fechar:hover { background: #302a39 !important; color: #f4effa !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-editor .bg-stone-50,
+html[data-tema-ivas="escuro"] .modal-pacote-editor dl { background-color: #211c29 !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-editor .text-stone-900,
+html[data-tema-ivas="escuro"] .modal-pacote-editor .text-stone-800 { color: #f4effa !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-editor .text-stone-700 { color: #e0d8e9 !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-editor .text-stone-600 { color: #c7bdd2 !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-editor .text-stone-500,
+html[data-tema-ivas="escuro"] .modal-pacote-editor .ajuda { color: #aa9fb7 !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-perfil {
+  background: #211c29 !important;
+  border-color: #393044 !important;
+}
+html[data-tema-ivas="escuro"] .modal-pacote-perfil:hover {
+  background: #292332 !important;
+  border-color: #59466f !important;
+}
+html[data-tema-ivas="escuro"] .modal-pacote-perfil > span > span:first-child,
+html[data-tema-ivas="escuro"] .modal-pacote-perfil > svg { color: #b8adca !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-perfil > span > span:nth-child(2) { color: #f4effa !important; }
+html[data-tema-ivas="escuro"] .modal-pacote-perfil > span > span:nth-child(3) { color: #d2baf4 !important; }

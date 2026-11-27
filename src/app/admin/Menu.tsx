@@ -199,7 +199,7 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
                   <p className="text-xs text-mata-300">{usuario.perfil}</p>
                 </div>
                 <div className="mx-1 mb-1 h-px bg-white/10" aria-hidden />
-                <SeletorTema painel />
+                <SeletorTema painel inline />
                 <div className="mx-1 my-1 h-px bg-white/10" aria-hidden />
                 <Link href="/" role="menuitem" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-mata-100 transition hover:bg-white/[0.06]">
                   <House size={17} className="text-mata-300" /> Home

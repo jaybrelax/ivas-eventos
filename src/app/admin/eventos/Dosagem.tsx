@@ -221,7 +221,7 @@ export function Dosagem({ salvarDoses, inicial, aoSalvar, aoMudarDoses }: {
                   setRascunho(salvas);
                   setAberta(anteriorVazia ? anteriorVazia.n : d.n);
                 }}
-                className="group flex items-center gap-3 rounded-xl border border-amber-900/10 bg-white p-2.5 text-left transition hover:border-amber-800/30 hover:shadow-sm active:scale-[0.98]"
+                className="modal-dose-item group flex items-center gap-3 rounded-xl border border-amber-900/10 bg-white p-2.5 text-left transition hover:border-amber-800/30 hover:shadow-sm active:scale-[0.98]"
                 aria-label={`${ORDINAL[d.n]}: ${d.ml} ml. Toque para informar.`}
               >
                 <Copo ml={d.ml} pequeno />
@@ -275,7 +275,7 @@ function DoseAberta({ dose, salvando, onMudar, onCancelar, onSalvar, onRemover }
 
   return (
     <div className="animate-surgir">
-      <p className="mb-3 text-center text-xs font-semibold tracking-wider text-amber-900/70 uppercase">{ORDINAL[dose.n]}</p>
+      <p className="modal-dose-titulo mb-3 text-center text-sm font-bold tracking-wider text-amber-900/70 uppercase">{ORDINAL[dose.n]}</p>
       <div className="flex items-stretch justify-center gap-3">
         {/* Espaço do mesmo tamanho do slider + botões, para o copo ficar centralizado */}
         <div aria-hidden className="w-20 shrink-0" />
@@ -293,12 +293,12 @@ function DoseAberta({ dose, salvando, onMudar, onCancelar, onSalvar, onRemover }
           {/* Valor sobre o copo: escuro sobre o vidro e invertido (claro) onde o líquido passa por baixo */}
           <span aria-hidden className="pointer-events-none absolute inset-[2px] z-20 overflow-hidden rounded-t-md rounded-b-[26px]">
             <span className="absolute inset-0 flex flex-col items-center justify-center pb-3 text-amber-950">
-              <span className="text-5xl leading-none font-bold tracking-tight tabular-nums">{dose.ml}</span>
+              <span className="dose-valor-destaque text-6xl leading-none font-bold tracking-tight tabular-nums">{dose.ml}</span>
               <span className="mt-0.5 text-xl leading-none font-bold">ml</span>
             </span>
             <span className="absolute inset-x-0 bottom-0 overflow-hidden" style={{ height: `${Math.min(100, (dose.ml / DOSE_MAX_ML) * 100)}%` }}>
               <span className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-center pb-3 text-white" style={{ height: "calc(13rem - 4px)" }}>
-                <span className="text-5xl leading-none font-bold tracking-tight tabular-nums">{dose.ml}</span>
+                <span className="dose-valor-destaque text-6xl leading-none font-bold tracking-tight tabular-nums">{dose.ml}</span>
                 <span className="mt-0.5 text-xl leading-none font-bold">ml</span>
               </span>
             </span>
@@ -315,7 +315,7 @@ function DoseAberta({ dose, salvando, onMudar, onCancelar, onSalvar, onRemover }
           onChange={(e) => onMudar(Number(e.target.value))}
           aria-label={`${ORDINAL[dose.n]} em ml`}
           aria-valuetext={`${dose.ml} ml`}
-          className="h-52 w-6 cursor-pointer accent-amber-900"
+          className="dose-slider h-52 w-6 cursor-pointer accent-amber-900"
           style={{ writingMode: "vertical-lr", direction: "rtl" } as CSSProperties}
         />
 
@@ -351,8 +351,8 @@ function DoseAberta({ dose, salvando, onMudar, onCancelar, onSalvar, onRemover }
           </button>
         ) : <span />}
         <div className="flex gap-2">
-          <button type="button" disabled={salvando} onClick={onCancelar} className="btn-secundario h-10">Cancelar</button>
-          <button type="button" disabled={salvando} onClick={onSalvar} className="inline-flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:opacity-60" style={{ background: LIQUIDO }}>
+          <button type="button" disabled={salvando} onClick={onCancelar} className="btn-secundario h-10 min-w-24 justify-center px-4">Cancelar</button>
+          <button type="button" disabled={salvando} onClick={onSalvar} className="inline-flex h-10 min-w-28 items-center justify-center gap-1.5 rounded-xl px-5 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 disabled:opacity-60" style={{ background: LIQUIDO }}>
             {salvando ? <><Carregando tamanho={14} /> Salvando…</> : <><Check size={15} aria-hidden /> Salvar</>}
           </button>
         </div>
@@ -366,7 +366,7 @@ function Copo({ ml, pequeno = false }: { ml: number; pequeno?: boolean }) {
   const pct = (limitar(ml) / DOSE_MAX_ML) * 100;
   return (
     <span
-      className={`relative block shrink-0 overflow-hidden border-2 border-stone-300/80 bg-gradient-to-b from-white to-stone-50 ${
+      className={`dose-medidor relative block shrink-0 overflow-hidden border-2 border-stone-300/80 bg-gradient-to-b from-white to-stone-50 ${
         pequeno ? "h-12 w-9 rounded-t-[4px] rounded-b-[10px]" : "h-52 w-32 rounded-t-lg rounded-b-[28px] shadow-inner"
       }`}
       aria-hidden
@@ -386,7 +386,7 @@ function Copo({ ml, pequeno = false }: { ml: number; pequeno?: boolean }) {
         {pct > 0 && <span className="absolute inset-x-0 top-0 h-1 bg-amber-600/50" />}
       </span>
       {/* Reflexo do vidro */}
-      <span className={`absolute top-1.5 bottom-2 left-1.5 rounded-full bg-white/50 ${pequeno ? "w-0.5" : "w-1.5"}`} />
+      <span className={`dose-medidor-reflexo absolute top-1.5 bottom-2 left-1.5 rounded-full bg-white/50 ${pequeno ? "w-0.5" : "w-1.5"}`} />
     </span>
   );
 }

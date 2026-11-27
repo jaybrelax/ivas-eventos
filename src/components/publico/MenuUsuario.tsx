@@ -93,6 +93,8 @@ export function MenuUsuario({
             // Outro domínio: link comum, sem o roteamento do Next
             <a
               href={guarnicaoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
               role="menuitem"
               onClick={() => setAberto(false)}
               className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
@@ -133,7 +135,7 @@ export function MenuUsuario({
             </>
           )}
           <div className="my-1 h-px bg-stone-100" />
-          <SeletorTema lateral />
+          <SeletorTema inline />
           <div className="my-1 h-px bg-stone-100" />
           <form action={sair}>
             <button
