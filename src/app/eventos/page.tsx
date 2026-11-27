@@ -114,7 +114,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
             {hero.titulo}
           </h1>
 
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-stone-300 sm:text-base">
+          <p className="hero-agenda-descricao mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-stone-300 sm:text-base">
             {hero.descricao}
           </p>
 
@@ -297,7 +297,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
                   </div>
 
                   {/* Conteúdo */}
-                  <div className={`flex flex-1 flex-col justify-between p-6 ${e.destaque ? "bg-gradient-to-b from-ouro-50/90 via-white to-white" : ""}`}>
+                  <div className={`flex flex-1 flex-col justify-between p-6 ${e.destaque ? "fundo-card-destaque bg-gradient-to-b from-ouro-50/90 via-white to-white" : ""}`}>
                     <div>
                       {/* Data e Hora */}
                       <div className="mb-2.5 flex items-center gap-2 text-xs font-semibold text-mata-700">

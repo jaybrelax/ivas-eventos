@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Calendar, CalendarCheck, ChevronDown, Download, LayoutDashboard, LogOut, Settings, Share, Shield, Ticket } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { useInstalar } from "@/components/useInstalar";
+import { SeletorTema } from "@/components/SeletorTema";
 
 /** Avatar + nome no cabeçalho público; clicar abre o menu com os atalhos da conta. */
 export function MenuUsuario({
@@ -131,6 +132,8 @@ export function MenuUsuario({
               )}
             </>
           )}
+          <div className="my-1 h-px bg-stone-100" />
+          <SeletorTema />
           <div className="my-1 h-px bg-stone-100" />
           <form action={sair}>
             <button

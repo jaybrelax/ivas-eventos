@@ -1,6 +1,6 @@
 import { urlImagem } from "@/lib/links";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Crown, List, Plus, Shield, Star, Users } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Crown, List, MapPin, Plus, Shield, Star, Users } from "lucide-react";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
@@ -114,12 +114,12 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
           <div className="space-y-8">
             {proximos.length > 0 && (
               <Secao titulo={passados.length ? "Próximos" : undefined} total={proximos.length} direita={contagemMes}>
-                {proximos.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} />)}
+                {proximos.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} endereco={(e.endereco_id ? endPorId.get(e.endereco_id)?.apelido : null) || e.endereco_livre || null} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} />)}
               </Secao>
             )}
             {passados.length > 0 && (
               <Secao titulo={proximos.length ? "Já aconteceram" : undefined} total={passados.length} direita={proximos.length ? undefined : contagemMes}>
-                {passados.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} passado />)}
+                {passados.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} endereco={(e.endereco_id ? endPorId.get(e.endereco_id)?.apelido : null) || e.endereco_livre || null} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} passado />)}
               </Secao>
             )}
           </div>
@@ -168,17 +168,17 @@ function GrupoAvatares({ ids, pessoas, rotulo }: { ids: string[]; pessoas: Map<s
       {visiveis.map((id) => {
         const pessoa = pessoas.get(id);
         const nome = pessoa?.nome ?? "Usuário";
-        return <span key={id} className="relative grid size-6 shrink-0 place-items-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-600 ring-2 ring-white" aria-hidden>
+        return <span key={id} className="avatar-equipe-evento relative grid size-6 shrink-0 place-items-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-600 ring-2 ring-white" aria-hidden>
           {iniciais(nome)}
-          <Avatar nome={nome} foto={pessoa?.foto} tamanho={24} leve className="absolute inset-0 ring-0" />
+          <Avatar nome={nome} foto={pessoa?.foto} tamanho={24} leve className="avatar-img-equipe-evento absolute inset-0 ring-0" />
         </span>;
       })}
-      {ids.length > visiveis.length && <span className="relative grid size-6 shrink-0 place-items-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-700 ring-2 ring-white">+{ids.length - visiveis.length}</span>}
+      {ids.length > visiveis.length && <span className="avatar-equipe-evento relative grid size-6 shrink-0 place-items-center rounded-full bg-stone-200 text-[10px] font-bold text-stone-700 ring-2 ring-white">+{ids.length - visiveis.length}</span>}
     </span>
   );
 }
 
-function CartaoEvento({ e, t, hj, passado, pessoas, guardioesConfirmados, participantes }: { e: Evento; t?: TipoEvento; hj: string; passado?: boolean; pessoas: Map<string, ResumoUsuario>; guardioesConfirmados: string[]; participantes: number }) {
+function CartaoEvento({ e, t, endereco, hj, passado, pessoas, guardioesConfirmados, participantes }: { e: Evento; t?: TipoEvento; endereco: string | null; hj: string; passado?: boolean; pessoas: Map<string, ResumoUsuario>; guardioesConfirmados: string[]; participantes: number }) {
   const d = partesData(e.data);
   const mestres = [...new Set(e.mestres ?? [])].sort((a, b) => compararFirst(pessoas.get(a), pessoas.get(b)));
   const guardioes = [...new Set([...(e.guardioes ?? []), ...(e.guardioes_escalados_reuniao ?? []), ...guardioesConfirmados])].filter((id) => !mestres.includes(id));
@@ -190,21 +190,22 @@ function CartaoEvento({ e, t, hj, passado, pessoas, guardioesConfirmados, partic
   return (
     <Link
       href={`/admin/eventos/${e.$id}`}
-      className={`group relative flex min-h-36 items-stretch overflow-hidden rounded-2xl border bg-white shadow-cartao transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-elevado focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mata-700 ${
+      className={`cartao-evento-admin group relative flex min-h-36 items-stretch overflow-hidden rounded-2xl border bg-white shadow-cartao transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-elevado focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mata-700 ${
         e.destaque ? "border-ouro-300" : "border-stone-200/90 hover:border-stone-300"
       } ${passado ? "bg-stone-50/70" : ""}`}
     >
       {/* A capa ocupa a primeira coluna; a data fica separada à direita. */}
       <div
-        className="relative isolate w-[5.5rem] shrink-0 overflow-hidden min-[420px]:w-[7.5rem] sm:w-36"
+        className={`capa-evento-admin relative isolate w-[5.5rem] shrink-0 overflow-hidden min-[420px]:w-[7.5rem] sm:w-36 ${passado ? "capa-evento-admin-passado" : ""}`}
         style={{ background: `linear-gradient(135deg, ${cor}, color-mix(in oklab, ${cor} 55%, #000))` }}
       >
         {e.capa_file_id && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={urlImagem(e.capa_file_id, 320)} loading="lazy" decoding="async" alt="" aria-hidden className="absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105" style={passado ? { filter: "saturate(0.1)" } : undefined} />
+          <img src={urlImagem(e.capa_file_id, 320)} loading="lazy" decoding="async" alt="" aria-hidden className={`absolute inset-0 -z-10 h-full w-full object-cover transition duration-500 group-hover:scale-105 ${passado ? "capa-evento-passado" : ""}`} style={passado ? { filter: "saturate(0.5)" } : undefined} />
         )}
-        {t && <div className="absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-stone-950/70 to-transparent px-1 pb-2 pt-6">
-          <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] font-bold text-white shadow-sm ring-1 ring-inset ring-white/35 backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_3px_rgb(0_0_0/0.5)]">
+        {passado && <div aria-hidden className="capa-evento-admin-sombra absolute inset-0 pointer-events-none" />}
+        {t && <div className="tag-evento-admin-area absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-stone-950/70 to-transparent px-1 pb-2 pt-6">
+          <span className="tag-evento-admin inline-flex min-w-[88px] max-w-full items-center justify-center gap-1.5 rounded-full bg-white/10 px-4 py-1 text-[11px] font-bold text-white shadow-sm ring-1 ring-inset ring-white/35 backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_3px_rgb(0_0_0/0.5)]">
             {t.icone ? <IconeTipo nome={t.icone} size={11} strokeWidth={2.4} /> : <span className="size-1.5 shrink-0 rounded-full bg-white" />}
             <span className="truncate">{t.nome}</span>
           </span>
@@ -218,6 +219,7 @@ function CartaoEvento({ e, t, hj, passado, pessoas, guardioesConfirmados, partic
           <h3 className="min-w-0 flex-1 line-clamp-2 text-[17px] leading-snug font-bold tracking-tight text-stone-900 transition-colors group-hover:text-mata-700 sm:text-[21px]" title={e.titulo}>{e.titulo}</h3>
           {e.destaque && <Star size={15} className="shrink-0 fill-ouro-400 text-ouro-500 md:hidden" aria-label="Destaque" />}
         </div>
+        {t && !t.conta_como_ritual && endereco && <p className="flex min-w-0 items-center gap-1 text-xs text-stone-500 sm:text-[13px]" title={endereco}><MapPin size={13} className="shrink-0 text-mata-600" aria-hidden /><span className="truncate">{endereco}</span></p>}
         {(mestres.length > 0 || guardioes.length > 0) && <div className="flex min-w-0 flex-wrap items-center gap-1" aria-label="Equipe do evento">
           {mestres.length > 0 && <span className="inline-flex shrink-0 items-center gap-1"><Crown size={14} className="shrink-0 text-mata-700" aria-label="Mestres" /><GrupoAvatares ids={mestres} pessoas={pessoas} rotulo="Mestres" /></span>}
           {guardioes.length > 0 && <span className="inline-flex shrink-0 items-center gap-1"><Shield size={14} className="shrink-0 text-mata-700" aria-label="Guardiões" /><GrupoAvatares ids={guardioesHomens} pessoas={pessoas} rotulo="Guardiões" />{guardioesHomens.length > 0 && guardias.length > 0 && <span className="w-1" aria-hidden />}<GrupoAvatares ids={guardias} pessoas={pessoas} rotulo="Guardiãs" /><GrupoAvatares ids={guardioesSemGenero} pessoas={pessoas} rotulo="Guardiões sem gênero informado" /></span>}
@@ -228,7 +230,7 @@ function CartaoEvento({ e, t, hj, passado, pessoas, guardioesConfirmados, partic
         </div>
       </div>
 
-      <time dateTime={e.data} aria-label={dataPorExtenso(e.data)} className="flex w-16 shrink-0 flex-col items-center justify-center border-l border-stone-200 bg-stone-50/70 px-1 text-center text-stone-700 min-[420px]:w-[4.5rem] sm:w-24">
+      <time dateTime={e.data} aria-label={dataPorExtenso(e.data)} className="evento-data-admin flex w-16 shrink-0 flex-col items-center justify-center border-l border-stone-200 bg-stone-50/70 px-1 text-center text-stone-700 min-[420px]:w-[4.5rem] sm:w-24">
         <span className="text-[2.1rem] leading-none font-black tracking-tight text-stone-900 tabular-nums sm:text-[2.6rem]">{d.dia}</span>
         <span className="mt-0.5 text-xs font-extrabold tracking-[0.12em] uppercase text-mata-700 sm:text-sm">{d.mesCurto}</span>
         <span className="mt-2 w-full border-t border-stone-200 pt-2 text-[10px] font-bold leading-tight uppercase sm:text-[11px]">{d.diaSemana}</span>

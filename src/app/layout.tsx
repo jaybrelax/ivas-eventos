@@ -4,6 +4,7 @@ import "./globals.css";
 import { SITE_URL } from "@/lib/site";
 import { RegistrarSW } from "@/components/RegistrarSW";
 import { Toaster } from "@/components/Toaster";
+import { AtalhoTemaMobile } from "@/components/AtalhoTemaMobile";
 
 export const metadata: Metadata = {
   // Base dos links e imagens de compartilhamento (og:image, og:url)
@@ -25,10 +26,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Bricolage+Grotesque:wght@500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet" />
         {/* Menu lateral do painel fino se foi escolhido ou, sem escolha, em tablet (< 1024 px); antes da pintura, no layout raiz (que não re-renderiza no cliente) */}
-        <script dangerouslySetInnerHTML={{ __html: `try{var c=localStorage.getItem("menu-colapsado");if(c==="1"||(c===null&&innerWidth<1024))document.documentElement.dataset.menu="colapsado"}catch(e){}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try{var c=localStorage.getItem("menu-colapsado");if(c==="1"||(c===null&&innerWidth<1024))document.documentElement.dataset.menu="colapsado";var t=localStorage.getItem("ivas-tema-eventos")||"sistema";var p=location.pathname;var g=p.startsWith("/guarnicao")||p==="/cadastro-guarnicao"||p==="/aguardando-aprovacao";var d=t==="escuro"||(t==="sistema"&&matchMedia("(prefers-color-scheme: dark)").matches);if(!g)document.documentElement.dataset.temaIvas=d?"escuro":"claro";document.documentElement.dataset.temaPreferencia=t}catch(e){}` }} />
       </head>
       <body className="min-h-full font-sans">
         {children}
+        <AtalhoTemaMobile />
         <RegistrarSW />
         <Toaster />
       </body>

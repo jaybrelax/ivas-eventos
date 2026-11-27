@@ -270,10 +270,10 @@ export function ModalInscricao({
             <div className="flex items-center gap-3.5 pr-8">
               {dados.linkPerfil !== false ? (
                 <Link href={`/admin/participantes/${p.id}`} title="Ver perfil completo" aria-label={`Ver perfil completo de ${p.nome}`} className="shrink-0 rounded-full ring-offset-2 transition hover:ring-2 hover:ring-mata-300 focus-visible:ring-2 focus-visible:ring-mata-500">
-                  <Avatar nome={p.nome} foto={p.foto} tamanho={56} />
+                  <Avatar nome={p.nome} foto={p.foto} tamanho={56} className="modal-avatar" />
                 </Link>
               ) : (
-                <Avatar nome={p.nome} foto={p.foto} tamanho={56} />
+                <Avatar nome={p.nome} foto={p.foto} tamanho={56} className="modal-avatar" />
               )}
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold tracking-wider text-mata-600 uppercase">Inscrição do participante</p>
@@ -432,7 +432,7 @@ export function ModalInscricao({
 
           {/* Contribuição: situação, comprovante e o que a coordenação pode marcar */}
           {dados.temContribuicao && (
-            <section className={`overflow-hidden rounded-2xl border ${t.secao} shadow-sm`}>
+            <section className={`modal-card-contribuicao overflow-hidden rounded-2xl border ${t.secao} shadow-sm`}>
               {/* Cabeçalho inteiro clicável: exibe ou oculta */}
               <button
                 type="button"
@@ -445,7 +445,7 @@ export function ModalInscricao({
                   <h4 className="text-sm font-semibold text-stone-900">Contribuição</h4>
                   {!contribAberta && (
                     <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}><situacao.Icone size={11} aria-hidden /> {situacao.rotulo}{pago && formaRotulo ? ` · ${formaRotulo}` : ""}</span>
+                    <span className={`modal-status-tag modal-status-${p.pagamento} inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ${situacao.cor}`}><situacao.Icone size={11} aria-hidden /> {situacao.rotulo}{pago && formaRotulo ? ` · ${formaRotulo}` : ""}</span>
                     {p.pagamento === "aniversario" ? <span className="font-semibold text-fuchsia-800">Participação bonificada</span> : p.pagamento === "credito" ? <span className="font-semibold text-stone-800">1 crédito{p.creditoRotulo ? ` · ${p.creditoRotulo}` : ""}</span> : p.usouPacote ? <span className="font-semibold text-stone-800">Pacote{p.pacoteObs ? ` ${p.pacoteObs}` : ""}</span> : (p.valor ?? dados.valorContribuicao) != null && <span className="font-semibold tabular-nums text-stone-800">{formatoReal((p.valor ?? dados.valorContribuicao) as number)}</span>}
                   </p>
                   )}
@@ -457,7 +457,7 @@ export function ModalInscricao({
               <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${contribAberta ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                 <div className="min-h-0 overflow-hidden" inert={!contribAberta}>
                 <div className={`border-t ${t.div70} px-3.5 pt-3 pb-3.5`}>
-              <div className={`flex items-start gap-3 rounded-xl bg-white/80 p-3 text-stone-900 ring-1 ${t.ring} ${TEXTO_SITUACAO[p.pagamento]}`}>
+              <div className={`modal-status-card flex items-start gap-3 rounded-xl bg-white/80 p-3 text-stone-900 ring-1 ${t.ring} ${TEXTO_SITUACAO[p.pagamento]}`}>
                 <situacao.Icone size={20} className="mt-0.5 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm font-bold">
@@ -478,7 +478,7 @@ export function ModalInscricao({
 
               {/* Comprovante: miniatura com ampliar e um botão que abre as opções (oculto em pendente e pago por crédito) */}
               {mostrarComprovante && (
-              <div className="mt-3 flex items-center gap-3 rounded-xl border border-stone-200/80 bg-white/75 p-3 shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
+              <div className="modal-card-comprovante mt-3 flex items-center gap-3 rounded-xl border border-stone-200/80 bg-white/75 p-3 shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
                 {comprovante ? (
                   <button type="button" onClick={() => setAmpliado(true)} className="group relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-stone-100 ring-1 ring-stone-200" aria-label="Ampliar comprovante">
                     {/* eslint-disable-next-line @next/next/no-img-element */}

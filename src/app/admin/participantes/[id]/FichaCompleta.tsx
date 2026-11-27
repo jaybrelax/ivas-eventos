@@ -12,7 +12,7 @@ export function FichaCompleta({ children }: { children: ReactNode }) {
         type="button"
         onClick={() => setAberta((v) => !v)}
         aria-expanded={aberta}
-        className="inline-flex h-10 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50"
+        className="botao-ficha-completa inline-flex h-10 items-center gap-2 rounded-xl px-3.5 text-sm font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50"
       >
         <IdCard size={16} /> {aberta ? "Ocultar ficha completa" : "Exibir ficha completa"}
         <ChevronDown size={15} className={`transition-transform ${aberta ? "rotate-180" : ""}`} />

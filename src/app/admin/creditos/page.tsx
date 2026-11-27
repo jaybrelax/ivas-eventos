@@ -37,7 +37,7 @@ export default async function Creditos({ searchParams }: PageProps<"/admin/credi
   const q = str(sp.q).trim().slice(0, 80);
 
   return (
-    <div className="pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
+    <div className="admin-creditos-page pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
       <Titulo sobre="Relatório" titulo="Pacotes" subtitulo="Pacotes vendidos, saldo de cada pessoa, participações sem crédito e histórico de uso." />
       <NavbarCreditos aba={aba} q={q} />
       {aba === "pacotes" && <AbaPacotes q={q} />}
@@ -53,14 +53,14 @@ function Pessoa({ id, usuarios, semLink = false }: { id: string; usuarios: Await
   if (semLink) {
     return (
       <span className="flex items-center gap-2.5">
-        <Avatar nome={u?.nome ?? "Usuário removido"} foto={u?.foto ?? null} tamanho={32} className="ring-0" />
+        <Avatar nome={u?.nome ?? "Usuário removido"} foto={u?.foto ?? null} tamanho={32} className="creditos-avatar ring-0" />
         <span className="font-medium text-[#1c1e21]">{u?.nome ?? "Usuário removido"}</span>
       </span>
     );
   }
   return (
     <Link href={`/admin/participantes/${id}`} className="flex min-w-0 items-center gap-2.5 rounded-lg hover:underline">
-      <Avatar nome={u?.nome ?? "Usuário removido"} foto={u?.foto ?? null} tamanho={26} className="ring-0" />
+      <Avatar nome={u?.nome ?? "Usuário removido"} foto={u?.foto ?? null} tamanho={26} className="creditos-avatar ring-0" />
       <span className="min-w-0 break-words font-medium text-stone-800">{u?.nome ?? "Usuário removido"}</span>
     </Link>
   );
@@ -273,11 +273,11 @@ async function AbaSaldos({ negativos, agrupar, q }: { negativos: boolean; agrupa
           <Link
             href={hrefSaldos(negativos, !agrupar)}
             aria-pressed={agrupar}
-            className={"btn-secundario min-h-11 px-2 text-xs sm:text-sm " + (agrupar ? "border-mata-300! bg-mata-50! text-mata-700!" : "")}
+            className={"filtro-saldos-dark btn-secundario min-h-11 px-2 text-xs sm:text-sm " + (agrupar ? "border-mata-300! bg-mata-50! text-mata-700!" : "")}
           >
             <Users size={15} aria-hidden /> {agrupar ? "Desagrupar" : "Agrupar por função"}
           </Link>
-          <Link href={hrefSaldos(!negativos, agrupar)} aria-pressed={negativos} className={`btn-secundario min-h-11 px-2 text-xs sm:text-sm ${negativos ? "border-red-200! bg-red-50! text-red-700!" : ""}`}>
+          <Link href={hrefSaldos(!negativos, agrupar)} aria-pressed={negativos} className={`filtro-saldos-dark btn-secundario min-h-11 px-2 text-xs sm:text-sm ${negativos ? "border-red-200! bg-red-50! text-red-700!" : ""}`}>
             {negativos ? "Mostrar todos" : "Só saldo negativo"}
           </Link>
         </div>

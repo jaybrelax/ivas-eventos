@@ -35,17 +35,17 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
       </header>
 
       {com.length > 0 && (
-        <div className="border-t border-amber-900/10 bg-gradient-to-b from-amber-50/60 to-white px-3 py-3 sm:px-5">
+        <div className="consumo-resumo border-t border-amber-900/10 bg-gradient-to-b from-amber-50/60 to-white px-3 py-3 sm:px-5">
           {/* Números */}
           <dl className="grid grid-cols-3 gap-2 text-center">
             {[
               { r: "Total consumido", v: total },
               { r: "Média por pessoa", v: media },
-              { r: "Maior consumo", v: com[0].total },
+              { r: "Maior consumo individual", v: com[0].total },
             ].map((x) => (
-              <div key={x.r} className="rounded-xl bg-white px-2 py-2.5 ring-1 ring-amber-900/10">
-                <dt className="text-[10px] font-semibold tracking-wide text-stone-500 uppercase">{x.r}</dt>
-                <dd className="mt-0.5 text-xl leading-none font-bold text-amber-950 tabular-nums">{x.v}<span className="ml-0.5 text-xs font-semibold text-amber-900/60">ml</span></dd>
+              <div key={x.r} className="consumo-indicador rounded-xl bg-white px-2 py-2.5 ring-1 ring-amber-900/10">
+                <dt className="consumo-indicador-label text-[10px] font-semibold tracking-wide text-stone-500 uppercase">{x.r}</dt>
+                <dd className="consumo-indicador-valor mt-0.5 text-xl leading-none font-bold text-amber-950 tabular-nums">{x.v}<span className="consumo-indicador-unidade ml-0.5 text-xs font-semibold text-amber-900/60">ml</span></dd>
               </div>
             ))}
           </dl>
@@ -70,7 +70,7 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-baseline justify-between gap-2">
                     <span className="truncate text-xs font-medium text-stone-700">{p.nome}</span>
-                    <span className="shrink-0 text-xs font-bold text-amber-950 tabular-nums">{p.total} ml</span>
+                    <span className="consumo-pessoa-total shrink-0 text-xs font-bold text-amber-950 tabular-nums">{p.total} ml</span>
                   </div>
                   <div
                     className="h-5 overflow-hidden rounded-md bg-stone-100"

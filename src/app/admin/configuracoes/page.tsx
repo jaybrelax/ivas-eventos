@@ -72,10 +72,10 @@ export default async function Configuracoes({ searchParams }: PageProps<"/admin/
         <nav aria-label="Seções das configurações" className="space-y-6">
           {["Instituto e conteúdo", "Contatos e pagamentos", "Eventos e acesso"].map((grupo) => <div key={grupo}>
             <h2 className="mb-2 px-1 text-xs font-semibold tracking-[0.12em] text-stone-500 uppercase">{grupo}</h2>
-            <div className="divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
+            <div className="config-mobile-categoria divide-y divide-stone-100 overflow-hidden rounded-2xl border border-stone-200/80 bg-white shadow-sm">
               {secoes.filter((s) => s.grupo === grupo).map(({ id, rotulo, descricao, Icone, n }) => <Link
                 key={id} href={`/admin/configuracoes?secao=${id}`}
-                className="flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-mata-50/40 active:bg-mata-50 focus-visible:relative focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-mata-600"
+                className="config-mobile-opcao flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-mata-50/40 active:bg-mata-50 focus-visible:relative focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-mata-600"
               >
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-mata-50 text-mata-700"><Icone size={19} aria-hidden /></span>
                 <span className="min-w-0 flex-1"><span className="block text-sm font-semibold text-stone-900">{rotulo}</span><span className="mt-0.5 block text-xs leading-snug text-stone-500">{descricao}</span></span>

@@ -187,7 +187,7 @@ export function TabelaPessoas({ pessoas, admin, filtroInicial, ordemInicial, bus
         })}
       </div>
 
-      <section className="cartao overflow-hidden p-0 sm:p-0">
+      <section className="participantes-lista cartao overflow-hidden p-0 sm:p-0">
         {/* Barra de ferramentas */}
         <div className="space-y-3 border-b border-stone-100 px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -252,11 +252,11 @@ export function TabelaPessoas({ pessoas, admin, filtroInicial, ordemInicial, bus
               {visiveis.map((p) => (
                 <li key={p.id} className="flex items-center gap-3 px-4 py-3">
                   <Link href={`/admin/participantes/${p.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                    <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="ring-0" />
+                    <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="participante-avatar ring-0" />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-center gap-1.5">
                         <span className="truncate font-semibold text-stone-900">{p.nome}</span>
-                        <span className={`chip shrink-0 px-1.5 py-0 text-[10px] ring-1 ring-inset ${p.etiqueta.cor}`}>{p.etiqueta.rotulo}</span>
+                        <span className={`chip participante-tag shrink-0 px-1.5 py-0 text-[10px] ring-1 ring-inset ${p.etiqueta.cor}`}>{p.etiqueta.rotulo}</span>
                       </span>
                       <span className="mt-0.5 flex flex-wrap items-center gap-x-2.5 text-xs text-stone-500">
                         <span className="tabular-nums">{p.participou} {p.participou === 1 ? "ritual" : "rituais"}</span>
@@ -300,7 +300,7 @@ export function TabelaPessoas({ pessoas, admin, filtroInicial, ordemInicial, bus
                     >
                       <td className="px-6 py-2.5">
                         <div className="flex items-center gap-3">
-                          <Avatar nome={p.nome} foto={p.foto} tamanho={34} className="ring-0" />
+                          <Avatar nome={p.nome} foto={p.foto} tamanho={34} className="participante-avatar ring-0" />
                           <span className="min-w-0">
                             <Link href={`/admin/participantes/${p.id}`} className="block truncate font-medium text-stone-900 hover:text-mata-700">{p.nome}</Link>
                             <span className="block truncate text-xs text-stone-500">{p.email}{p.local ? ` · ${p.local}` : ""}</span>
@@ -320,7 +320,7 @@ export function TabelaPessoas({ pessoas, admin, filtroInicial, ordemInicial, bus
                         </div>
                       </td>
                       <td className="px-3 py-2.5">
-                        <span className={`chip whitespace-nowrap ring-1 ring-inset ${p.etiqueta.cor}`}>{p.etiqueta.rotulo}</span>
+                        <span className={`chip participante-tag whitespace-nowrap ring-1 ring-inset ${p.etiqueta.cor}`}>{p.etiqueta.rotulo}</span>
                       </td>
                       <td className="px-3 py-2.5 text-right font-medium text-stone-800 tabular-nums">{p.participou}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums">

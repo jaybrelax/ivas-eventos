@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { capitalizarNomeProprio } from "@/lib/format";
-import { createContext, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { createContext, Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Check, ChevronRight, Clock, Crown, Gift, Receipt, Search, Shield, SlidersHorizontal, Sprout, Ticket, UserPlus, Users, X } from "lucide-react";
 import type { ChavePix, FormaPagamento, Sexo, SituacaoPagamento } from "@/lib/types";
 import type { Dose } from "@/lib/doses";
@@ -98,17 +98,17 @@ export const AcoesListaContexto = createContext<{ abrirFiltro?: () => void; cham
  * branco ao pêssego e o líquido marrom-escuro subindo na proporção dos ml (0 a 70, copo cheio).
  * Só o número, em branco, no rodapé do copo.
  */
-function ChipsDose({ doses }: { doses: Dose[] }) {
+function ChipsDose({ doses, pagamentoNaHora = false }: { doses: Dose[]; pagamentoNaHora?: boolean }) {
   const lista = doses.filter((d) => d.ml > 0);
-  if (!lista.length) return null;
+  if (!lista.length && !pagamentoNaHora) return null;
   return (
     <span className="flex shrink-0 items-center gap-1">
       {lista.map((d) => {
         // O líquido nunca fica abaixo da faixa do número (que é branco), senão ele some na parte clara
         const pct = 38 + Math.min(1, d.ml / 70) * 62;
-        return (
+        return <Fragment key={d.n}>
+          {pagamentoNaHora && d.n === 2 && <TagNaHora />}
           <span
-            key={d.n}
             className="relative block h-9 w-[26px] overflow-hidden rounded-t-[3px] rounded-b-[8px] border border-[#c9c9c9] bg-gradient-to-b from-[#fbf8f6] to-[#d8a994]"
             title={`${d.n}ª dose: ${d.ml} ml`}
             aria-label={`${d.n}ª dose: ${d.ml} ml`}
@@ -116,10 +116,16 @@ function ChipsDose({ doses }: { doses: Dose[] }) {
             <span className="absolute inset-x-0 bottom-0 bg-[#51270f] transition-[height] duration-500 ease-out motion-reduce:transition-none" style={{ height: `${pct}%` }} />
             <span aria-hidden className="absolute inset-x-0 bottom-[2px] text-center text-[13px] leading-none font-semibold tabular-nums text-white">{d.ml}</span>
           </span>
-        );
+          {pagamentoNaHora && d.n === 1 && !lista.some((dose) => dose.n === 2) && <TagNaHora />}
+        </Fragment>;
       })}
+      {pagamentoNaHora && !lista.length && <TagNaHora />}
     </span>
   );
+}
+
+function TagNaHora() {
+  return <span className="chip tag-pagamento-pendente shrink-0 gap-1 px-2 py-px text-[11px] whitespace-nowrap" title="Pagamento na hora"><Clock size={11} strokeWidth={2.4} aria-hidden />Na hora</span>;
 }
 
 /** Linha marcada na chamada: faixa verde à esquerda e um degradê verde bem sutil. */
@@ -428,7 +434,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
         </div>
       )}
 
-      <div className={embutido ? "" : "sm:rounded-xl sm:border sm:border-stone-200/80 sm:p-3"}>
+      <div className={`${financeiro ? "" : "lista-presenca-evento"} ${embutido ? "" : "sm:rounded-xl sm:border sm:border-stone-200/80 sm:p-3"}`}>
         <p className={`flex items-center justify-between px-0.5 pt-1 pb-2 text-xs font-semibold tracking-wider text-stone-500 uppercase ${embutido ? "" : "sm:px-1.5"}`}>
           <span>{equipe.length ? (equipeOrdenada.length ? "Soldados da Luz" : "Participantes") : "Confirmados"} <span className="tabular-nums">({equipeOrdenada.length || confirmados.length})</span></span>
           {filtrando && <span className="normal-case tracking-normal font-medium">{confirmados.length} de {ocupadas}</span>}
@@ -443,7 +449,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
                 {dados.gerenciar && !financeiro ? (
                   <button type="button" onClick={() => (chamadaAtiva ? marcar(x.id) : setEquipeAberta(x.id))} aria-label={chamadaAtiva ? `Marcar presença de ${x.nome}` : `Registrar a dosagem de ${x.nome}`} aria-pressed={chamadaAtiva ? presentes.has(x.id) : undefined}
                     className={`group flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition hover:ring-1 hover:ring-mata-200 ${chamadaAtiva && presentes.has(x.id) ? CLASSE_PRESENTE : x.papel === "mestre" ? "bg-mata-50 ring-1 ring-mata-100 hover:bg-mata-100/60" : "bg-sky-50 ring-1 ring-sky-100 hover:bg-mata-50/70"}`}>
-                    <Avatar nome={x.nome} foto={x.foto} tamanho={32} className={chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
+                    <Avatar nome={x.nome} foto={x.foto} tamanho={32} className={`avatar-presenca ${chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "avatar-presenca-sem-aro ring-0"}`} />
                     <span className="flex min-w-0 flex-1 items-center gap-1.5">
                       <span className="truncate text-sm font-medium text-stone-800">{x.nome}</span>
                       <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} soIcone={(dados.dosesEquipe?.[x.id] ?? []).some((d) => d.ml > 0)} />
@@ -453,7 +459,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
                   </button>
                 ) : (
                   <div className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 ring-1 ${x.papel === "mestre" ? "bg-mata-50 ring-mata-100" : "bg-sky-50 ring-sky-100"}`}>
-                    <Avatar nome={x.nome} foto={x.foto} tamanho={32} className="ring-0" />
+                    <Avatar nome={x.nome} foto={x.foto} tamanho={32} className="avatar-presenca avatar-presenca-sem-aro ring-0" />
                     <span className="flex min-w-0 flex-1 items-center gap-1.5">
                       <span className="truncate text-sm font-medium text-stone-800">{x.nome}</span>
                       <SeloPapel papel={x.papel} sexo={sexoDe.get(x.id)} />
@@ -546,7 +552,7 @@ function SeloPapel({ papel, soIcone = false, sexo }: { papel: MembroLista["papel
   const base = PAPEL[papel];
   const info = papel === "guardiao" && sexo === "feminino" ? { ...base, rotulo: "Guardiã" } : base;
   return (
-    <span title={info.rotulo} className={`inline-flex shrink-0 items-center gap-1 rounded-full text-[11px] font-semibold ${soIcone ? "h-6 w-6 justify-center" : "px-2 py-0.5"} md:h-6 md:w-[4.75rem] md:justify-center md:px-1 md:py-0 ${info.cor}`}>
+    <span title={info.rotulo} className={`inline-flex shrink-0 items-center gap-1 rounded-full text-[11px] font-semibold ${soIcone ? "h-6 w-6 justify-center" : "px-2 py-0.5"} md:h-6 md:w-[4.75rem] md:justify-center md:px-1 md:py-0 ${papel === "guardiao" ? "selo-guardiao" : ""} ${info.cor}`}>
       {/* No celular, com dose registrada, só o ícone; no computador sempre com o nome */}
       <info.Icone size={soIcone ? 13 : 11} aria-hidden className="md:size-[11px]" />{soIcone ? <span className="max-md:sr-only">{info.rotulo}</span> : <> {info.rotulo}</>}
     </span>
@@ -636,7 +642,7 @@ function Linha({
   const conteudo = (
     <>
       {posicao !== undefined && <span className="w-5 shrink-0 text-center text-xs font-semibold text-stone-400 tabular-nums">{posicao}º</span>}
-      <Avatar nome={p.nome} foto={p.foto} tamanho={32} className={chamada && presente ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "ring-0"} />
+      <Avatar nome={p.nome} foto={p.foto} tamanho={32} className={`avatar-presenca ${chamada && presente ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "avatar-presenca-sem-aro ring-0"}`} />
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <span className="truncate text-sm font-medium text-stone-800">{p.nome}</span>
@@ -657,7 +663,7 @@ function Linha({
           )}
           {/* Situação da contribuição na lista de presença; após duas doses, os copos ocupam esse espaço. */}
           {mostrarTagPresenca && p.pagamento === "pendente" && (
-            <span className={`chip shrink-0 gap-1 px-2 py-px text-[11px] whitespace-nowrap ${pg.cor}`} title={pg.rotulo}>
+            <span className={`chip tag-pagamento-pendente shrink-0 gap-1 px-2 py-px text-[11px] whitespace-nowrap ${pg.cor}`} title={pg.rotulo}>
               <Clock size={11} strokeWidth={2.4} aria-hidden />{pg.rotulo}
             </span>
           )}
@@ -684,7 +690,7 @@ function Linha({
           </span>
         )}
       </span>
-      {gerenciar && !financeiro && <ChipsDose doses={p.doses ?? []} />}
+      {gerenciar && !financeiro && <ChipsDose doses={p.doses ?? []} pagamentoNaHora={mostrarTagPresenca && p.pagamento === "na_hora"} />}
       {/* A situação da contribuição só aparece na aba Financeiro: o valor na ponta direita */}
       {financeiro && temContribuicao && <ValorContribuicao p={p} esperado={esperado} />}
     </>

@@ -589,3 +589,447 @@ html.tema-escuro, html.tema-escuro body { background-color: #151022; }
 @media (prefers-reduced-motion: no-preference) {
   .borda-participante { animation: participante-borda 3.6s ease-in-out infinite; }
 }
+
+/* ───────── Tema escuro compartilhado do app Eventos ─────────
+ * Escopo intencional: o tema geral público/admin usa data-tema-ivas;
+ * .tema-escuro/.tema-auto continuam exclusivos do app da Guarnição.
+ */
+html[data-tema-ivas="escuro"] {
+  color-scheme: dark;
+  --color-fundo: #15121b;
+  --color-stone-50: #17141e;
+  --color-stone-100: #1e1a26;
+  --color-stone-200: #302a39;
+  --color-stone-300: #453d50;
+  --color-stone-400: #958ca2;
+  --color-stone-500: #b0a8bc;
+  --color-stone-600: #c6bfce;
+  --color-stone-700: #d8d2df;
+  --color-stone-800: #e9e5ee;
+  --color-stone-900: #f4f1f7;
+  --color-stone-950: #fbf9fd;
+  --shadow-cartao: 0 1px 2px rgb(0 0 0 / 0.28), 0 6px 20px -10px rgb(0 0 0 / 0.52);
+  --shadow-elevado: 0 4px 12px -5px rgb(0 0 0 / 0.4), 0 20px 48px -18px rgb(0 0 0 / 0.72);
+}
+html[data-tema-ivas="escuro"] body {
+  background-color: var(--color-fundo);
+  color: var(--color-stone-900);
+}
+
+/* Superfícies claras tornam-se camadas de ameixa/grafite; as transparências do vidro são preservadas. */
+html[data-tema-ivas="escuro"] .bg-white,
+html[data-tema-ivas="escuro"] [class~="bg-white/100"] { background-color: #211c29 !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/95"] { background-color: rgb(33 28 41 / 0.95) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/90"] { background-color: rgb(33 28 41 / 0.9) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/85"] { background-color: rgb(33 28 41 / 0.85) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/80"] { background-color: rgb(33 28 41 / 0.8) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/70"] { background-color: rgb(33 28 41 / 0.7) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/60"] { background-color: rgb(33 28 41 / 0.6) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/50"] { background-color: rgb(33 28 41 / 0.5) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/40"] { background-color: rgb(33 28 41 / 0.4) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/30"] { background-color: rgb(33 28 41 / 0.3) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/20"] { background-color: rgb(33 28 41 / 0.2) !important; }
+html[data-tema-ivas="escuro"] [class~="bg-white/10"] { background-color: rgb(33 28 41 / 0.1) !important; }
+html[data-tema-ivas="escuro"] .cartao,
+html[data-tema-ivas="escuro"] .btn-secundario,
+html[data-tema-ivas="escuro"] .btn-perigo,
+html[data-tema-ivas="escuro"] .chip-app:not(.chip-app-on),
+html[data-tema-ivas="escuro"] .segmentado > [data-ativo="true"] { background-color: #211c29 !important; }
+html[data-tema-ivas="escuro"] [class~="from-white"] { --tw-gradient-from: #211c29 var(--tw-gradient-from-position); --tw-gradient-to: rgb(33 28 41 / 0) var(--tw-gradient-to-position); }
+html[data-tema-ivas="escuro"] [class~="via-white"] { --tw-gradient-via: #211c29 var(--tw-gradient-via-position); }
+html[data-tema-ivas="escuro"] [class~="to-white"] { --tw-gradient-to: #211c29 var(--tw-gradient-to-position); }
+
+/* Escalas suaves de estado continuam distinguíveis sem voltar a superfícies claras. */
+html[data-tema-ivas="escuro"] [class*="bg-emerald-50"] { background-color: rgb(16 185 129 / 0.12) !important; }
+html[data-tema-ivas="escuro"] [class*="bg-emerald-100"] { background-color: rgb(16 185 129 / 0.2) !important; }
+html[data-tema-ivas="escuro"] [class*="bg-amber-50"],
+html[data-tema-ivas="escuro"] [class*="bg-yellow-50"],
+html[data-tema-ivas="escuro"] [class*="bg-orange-50"] { background-color: rgb(217 144 44 / 0.13) !important; }
+html[data-tema-ivas="escuro"] [class*="bg-amber-100"],
+html[data-tema-ivas="escuro"] [class*="bg-yellow-100"] { background-color: rgb(217 144 44 / 0.2) !important; }
+html[data-tema-ivas="escuro"] [class*="bg-emerald-200"],
+html[data-tema-ivas="escuro"] [class*="bg-sky-200"],
+html[data-tema-ivas="escuro"] [class*="bg-violet-200"],
+html[data-tema-ivas="escuro"] [class*="bg-fuchsia-200"] { background-color: rgb(139 92 246 / 0.2) !important; }
+html[data-tema-ivas="escuro"] [class*="bg-ouro-200"],
+html[data-tema-ivas="escuro"] [class*="bg-ouro-300"] { background-color: rgb(201 162 74 / 0.2) !important; }
+html[data-tema-ivas="escuro"] [class*="bg-red-50"],
+html[data-tema-ivas="escuro"] [class*="bg-red-100"],
+html[data-tema-ivas="escuro"] [class*="bg-rose-50"] { background-color: rgb(239 68 68 / 0.13) !important; }
+html[data-tema-ivas="escuro"] [class*="bg-sky-50"],
+html[data-tema-ivas="escuro"] [class*="bg-sky-100"],
+html[data-tema-ivas="escuro"] [class*="bg-blue-50"],
+html[data-tema-ivas="escuro"] [class*="bg-indigo-50"] { background-color: rgb(96 165 250 / 0.13) !important; }
+html[data-tema-ivas="escuro"] [class*="bg-violet-50"],
+html[data-tema-ivas="escuro"] [class*="bg-violet-100"],
+html[data-tema-ivas="escuro"] [class*="bg-purple-50"],
+html[data-tema-ivas="escuro"] [class*="bg-fuchsia-50"],
+html[data-tema-ivas="escuro"] [class*="bg-fuchsia-100"],
+html[data-tema-ivas="escuro"] [class*="bg-mata-50"],
+html[data-tema-ivas="escuro"] [class*="bg-mata-100"] { background-color: rgb(139 92 246 / 0.14) !important; }
+html[data-tema-ivas="escuro"] [class*="bg-ouro-50"],
+html[data-tema-ivas="escuro"] [class*="bg-ouro-100"] { background-color: rgb(201 162 74 / 0.14) !important; }
+
+html[data-tema-ivas="escuro"] .text-mata-600,
+html[data-tema-ivas="escuro"] .text-mata-700,
+html[data-tema-ivas="escuro"] .text-mata-800,
+html[data-tema-ivas="escuro"] .text-mata-900 { color: #cbb8f2 !important; }
+html[data-tema-ivas="escuro"] .text-ouro-600,
+html[data-tema-ivas="escuro"] .text-ouro-700 { color: #e5c77f !important; }
+html[data-tema-ivas="escuro"] .text-emerald-700,
+html[data-tema-ivas="escuro"] .text-emerald-800,
+html[data-tema-ivas="escuro"] .text-emerald-900 { color: #73d6ac !important; }
+html[data-tema-ivas="escuro"] .text-amber-700,
+html[data-tema-ivas="escuro"] .text-amber-800,
+html[data-tema-ivas="escuro"] .text-amber-900,
+html[data-tema-ivas="escuro"] .text-orange-700 { color: #f3c477 !important; }
+html[data-tema-ivas="escuro"] .text-red-700,
+html[data-tema-ivas="escuro"] .text-rose-700 { color: #f3a4a4 !important; }
+html[data-tema-ivas="escuro"] .text-sky-700,
+html[data-tema-ivas="escuro"] .text-blue-700,
+html[data-tema-ivas="escuro"] .text-indigo-700 { color: #a8c7fa !important; }
+html[data-tema-ivas="escuro"] .text-violet-700,
+html[data-tema-ivas="escuro"] .text-purple-700,
+html[data-tema-ivas="escuro"] .text-fuchsia-700 { color: #d1b8fa !important; }
+html[data-tema-ivas="escuro"] .text-violet-800 { color: #d9c5ff !important; }
+html[data-tema-ivas="escuro"] .hero-agenda-descricao { color: #f3effa !important; }
+html[data-tema-ivas="escuro"] .fundo-card-destaque {
+  background-image: linear-gradient(180deg, rgb(201 162 74 / 0.1) 0%, rgb(33 28 41 / 0.98) 72%) !important;
+}
+html[data-tema-ivas="escuro"] .cancelar-participacao {
+  color: #c48d9a !important;
+  background-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .cancelar-participacao:hover {
+  color: #e0aab4 !important;
+  background-color: rgb(239 68 68 / 0.09) !important;
+}
+
+html[data-tema-ivas="escuro"] .border-white,
+html[data-tema-ivas="escuro"] .border-stone-100,
+html[data-tema-ivas="escuro"] .border-stone-200,
+html[data-tema-ivas="escuro"] .border-stone-200\/80,
+html[data-tema-ivas="escuro"] [class*="border-emerald-200"],
+html[data-tema-ivas="escuro"] [class*="border-emerald-300"],
+html[data-tema-ivas="escuro"] [class*="border-sky-200"],
+html[data-tema-ivas="escuro"] [class*="border-sky-300"],
+html[data-tema-ivas="escuro"] [class*="border-amber-200"],
+html[data-tema-ivas="escuro"] [class*="border-ouro-200"],
+html[data-tema-ivas="escuro"] [class*="border-red-200"],
+html[data-tema-ivas="escuro"] [class*="border-rose-300"],
+html[data-tema-ivas="escuro"] [class*="border-violet-200"],
+html[data-tema-ivas="escuro"] .divide-stone-100 > :not(:last-child),
+html[data-tema-ivas="escuro"] .divide-stone-200 > :not(:last-child) { border-color: #393241 !important; }
+html[data-tema-ivas="escuro"] .placeholder\:text-stone-400::placeholder { color: #958ca2 !important; }
+html[data-tema-ivas="escuro"] .campo,
+html[data-tema-ivas="escuro"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-tema-ivas="escuro"] textarea,
+html[data-tema-ivas="escuro"] select { color-scheme: dark; }
+html[data-tema-ivas="escuro"] .campo {
+  background-color: #211c29 !important;
+  border-color: #453d50 !important;
+  color: #f4f1f7 !important;
+}
+html[data-tema-ivas="escuro"] .campo::placeholder,
+html[data-tema-ivas="escuro"] input::placeholder,
+html[data-tema-ivas="escuro"] textarea::placeholder { color: #958ca2 !important; }
+html[data-tema-ivas="escuro"] input[type="checkbox"],
+html[data-tema-ivas="escuro"] input[type="radio"] { accent-color: #a78bfa; }
+html[data-tema-ivas="escuro"] .hover\:bg-stone-50:hover { background-color: #282231 !important; }
+html[data-tema-ivas="escuro"] .hover\:bg-stone-100:hover { background-color: #302a39 !important; }
+html[data-tema-ivas="escuro"] .hover\:border-stone-300:hover { border-color: #51485e !important; }
+html[data-tema-ivas="escuro"] .ring-fundo-card { --tw-ring-color: rgb(33 28 41 / 0.56) !important; }
+html[data-tema-ivas="escuro"] .login-card {
+  background: linear-gradient(155deg, rgb(42 34 56 / 0.96), rgb(29 24 39 / 0.97)) !important;
+  border: 1px solid rgb(211 190 242 / 0.16);
+  --tw-ring-color: rgb(196 181 253 / 0.1) !important;
+  box-shadow: 0 20px 55px -24px rgb(5 3 12 / 0.72), inset 0 1px 0 rgb(255 255 255 / 0.05) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+  backdrop-filter: blur(18px) saturate(125%);
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento > ul > li > button,
+html[data-tema-ivas="escuro"] .lista-presenca-evento > ul > li > div,
+html[data-tema-ivas="escuro"] .lista-presenca-evento > ul > li.ring-1 {
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento > ul > li > button:hover {
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .avatar-presenca {
+  --tw-ring-color: rgb(203 184 242 / 0.18) !important;
+  --tw-ring-offset-color: #211c29 !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .selo-guardiao {
+  background-color: rgb(59 130 246 / 0.24) !important;
+  color: #c6e0ff !important;
+}
+/* Modal de inscrição: superfícies em camadas, sem contornos pesados no tema escuro. */
+html[data-tema-ivas="escuro"] .modal-inscricao-painel {
+  background: #1b1722 !important;
+  border-color: transparent !important;
+  box-shadow: 0 28px 80px -24px rgb(0 0 0 / 0.78), inset 0 1px 0 rgb(255 255 255 / 0.035) !important;
+  color: #f4f1f7;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel > header {
+  background: linear-gradient(155deg, #292332 0%, #211c29 82%) !important;
+  border-color: #342d3c !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel > footer {
+  background: #211c29 !important;
+  border-color: #342d3c !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel > .overflow-y-auto {
+  background-color: #1b1722;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel ul.rounded-2xl.border {
+  background-color: #211c29;
+  border-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-card-contribuicao {
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-card-comprovante {
+  background-color: #25202d !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035) !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-card {
+  background-color: #292431 !important;
+  --tw-ring-color: transparent !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-tag {
+  --tw-ring-color: transparent !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-pendente {
+  background-color: rgb(198 138 49 / 0.18) !important;
+  color: #f2c97c !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-informado {
+  background-color: rgb(198 138 49 / 0.18) !important;
+  color: #f2c97c !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-avatar,
+html[data-tema-ivas="escuro"] .lista-presenca-evento .avatar-presenca-sem-aro {
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-pagamento-pendente {
+  background-color: rgb(198 138 49 / 0.18) !important;
+  color: #f2c97c !important;
+  --tw-ring-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Painel de consumo: gradiente noturno e valores violeta claro, com contraste confortável. */
+.tema-escuro .consumo-resumo,
+.tema-auto .consumo-resumo {
+  background-image: linear-gradient(180deg, #211a31 0%, #191521 100%) !important;
+  border-top-color: rgb(196 181 253 / 0.18) !important;
+}
+.tema-escuro .consumo-indicador,
+.tema-auto .consumo-indicador {
+  background-color: #261f35 !important;
+  --tw-ring-color: rgb(196 181 253 / 0.12) !important;
+}
+.tema-escuro .consumo-indicador-label,
+.tema-auto .consumo-indicador-label { color: #c0b3d8 !important; }
+.tema-escuro .consumo-indicador-valor,
+.tema-auto .consumo-indicador-valor,
+.tema-escuro .consumo-indicador-unidade,
+.tema-auto .consumo-indicador-unidade,
+.tema-escuro .consumo-pessoa-total,
+.tema-auto .consumo-pessoa-total { color: #d7c5ff !important; }
+
+@media (prefers-color-scheme: light) {
+  .tema-auto .consumo-resumo { background-image: linear-gradient(to bottom, rgb(255 251 235 / 0.6), #fff) !important; }
+  .tema-auto .consumo-indicador { background-color: #fff !important; --tw-ring-color: rgb(120 53 15 / 0.1) !important; }
+  .tema-auto .consumo-indicador-label { color: #78716c !important; }
+  .tema-auto .consumo-indicador-valor { color: #451a03 !important; }
+  .tema-auto .consumo-indicador-unidade { color: rgb(120 53 15 / 0.6) !important; }
+  .tema-auto .consumo-pessoa-total { color: #451a03 !important; }
+}
+
+html:not([data-tema-ivas="escuro"]) .marca-logo-escura,
+html[data-tema-ivas="escuro"] .marca-logo-clara { display: none; }
+
+/* Créditos: superfícies mais limpas e contraste reforçado no tema escuro. */
+html[data-tema-ivas="escuro"] .admin-creditos-page .bg-white { background-color: #211c29 !important; }
+html[data-tema-ivas="escuro"] .admin-creditos-page [class~="bg-[#f5f6f7]"] { background-color: #282231 !important; }
+html[data-tema-ivas="escuro"] .admin-creditos-page [class~="text-[#1c1e21]"] { color: #f4f1f7 !important; }
+html[data-tema-ivas="escuro"] .admin-creditos-page [class~="text-[#65676b]"] { color: #bdb4cb !important; }
+html[data-tema-ivas="escuro"] .admin-creditos-page [class~="text-[#8a8d91]"] { color: #a79db4 !important; }
+html[data-tema-ivas="escuro"] .admin-creditos-page [class~="border-[#dadde1]"] { border-color: #3a3345 !important; }
+html[data-tema-ivas="escuro"] .admin-creditos-page [class~="divide-[#dadde1]"] > :not(:last-child) { border-color: #342d3c !important; }
+html[data-tema-ivas="escuro"] .admin-creditos-page .rounded-lg.border {
+  border-color: transparent !important;
+  box-shadow: 0 8px 22px -18px rgb(0 0 0 / 0.72), inset 0 1px 0 rgb(255 255 255 / 0.035) !important;
+}
+html[data-tema-ivas="escuro"] .admin-creditos-page section.overflow-hidden.rounded-lg.border {
+  border-color: transparent !important;
+  box-shadow: 0 12px 30px -22px rgb(0 0 0 / 0.78), inset 0 1px 0 rgb(255 255 255 / 0.04) !important;
+}
+html[data-tema-ivas="escuro"] .admin-creditos-page [class~="active:bg-[#f5f6f7]"]:active,
+html[data-tema-ivas="escuro"] .admin-creditos-page [class~="hover:bg-[#f5f6f7]"]:hover,
+html[data-tema-ivas="escuro"] .admin-creditos-page [class~="focus-visible:bg-[#f5f6f7]"]:focus-visible {
+  background-color: #302a3b !important;
+}
+html[data-tema-ivas="escuro"] .admin-creditos-page .creditos-avatar {
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .admin-creditos-page .filtro-saldos-dark {
+  background-color: #292333 !important;
+  border-color: transparent !important;
+  color: #d8c9f3 !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035) !important;
+}
+html[data-tema-ivas="escuro"] .admin-creditos-page .filtro-saldos-dark[aria-pressed="true"] {
+  background-color: #372b4b !important;
+  color: #f0e9ff !important;
+}
+html[data-tema-ivas="escuro"] .admin-creditos-page .filtro-saldos-dark:hover {
+  background-color: #332a43 !important;
+}
+html[data-tema-ivas="escuro"] .participantes-lista .participante-avatar,
+html[data-tema-ivas="escuro"] .ficha-participante .participante-avatar {
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .participantes-lista .participante-tag,
+html[data-tema-ivas="escuro"] .ficha-participante .chip {
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .ficha-participante .botao-ficha-completa {
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+  background-color: rgb(139 92 246 / 0.14) !important;
+}
+html[data-tema-ivas="escuro"] .ficha-participante .botao-ficha-completa:hover {
+  background-color: rgb(139 92 246 / 0.22) !important;
+}
+html[data-tema-ivas="escuro"] .ficha-participante .botao-ficha-completa:focus-visible {
+  outline: 2px solid #cbb8f2 !important;
+  outline-offset: 3px;
+}
+
+.tema-escuro .admin-creditos-page .bg-white,
+.tema-auto .admin-creditos-page .bg-white { background-color: #211c29 !important; }
+.tema-escuro .admin-creditos-page [class~="text-[#1c1e21]"],
+.tema-auto .admin-creditos-page [class~="text-[#1c1e21]"] { color: #f4f1f7 !important; }
+.tema-escuro .admin-creditos-page [class~="text-[#65676b]"],
+.tema-auto .admin-creditos-page [class~="text-[#65676b]"] { color: #bdb4cb !important; }
+.tema-escuro .admin-creditos-page [class~="text-[#8a8d91]"],
+.tema-auto .admin-creditos-page [class~="text-[#8a8d91]"] { color: #a79db4 !important; }
+.tema-escuro .admin-creditos-page [class~="border-[#dadde1]"],
+.tema-auto .admin-creditos-page [class~="border-[#dadde1]"] { border-color: #3a3345 !important; }
+.tema-escuro .admin-creditos-page .rounded-lg.border,
+.tema-auto .admin-creditos-page .rounded-lg.border,
+.tema-escuro .admin-creditos-page section.overflow-hidden.rounded-lg.border,
+.tema-auto .admin-creditos-page section.overflow-hidden.rounded-lg.border { border-color: transparent !important; }
+.tema-escuro .admin-creditos-page .creditos-avatar,
+.tema-auto .admin-creditos-page .creditos-avatar { --tw-ring-shadow: 0 0 transparent !important; --tw-ring-offset-shadow: 0 0 transparent !important; box-shadow: none !important; }
+.tema-escuro .admin-creditos-page .filtro-saldos-dark,
+.tema-auto .admin-creditos-page .filtro-saldos-dark { background-color: #292333 !important; border-color: transparent !important; color: #d8c9f3 !important; }
+.tema-escuro .admin-creditos-page .filtro-saldos-dark[aria-pressed="true"],
+.tema-auto .admin-creditos-page .filtro-saldos-dark[aria-pressed="true"] { background-color: #372b4b !important; color: #f0e9ff !important; }
+@media (prefers-color-scheme: dark) {
+  .tema-auto .admin-creditos-page [class~="bg-[#f5f6f7]"] { background-color: #282231 !important; }
+  .tema-auto .admin-creditos-page [class~="divide-[#dadde1]"] > :not(:last-child) { border-color: #342d3c !important; }
+  .tema-auto .admin-creditos-page [class~="active:bg-[#f5f6f7]"]:active,
+  .tema-auto .admin-creditos-page [class~="hover:bg-[#f5f6f7]"]:hover,
+  .tema-auto .admin-creditos-page [class~="focus-visible:bg-[#f5f6f7]"]:focus-visible { background-color: #302a3b !important; }
+  .tema-auto .admin-creditos-page .filtro-saldos-dark:hover { background-color: #332a43 !important; }
+}
+@media (prefers-color-scheme: light) {
+  .tema-auto .admin-creditos-page .bg-white { background-color: #fff !important; }
+  .tema-auto .admin-creditos-page [class~="text-[#1c1e21]"] { color: #1c1e21 !important; }
+  .tema-auto .admin-creditos-page [class~="text-[#65676b]"] { color: #65676b !important; }
+  .tema-auto .admin-creditos-page [class~="text-[#8a8d91]"] { color: #8a8d91 !important; }
+  .tema-auto .admin-creditos-page [class~="border-[#dadde1]"] { border-color: #dadde1 !important; }
+  .tema-auto .admin-creditos-page .rounded-lg.border,
+  .tema-auto .admin-creditos-page section.overflow-hidden.rounded-lg.border { border-color: #dadde1 !important; }
+  .tema-auto .admin-creditos-page .filtro-saldos-dark { background-color: #fff !important; color: #1c1e21 !important; border-color: #dadde1 !important; box-shadow: none !important; }
+  .tema-auto .admin-creditos-page .filtro-saldos-dark[aria-pressed="true"] { background-color: #f3eefa !important; color: #4a2e75 !important; border-color: #d8c9f3 !important; }
+}
+
+@media (max-width: 1023px) {
+  html[data-tema-ivas="escuro"] .config-mobile-categoria {
+    background-color: #1a1621 !important;
+    border-color: transparent !important;
+    box-shadow: 0 10px 24px -20px rgb(0 0 0 / 0.85), inset 0 1px 0 rgb(255 255 255 / 0.025) !important;
+  }
+  html[data-tema-ivas="escuro"] .config-mobile-categoria .config-mobile-opcao {
+    background-color: #1a1621;
+  }
+  html[data-tema-ivas="escuro"] .config-mobile-categoria .config-mobile-opcao:hover,
+  html[data-tema-ivas="escuro"] .config-mobile-categoria .config-mobile-opcao:active {
+    background-color: #211b2b !important;
+  }
+  html[data-tema-ivas="escuro"] .config-mobile-categoria.divide-y > :not(:last-child) {
+    border-color: #292330 !important;
+  }
+}
+
+html[data-tema-ivas="escuro"] .cartao-evento-admin {
+  background-color: #251e36 !important;
+}
+html[data-tema-ivas="escuro"] .admin-header-avatar {
+  --tw-ring-color: #211a30 !important;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin:hover {
+  background-color: #2b2240 !important;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin:hover h3 {
+  color: #f5efff !important;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin .evento-data-admin {
+  background-color: #211a30 !important;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin .avatar-equipe-evento {
+  --tw-ring-color: #251e36 !important;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin .avatar-img-equipe-evento {
+  --tw-ring-color: #251e36 !important;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin:hover .avatar-equipe-evento {
+  --tw-ring-color: #2b2240 !important;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin:hover .avatar-img-equipe-evento {
+  --tw-ring-color: #2b2240 !important;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin .capa-evento-passado {
+  filter: saturate(0.5) sepia(0.14) hue-rotate(245deg) !important;
+  opacity: 0.7;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin .capa-evento-admin-passado {
+  background-color: #171321 !important;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin .capa-evento-admin-sombra {
+  background:
+    linear-gradient(90deg, rgb(12 8 22 / 0.52) 0%, transparent 24%, transparent 76%, rgb(12 8 22 / 0.52) 100%),
+    linear-gradient(180deg, rgb(12 8 22 / 0.28) 0%, transparent 22%, transparent 72%, rgb(12 8 22 / 0.66) 100%);
+  z-index: 0;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin .tag-evento-admin-area {
+  background: linear-gradient(to top, rgb(10 7 18 / 0.9) 0%, rgb(10 7 18 / 0.42) 52%, transparent 100%) !important;
+  z-index: 1;
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin .tag-evento-admin {
+  background: linear-gradient(135deg, rgb(73 51 96 / 0.7), rgb(18 12 29 / 0.82)) !important;
+  color: #fff9ef !important;
+  --tw-ring-color: rgb(239 222 255 / 0.3) !important;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.2), inset 0 -1px 0 rgb(0 0 0 / 0.18) !important;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.7);
+  backdrop-filter: blur(10px) saturate(135%);
+}
+html[data-tema-ivas="escuro"] .cartao-evento-admin .tag-evento-admin svg { color: #ffd37a !important; }

@@ -49,7 +49,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       <section className="relative flex flex-col items-center justify-start overflow-hidden bg-[#c3cdf6] px-5 pt-[max(61vw,34svh)] pb-6 lg:justify-center lg:bg-white lg:py-12">
         {/* Celular: arte do IVAS no topo (a logo já faz parte da imagem); o formulário fica na parte clara */}
         <div aria-hidden className="absolute inset-x-0 -top-[14vw] bottom-0 bg-cover bg-top bg-no-repeat lg:hidden" style={{ backgroundImage: "url(/fundo_login_mobile.webp)" }} />
-        <div className="relative w-full max-w-sm animate-surgir rounded-3xl bg-white/55 p-5 shadow-elevado ring-1 ring-white/70 backdrop-blur-md lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none">
+        <div className="login-card relative w-full max-w-sm animate-surgir rounded-3xl bg-white/55 p-5 shadow-elevado ring-1 ring-white/70 backdrop-blur-md lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none">
           <h2 className="text-center text-xl font-semibold tracking-tight text-stone-900 lg:text-left lg:text-2xl">Entrar</h2>
           <p className="mt-1 mb-5 text-center text-sm lg:mb-8 lg:mt-1.5 text-stone-500 lg:text-left">Use o e-mail e a senha do seu cadastro.</p>
           <LoginForm semPerfil={semPerfil} erroGoogle={erroGoogle} next={next} />

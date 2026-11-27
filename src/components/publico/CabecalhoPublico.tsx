@@ -5,6 +5,7 @@ import { MarcaInstituto } from "@/components/Marca";
 import { getUsuario } from "@/lib/auth";
 import { sair } from "@/app/login/actions";
 import { MenuUsuario } from "./MenuUsuario";
+import { SeletorTema } from "@/components/SeletorTema";
 
 const GUARNICAO_URL = (process.env.GUARNICAO_URL ?? "https://guarnicao.virtudes.net.br").replace(/\/+$/, "");
 
@@ -16,11 +17,11 @@ export async function CabecalhoPublico({ instituto, mostrarAgenda = true }: { in
       <div className="mx-auto flex h-18 max-w-6xl items-center justify-between px-4 sm:h-24 sm:px-6 lg:px-8">
         {/* Marca / Logo colorida sem legenda — 20% menor no mobile */}
         <Link href="/eventos" className="group flex items-center gap-3 transition-opacity hover:opacity-90">
-          <span className="sm:hidden"><MarcaInstituto instituto={instituto} altura={45} fundoClaro /></span>
-          <span className="hidden sm:block"><MarcaInstituto instituto={instituto} altura={56} fundoClaro /></span>
+          <span className="sm:hidden"><MarcaInstituto instituto={instituto} altura={45} fundoClaro adaptarTema /></span>
+          <span className="hidden sm:block"><MarcaInstituto instituto={instituto} altura={56} fundoClaro adaptarTema /></span>
         </Link>
 
-        {/* Logado: avatar com o menu da conta. Visitante: só o link da agenda (painel fica no rodapé). */}
+        {/* Logado: avatar com o menu da conta. Visitante: agenda, tema e acesso à conta. */}
         <nav className="flex items-center gap-3">
           {u ? (
             <MenuUsuario
@@ -33,6 +34,7 @@ export async function CabecalhoPublico({ instituto, mostrarAgenda = true }: { in
             />
           ) : (
             <>
+              <SeletorTema compacto />
               {mostrarAgenda && (
               <Link
                 href="/eventos"

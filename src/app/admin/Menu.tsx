@@ -7,6 +7,7 @@ import { Avatar } from "@/components/Avatar";
 import type { Perfil } from "@/lib/config";
 import { House, UserRound, BarChart3, CalendarDays, Download, Image as ImageIcon, LogOut, Menu as MenuIcone, PanelLeftClose, PanelLeftOpen, Plus, Receipt, Settings, Share, Shield, Ticket, Users, UsersRound, X } from "lucide-react";
 import { useInstalar } from "@/components/useInstalar";
+import { SeletorTema } from "@/components/SeletorTema";
 
 const ICONES = { calendar: CalendarDays, plus: Plus, chart: BarChart3, image: ImageIcon, settings: Settings, users: Users, shield: Shield, receipt: Receipt, participantes: UsersRound, ticket: Ticket };
 
@@ -141,20 +142,24 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
           {fino ? <PanelLeftOpen size={18} /> : <><PanelLeftClose size={18} /> Recolher menu</>}
         </button>
         {fino ? (
-          <div className="flex flex-col items-center rounded-2xl border border-white/10 bg-white/[0.04] p-1.5">
+          <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.04] p-1.5">
             <Link href="/admin/perfil" title={`${usuario.nome} · Meu perfil`} aria-label="Meu perfil" className="rounded-xl p-0.5 transition hover:bg-white/[0.06]">
               <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={34} className="ring-white/20" />
             </Link>
+            <SeletorTema compacto painel />
           </div>
         ) : (
-          <div className={`flex items-center rounded-2xl border p-1.5 transition ${path.startsWith("/admin/perfil") ? "border-ouro-400/40 bg-white/[0.08]" : "border-white/10 bg-white/[0.04]"}`}>
-            <Link href="/admin/perfil" className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.06]" title="Meu perfil">
-              <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={36} className="ring-white/20" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-white">{usuario.nome}</p>
-                <p className="text-xs text-mata-300">{usuario.perfil} · Meu perfil</p>
-              </div>
-            </Link>
+          <div className={`rounded-2xl border p-1.5 transition ${path.startsWith("/admin/perfil") ? "border-ouro-400/40 bg-white/[0.08]" : "border-white/10 bg-white/[0.04]"}`}>
+            <div className="flex items-center">
+              <Link href="/admin/perfil" className="flex min-w-0 flex-1 items-center gap-3 rounded-xl p-1 transition hover:bg-white/[0.06]" title="Meu perfil">
+                <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={36} className="ring-white/20" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-white">{usuario.nome}</p>
+                  <p className="text-xs text-mata-300">{usuario.perfil} · Meu perfil</p>
+                </div>
+              </Link>
+              <SeletorTema compacto painel />
+            </div>
           </div>
         )}
       </div>
@@ -183,7 +188,7 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
             aria-expanded={contaAberta}
             className="grid h-10 w-10 place-items-center rounded-full transition active:scale-95"
           >
-            <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={32} className="ring-white/30" />
+            <Avatar nome={usuario.nome} foto={usuario.foto} perfil={usuario.perfilId} tamanho={32} className="admin-header-avatar ring-white/30" />
           </button>
           {contaAberta && (
             <>
@@ -194,6 +199,8 @@ export function Menu({ grupos, marca, usuario, sair }: Props) {
                   <p className="text-xs text-mata-300">{usuario.perfil}</p>
                 </div>
                 <div className="mx-1 mb-1 h-px bg-white/10" aria-hidden />
+                <SeletorTema painel />
+                <div className="mx-1 my-1 h-px bg-white/10" aria-hidden />
                 <Link href="/" role="menuitem" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-mata-100 transition hover:bg-white/[0.06]">
                   <House size={17} className="text-mata-300" /> Home
                 </Link>

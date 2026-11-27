@@ -81,14 +81,14 @@ export default async function FichaParticipante({ params }: PageProps<"/admin/pa
       </Link>
       <Titulo sobre={perfilEquipe ? "Equipe" : "Participante"} titulo="Ficha do participante" />
 
-      <div className="space-y-6">
+      <div className="ficha-participante space-y-6">
         {/* Duas colunas independentes: à esquerda ficha + créditos; à direita indicadores + inscrições. Expandir a ficha só empurra os créditos. */}
         <div className="grid items-start gap-6 lg:grid-cols-2">
           <div className="space-y-6">
             {/* Topo: avatar à esquerda; nome, WhatsApp, e-mail e CPF à direita */}
             <section className="cartao">
               <div className="flex items-start gap-4 sm:gap-6">
-                <Avatar nome={nome} foto={p.foto_file_id} tamanho={96} />
+                <Avatar nome={nome} foto={p.foto_file_id} tamanho={96} className="participante-avatar" />
                 <div className="min-w-0 flex-1">
                   <h2 className="text-xl font-semibold tracking-tight text-stone-900 sm:text-2xl">{nome}</h2>
                   {(perfilEquipe || !conta.status) && (

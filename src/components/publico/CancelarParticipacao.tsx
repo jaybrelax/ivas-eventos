@@ -15,7 +15,7 @@ export function CancelarParticipacao({ eventoId, className = "", alinhar }: { ev
   return (
     <div className={className}>
       <BotaoConfirmar
-        className="inline-flex h-10 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-red-700/75 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-60"
+        className="cancelar-participacao inline-flex h-10 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-red-700/75 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-60"
         pergunta="Cancelar sua participação? Se houver lista de espera, a vaga passa para a próxima pessoa."
         confirmar="Sim, cancelar"
         alinhar={alinhar}

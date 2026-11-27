@@ -24,15 +24,35 @@ export function MarcaInstituto({
   altura = 48,
   legenda,
   fundoClaro = false,
+  adaptarTema = false,
 }: {
   instituto: DadosMarca;
   altura?: number;
   legenda?: string;
   fundoClaro?: boolean;
+  /** Mostra a logo colorida no tema claro e a logo branca no tema escuro. */
+  adaptarTema?: boolean;
 }) {
   const escura = instituto.logo_escura_file_id;
   const clara = instituto.logo_file_id;
   const nome = instituto.nome_curto || instituto.nome;
+
+  if (adaptarTema && (clara || escura))
+    return (
+      <div className="min-w-0">
+        <span role="img" aria-label={instituto.nome} className="marca-instituto-adaptavel inline-flex min-w-0 items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/arquivo/${clara || escura}`} alt="" aria-hidden="true" style={{ height: altura }} className="marca-logo-clara w-auto max-w-full object-contain object-left" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/arquivo/${escura || clara}`} alt="" aria-hidden="true" style={{ height: altura }} className="marca-logo-escura w-auto max-w-full object-contain object-left" />
+        </span>
+        {legenda && (
+          <p className={`mt-2 text-xs leading-snug tracking-wide ${fundoClaro ? "text-stone-500" : "text-mata-300"}`}>
+            {legenda}
+          </p>
+        )}
+      </div>
+    );
 
   const logoEscolhida = fundoClaro ? (clara || escura) : (escura || clara);
 
