@@ -353,7 +353,7 @@ function Editor({ eventoId, pessoas, post, aoTerminar }: { eventoId: string; pes
       <button
         type="button"
         onClick={abrir}
-        className="group flex w-full items-center gap-3 rounded-full bg-emerald-50 p-2 pr-5 text-left ring-1 ring-emerald-100 transition hover:bg-emerald-100/70 hover:ring-emerald-200 active:scale-[0.99]"
+        className="central-novo-registro group flex w-full items-center gap-3 rounded-full bg-emerald-50 p-2 pr-5 text-left ring-1 ring-emerald-100 transition hover:bg-emerald-100/70 hover:ring-emerald-200 active:scale-[0.99]"
       >
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-emerald-600 text-white shadow-sm transition group-hover:rotate-90 group-hover:bg-emerald-500"><Plus size={20} strokeWidth={2.4} aria-hidden /></span>
         <span className="min-w-0 flex-1">
@@ -491,9 +491,9 @@ function Post({ eventoId, post, pessoaPorId, pessoas, gestao, somenteLeitura }: 
 
   const temMenu = post.podeEditar || post.podeExcluir || gestao;
   return (
-    <li className={`relative rounded-2xl border bg-white p-3 transition sm:p-4 ${post.fixado ? "border-ouro-200 bg-gradient-to-b from-ouro-50/50 to-white" : "border-stone-200/80"} ${concluida ? "opacity-70" : ""} ${pendente ? "pointer-events-none opacity-60" : ""}`}>
+    <li className={`central-registro relative rounded-2xl border bg-white p-3 transition sm:p-4 ${post.fixado ? "border-ouro-200 bg-gradient-to-b from-ouro-50/50 to-white" : "border-stone-200/80"} ${concluida ? "opacity-70" : ""} ${pendente ? "pointer-events-none opacity-60" : ""}`}>
       <div className="flex items-start gap-2.5">
-        <Avatar nome={post.autor.nome} foto={post.autor.foto} tamanho={36} leve className="shrink-0" />
+        <Avatar nome={post.autor.nome} foto={post.autor.foto} tamanho={36} leve className="central-autor-avatar shrink-0" />
         <div className="min-w-0 flex-1">
           <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm leading-tight">
             <span className="font-semibold text-stone-900">{post.autor.nome}</span>

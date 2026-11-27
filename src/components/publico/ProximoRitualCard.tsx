@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, CalendarCheck, Clock, MapPin } from "lucide-react";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
-import { dataPorExtenso, formatarIdRitual, hoje, partesData } from "@/lib/format";
+import { dataPorExtenso, hoje, partesData } from "@/lib/format";
 import { inicioDe } from "@/lib/guarnicao";
 import { srcsetImagem, urlImagem, urlPublicaEvento } from "@/lib/links";
 import { inscricoesComEventos } from "@/lib/inscricoes";
@@ -42,15 +42,16 @@ export async function ProximoRitualCard({ usuarioId }: { usuarioId: string }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={urlImagem(capa, 320)} srcSet={srcsetImagem(capa, [320, 640])} sizes="(min-width: 640px) 176px, 112px" loading="lazy" decoding="async" alt="" className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105" />
           )}
-          <div className="absolute top-2.5 left-2.5 rounded-xl bg-white/85 px-2.5 py-1 text-center shadow-sm backdrop-blur-md">
-            <span className="block text-xl leading-none font-bold text-stone-900 tabular-nums">{d.dia}</span>
-            <span className="block text-[10px] font-semibold tracking-wider text-stone-600 uppercase">{d.mesCurto}</span>
-          </div>
         </div>
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5 p-4 sm:p-5">
-          <h2 className="truncate font-display text-lg font-bold text-stone-900 sm:text-xl">
-            {evento.ritual_numero_geral ? `${formatarIdRitual(evento.ritual_numero_geral, null, null)} — ` : ""}{evento.titulo}
-          </h2>
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+            <div className="proximo-ritual-data flex w-12 shrink-0 flex-col items-center overflow-hidden rounded-xl bg-stone-50 text-center shadow-sm ring-1 ring-stone-200 sm:w-14">
+              <span className="proximo-ritual-data-mes w-full bg-mata-700 py-1 text-[9px] font-bold tracking-widest text-white uppercase">{d.mesCurto}</span>
+              <span className="proximo-ritual-data-dia pt-1 text-[22px] leading-none font-bold text-stone-900 tabular-nums sm:text-[24px]">{d.dia}</span>
+              <span className="proximo-ritual-data-ano pb-1 text-[9px] font-medium text-stone-500 tabular-nums">{d.ano}</span>
+            </div>
+            <h2 className="min-w-0 truncate font-display text-lg font-bold text-stone-900 sm:text-xl">{evento.titulo}</h2>
+          </div>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-stone-600">
             <span className="first-letter:uppercase">{dataPorExtenso(evento.data)}</span>
             <span className="inline-flex items-center gap-1"><Clock size={13} className="text-mata-600" /> {evento.hora_inicio}</span>

@@ -44,7 +44,7 @@ export function MenuUsuario({
         onClick={() => setAberto((v) => !v)}
         aria-expanded={aberto}
         aria-haspopup="menu"
-        className="flex items-center gap-2 rounded-xl border border-stone-200/80 bg-stone-50/80 py-1.5 pr-1.5 pl-3 shadow-2xs transition hover:border-mata-300 hover:bg-stone-100"
+        className="menu-usuario-trigger flex items-center gap-2 rounded-xl border border-stone-200/80 bg-stone-50/80 py-1.5 pr-1.5 pl-3 shadow-2xs transition hover:border-mata-300 hover:bg-stone-100"
       >
         <span className="text-right leading-tight">
           <span className="block max-w-28 truncate text-xs font-semibold text-stone-800">{primeiroNome}</span>
@@ -133,7 +133,7 @@ export function MenuUsuario({
             </>
           )}
           <div className="my-1 h-px bg-stone-100" />
-          <SeletorTema />
+          <SeletorTema lateral />
           <div className="my-1 h-px bg-stone-100" />
           <form action={sair}>
             <button

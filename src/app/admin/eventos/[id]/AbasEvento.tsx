@@ -114,7 +114,7 @@ export function AbasEvento({ abas, inicial }: { abas: AbaEvento[]; inicial?: str
         {/* Linha da aba ativa: um único traço que desliza até a aba clicada */}
         <span
           aria-hidden
-          className="pointer-events-none absolute bottom-0 left-0 h-[3px] rounded-full bg-mata-600 transition-[transform,width] duration-400 ease-[cubic-bezier(0.34,1.2,0.64,1)] motion-reduce:transition-none"
+          className={`indicador-aba-evento pointer-events-none absolute bottom-0 left-0 h-[3px] rounded-full bg-mata-600 transition-[transform,width] duration-400 ease-[cubic-bezier(0.34,1.2,0.64,1)] motion-reduce:transition-none ${ativa === "consumo" ? "indicador-consumo-ativo" : ""}`}
           style={{ width: linha.w, transform: `translateX(${linha.x}px)`, opacity: linha.w ? 1 : 0 }}
         />
         {deTopo.map((a, i) => {
@@ -132,7 +132,7 @@ export function AbasEvento({ abas, inicial }: { abas: AbaEvento[]; inicial?: str
               tabIndex={on ? 0 : -1}
               onClick={() => escolher(a.id)}
               onKeyDown={(e) => teclas(e, i)}
-              className={`relative -mb-px flex h-12 items-center gap-2 px-0.5 text-sm transition-colors ${on ? "font-semibold text-stone-900" : "font-medium text-stone-500 hover:text-stone-800"}`}
+              className={`relative -mb-px flex h-12 items-center gap-2 px-0.5 text-sm transition-colors ${a.id === "consumo" ? "aba-consumo-evento" : ""} ${on ? "font-semibold text-stone-900" : "font-medium text-stone-500 hover:text-stone-800"}`}
             >
               <Icone size={16} aria-hidden className={`transition-colors ${on ? "text-mata-600" : ""}`} />
               <span className="truncate">{a.rotulo}</span>

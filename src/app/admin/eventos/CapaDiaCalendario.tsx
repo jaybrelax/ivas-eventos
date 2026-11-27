@@ -21,11 +21,13 @@ export type ResumoDia = {
  */
 export function CapaDiaCalendario({ resumo }: { resumo: ResumoDia }) {
   const [aberto, setAberto] = useState(false);
+  const [carregada, setCarregada] = useState(false);
   return (
     <>
       <div aria-hidden className="absolute inset-0 -z-10 bg-mata-900">
+        <span className={`calendario-imagem-skeleton absolute inset-0 transition-opacity duration-300 ${carregada ? "opacity-0" : "opacity-100"}`} />
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={urlImagem(resumo.capaFileId, 128)} loading="lazy" decoding="async" alt="" className="h-full w-full object-cover" />
+        <img src={urlImagem(resumo.capaFileId, 128)} loading="lazy" decoding="async" alt="" onLoad={() => setCarregada(true)} onError={() => setCarregada(true)} className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${carregada ? "opacity-100" : "opacity-0"}`} />
         <span className="absolute inset-0 bg-black/10" />
       </div>
       {/* Celular: abre o resumo */}

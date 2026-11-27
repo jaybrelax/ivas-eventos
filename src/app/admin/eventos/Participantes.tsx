@@ -109,12 +109,12 @@ function ChipsDose({ doses, pagamentoNaHora = false }: { doses: Dose[]; pagament
         return <Fragment key={d.n}>
           {pagamentoNaHora && d.n === 2 && <TagNaHora />}
           <span
-            className="relative block h-9 w-[26px] overflow-hidden rounded-t-[3px] rounded-b-[8px] border border-[#c9c9c9] bg-gradient-to-b from-[#fbf8f6] to-[#d8a994]"
+            className="copo-dose-consumo relative block h-9 w-[26px] overflow-hidden rounded-t-[3px] rounded-b-[8px] border border-[#c9c9c9] bg-gradient-to-b from-[#fbf8f6] to-[#d8a994]"
             title={`${d.n}ª dose: ${d.ml} ml`}
             aria-label={`${d.n}ª dose: ${d.ml} ml`}
           >
-            <span className="absolute inset-x-0 bottom-0 bg-[#51270f] transition-[height] duration-500 ease-out motion-reduce:transition-none" style={{ height: `${pct}%` }} />
-            <span aria-hidden className="absolute inset-x-0 bottom-[2px] text-center text-[13px] leading-none font-semibold tabular-nums text-white">{d.ml}</span>
+            <span className="dose-copo-liquido absolute inset-x-0 bottom-0 bg-[#51270f] transition-[height] duration-500 ease-out motion-reduce:transition-none" style={{ height: `${pct}%` }} />
+            <span aria-hidden className="dose-copo-valor absolute inset-x-0 bottom-[2px] text-center text-[13px] leading-none font-semibold tabular-nums text-white">{d.ml}</span>
           </span>
           {pagamentoNaHora && d.n === 1 && !lista.some((dose) => dose.n === 2) && <TagNaHora />}
         </Fragment>;
@@ -648,7 +648,7 @@ function Linha({
           <span className="truncate text-sm font-medium text-stone-800">{p.nome}</span>
           {/* Primeira vez em um ritual: tag logo à direita do nome */}
           {gerenciar && p.primeiraVez && (
-            <span className="inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-orange-50 px-2 text-[11px] font-bold tracking-wide whitespace-nowrap text-orange-700 uppercase ring-1 ring-orange-300 ring-inset" title="Primeira vez em um ritual">
+            <span className="tag-primeira-vez inline-flex h-6 shrink-0 items-center gap-1 rounded-full bg-orange-50 px-2 text-[11px] font-bold tracking-wide whitespace-nowrap text-orange-700 uppercase ring-1 ring-orange-300 ring-inset" title="Primeira vez em um ritual">
               <Sprout size={13} strokeWidth={2.4} className="text-orange-500" aria-hidden /> 1° VEZ
             </span>
           )}
@@ -668,12 +668,12 @@ function Linha({
             </span>
           )}
           {mostrarTagPresenca && confirmadoComPacote && (
-            <span className="chip shrink-0 gap-1 bg-violet-100 px-2 py-px text-[11px] whitespace-nowrap text-violet-800" title="Confirmado com pacote" aria-label="Confirmado com pacote">
+            <span className="chip tag-confirmado-pacote shrink-0 gap-1 bg-violet-100 px-2 py-px text-[11px] whitespace-nowrap text-violet-800" title="Confirmado com pacote" aria-label="Confirmado com pacote">
               <Ticket size={11} strokeWidth={2.3} aria-hidden />Confirmado
             </span>
           )}
           {mostrarTagPresenca && p.pagamento === "aniversario" && (
-            <span className="chip shrink-0 gap-1 bg-fuchsia-100 px-2 py-px text-[11px] whitespace-nowrap text-fuchsia-800" title="Confirmado com bônus de aniversário" aria-label="Confirmado com bônus de aniversário">
+            <span className="chip tag-bonus-aniversario shrink-0 gap-1 bg-fuchsia-100 px-2 py-px text-[11px] whitespace-nowrap text-fuchsia-800" title="Confirmado com bônus de aniversário" aria-label="Confirmado com bônus de aniversário">
               <Gift size={11} strokeWidth={2.3} aria-hidden />Bônus
             </span>
           )}
@@ -695,7 +695,8 @@ function Linha({
       {financeiro && temContribuicao && <ValorContribuicao p={p} esperado={esperado} />}
     </>
   );
-  const base = `flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? (papel === "mestre" ? "bg-mata-50 ring-1 ring-mata-100" : "bg-sky-50 ring-1 ring-sky-100") : "bg-stone-50/70"}`;
+  const estadoLinha = chamada && presente ? "linha-presenca-ativa" : conferir ? "linha-presenca-informada" : "";
+  const base = `linha-participante-presenca ${estadoLinha} flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? (papel === "mestre" ? "bg-mata-50 ring-1 ring-mata-100" : "bg-sky-50 ring-1 ring-sky-100") : "bg-stone-50/70"}`;
   if (!gerenciar) return <li data-participante={p.id} className={`${base} ${novo ? "animate-destaque motion-reduce:animate-none" : ""}`}>{conteudo}</li>;
   return (
     <li data-participante={p.id} className={novo ? "animate-destaque rounded-lg motion-reduce:animate-none" : undefined}>

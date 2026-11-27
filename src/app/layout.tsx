@@ -4,7 +4,6 @@ import "./globals.css";
 import { SITE_URL } from "@/lib/site";
 import { RegistrarSW } from "@/components/RegistrarSW";
 import { Toaster } from "@/components/Toaster";
-import { AtalhoTemaMobile } from "@/components/AtalhoTemaMobile";
 
 export const metadata: Metadata = {
   // Base dos links e imagens de compartilhamento (og:image, og:url)
@@ -30,7 +29,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-full font-sans">
         {children}
-        <AtalhoTemaMobile />
         <RegistrarSW />
         <Toaster />
       </body>

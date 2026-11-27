@@ -394,7 +394,7 @@ export function ModalInscricao({
 
           {/* Dosagem: ml de cada dose consumida (só quem gerencia, pela lista do evento) */}
           {dados.gerenciar && !evento && !financeiro && inscricao !== "cancelada" && (
-            <Dosagem salvarDoses={(l) => salvarDosesAction(dados.eventoId, p.inscricaoId, l)} inicial={p.doses ?? []} aoSalvar={setMsg} aoMudarDoses={setDosesTela} />
+              <div className="modal-dosagem-cabecalho"><Dosagem salvarDoses={(l) => salvarDosesAction(dados.eventoId, p.inscricaoId, l)} inicial={p.doses ?? []} aoSalvar={setMsg} aoMudarDoses={setDosesTela} /></div>
           )}
 
           {/* 1° VEZ: ativador da primeira vez da pessoa em um ritual (aparece como tag na lista).

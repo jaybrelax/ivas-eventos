@@ -25,7 +25,7 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
   return (
     <section className={embutido ? "overflow-hidden rounded-b-2xl md:rounded-b-[22px]" : "cartao overflow-hidden p-0 sm:p-0"} aria-labelledby="consumo-titulo">
       <header className={`flex items-center gap-3 px-3 py-2.5 sm:px-5 ${embutido ? "sm:px-4 md:px-5" : ""}`}>
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow-sm shadow-amber-950/25" style={{ background: "linear-gradient(180deg, #8a4b26 0%, #2a1308 100%)" }}>
+        <span className="consumo-icone grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white shadow-sm shadow-amber-950/25" style={{ background: "linear-gradient(180deg, #8a4b26 0%, #2a1308 100%)" }}>
           <GlassWater size={17} aria-hidden />
         </span>
         <div className="min-w-0 flex-1">
@@ -54,7 +54,7 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
           <ul className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-3 text-xs sm:mt-4 sm:gap-y-1.5 text-stone-600" aria-label="Legenda">
             {porDose.map((d) => (
               <li key={d.n} className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-[4px]" style={{ background: TOM[d.n].fundo }} aria-hidden />
+                <span className={`consumo-legenda-cor dose-${d.n} h-3 w-3 rounded-[4px]`} style={{ background: TOM[d.n].fundo }} aria-hidden />
                 <span className="font-medium">{d.n}ª dose</span>
                 <span className="text-stone-400 tabular-nums">{d.ml} ml</span>
               </li>
@@ -66,7 +66,7 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
             {com.map((p, indice) => {
               const atraso = Math.min(indice, 10) * 55;
               return <li key={p.id} className="consumo-pessoa flex items-center gap-2.5" style={{ animationDelay: `${atraso}ms` }}>
-                <Avatar nome={p.nome} foto={p.foto} tamanho={40} className="ring-0" />
+                <Avatar nome={p.nome} foto={p.foto} tamanho={42} className="consumo-avatar ring-0" />
                 <div className="min-w-0 flex-1">
                   <div className="mb-1 flex items-baseline justify-between gap-2">
                     <span className="truncate text-xs font-medium text-stone-700">{p.nome}</span>
@@ -81,7 +81,7 @@ export function ConsumoMedicina({ pessoas, embutido = false }: { pessoas: Consum
                       {p.doses.map((d) => (
                         <span
                           key={d.n}
-                          className={`grid min-w-0 place-items-center text-[10px] font-bold tabular-nums ${TOM[d.n].texto} border-r border-white/30 last:border-r-0`}
+                          className={`consumo-dose-segment dose-${d.n} grid min-w-0 place-items-center text-[10px] font-bold tabular-nums ${TOM[d.n].texto} border-r border-white/30 last:border-r-0`}
                           style={{ width: `${(d.ml / p.total) * 100}%`, background: TOM[d.n].fundo }}
                         >
                           {d.ml >= 12 ? d.ml : ""}

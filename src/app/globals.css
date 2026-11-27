@@ -747,6 +747,10 @@ html[data-tema-ivas="escuro"] .login-card {
   -webkit-backdrop-filter: blur(18px) saturate(125%);
   backdrop-filter: blur(18px) saturate(125%);
 }
+html[data-tema-ivas="escuro"] .pagina-login { background-color: #15111b !important; }
+html[data-tema-ivas="escuro"] .login-lado-form {
+  background: radial-gradient(ellipse at 48% 42%, #241b32 0%, #191521 58%, #14111a 100%) !important;
+}
 html[data-tema-ivas="escuro"] .lista-presenca-evento > ul > li > button,
 html[data-tema-ivas="escuro"] .lista-presenca-evento > ul > li > div,
 html[data-tema-ivas="escuro"] .lista-presenca-evento > ul > li.ring-1 {
@@ -1033,3 +1037,324 @@ html[data-tema-ivas="escuro"] .cartao-evento-admin .tag-evento-admin {
   backdrop-filter: blur(10px) saturate(135%);
 }
 html[data-tema-ivas="escuro"] .cartao-evento-admin .tag-evento-admin svg { color: #ffd37a !important; }
+
+/* Presença no ritual: cartões e medidores em camadas noturnas, com os estados ainda nítidos. */
+html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-participante-presenca {
+  background-color: rgb(89 66 118 / 0.1) !important;
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-participante-presenca:hover {
+  background-color: rgb(89 66 118 / 0.2) !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-presenca-ativa {
+  background-image: linear-gradient(100deg, rgb(27 112 82 / 0.24), rgb(27 112 82 / 0.08) 48%, #1c1725) !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-presenca-informada {
+  background-image: linear-gradient(100deg, rgb(153 105 36 / 0.18), transparent 56%) !important;
+  border-left-color: #bd8d4d !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .copo-dose-consumo {
+  background: linear-gradient(180deg, #2b2534, #241e2c) !important;
+  border-color: #2b2534 !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .dose-copo-liquido {
+  background: linear-gradient(180deg, #8b6030, #68451f) !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-confirmado-pacote {
+  background-color: rgb(139 92 246 / 0.25) !important;
+  color: #e5d5ff !important;
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-confirmado-pacote svg { color: #d7c0ff !important; }
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-bonus-aniversario {
+  background-color: rgb(192 78 220 / 0.23) !important;
+  color: #f3c7ff !important;
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-bonus-aniversario svg { color: #eda8ff !important; }
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-primeira-vez {
+  background-color: rgb(188 128 47 / 0.24) !important;
+  color: #ffdc98 !important;
+  --tw-ring-color: rgb(235 184 99 / 0.3) !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-primeira-vez svg { color: #ffd17b !important; }
+
+/* Acabamento do modal de inscrição no tema escuro. */
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho {
+  background: linear-gradient(110deg, #30263d, #292232) !important;
+  border-color: #393044 !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-item {
+  background: #211b2b !important;
+  border-color: #342c40 !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-valor { color: #e5d5ff !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dose-horario { color: #b7a9cc !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-primeira-vez {
+  background: linear-gradient(110deg, #292132, #211b29) !important;
+  border-color: #51415d !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-card {
+  background-color: #292332 !important;
+  color: #f4efff !important;
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-atalho,
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao {
+  border-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-atalho {
+  background: #26202f !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao {
+  background: #30283b !important;
+  color: #e5d5ff !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao:hover { background: #3a3048 !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho > section {
+  background: linear-gradient(180deg, #2d2438, #211b2a) !important;
+  border-color: #393044 !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho > section > div:nth-child(2) { border-color: #393044 !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho .text-amber-950 { color: #e5d5ff !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho .text-amber-900 { color: #d2c2e8 !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dosagem-cabecalho .text-stone-900 { color: #f1ebfa !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-primeira-vez { color: #eee6f7 !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-primeira-vez * { border-color: transparent !important; }
+html[data-tema-ivas="escuro"] .consumo-resumo { background-image: linear-gradient(180deg, #211a31 0%, #191521 100%) !important; }
+html[data-tema-ivas="escuro"] .copo-dose-consumo .dose-copo-liquido { background: linear-gradient(180deg, #a88bd0, #674b91) !important; }
+html[data-tema-ivas="escuro"] .selo-mestre { background-color: rgb(201 125 57 / 0.17) !important; color: #e5b982 !important; }
+html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-participante-presenca > img.avatar-presenca {
+  transform: scale(1.08);
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-bonus-aniversario {
+  background-color: rgb(190 72 214 / 0.3) !important;
+  color: #f6d8ff !important;
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-primeira-vez,
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-pagamento-pendente {
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-pagamento-pendente {
+  background-color: rgb(190 133 49 / 0.28) !important;
+  color: #ffdc98 !important;
+}
+html[data-tema-ivas="escuro"] nav[aria-label="Seções do evento"].fixed {
+  background: linear-gradient(180deg, #17121f 0%, #100d16 100%) !important;
+  border-top-color: rgb(196 181 253 / 0.12) !important;
+  box-shadow: 0 -10px 28px -16px rgb(0 0 0 / 0.9), inset 0 1px 0 rgb(255 255 255 / 0.035) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(1.35) !important;
+  backdrop-filter: blur(22px) saturate(1.35) !important;
+}
+html[data-tema-ivas="escuro"] .central-registro {
+  background: #191520 !important;
+  border-color: transparent !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.025) !important;
+}
+html[data-tema-ivas="escuro"] .central-registro .ring-1,
+html[data-tema-ivas="escuro"] .central-registro [class*="ring-"] { --tw-ring-color: transparent !important; }
+html[data-tema-ivas="escuro"] .central-autor-avatar { transform: scale(1.1); --tw-ring-shadow: 0 0 transparent !important; --tw-ring-offset-shadow: 0 0 transparent !important; box-shadow: none !important; }
+html[data-tema-ivas="escuro"] .central-novo-registro {
+  background: linear-gradient(110deg, #173d38, #15332f) !important;
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .central-novo-registro:hover { background: #1c4941 !important; }
+html[data-tema-ivas="escuro"] .central-registro .rounded-full.ring-1 { --tw-ring-color: transparent !important; }
+
+/* Cabeçalho de gestão do ritual: superfícies sem contorno e data legível no tema escuro. */
+html[data-tema-ivas="escuro"] .cabecalho-resumo-evento,
+html[data-tema-ivas="escuro"] .equipe-resumo-evento {
+  border-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  box-shadow: 0 14px 32px rgb(0 0 0 / 0.2), inset 0 1px 0 rgb(255 255 255 / 0.025) !important;
+}
+html[data-tema-ivas="escuro"] .cabecalho-resumo-evento { background-color: #211a30 !important; }
+html[data-tema-ivas="escuro"] .equipe-resumo-evento { background-color: #1e182b !important; }
+html[data-tema-ivas="escuro"] .botao-ver-publico {
+  background: #302542 !important;
+  border-color: transparent !important;
+  color: #eee6fa !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06) !important;
+}
+html[data-tema-ivas="escuro"] .botao-ver-publico:hover { background: #3c2d53 !important; color: #fff !important; }
+html[data-tema-ivas="escuro"] .coluna-data-resumo-evento {
+  background-color: #2b2340 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .coluna-data-resumo-evento p:first-child { background-color: #49336a !important; color: #f4ecff !important; }
+html[data-tema-ivas="escuro"] .coluna-data-resumo-evento p:nth-child(2) { color: #fff !important; }
+html[data-tema-ivas="escuro"] .coluna-data-resumo-evento p:nth-child(3) { color: #d1c1e8 !important; }
+html[data-tema-ivas="escuro"] .consumo-icone {
+  background: linear-gradient(145deg, #72539b, #3f2b5c) !important;
+  box-shadow: 0 5px 14px rgb(0 0 0 / 0.26), inset 0 1px 0 rgb(255 255 255 / 0.12) !important;
+}
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-1,
+html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-1 { background-color: #62477f !important; background-image: linear-gradient(135deg, #8061ad, #62458f) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-2,
+html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-2 { background-color: #715629 !important; background-image: linear-gradient(135deg, #8a6b35, #715629) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-3,
+html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-3 { background-color: #282033 !important; background-image: linear-gradient(135deg, #514163, #3d304d) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-1 { background: linear-gradient(135deg, #8061ad, #62458f) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-2 { background: linear-gradient(135deg, #8a6b35, #715629) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-3 { background: linear-gradient(135deg, #514163, #3d304d) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment { border-color: rgb(24 18 34 / 0.55) !important; }
+html[data-tema-ivas="escuro"] .consumo-indicador-valor,
+html[data-tema-ivas="escuro"] .consumo-indicador-unidade,
+html[data-tema-ivas="escuro"] .consumo-pessoa-total { color: #e1d0ff !important; }
+html[data-tema-ivas="escuro"] .consumo-avatar {
+  width: 42px !important;
+  height: 42px !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .consumo-indicador {
+  background-color: #191521 !important;
+  --tw-ring-color: transparent !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.025) !important;
+}
+html[data-tema-ivas="escuro"] .aba-consumo-evento[aria-selected="true"] { color: #eee4ff !important; }
+html[data-tema-ivas="escuro"] .aba-consumo-evento[aria-selected="true"] svg { color: #e5c77f !important; }
+html[data-tema-ivas="escuro"] .aba-consumo-evento[aria-selected="true"] > span:last-child {
+  background-color: rgb(214 180 94 / 0.16) !important;
+  color: #f0d995 !important;
+}
+html[data-tema-ivas="escuro"] .indicador-consumo-ativo { background-color: #d6b45e !important; }
+html[data-tema-ivas="escuro"] .cabecalho-resumo-evento {
+  border: 1px solid transparent !important;
+  background:
+    linear-gradient(145deg, rgb(37 29 53 / 0.9), rgb(28 22 42 / 0.88)) padding-box,
+    linear-gradient(135deg, rgb(190 160 230 / 0.5), rgb(111 78 158 / 0.18) 45%, rgb(163 130 199 / 0.38)) border-box !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.2) !important;
+  backdrop-filter: blur(18px) saturate(1.2) !important;
+  box-shadow: 0 16px 36px rgb(0 0 0 / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.045) !important;
+}
+html[data-tema-ivas="escuro"] .botao-ver-publico {
+  background: linear-gradient(135deg, #493664, #352649) !important;
+  border: 1px solid rgb(208 185 240 / 0.18) !important;
+  color: #f5edff !important;
+  box-shadow: 0 5px 14px rgb(0 0 0 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.1) !important;
+}
+html[data-tema-ivas="escuro"] .botao-ver-publico:hover {
+  background: linear-gradient(135deg, #5a4278, #44315d) !important;
+  border-color: rgb(218 198 246 / 0.3) !important;
+  box-shadow: 0 7px 18px rgb(0 0 0 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.13) !important;
+}
+html[data-tema-ivas="escuro"] .equipe-resumo-evento .ring-2 { --tw-ring-color: #302542 !important; }
+html[data-tema-ivas="escuro"] .equipe-resumo-evento .md\:border-l { border-color: rgb(122 98 153 / 0.28) !important; }
+html[data-tema-ivas="escuro"] .agenda-publica-pagina { background-color: #191421 !important; }
+html[data-tema-ivas="escuro"] .agenda-evento-publico:hover {
+  background-color: #292039 !important;
+  border-color: rgb(211 190 242 / 0.34) !important;
+}
+html[data-tema-ivas="escuro"] .agenda-evento-publico:hover .agenda-evento-publico-titulo { color: #f2d991 !important; }
+html[data-tema-ivas="escuro"] .filtro-agenda-ativo {
+  background: linear-gradient(135deg, #352746, #2b203a) !important;
+  color: #f5edff !important;
+  border: 1px solid rgb(204 178 235 / 0.42) !important;
+  box-shadow: 0 0 0 1px rgb(160 125 201 / 0.12), 0 6px 20px -12px rgb(190 158 226 / 0.46) !important;
+}
+html[data-tema-ivas="escuro"] .filtro-agenda-ativo > span {
+  background-color: #594276 !important;
+  color: #fff8e6 !important;
+}
+
+/* Página pública do ritual: fundo profundo e dirigentes integrados à paleta noturna. */
+html[data-tema-ivas="escuro"] .pagina-evento-publico,
+html[data-tema-ivas="escuro"] .conteudo-evento-publico {
+  background-color: #100d15 !important;
+}
+html[data-tema-ivas="escuro"] .dirigente-ritual-card {
+  background: linear-gradient(115deg, #2b2338 0%, #241e30 58%, #211b2c 100%) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.035) !important;
+  --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .dirigente-ritual-card > div p:first-child { color: #f1ebf8 !important; }
+html[data-tema-ivas="escuro"] .dirigente-ritual-card > div p:last-child { color: #d8bd83 !important; }
+html[data-tema-ivas="escuro"] .dirigente-ritual-avatar {
+  --tw-ring-color: #352b45 !important;
+  --tw-ring-offset-color: #2b2338 !important;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.2) !important;
+}
+
+/* Pacotes pessoais: superfície elegante, numeral de fundo discreto e título mais presente. */
+html[data-tema-ivas="escuro"] .pacote-compra-card {
+  border: 1px solid transparent !important;
+  background:
+    linear-gradient(145deg, #241d30 0%, #201a2b 55%, #1b1724 100%) padding-box,
+    linear-gradient(135deg, rgb(196 181 253 / 0.24), rgb(130 104 165 / 0.1) 52%, rgb(214 180 94 / 0.16)) border-box !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.045), 0 8px 22px -18px rgb(0 0 0 / 0.82) !important;
+}
+html[data-tema-ivas="escuro"] .pacote-compra-card:hover {
+  background:
+    linear-gradient(145deg, #2b2239 0%, #241d31 58%, #201a2b 100%) padding-box,
+    linear-gradient(135deg, rgb(210 193 245 / 0.38), rgb(145 116 184 / 0.18) 52%, rgb(224 194 116 / 0.26)) border-box !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 12px 26px -18px rgb(0 0 0 / 0.9) !important;
+}
+html[data-tema-ivas="escuro"] .pacote-compra-titulo { color: #f4effa !important; }
+html[data-tema-ivas="escuro"] .pacote-compra-numero {
+  color: transparent !important;
+  background-image: linear-gradient(160deg, rgb(207 188 241 / 0.24), rgb(157 133 197 / 0.08) 75%) !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+}
+html[data-tema-ivas="escuro"] .pacote-compra-card:hover .pacote-compra-numero {
+  background-image: linear-gradient(160deg, rgb(218 199 249 / 0.3), rgb(169 145 210 / 0.12) 75%) !important;
+}
+html[data-tema-ivas="escuro"] .pacote-compra-detalhe,
+html[data-tema-ivas="escuro"] .pacote-compra-descricao { color: #b9aec9 !important; }
+html[data-tema-ivas="escuro"] .pacote-compra-preco { color: #d7c3fa !important; }
+html[data-tema-ivas="escuro"] .menu-usuario-trigger {
+  border-color: transparent !important;
+  background-color: #211b2a !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .menu-usuario-trigger:hover {
+  border-color: transparent !important;
+  background-color: #2a2235 !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .dose-copo-liquido {
+  background: linear-gradient(180deg, #e2c77f 0%, #d6b45e 55%, #b99546 100%) !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .dose-copo-valor {
+  color: #332710 !important;
+  text-shadow: 0 1px 0 rgb(255 239 190 / 0.28);
+}
+html[data-tema-ivas="escuro"] .proximo-ritual-data {
+  background-color: #211b2a !important;
+  --tw-ring-color: transparent !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.05) !important;
+}
+html[data-tema-ivas="escuro"] .proximo-ritual-data-mes {
+  background: linear-gradient(135deg, #594276, #3c2c52) !important;
+  color: #f4edff !important;
+}
+html[data-tema-ivas="escuro"] .proximo-ritual-data-dia { color: #f4effa !important; }
+html[data-tema-ivas="escuro"] .proximo-ritual-data-ano { color: #b9aec9 !important; }
+.calendario-imagem-skeleton {
+  background: linear-gradient(105deg, #e7e2ec 25%, #f6f3f8 40%, #e7e2ec 62%);
+  background-size: 220% 100%;
+  animation: calendario-skeleton-brilho 1.25s ease-in-out infinite;
+}
+@keyframes calendario-skeleton-brilho {
+  to { background-position-x: -220%; }
+}
+html[data-tema-ivas="escuro"] .calendario-imagem-skeleton {
+  background: linear-gradient(105deg, #211a30 25%, #392b4b 42%, #211a30 64%);
+  background-size: 220% 100%;
+}
+@media (prefers-reduced-motion: reduce) {
+  .calendario-imagem-skeleton { animation: none; }
+}
+.evento-passado-atenuado > div:not(.capa-evento-admin),
+.evento-passado-atenuado > time { opacity: 0.6; }

@@ -57,13 +57,13 @@ export function ComprarPacote({ planos, chavePix }: { planos: PlanoVisivel[]; ch
                 type="button"
                 onClick={() => { setPlanoId(p.id); setMsg(undefined); }}
                 aria-label={`${p.nome}: ${p.quantidade} ${p.quantidade === 1 ? "crédito" : "créditos"} por ${formatoReal(p.valor)}`}
-                className="group relative flex w-full flex-col overflow-hidden rounded-2xl border border-stone-200 bg-gradient-to-br from-white via-white to-mata-50 p-3.5 text-left sm:p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-mata-300 hover:shadow-cartao focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mata-600 active:scale-[0.99]"
+                className="pacote-compra-card group relative flex w-full flex-col overflow-hidden rounded-2xl border border-stone-200 bg-gradient-to-br from-white via-white to-mata-50 p-3.5 text-left shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-mata-300 hover:shadow-cartao focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mata-600 active:scale-[0.99] sm:p-4"
               >
-                <span aria-hidden className="pointer-events-none absolute -right-3 -bottom-8 select-none text-[9rem] leading-none font-black tracking-tighter tabular-nums text-mata-100/80 transition duration-300 group-hover:text-mata-200/80">{p.quantidade}</span>
-                <span className="relative text-sm font-semibold text-stone-900">{p.nome}</span>
-                <span className="relative mt-0.5 text-xs text-stone-500">{p.quantidade} {p.quantidade === 1 ? "crédito" : "créditos"} · 1 por ritual</span>
-                <span className="relative mt-auto pt-10 text-xl font-semibold tracking-tight tabular-nums text-mata-800">{formatoReal(p.valor)}</span>
-                {p.descricao && <span className="relative mt-1 text-xs text-stone-500">{p.descricao}</span>}
+                <span aria-hidden className="pacote-compra-numero pointer-events-none absolute -right-3 -bottom-8 select-none text-[9rem] leading-none font-black tracking-tighter tabular-nums text-mata-100/80 transition duration-300 group-hover:text-mata-200/80">{p.quantidade}</span>
+                <span className="pacote-compra-titulo relative text-base font-bold tracking-wide text-stone-900 sm:text-lg">{p.nome}</span>
+                <span className="pacote-compra-detalhe relative mt-0.5 text-xs text-stone-500">{p.quantidade} {p.quantidade === 1 ? "crédito" : "créditos"} · 1 por ritual</span>
+                <span className="pacote-compra-preco relative mt-auto pt-10 text-xl font-semibold tracking-tight tabular-nums text-mata-800">{formatoReal(p.valor)}</span>
+                {p.descricao && <span className="pacote-compra-descricao relative mt-1 text-xs text-stone-500">{p.descricao}</span>}
               </button>
             </li>
           ))}

@@ -1,6 +1,6 @@
 import { urlImagem } from "@/lib/links";
 import Link from "next/link";
-import { CalendarDays, ChevronLeft, ChevronRight, Crown, List, MapPin, Plus, Shield, Star, Users } from "lucide-react";
+import { CalendarDays, Crown, MapPin, Plus, Shield, Star, Users } from "lucide-react";
 import { exigir, pode } from "@/lib/auth";
 import { PODE } from "@/lib/config";
 import { getDadosInstituto, listarEventos } from "@/lib/data";
@@ -10,12 +10,13 @@ import { inscricoesDosEventos } from "@/lib/inscricoes";
 import { compararFirst } from "@/lib/ordenacao-first";
 import { Avatar, iniciais } from "@/components/Avatar";
 import { IconeTipo } from "@/components/IconeTipo";
-import { dataPorExtenso, formatarIdRitual, hoje, limitesMes, nomeMes, partesData, somarMes } from "@/lib/format";
+import { dataPorExtenso, formatarIdRitual, hoje, limitesMes, nomeMes, partesData } from "@/lib/format";
 import { CapaDiaCalendario } from "./CapaDiaCalendario";
-import { Titulo, Vazio } from "@/components/Titulo";
+import { Vazio } from "@/components/Titulo";
 import { Aviso } from "@/components/ui";
 import type { Evento, TipoEvento } from "@/lib/types";
 import { Filtros } from "./Filtros";
+import { AgendaNavegacao, NavegacaoMes } from "./AgendaNavegacao";
 
 const um = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
@@ -70,74 +71,50 @@ export default async function Agenda({ searchParams }: PageProps<"/admin/eventos
   );
   const podeEditar = pode(u, PODE.editarEventos);
 
-  const link = (extra: Record<string, string>) => {
-    const p = new URLSearchParams({ mes, vista, ...(tipo && { tipo }), ...(destaque && { destaque: "1" }), ...extra });
-    return `/admin/eventos?${p}`;
-  };
   const p = partesData(`${mes}-01`);
   const proximos = eventos.filter((e) => e.data >= hj);
   // Já aconteceram: do mais recente para o mais antigo (a lista vem em ordem crescente).
   const passados = eventos.filter((e) => e.data < hj).reverse();
 
+  const lista = eventos.length ? (
+    <div className="space-y-8">
+      {proximos.length > 0 && (
+        <Secao titulo={passados.length ? "Próximos" : undefined} total={proximos.length} direita={contagemMes}>
+          {proximos.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} endereco={(e.endereco_id ? endPorId.get(e.endereco_id)?.apelido : null) || e.endereco_livre || null} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} />)}
+        </Secao>
+      )}
+      {passados.length > 0 && (
+        <Secao titulo={proximos.length ? "Já aconteceram" : undefined} total={passados.length} direita={proximos.length ? undefined : contagemMes}>
+          {passados.map((e, indice) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} endereco={(e.endereco_id ? endPorId.get(e.endereco_id)?.apelido : null) || e.endereco_livre || null} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} passado atenuado={indice > 0} />)}
+        </Secao>
+      )}
+    </div>
+  ) : (
+    <Vazio
+      icone={<CalendarDays size={26} />}
+      titulo={`Nenhum evento em ${nomeMes(p.mes)}`}
+      texto={tipo || destaque ? "Nenhum evento corresponde aos filtros. Tente limpar os filtros." : "Este mês ainda está livre na agenda."}
+      acao={podeEditar && <Link href="/admin/eventos/novo" className="btn-primario"><Plus size={17} /> Criar evento</Link>}
+    />
+  );
+  const calendario = <><div className="mb-3 flex justify-end">{contagemMes}</div><Calendario mes={mes} eventos={eventos} tipoPorId={tipoPorId} endPorId={endPorId} hj={hj} /></>;
 
   return (
-    <>
-      <Titulo
-        sobre="Agenda"
+      <AgendaNavegacao
         titulo="Eventos e rituais"
-        subtitulo="Acompanhe o mês, filtre por tipo e abra um evento para editar."
-        subtituloClassName="hidden sm:block"
+        subtitulo={<span className="hidden sm:inline">Acompanhe o mês, filtre por tipo e abra um evento para editar.</span>}
         acoes={podeEditar && <Link href="/admin/eventos/novo" className="btn-primario hidden sm:inline-flex"><Plus size={17} /> Novo evento</Link>}
+        avisos={<>
+          {um(sp.ok) === "salvo" && <div className="mb-5"><Aviso tipo="ok">Evento salvo com sucesso.</Aviso></div>}
+          {um(sp.ok) === "excluido" && <div className="mb-5"><Aviso tipo="ok">Evento excluído.</Aviso></div>}
+          {um(sp.erro) === "sem-permissao" && <div className="mb-5"><Aviso tipo="info">Seu perfil não tem acesso a essa página.</Aviso></div>}
+        </>}
+        controlesMes={<NavegacaoMes mes={mes} rotulo={`${p.mesNome} ${p.ano}`} anterior={somarMes(mes, -1)} proximo={somarMes(mes, 1)} atual={hj.slice(0, 7)} />}
+        filtros={<Filtros tipos={tipos} />}
+        vistaInicial={vista}
+        lista={lista}
+        calendario={calendario}
       />
-
-      {um(sp.ok) === "salvo" && <div className="mb-5"><Aviso tipo="ok">Evento salvo com sucesso.</Aviso></div>}
-      {um(sp.ok) === "excluido" && <div className="mb-5"><Aviso tipo="ok">Evento excluído.</Aviso></div>}
-      {um(sp.erro) === "sem-permissao" && <div className="mb-5"><Aviso tipo="info">Seu perfil não tem acesso a essa página.</Aviso></div>}
-
-      {/* No celular o mês ocupa a linha de cima; a visualização fica à esquerda dos filtros. */}
-      <div className="cartao mb-5 flex flex-wrap items-center justify-between gap-2 p-2.5 sm:flex-nowrap sm:p-3">
-        <div className="flex w-full items-center justify-between gap-1 border-b border-stone-100 pb-2 sm:w-auto sm:justify-center sm:border-0 sm:pb-0">
-          <Link href={link({ mes: somarMes(mes, -1) })} className="btn-icone" aria-label="Mês anterior"><ChevronLeft size={18} /></Link>
-          <span className="min-w-36 text-center text-base font-semibold tracking-tight text-stone-900 capitalize">{p.mesNome} {p.ano}</span>
-          <Link href={link({ mes: somarMes(mes, 1) })} className="btn-icone" aria-label="Próximo mês"><ChevronRight size={18} /></Link>
-          {mes !== hj.slice(0, 7) && <Link href={link({ mes: hj.slice(0, 7) })} className="btn-secundario h-8 px-3 text-xs">Hoje</Link>}
-        </div>
-        <div className="segmentado">
-          <Link href={link({ vista: "lista" })} data-ativo={vista === "lista"}><List size={15} /> Lista</Link>
-          <Link href={link({ vista: "calendario" })} data-ativo={vista === "calendario"}><CalendarDays size={15} /> Calendário</Link>
-        </div>
-        <Filtros tipos={tipos} />
-      </div>
-
-      {vista === "lista" ? (
-        eventos.length ? (
-          <div className="space-y-8">
-            {proximos.length > 0 && (
-              <Secao titulo={passados.length ? "Próximos" : undefined} total={proximos.length} direita={contagemMes}>
-                {proximos.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} endereco={(e.endereco_id ? endPorId.get(e.endereco_id)?.apelido : null) || e.endereco_livre || null} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} />)}
-              </Secao>
-            )}
-            {passados.length > 0 && (
-              <Secao titulo={proximos.length ? "Já aconteceram" : undefined} total={passados.length} direita={proximos.length ? undefined : contagemMes}>
-                {passados.map((e) => <CartaoEvento key={e.$id} e={e} t={tipoPorId.get(e.tipo_id)} endereco={(e.endereco_id ? endPorId.get(e.endereco_id)?.apelido : null) || e.endereco_livre || null} hj={hj} pessoas={pessoas} guardioesConfirmados={guardioesConfirmadosPorEvento.get(e.$id) ?? []} participantes={participantesPorEvento.get(e.$id) ?? 0} passado />)}
-              </Secao>
-            )}
-          </div>
-        ) : (
-          <Vazio
-            icone={<CalendarDays size={26} />}
-            titulo={`Nenhum evento em ${nomeMes(p.mes)}`}
-            texto={tipo || destaque ? "Nenhum evento corresponde aos filtros. Tente limpar os filtros." : "Este mês ainda está livre na agenda."}
-            acao={podeEditar && <Link href="/admin/eventos/novo" className="btn-primario"><Plus size={17} /> Criar evento</Link>}
-          />
-        )
-      ) : (
-        <>
-          <div className="mb-3 flex justify-end">{contagemMes}</div>
-          <Calendario mes={mes} eventos={eventos} tipoPorId={tipoPorId} endPorId={endPorId} hj={hj} />
-        </>
-      )}
-    </>
   );
 }
 
@@ -178,7 +155,7 @@ function GrupoAvatares({ ids, pessoas, rotulo }: { ids: string[]; pessoas: Map<s
   );
 }
 
-function CartaoEvento({ e, t, endereco, hj, passado, pessoas, guardioesConfirmados, participantes }: { e: Evento; t?: TipoEvento; endereco: string | null; hj: string; passado?: boolean; pessoas: Map<string, ResumoUsuario>; guardioesConfirmados: string[]; participantes: number }) {
+function CartaoEvento({ e, t, endereco, hj, passado, atenuado, pessoas, guardioesConfirmados, participantes }: { e: Evento; t?: TipoEvento; endereco: string | null; hj: string; passado?: boolean; atenuado?: boolean; pessoas: Map<string, ResumoUsuario>; guardioesConfirmados: string[]; participantes: number }) {
   const d = partesData(e.data);
   const mestres = [...new Set(e.mestres ?? [])].sort((a, b) => compararFirst(pessoas.get(a), pessoas.get(b)));
   const guardioes = [...new Set([...(e.guardioes ?? []), ...(e.guardioes_escalados_reuniao ?? []), ...guardioesConfirmados])].filter((id) => !mestres.includes(id));
@@ -190,7 +167,7 @@ function CartaoEvento({ e, t, endereco, hj, passado, pessoas, guardioesConfirmad
   return (
     <Link
       href={`/admin/eventos/${e.$id}`}
-      className={`cartao-evento-admin group relative flex min-h-36 items-stretch overflow-hidden rounded-2xl border bg-white shadow-cartao transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-elevado focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mata-700 ${
+      className={`cartao-evento-admin group relative flex min-h-36 items-stretch overflow-hidden rounded-2xl border bg-white shadow-cartao transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:shadow-elevado focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mata-700 ${atenuado ? "evento-passado-atenuado" : ""} ${
         e.destaque ? "border-ouro-300" : "border-stone-200/90 hover:border-stone-300"
       } ${passado ? "bg-stone-50/70" : ""}`}
     >
@@ -216,7 +193,7 @@ function CartaoEvento({ e, t, endereco, hj, passado, pessoas, guardioesConfirmad
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 px-3 py-3.5 sm:px-4">
         <div className="flex min-w-0 items-start gap-2">
           {ehHoje && <span className="chip bg-mata-700 text-white">Hoje</span>}
-          <h3 className="min-w-0 flex-1 line-clamp-2 text-[17px] leading-snug font-bold tracking-tight text-stone-900 transition-colors group-hover:text-mata-700 sm:text-[21px]" title={e.titulo}>{e.titulo}</h3>
+          <h3 className={`min-w-0 flex-1 line-clamp-2 text-[17px] leading-snug ${passado ? "font-semibold" : "font-bold"} tracking-tight text-stone-900 transition-colors group-hover:text-mata-700 sm:text-[21px]`} title={e.titulo}>{e.titulo}</h3>
           {e.destaque && <Star size={15} className="shrink-0 fill-ouro-400 text-ouro-500 md:hidden" aria-label="Destaque" />}
         </div>
         {t && !t.conta_como_ritual && endereco && <p className="flex min-w-0 items-center gap-1 text-xs text-stone-500 sm:text-[13px]" title={endereco}><MapPin size={13} className="shrink-0 text-mata-600" aria-hidden /><span className="truncate">{endereco}</span></p>}

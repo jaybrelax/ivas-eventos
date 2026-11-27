@@ -28,7 +28,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const next = typeof sp.next === "string" ? sp.next : undefined;
   const cadastroHref = (href: string) => (next ? `${href}?next=${encodeURIComponent(next)}` : href);
   return (
-    <main className="grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
+    <main className="pagina-login grid min-h-screen bg-white lg:grid-cols-[1.1fr_1fr]">
       {/* Lado da marca */}
       <section className="relative hidden overflow-hidden bg-mata-950 p-12 text-white lg:flex lg:flex-col">
         <FundoMarca imagem="/fundo_login_desktop.webp" posicao="bg-center" />
@@ -46,7 +46,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
       </section>
 
       {/* Formulário */}
-      <section className="relative flex flex-col items-center justify-start overflow-hidden bg-[#c3cdf6] px-5 pt-[max(61vw,34svh)] pb-6 lg:justify-center lg:bg-white lg:py-12">
+      <section className="login-lado-form relative flex flex-col items-center justify-start overflow-hidden bg-[#c3cdf6] px-5 pt-[max(61vw,34svh)] pb-6 lg:justify-center lg:bg-white lg:py-12">
         {/* Celular: arte do IVAS no topo (a logo já faz parte da imagem); o formulário fica na parte clara */}
         <div aria-hidden className="absolute inset-x-0 -top-[14vw] bottom-0 bg-cover bg-top bg-no-repeat lg:hidden" style={{ backgroundImage: "url(/fundo_login_mobile.webp)" }} />
         <div className="login-card relative w-full max-w-sm animate-surgir rounded-3xl bg-white/55 p-5 shadow-elevado ring-1 ring-white/70 backdrop-blur-md lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none lg:ring-0 lg:backdrop-blur-none">

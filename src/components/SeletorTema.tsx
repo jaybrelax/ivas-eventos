@@ -21,7 +21,7 @@ function aplicarTema(preferencia: PreferenciaTema) {
 }
 
 /** Seletor de aparência compartilhado entre a área pública e o painel Eventos. */
-export function SeletorTema({ compacto = false, painel = false }: { compacto?: boolean; painel?: boolean }) {
+export function SeletorTema({ compacto = false, painel = false, lateral = false }: { compacto?: boolean; painel?: boolean; lateral?: boolean }) {
   const [preferencia, setPreferencia] = useState<PreferenciaTema>("sistema");
   const [aberto, setAberto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -84,7 +84,7 @@ export function SeletorTema({ compacto = false, painel = false }: { compacto?: b
         {!compacto && <><span className="flex-1">Aparência</span><span className="text-xs font-normal text-stone-500">{OPCOES.find((opcao) => opcao.id === preferencia)?.rotulo}</span></>}
       </button>
       {aberto && (
-        <div role="dialog" aria-label="Escolher aparência" className={`absolute right-0 bottom-full z-[70] mb-2 w-48 animate-surgir rounded-2xl border p-1.5 shadow-elevado ${painel ? "border-white/10 bg-mata-950" : "border-stone-200 bg-white"}`}>
+        <div role="dialog" aria-label="Escolher aparência" className={`absolute z-[70] w-48 animate-surgir rounded-2xl border p-1.5 shadow-elevado ${lateral ? "right-full top-0 mr-2" : "right-0 bottom-full mb-2"} ${painel ? "border-white/10 bg-mata-950" : "border-stone-200 bg-white"}`}>
           <p className={`px-3 pt-2 pb-1 text-xs font-semibold tracking-wide uppercase ${painel ? "text-mata-300" : "text-stone-500"}`}>Aparência</p>
           {OPCOES.map(({ id, rotulo, Icone }) => (
             <button

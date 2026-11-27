@@ -196,7 +196,7 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
 
 
   return (
-    <div className="min-h-screen bg-fundo text-stone-900 selection:bg-ouro-200 selection:text-mata-950">
+    <div className="pagina-evento-publico min-h-screen bg-fundo text-stone-900 selection:bg-ouro-200 selection:text-mata-950">
       <TipografiaPublica instituto={instituto} />
       <CabecalhoPublico instituto={instituto} />
 
@@ -310,7 +310,7 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
       </section>
 
       {/* ───────── Conteúdo + coluna lateral ───────── */}
-      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+      <main className="conteudo-evento-publico mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_21.5rem] lg:gap-12">
           <div className="min-w-0 space-y-8 sm:space-y-10">
             <article className="cartao p-6 sm:p-9">
@@ -388,8 +388,8 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
                   <p className="mb-3 text-[11px] font-semibold tracking-[0.16em] text-ouro-600 uppercase">Dirigentes do Ritual</p>
                   <ul className="space-y-2.5">
                     {mestres.map((m) => (
-                      <li key={m.$id} className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-ouro-50 to-white p-2.5 pr-3 ring-1 ring-ouro-200/60">
-                        <Avatar nome={m.nome} foto={m.foto} perfil="admin" tamanho={42} className="shadow-sm ring-2 ring-white" />
+                      <li key={m.$id} className="dirigente-ritual-card flex items-center gap-3 rounded-2xl bg-gradient-to-r from-ouro-50 to-white p-2.5 pr-3 ring-1 ring-ouro-200/60">
+                        <Avatar nome={m.nome} foto={m.foto} perfil="admin" tamanho={42} className="dirigente-ritual-avatar shadow-sm ring-2 ring-white" />
                         <div className="min-w-0">
                           <p className="truncate text-[15px] font-semibold text-stone-900">{m.nome}</p>
                           <p className="flex items-center gap-1 text-xs font-medium text-ouro-700">

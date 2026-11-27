@@ -224,7 +224,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         </Link>
         <MenuEventoMobile url={`${SITE_URL}${caminhoPublico}`} caminho={caminhoPublico} titulo={evento.titulo} resumo={{ capaFileId: evento.capa_file_id ?? null, data: `${dataPorExtenso(evento.data)} · ${evento.hora_inicio}`, numeros: formatarIdRitual(evento.ritual_numero_geral, evento.ritual_ano, evento.ritual_numero_ano), gestaoUrl: `${SITE_URL}/admin/eventos/${evento.$id}` }} claro={!!evento.capa_file_id} editarHref={editor ? `/admin/eventos/${evento.$id}/editar` : undefined} />
         <div className="hidden flex-wrap items-center gap-2 md:flex">
-          <Link href={caminhoPublico} target="_blank" rel="noopener noreferrer" className="btn-secundario rounded-full! border-white/70! bg-white/75! backdrop-blur-xl"><ExternalLink size={15} /> Ver público</Link>
+          <Link href={caminhoPublico} target="_blank" rel="noopener noreferrer" className="botao-ver-publico btn-secundario rounded-full! border-white/70! bg-white/75! backdrop-blur-xl"><ExternalLink size={15} /> Ver público</Link>
           {editor && <Link href={`/admin/eventos/${evento.$id}/editar`} className="btn-primario rounded-full!"><Pencil size={15} /> Editar evento</Link>}
         </div>
       </div>
@@ -275,7 +275,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
         </div>
         </div>
 
-        <div className={`cartao col-span-2 flex min-w-0 flex-col overflow-hidden p-0 sm:p-0 max-md:border-0! max-md:bg-transparent! max-md:shadow-none! max-md:backdrop-blur-none! md:col-span-1 md:justify-between md:divide-y-0 ${SUPERFICIE}`}>
+        <div className={`cartao cabecalho-resumo-evento col-span-2 flex min-w-0 flex-col overflow-hidden p-0 sm:p-0 max-md:border-0! max-md:bg-transparent! max-md:shadow-none! max-md:backdrop-blur-none! md:col-span-1 md:justify-between md:divide-y-0 ${SUPERFICIE}`}>
           {/* Título; a partir do tablet, a data fica à esquerda dele e horário e local logo abaixo */}
           <div className="flex items-center gap-3 px-4 pt-3.5 pb-3 max-md:px-1! max-md:pt-1! max-md:pb-1! in-data-[aba=consumo]:py-2.5 in-data-[aba=central]:py-2.5 in-data-[aba=financeiro]:py-2.5 in-data-[aba=consumo]:pl-2.5 in-data-[aba=central]:pl-2.5 in-data-[aba=financeiro]:pl-2.5 md:flex-wrap md:items-start md:gap-x-4 md:gap-y-3.5 md:px-6! md:pt-5! md:pb-0!">
             {/* Celular, fora de Participantes: a capa vira uma miniatura ao lado do título */}
@@ -286,7 +286,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
               )}
             </span>
             {/* Data como ícone de calendário */}
-            <div className="hidden w-[68px] shrink-0 overflow-hidden rounded-lg bg-white text-center shadow-[0_1px_2px_rgb(0_0_0/0.06)] ring-1 ring-black/[0.06] md:block">
+            <div className="coluna-data-resumo-evento hidden w-[68px] shrink-0 overflow-hidden rounded-lg bg-white text-center shadow-[0_1px_2px_rgb(0_0_0/0.06)] ring-1 ring-black/[0.06] md:block">
               <p className="bg-mata-600 py-1 text-[10px] font-semibold tracking-[0.14em] text-white uppercase">{data.diaSemana.split("-")[0].slice(0, 3)}</p>
               <p className="pt-1 text-[32px] leading-none font-extrabold tracking-tight text-stone-900 tabular-nums">{data.dia}</p>
               <p className="pt-0.5 pb-1.5 text-[10px] font-medium tracking-[0.12em] text-stone-400 uppercase">{data.mesCurto}</p>
@@ -336,7 +336,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
 
       {/* Equipe do ritual: mestres e guardiões numa linha só, em card próprio (a partir do tablet) */}
       {temEquipe && (
-        <div className={`cartao mb-3 hidden p-0 md:mb-4 md:block ${SUPERFICIE}`}>
+        <div className={`cartao equipe-resumo-evento mb-3 hidden p-0 md:mb-4 md:block ${SUPERFICIE}`}>
           {/* Título e engrenagem de gerenciar (fora da área rolável, para o menu não ser cortado) */}
           <div className="flex items-center justify-between gap-3 px-6 pt-4">
             <h2 className="text-sm font-semibold text-stone-900">Equipe do Ritual</h2>

@@ -23,7 +23,7 @@ import { RolagemInfinita } from "@/components/publico/RolagemInfinita";
 
 // Filtros do topo: pílulas de vidro; a ativa fica branca e o número vira um selo
 const FILTRO = "inline-flex h-10 items-center gap-2 rounded-full pr-1.5 pl-4 text-[13px] font-semibold transition duration-200 active:scale-[0.97]";
-const FILTRO_ATIVO = "bg-white text-mata-900 shadow-[0_10px_28px_-10px_rgb(255_255_255/0.6)]";
+const FILTRO_ATIVO = "filtro-agenda-ativo bg-white text-mata-900 shadow-[0_10px_28px_-10px_rgb(255_255_255/0.6)]";
 const FILTRO_INATIVO = "bg-white/[0.07] text-white/85 ring-1 ring-white/15 ring-inset backdrop-blur-md hover:bg-white/[0.14] hover:text-white hover:ring-white/30";
 const CONTADOR = "grid h-7 min-w-7 place-items-center rounded-full px-2 text-[11px] font-bold tabular-nums";
 const CONTADOR_ATIVO = "bg-mata-700 text-white";
@@ -83,7 +83,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
   });
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-900 selection:bg-ouro-200 selection:text-mata-950">
+    <div className="agenda-publica-pagina min-h-screen bg-stone-100 text-stone-900 selection:bg-ouro-200 selection:text-mata-950">
       <TipografiaPublica instituto={instituto} />
       <CabecalhoPublico instituto={instituto} mostrarAgenda={false} />
 
@@ -151,7 +151,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
       </section>
 
       {/* Grid de Eventos */}
-      <main className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+      <main className="agenda-publica-conteudo mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         {eventosFiltrados.length === 0 ? (
           <div className="cartao py-16 text-center">
             <p className="font-display text-xl font-bold text-stone-900">Nenhum encontro agendado no momento</p>
@@ -163,7 +163,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
           <RolagemInfinita
             key={tipoFiltro ?? "todos"}
             porVez={POR_PAGINA}
-            className="grid gap-2.5 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3"
+            className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2 sm:gap-8 lg:grid-cols-3"
             itens={itens.map(({ e, i, mes }) => {
               const tipo = tipoPorId.get(e.tipo_id);
               const end = endPorId.get(e.endereco_id ?? "");
@@ -236,7 +236,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
                 )}
                 <Link
                   href={urlPublicaEvento(e, tipo)}
-                  className={`group ${compacto ? "hidden sm:flex" : "mb-3 flex sm:mb-0"} flex-col overflow-hidden rounded-3xl border bg-white shadow-cartao ${e.destaque ? "border-ouro-300/70" : "border-stone-200/90"} transition-all duration-300 hover:-translate-y-1.5 hover:border-ouro-300 hover:shadow-elevado`}
+                  className={`agenda-evento-publico group ${compacto ? "hidden sm:flex" : "mb-3 flex sm:mb-0"} w-full min-w-0 flex-col overflow-hidden rounded-3xl border bg-white shadow-cartao ${e.destaque ? "border-ouro-300/70" : "border-stone-200/90"} transition-all duration-300 hover:-translate-y-1.5 hover:border-ouro-300 hover:shadow-elevado`}
                 >
                   {/* Capa com proporção destacada */}
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-mata-950">
@@ -297,19 +297,19 @@ export default async function AgendaPublica({ searchParams }: Props) {
                   </div>
 
                   {/* Conteúdo */}
-                  <div className={`flex flex-1 flex-col justify-between p-6 ${e.destaque ? "fundo-card-destaque bg-gradient-to-b from-ouro-50/90 via-white to-white" : ""}`}>
+                  <div className={`flex min-w-0 flex-1 flex-col justify-between p-4 sm:p-6 ${e.destaque ? "fundo-card-destaque bg-gradient-to-b from-ouro-50/90 via-white to-white" : ""}`}>
                     <div>
                       {/* Data e Hora */}
-                      <div className="mb-2.5 flex items-center gap-2 text-xs font-semibold text-mata-700">
-                        <Calendar size={14} />
-                        <span className="capitalize">{d.diaSemana}, {d.dia} de {d.mesNome}</span>
-                        <span>•</span>
-                        <Clock size={14} />
-                        <span>{e.hora_inicio}</span>
+                      <div className="mb-2.5 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] font-semibold text-mata-700 sm:gap-2 sm:text-xs">
+                        <Calendar size={14} className="shrink-0" />
+                        <span className="min-w-0 truncate capitalize">{d.diaSemana}, {d.dia} de {d.mesNome}</span>
+                        <span aria-hidden>•</span>
+                        <Clock size={14} className="shrink-0" />
+                        <span className="shrink-0">{e.hora_inicio}</span>
                       </div>
 
                       {/* Título */}
-                      <h3 className="line-clamp-2 font-display text-lg font-bold text-stone-900 transition group-hover:text-mata-700 sm:text-xl">
+                      <h3 className="agenda-evento-publico-titulo line-clamp-2 font-display text-lg font-bold text-stone-900 transition group-hover:text-mata-700 sm:text-xl">
                         {tituloCard}
                       </h3>
 
@@ -322,7 +322,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
                     </div>
 
                     {/* Rodapé do Card com Local e Botão */}
-                    <div className="mt-6 flex items-center justify-between border-t border-stone-100 pt-4 text-xs">
+                    <div className="mt-6 flex min-w-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-stone-100 pt-4 text-xs">
                       <span className="inline-flex items-center gap-1.5 text-stone-500 min-w-0 truncate">
                         <svg width={14} height={14} viewBox="0 0 24 24" aria-hidden className="shrink-0 text-[#ee4b2b]">
                           <path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" fill="currentColor" />
@@ -332,7 +332,7 @@ export default async function AgendaPublica({ searchParams }: Props) {
                       </span>
 
                       {/* Botão sutil: contorno fino que ganha cor quando o cartão recebe o mouse */}
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-stone-50/70 px-3 py-1.5 font-semibold text-stone-700 transition group-hover:border-ouro-300 group-hover:bg-ouro-50 group-hover:text-ouro-800">
+                      <span className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-stone-200 bg-stone-50/70 px-3 py-1.5 font-semibold text-stone-700 transition group-hover:border-ouro-300 group-hover:bg-ouro-50 group-hover:text-ouro-800">
                         Mais informações <ArrowRight size={13} className="transition group-hover:translate-x-0.5" />
                       </span>
                     </div>
