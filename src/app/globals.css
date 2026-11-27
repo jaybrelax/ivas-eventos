@@ -1093,6 +1093,14 @@ html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-primeira-vez {
 html[data-tema-ivas="escuro"] .lista-presenca-evento .tag-primeira-vez svg { color: #ffd17b !important; }
 
 /* Acabamento dos modais de inscrição e dosagem no tema escuro. */
+html[data-tema-ivas="escuro"] [role="dialog"][aria-modal="true"] .fixed.inset-0,
+html[data-tema-ivas="escuro"] [role="dialog"][aria-modal="true"] .absolute.inset-0,
+html[data-tema-ivas="escuro"] [role="alertdialog"] .fixed.inset-0,
+html[data-tema-ivas="escuro"] dialog[open]::backdrop {
+  background-color: rgb(8 6 12 / 0.86) !important;
+  -webkit-backdrop-filter: blur(5px) !important;
+  backdrop-filter: blur(5px) !important;
+}
 html[data-tema-ivas="escuro"] .modal-inscricao-fundo {
   background: rgb(27 23 34 / 0.9) !important;
   -webkit-backdrop-filter: blur(5px);
@@ -1164,14 +1172,33 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-medidor-reflexo {
   background-color: rgb(255 255 255 / 0.36) !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-primeira-vez {
-  background: linear-gradient(110deg, #292132, #211b29) !important;
-  border-color: #51415d !important;
+  background: linear-gradient(110deg, #262130, #211c29) !important;
+  border-color: #393044 !important;
   box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-contribuicao-toggle {
+  background-color: #342a42 !important;
+  color: #e5d8f4 !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-contribuicao-toggle:hover {
+  background-color: #3d3150 !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-card {
   background-color: #292332 !important;
   color: #f4efff !important;
   --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-pendente-card {
+  background-color: #25202d !important;
+  border-color: transparent !important;
+  --tw-ring-color: transparent !important;
+  box-shadow: none !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-atalho,
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao {
@@ -1195,6 +1222,17 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao {
   color: #e5d5ff !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao:hover { background: #3a3048 !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-informacoes-toggle {
+  background: #30283b !important;
+  color: #e5d5ff !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+  --tw-ring-offset-shadow: 0 0 transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-informacoes-toggle:hover { background: #3a3048 !important; }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-historico-icone {
   border: 0 !important;
   outline: 0 !important;
@@ -1296,19 +1334,19 @@ html[data-tema-ivas="escuro"] .coluna-data-resumo-evento p:first-child { backgro
 html[data-tema-ivas="escuro"] .coluna-data-resumo-evento p:nth-child(2) { color: #fff !important; }
 html[data-tema-ivas="escuro"] .coluna-data-resumo-evento p:nth-child(3) { color: #d1c1e8 !important; }
 html[data-tema-ivas="escuro"] .consumo-icone {
-  background: linear-gradient(145deg, #e2c57a, #c8a24a) !important;
+  background: linear-gradient(145deg, #b39850, #8d7135) !important;
   color: #332710 !important;
-  box-shadow: 0 5px 14px rgb(0 0 0 / 0.22), inset 0 1px 0 rgb(255 255 255 / 0.3) !important;
+  box-shadow: 0 4px 10px rgb(0 0 0 / 0.25), inset 0 1px 0 rgb(255 255 255 / 0.18) !important;
 }
 html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-1,
 html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-1 { background-color: #725a2f !important; background-image: linear-gradient(135deg, #8e7138, #725a2f) !important; }
 html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-2,
-html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-2 { background-color: #51401e !important; background-image: linear-gradient(135deg, #6b5328, #51401e) !important; }
+html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-2 { background-color: #403116 !important; background-image: linear-gradient(135deg, #574222, #403116) !important; }
 html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-3,
-html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-3 { background-color: #342916 !important; background-image: linear-gradient(135deg, #4b3a1c, #342916) !important; }
+html[data-tema-ivas="escuro"] .consumo-legenda-cor.dose-3 { background-color: #251c10 !important; background-image: linear-gradient(135deg, #342816, #251c10) !important; }
 html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-1 { background: linear-gradient(135deg, #8e7138, #725a2f) !important; }
-html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-2 { background: linear-gradient(135deg, #6b5328, #51401e) !important; }
-html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-3 { background: linear-gradient(135deg, #4b3a1c, #342916) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-2 { background: linear-gradient(135deg, #574222, #403116) !important; }
+html[data-tema-ivas="escuro"] .consumo-dose-segment.dose-3 { background: linear-gradient(135deg, #342816, #251c10) !important; }
 html[data-tema-ivas="escuro"] .consumo-dose-segment { border-color: rgb(42 31 13 / 0.5) !important; }
 html[data-tema-ivas="escuro"] .consumo-indicador-valor,
 html[data-tema-ivas="escuro"] .consumo-indicador-unidade,
@@ -1505,6 +1543,11 @@ html[data-tema-ivas="escuro"] .lista-presenca-evento img.avatar-presenca {
   --tw-ring-color: transparent !important;
   --tw-ring-shadow: 0 0 transparent !important;
   --tw-ring-offset-shadow: 0 0 transparent !important;
+}
+html[data-tema-ivas="escuro"] .avatar-sem-foto {
+  background: linear-gradient(145deg, #695486, #49365f) !important;
+  color: #f4ecff !important;
+  box-shadow: inset 0 0 0 1px rgb(220 201 248 / 0.16) !important;
 }
 
 /* Modal de edição de pacote e atalho para a ficha do participante. */

@@ -378,7 +378,7 @@ export function ModalInscricao({
                         onClick={alternarDados}
                         aria-expanded={verDados}
                         style={{ viewTransitionName: "contato-botao" }}
-                        className="modal-dados-botao inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50"
+                        className="modal-dados-botao modal-informacoes-toggle inline-flex h-9 shrink-0 items-center gap-1 rounded-lg px-2.5 text-xs font-semibold text-mata-700 ring-1 ring-mata-200 transition hover:bg-mata-50"
                       >
                         {verDados ? "Ocultar dados" : "Exibir dados"} <ChevronDown size={14} className={`transition duration-300 ${verDados ? "rotate-180" : ""}`} aria-hidden />
                       </button>
@@ -415,7 +415,7 @@ export function ModalInscricao({
                 });
               }}
               aria-label="1° VEZ: primeira vez da pessoa em um ritual"
-              className={`group flex min-h-16 w-full items-center gap-3 rounded-2xl border py-3 pr-3.5 pl-5 text-left shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ouro-500 disabled:opacity-60 motion-reduce:transition-none ${primeiraVez ? "border-ouro-300 bg-gradient-to-r from-ouro-50 to-white" : "border-stone-200/80 bg-white hover:bg-stone-50"}`}
+              className={`modal-primeira-vez group flex min-h-16 w-full items-center gap-3 rounded-2xl border py-3 pr-3.5 pl-5 text-left shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ouro-500 disabled:opacity-60 motion-reduce:transition-none ${primeiraVez ? "border-ouro-300 bg-gradient-to-r from-ouro-50 to-white" : "border-stone-200/80 bg-white hover:bg-stone-50"}`}
             >
               <span className="min-w-0 flex-1">
                 <span className="block text-sm font-semibold text-stone-900">1° VEZ</span>
@@ -450,14 +450,14 @@ export function ModalInscricao({
                   </p>
                   )}
                 </div>
-                <span className={`inline-flex h-9 min-w-28 shrink-0 items-center justify-center gap-1.5 rounded-lg px-5 text-xs font-semibold transition ${contribAberta ? t.toggleAberto : t.toggleFechado}`}>
+                <span className={`modal-contribuicao-toggle inline-flex h-9 min-w-28 shrink-0 items-center justify-center gap-1.5 rounded-lg px-5 text-xs font-semibold transition ${contribAberta ? t.toggleAberto : t.toggleFechado}`}>
                   {contribAberta ? "Ocultar" : "Exibir"} <ChevronDown size={14} className={`transition duration-300 ${contribAberta ? "rotate-180" : ""}`} aria-hidden />
                 </span>
               </button>
               <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${contribAberta ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                 <div className="min-h-0 overflow-hidden" inert={!contribAberta}>
                 <div className={`border-t ${t.div70} px-3.5 pt-3 pb-3.5`}>
-              <div className={`modal-status-card flex items-start gap-3 rounded-xl bg-white/80 p-3 text-stone-900 ring-1 ${t.ring} ${TEXTO_SITUACAO[p.pagamento]}`}>
+              <div className={`modal-status-card ${p.pagamento === "pendente" ? "modal-status-pendente-card" : ""} flex items-start gap-3 rounded-xl bg-white/80 p-3 text-stone-900 ring-1 ${t.ring} ${TEXTO_SITUACAO[p.pagamento]}`}>
                 <situacao.Icone size={20} className="mt-0.5 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm font-bold">

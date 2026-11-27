@@ -21,7 +21,7 @@ export function Avatar({ nome, foto, perfil, tamanho = 40, className = "", leve 
       <img src={urlImagem(foto, leve ? (tamanho <= 32 ? 64 : 128) : tamanho > 80 ? 320 : 160)} alt={nome} style={estilo} decoding="async" loading={leve ? "lazy" : undefined} className={`shrink-0 rounded-full object-cover ring-2 ring-white/70 ${className}`} />
     );
   return (
-    <span style={estilo} className={`grid shrink-0 place-items-center rounded-full bg-gradient-to-br font-bold ${perfil ? COR_PERFIL[perfil] : "from-stone-200 to-stone-300 text-stone-600"} ${className}`}>
+    <span style={estilo} className={`avatar-sem-foto grid shrink-0 place-items-center rounded-full bg-gradient-to-br font-bold ${perfil ? COR_PERFIL[perfil] : "from-stone-200 to-stone-300 text-stone-600"} ${className}`}>
       {iniciais(nome)}
     </span>
   );
