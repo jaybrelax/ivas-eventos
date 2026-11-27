@@ -10,7 +10,7 @@ import { inscricoesDosEventos } from "@/lib/inscricoes";
 import { compararFirst } from "@/lib/ordenacao-first";
 import { Avatar, iniciais } from "@/components/Avatar";
 import { IconeTipo } from "@/components/IconeTipo";
-import { dataPorExtenso, formatarIdRitual, hoje, limitesMes, nomeMes, partesData } from "@/lib/format";
+import { dataPorExtenso, formatarIdRitual, hoje, limitesMes, nomeMes, partesData, somarMes } from "@/lib/format";
 import { CapaDiaCalendario } from "./CapaDiaCalendario";
 import { Vazio } from "@/components/Titulo";
 import { Aviso } from "@/components/ui";
