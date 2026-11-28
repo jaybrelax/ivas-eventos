@@ -2,7 +2,7 @@ import "server-only";
 import {
   aceitaParticipantes, inicioDe, inscricoesDoEvento, prazoCancelamento, todasInscricoesAtivas, vagasParticipantesDe,
 } from "@/lib/inscricoes";
-import { rotulosDosCreditos, saldosDe } from "@/lib/creditos";
+import { detalhesDosCreditos, saldosDe } from "@/lib/creditos";
 import { listarTodasAsPessoas, mapaUsuarios } from "@/lib/usuarios";
 import { ocultarCpf } from "@/lib/cpf";
 import { lerDoses, lerDosesEquipe } from "@/lib/doses";
@@ -39,12 +39,12 @@ export async function dadosParticipantes(
     gerenciar ? todasInscricoesAtivas() : Promise.resolve([]),
   ]);
   // Créditos: saldo de cada inscrito e o "2/4" do crédito usado (só a coordenação vê)
-  const [saldos, rotulosCredito] = gerenciar && tipo?.conta_como_ritual
+  const [saldos, detalhesCredito] = gerenciar && tipo?.conta_como_ritual
     ? await Promise.all([
         saldosDe(inscricoes.map((i) => i.usuario_id)).catch(() => null),
-        rotulosDosCreditos(inscricoes.flatMap((i) => (i.credito_id ? [i.credito_id] : []))).catch(() => new Map<string, string>()),
+        detalhesDosCreditos(inscricoes.flatMap((i) => (i.credito_id ? [i.credito_id] : []))).catch(() => new Map()),
       ])
-    : [null, new Map<string, string>()];
+    : [null, new Map()];
   // A data de nascimento nunca vai para o navegador: só traduzimos a regra em uma flag para a ação do painel.
   const bonusPorInscricao = new Map<string, boolean>();
   if (gerenciar && tipo?.conta_como_ritual) {
@@ -74,7 +74,15 @@ export async function dadosParticipantes(
       jaParticipou: gerenciar ? jaParticiparam.has(i.usuario_id) : false,
       usouPacote: verFinanceiro && !!i.usou_pacote, pacoteObs: verFinanceiro && i.usou_pacote ? (i.observacao ?? null) : null,
       forma: verFinanceiro ? (i.pagamento === "credito" ? "pacote" : (i.forma_pagamento ?? null)) : null,
-      creditoRotulo: verFinanceiro && gerenciar && i.credito_id ? (rotulosCredito.get(i.credito_id) ?? null) : null,
+      creditoRotulo: verFinanceiro && gerenciar && i.credito_id ? (detalhesCredito.get(i.credito_id)?.rotulo ?? null) : null,
+      creditoOrigem: verFinanceiro && gerenciar && i.credito_id ? (() => {
+        const credito = detalhesCredito.get(i.credito_id);
+        if (!credito) return null;
+        const nomePacote = credito.pacoteNome;
+        return credito.recebidoDe
+          ? `${nomePacote} · recebido de ${usuarios.get(credito.recebidoDe)?.nome ?? "outra pessoa"}`
+          : `${nomePacote} · pacote comprado`;
+      })() : null,
       saldoCredito: saldos?.get(i.usuario_id) ? { disponiveis: saldos.get(i.usuario_id)!.disponiveis, debitos: saldos.get(i.usuario_id)!.debitos, saldo: saldos.get(i.usuario_id)!.saldo } : null,
       bonusAniversarioDisponivel: gerenciar ? (bonusPorInscricao.get(i.$id) ?? false) : false,
       contato: c ? { email: c.email, telefone: c.telefone, cidade: c.cidade, estado: c.estado, sexo: c.sexo, desde: c.criadoEm, cpf: c.cpf ? ocultarCpf(c.cpf) || null : null } : null,

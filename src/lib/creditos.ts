@@ -472,16 +472,28 @@ function agruparSaldos(creditos: Credito[], debitos: DebitoItem[], extras: strin
   return resultado;
 }
 
-/** "2/4" para cada crédito pedido (posição no pacote / tamanho do pacote). */
-export async function rotulosDosCreditos(creditoIds: string[]): Promise<Map<string, string>> {
+/** Detalhes do pacote e da origem para cada crédito usado. */
+export async function detalhesDosCreditos(creditoIds: string[]): Promise<Map<string, { rotulo: string; pacoteNome: string; recebidoDe: string | null }>> {
   const unicos = [...new Set(creditoIds)];
-  const rotulos = new Map<string, string>();
+  const detalhes = new Map<string, { rotulo: string; pacoteNome: string; recebidoDe: string | null }>();
   for (let i = 0; i < unicos.length; i += 100) {
     const creditos = await listar<Credito>(T.creditos, [Query.equal("$id", unicos.slice(i, i + 100))]);
     const pacotes = new Map((await listar<Pacote>(T.pacotes, [Query.equal("$id", [...new Set(creditos.map((c) => c.pacote_id))])])).map((p) => [p.$id, p]));
-    for (const c of creditos) rotulos.set(c.$id, rotuloCredito(c.numero, pacotes.get(c.pacote_id)?.quantidade ?? c.numero));
+    for (const c of creditos) {
+      const pacote = pacotes.get(c.pacote_id);
+      detalhes.set(c.$id, {
+        rotulo: rotuloCredito(c.numero, pacote?.quantidade ?? c.numero),
+        pacoteNome: pacote?.nome ?? "Pacote de créditos",
+        recebidoDe: c.cedido_de,
+      });
+    }
   }
-  return rotulos;
+  return detalhes;
+}
+
+/** "2/4" para cada crédito pedido (posição no pacote / tamanho do pacote). */
+export async function rotulosDosCreditos(creditoIds: string[]): Promise<Map<string, string>> {
+  return new Map([...await detalhesDosCreditos(creditoIds)].map(([id, detalhe]) => [id, detalhe.rotulo]));
 }
 
 /** Saldo de todo mundo que tem crédito ou débito (visão da equipe). */
@@ -609,6 +621,22 @@ export async function historicoCreditos(f: FiltroHistorico = {}): Promise<Movime
   if (f.de && /^\d{4}-\d{2}-\d{2}$/.test(f.de)) q.push(Query.greaterThanEqual("$createdAt", new Date(`${f.de}T00:00:00-03:00`).toISOString()));
   if (f.ate && /^\d{4}-\d{2}-\d{2}$/.test(f.ate)) q.push(Query.lessThanEqual("$createdAt", new Date(`${f.ate}T23:59:59.999-03:00`).toISOString()));
   return listar<MovimentoCredito>(T.movimentosCredito, q);
+}
+
+/** Destinatários recentes de cessões feitas pelo titular atual, sem expor a lista geral de contas. */
+export async function destinatariosRecentesCessao(usuarioId: string): Promise<{ id: string; nome: string; email: string }[]> {
+  const movimentos = await historicoCreditos({ usuarioId, limite: 1000 });
+  const ids = [...new Set(movimentos.flatMap((m) => m.acao === "cessao" && m.de_usuario === usuarioId && m.para_usuario ? [m.para_usuario] : []))].slice(0, 8);
+  const { users } = createAdminClient();
+  const resultados = await Promise.all(ids.map(async (id) => {
+    try {
+      const u = await users.get({ userId: id });
+      return u.status ? { id: u.$id, nome: u.name || u.email, email: u.email } : null;
+    } catch {
+      return null;
+    }
+  }));
+  return resultados.filter((u): u is { id: string; nome: string; email: string } => u !== null);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

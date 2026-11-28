@@ -4,7 +4,7 @@ import { Gift, History, Receipt, Ticket } from "lucide-react";
 import { Star } from "lucide-react";
 import { exigirSessao } from "@/lib/auth";
 import { urlImagem } from "@/lib/links";
-import { creditosESaldo, historicoCreditos, pacotesComResumo, listarPlanos, saldoDoUsuario, type CreditoItem } from "@/lib/creditos";
+import { creditosESaldo, destinatariosRecentesCessao, historicoCreditos, pacotesComResumo, listarPlanos, saldoDoUsuario, type CreditoItem } from "@/lib/creditos";
 import { resumoBonusAniversario } from "@/lib/bonus-aniversario";
 import { ROTULO_ACAO, ROTULO_CREDITO, ROTULO_PACOTE } from "@/lib/creditos-rotulos";
 import { getDadosInstituto, getInstituto, listarEventos } from "@/lib/data";
@@ -226,11 +226,12 @@ function resumoGrupo(g: { usados: number; aguardando: number; cedidos: number; r
 async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId: string; saldo: Awaited<ReturnType<typeof saldoDoUsuario>>; creditos: CreditoItem[]; chavePix: Awaited<ReturnType<typeof getDadosInstituto>>["pix"][number] | null }) {
   const preferencias = lerPreferenciasCreditos(await getInstituto());
   const limite = limiteCessao(saldo.saldo);
-  const [pacotes, movimentos, planos, usuarios] = await Promise.all([
+  const [pacotes, movimentos, planos, usuarios, destinatariosRecentes] = await Promise.all([
     pacotesComResumo(usuarioId),
     historicoCreditos({ usuarioId, limite: 30 }),
     listarPlanos(true),
     mapaUsuarios(),
+    destinatariosRecentesCessao(usuarioId),
   ]);
   const nome = (id: string | null) => (id ? (usuarios.get(id)?.nome ?? "Outra pessoa") : "");
   const eventoIds = [...new Set(movimentos.flatMap((m) => (m.evento_id ? [m.evento_id] : [])))];
@@ -287,7 +288,7 @@ async function AbaCreditos({ usuarioId, saldo, creditos, chavePix }: { usuarioId
       <section>
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-stone-800">Meus créditos</h2>
-          {preferencias.cessaoAtiva && limite > 0 && cediveis.length > 0 && <CederCreditos pacotes={cediveis} limite={limite} permitirRecessao={preferencias.permitirRecessao} />}
+          {preferencias.cessaoAtiva && limite > 0 && cediveis.length > 0 && <CederCreditos pacotes={cediveis} limite={limite} permitirRecessao={preferencias.permitirRecessao} destinatariosRecentes={destinatariosRecentes} />}
         </div>
         {!gruposLista.length ? <p className="cartao text-center text-sm text-stone-400">Você ainda não tem créditos.</p> : (
           <div className="cartao">

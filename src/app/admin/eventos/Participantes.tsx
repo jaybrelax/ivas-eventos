@@ -22,6 +22,8 @@ export type ItemParticipanteInscrito = PessoaParticipante & {
   usouPacote?: boolean; /** Observação do pacote (ex.: "2/4 1"). */ pacoteObs?: string | null;
   /** Crédito usado na participação (ex.: "2/4") e saldo da pessoa: só para quem gerencia o evento. */
   creditoRotulo?: string | null;
+  /** Pacote de origem do crédito e se foi comprado ou recebido por cessão. Só para quem gerencia. */
+  creditoOrigem?: string | null;
   /** Como foi paga a contribuição confirmada (pix, dinheiro ou pacote). */
   forma?: FormaPagamento | null;
   saldoCredito?: { disponiveis: number; debitos: number; saldo: number } | null;

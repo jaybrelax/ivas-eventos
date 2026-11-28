@@ -40,7 +40,7 @@ export default async function Creditos({ searchParams }: PageProps<"/admin/credi
     <div className="admin-creditos-page pb-[calc(6rem+env(safe-area-inset-bottom))] md:pb-0">
       <Titulo sobre="Relatório" titulo="Pacotes" subtitulo="Pacotes vendidos, saldo de cada pessoa, participações sem crédito e histórico de uso." />
       <NavbarCreditos aba={aba} q={q} />
-      {aba === "pacotes" && <AbaPacotes q={q} />}
+      {aba === "pacotes" && <AbaPacotes q={q} pacoteAberto={str(sp.pacote)} />}
       {aba === "saldos" && <AbaSaldos negativos={str(sp.negativos) === "1"} agrupar={str(sp.agrupar) === "1"} q={q} />}
       {aba === "debitos" && <AbaDebitos q={q} />}
       {aba === "historico" && <AbaHistorico q={q} filtros={{ usuario: str(sp.usuario), evento: str(sp.evento), pacote: str(sp.pacote), de: str(sp.de), ate: str(sp.ate) }} paginas={Math.min(10, Math.max(1, Number(str(sp.paginas)) || 1))} />}
@@ -125,7 +125,7 @@ function propsModal(p: PacoteResumo, usuarios: Awaited<ReturnType<typeof mapaUsu
   };
 }
 
-async function AbaPacotes({ q }: { q: string }) {
+async function AbaPacotes({ q, pacoteAberto }: { q: string; pacoteAberto: string }) {
   // Uma leitura só da tabela de créditos para pacotes, saldos e débitos
   const [dados, planos, pessoas, usuarios] = await Promise.all([
     resumoGeral(), listarPlanos(true), listarTodasAsPessoas(), mapaUsuarios(),
@@ -160,7 +160,7 @@ async function AbaPacotes({ q }: { q: string }) {
         {/* Celular e tablet: um cartão por pacote (sem rolagem lateral) */}
         <ul className="divide-y divide-[#dadde1] lg:hidden">
           {pacotes.length ? pacotes.map((p) => (
-            <PacoteClicavel key={p.$id} as="li" className="space-y-3 px-4 py-3.5 transition active:bg-[#f5f6f7]" {...propsModal(p, usuarios)}>
+            <PacoteClicavel key={p.$id} as="li" abrirAoCarregar={p.$id === pacoteAberto} className="space-y-3 px-4 py-3.5 transition active:bg-[#f5f6f7]" {...propsModal(p, usuarios)}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 text-sm"><Pessoa id={p.usuario_id} usuarios={usuarios} semLink /></div>
                 <span className="shrink-0 text-sm font-semibold text-[#1c1e21] tabular-nums">{p.valor != null ? formatoReal(p.valor) : "—"}</span>
@@ -195,7 +195,7 @@ async function AbaPacotes({ q }: { q: string }) {
             </thead>
             <tbody>
               {pacotes.length ? pacotes.map((p) => (
-                <PacoteClicavel key={p.$id} as="tr" className="border-b border-[#dadde1] align-middle transition last:border-0 hover:bg-[#f5f6f7] focus-visible:bg-[#f5f6f7]" {...propsModal(p, usuarios)}>
+                <PacoteClicavel key={p.$id} as="tr" abrirAoCarregar={p.$id === pacoteAberto} className="border-b border-[#dadde1] align-middle transition last:border-0 hover:bg-[#f5f6f7] focus-visible:bg-[#f5f6f7]" {...propsModal(p, usuarios)}>
                   <td className="px-4 py-3"><Pessoa id={p.usuario_id} usuarios={usuarios} semLink /></td>
                   <td className="px-3 py-3"><NomePacote p={p} /></td>
                   <td className="px-3 py-3 text-right font-medium text-[#1c1e21] tabular-nums">{p.valor != null ? formatoReal(p.valor) : <span className="text-[#8a8d91]">—</span>}</td>

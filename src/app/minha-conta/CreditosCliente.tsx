@@ -133,12 +133,15 @@ export function ComprarPacote({ planos, chavePix }: { planos: PlanoVisivel[]; ch
 export type PacoteCedivel = { id: string; nome: string; cediveis: number };
 
 /** Ceder créditos: escolhe o pacote e quantos, informa o e-mail, confirma com o nome da pessoa. Um botão só, sem card por crédito. */
-export function CederCreditos({ pacotes, limite, permitirRecessao }: { pacotes: PacoteCedivel[]; limite: number; permitirRecessao: boolean }) {
+type DestinatarioRecente = { id: string; nome: string; email: string };
+
+export function CederCreditos({ pacotes, limite, permitirRecessao, destinatariosRecentes }: { pacotes: PacoteCedivel[]; limite: number; permitirRecessao: boolean; destinatariosRecentes: DestinatarioRecente[] }) {
   const router = useRouter();
   const [aberto, setAberto] = useState(false);
   const [pacoteId, setPacoteId] = useState(pacotes[0]?.id ?? "");
   const [qtd, setQtd] = useState("1");
   const [email, setEmail] = useState("");
+  const [sugestoesAbertas, setSugestoesAbertas] = useState(false);
   const [destino, setDestino] = useState<string | null>(null);
   const [msg, setMsg] = useState<Resultado>();
   const [pendente, iniciar] = useTransition();
@@ -147,7 +150,7 @@ export function CederCreditos({ pacotes, limite, permitirRecessao }: { pacotes: 
   const maximo = Math.min(pacote?.cediveis ?? 0, limite);
   const quantidade = Math.min(Math.max(1, Math.floor(Number(qtd) || 1)), maximo);
 
-  const fechar = () => { setAberto(false); setEmail(""); setDestino(null); setQtd("1"); setMsg(undefined); };
+  const fechar = () => { setAberto(false); setEmail(""); setDestino(null); setQtd("1"); setMsg(undefined); setSugestoesAbertas(false); };
 
   if (!aberto) {
     return (
@@ -189,9 +192,33 @@ export function CederCreditos({ pacotes, limite, permitirRecessao }: { pacotes: 
               <input id="ceder-qtd" type="number" inputMode="numeric" min={1} max={maximo} value={qtd} onChange={(e) => setQtd(e.target.value)} className="campo h-10 text-sm tabular-nums" />
             </div>
           </div>
-          <div>
+          <div className="relative">
             <label className="rotulo" htmlFor="ceder-email">E-mail de quem vai receber</label>
-            <input id="ceder-email" type="email" required autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="pessoa@email.com" className="campo h-10 text-sm" />
+            <input
+              id="ceder-email" type="email" required autoComplete="off" value={email}
+              onFocus={() => setSugestoesAbertas(true)}
+              onBlur={() => setTimeout(() => setSugestoesAbertas(false), 120)}
+              onChange={(e) => { setEmail(e.target.value); setSugestoesAbertas(true); }}
+              placeholder="pessoa@email.com" className="campo h-10 text-sm"
+              aria-autocomplete="list" aria-controls="ceder-destinatarios-recentes" aria-expanded={sugestoesAbertas && destinatariosRecentes.length > 0}
+            />
+            {sugestoesAbertas && destinatariosRecentes.length > 0 && (
+              <ul id="ceder-destinatarios-recentes" role="listbox" aria-label="Pessoas que receberam créditos recentemente" className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-stone-200 bg-white p-1 shadow-lg">
+                <li className="px-2.5 py-1.5 text-[11px] font-medium text-stone-500">Destinatários recentes</li>
+                {destinatariosRecentes.map((p) => (
+                  <li key={p.id}>
+                    <button
+                      type="button" role="option" aria-selected={email === p.email} className="flex w-full flex-col rounded-lg px-2.5 py-2 text-left transition hover:bg-mata-50 focus-visible:bg-mata-50 focus-visible:outline-none"
+                      onPointerDown={(e) => e.preventDefault()}
+                      onClick={() => { setEmail(p.email); setSugestoesAbertas(false); setMsg(undefined); }}
+                    >
+                      <span className="text-sm font-medium text-stone-800">{p.nome}</span>
+                      <span className="text-xs text-stone-500">{p.email}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
           <Mensagem r={msg} />
           <div className="flex gap-2">

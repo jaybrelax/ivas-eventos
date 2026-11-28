@@ -1740,3 +1740,15 @@ html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-guardiao-presenca {
 html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-guardiao-presenca:hover {
   background-color: rgb(59 130 246 / 0.16) !important;
 }
+/* Créditos: a mesma legenda na ficha e no modal, com superfícies calmas no tema escuro. */
+.credito-bolinha.utilizado { background-color: #17855f; color: #fff; }
+.credito-bolinha.cedido { background-color: #327aaa; color: #fff; }
+.credito-bolinha.disponivel { background-color: #7442d6; color: #fff; }
+.credito-bolinha.bloqueado { background-color: #f7e5b2; color: #8a5815; }
+.credito-bolinha.cancelado { background-color: #d6d3d1; color: #57534e; }
+html[data-tema-ivas="escuro"] .credito-resumo-card { background-color: #1b1724; border-color: #342c43; }
+html[data-tema-ivas="escuro"] .credito-bolinha.utilizado { background-color: #206f58; color: #dcfff0; }
+html[data-tema-ivas="escuro"] .credito-bolinha.cedido { background-color: #2c638d; color: #e0f2ff; }
+html[data-tema-ivas="escuro"] .credito-bolinha.disponivel { background-color: #7242c4; color: #f4eaff; }
+html[data-tema-ivas="escuro"] .credito-bolinha.bloqueado { background-color: #65502b; color: #ffe5a8; }
+html[data-tema-ivas="escuro"] .credito-bolinha.cancelado { background-color: #39343f; color: #beb7c7; }

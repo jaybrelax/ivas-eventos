@@ -42,8 +42,8 @@ export type DetalhesPacote = { criadoEm: string; lancadoPor: string | null; pess
  * Linha (ou cartão) de um pacote: clicar em qualquer ponto abre o modal com os dados completos e a edição.
  * O conteúdo da linha vem pronto do servidor (children).
  */
-export function PacoteClicavel({ as: Tag, className, children, pacoteId, situacao, quantidade, dados, detalhes }: {
-  as: "tr" | "li"; className?: string; children: ReactNode; pacoteId: string; situacao: "pendente" | "informado" | "pago" | "cancelado"; quantidade: number; dados: DadosPacote; detalhes: DetalhesPacote;
+export function PacoteClicavel({ as: Tag, className, children, pacoteId, situacao, quantidade, dados, detalhes, abrirAoCarregar = false }: {
+  as: "tr" | "li"; className?: string; children: ReactNode; pacoteId: string; situacao: "pendente" | "informado" | "pago" | "cancelado"; quantidade: number; dados: DadosPacote; detalhes: DetalhesPacote; abrirAoCarregar?: boolean;
 }) {
   const { pendente, rodar } = useAcao();
   const [editando, setEditando] = useState(false);
@@ -52,6 +52,9 @@ export function PacoteClicavel({ as: Tag, className, children, pacoteId, situaca
   const [remover, setRemover] = useState(false);
   const { local, erro: erroFoto, otimizando, escolher } = useImagem("comprovante");
   const abrir = () => { setQtd(String(quantidade)); setSit(situacao); setRemover(false); setEditando(true); };
+  useEffect(() => {
+    if (abrirAoCarregar && (Tag === "tr") === window.matchMedia("(min-width: 1024px)").matches) setEditando(true);
+  }, [abrirAoCarregar, Tag]);
   useEffect(() => {
     if (!editando) return;
     const esc = (e: KeyboardEvent) => e.key === "Escape" && setEditando(false);

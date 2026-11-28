@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Ticket, X } from "lucide-react";
+import Link from "next/link";
 import { ROTULO_PACOTE } from "@/lib/creditos-rotulos";
 
 export type CreditoVisual = {
@@ -33,10 +34,10 @@ export type PacoteVisual = {
 
 /** Cor de cada crédito, igual às bolinhas da ficha: violeta disponível, verde usado, âmbar aguardando, azul cedido. */
 const ESTILO: Record<CreditoVisual["situacao"], string> = {
-  disponivel: "bg-violet-600 text-white hover:bg-violet-700",
-  utilizado: "bg-emerald-500 text-white",
-  bloqueado: "border-2 border-amber-400 bg-white text-amber-500",
-  cancelado: "bg-stone-200 text-stone-400",
+  disponivel: "disponivel",
+  utilizado: "utilizado",
+  bloqueado: "bloqueado",
+  cancelado: "cancelado",
 };
 const ROTULO: Record<CreditoVisual["situacao"], string> = {
   disponivel: "Disponível",
@@ -45,7 +46,7 @@ const ROTULO: Record<CreditoVisual["situacao"], string> = {
   cancelado: "Cancelado",
 };
 
-const estiloDe = (c: CreditoVisual) => (c.cedidoParaOutro ? "bg-sky-500 text-white" : ESTILO[c.situacao]);
+const estiloDe = (c: CreditoVisual) => (c.cedidoParaOutro ? "cedido" : ESTILO[c.situacao]);
 const formatoReal = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const data = (iso: string) => new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(iso));
 
@@ -91,22 +92,27 @@ export function GerenciarCreditos({
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-2.5" role="group" aria-label="Créditos">
+            <div className="credito-resumo-card rounded-xl border border-stone-200 bg-stone-50/60 p-3" role="group" aria-label="Créditos">
+            <div className="flex flex-wrap gap-2.5">
               {creditos.map((c) => (
                 <span
                   key={c.id}
                   title={`Crédito ${c.rotulo} · ${c.detalhe} · ${c.cedidoParaOutro ? `cedido para ${c.titularNome ?? "outra pessoa"}` : ROTULO[c.situacao]}`}
-                  className={`grid h-12 w-12 place-items-center rounded-full ${estiloDe(c)}`}
+                  className={`credito-bolinha ${estiloDe(c)} grid h-12 w-12 place-items-center rounded-full`}
                 >
                   <Ticket size={20} aria-hidden />
                 </span>
               ))}
             </div>
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-stone-600" aria-label="Legenda dos créditos">
+              {[["utilizado", "Usado"], ["cedido", "Cedido"], ["disponivel", "Disponível"], ...(creditos.some((c) => c.situacao === "bloqueado") ? [["bloqueado", "Aguardando pagamento"]] : [])].map(([estado, rotulo]) => <span key={estado} className="inline-flex items-center gap-1.5"><span className={`credito-bolinha ${estado} h-2.5 w-2.5 rounded-full`} aria-hidden />{rotulo}</span>)}
+            </div>
+            </div>
 
             {pacotes.length > 0 && (
               <div className="space-y-2">
                 {pacotes.map((p) => (
-                  <div key={p.id} className="rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+                  <Link key={p.id} href={`/admin/creditos?pacote=${encodeURIComponent(p.id)}`} className="block rounded-xl border border-stone-200 bg-stone-50/60 p-3 transition hover:border-violet-300 hover:bg-violet-50/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500" aria-label={`Configurar pacote ${p.nome}`}>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-semibold text-stone-900">
                         {p.nome} <span className="font-normal text-stone-500">· {p.quantidade} {p.quantidade === 1 ? "crédito" : "créditos"}</span>
@@ -122,7 +128,7 @@ export function GerenciarCreditos({
                       {p.bloqueados ? ` · ${p.bloqueados} aguardando` : ""}
                       {p.cedidos ? ` · ${p.cedidos} cedidos` : ""}
                     </p>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}

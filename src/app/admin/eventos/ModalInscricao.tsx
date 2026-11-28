@@ -467,6 +467,9 @@ export function ModalInscricao({
                     )}
                   </p>
                   <p className="mt-0.5 text-xs text-stone-600">{situacao.detalhe}</p>
+                  {p.pagamento === "credito" && p.creditoOrigem && dados.gerenciar && (
+                    <p className="mt-1.5 text-xs font-medium text-stone-600">Origem do crédito: <span className="font-normal text-stone-500">{p.creditoOrigem}</span></p>
+                  )}
                   {(p.informadoEm || (pago && p.pagoEm)) && (
                     <p className="mt-1.5 space-x-3 text-[11px] opacity-75">
                       {p.informadoEm && <span>Informada em {quando(p.informadoEm)}</span>}

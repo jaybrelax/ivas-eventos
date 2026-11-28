@@ -183,20 +183,25 @@ export default async function FichaParticipante({ params }: PageProps<"/admin/pa
                 {credito.creditos.length > 0 && (() => {
                   // Uma bolinha por crédito: disponível = verde, usado = cinza, cedido = azul, aguardando pagamento = âmbar vazado
                   const bolinhas = [...credito.creditos]
-                    .map((c) => (c.cedidoParaOutro ? { chave: "cedido", rotulo: "Cedido", classe: "bg-sky-500 text-white" }
-                      : c.situacao === "disponivel" ? { chave: "disponivel", rotulo: "Disponível", classe: "bg-violet-600 text-white" }
-                      : c.situacao === "utilizado" ? { chave: "utilizado", rotulo: "Utilizado", classe: "bg-emerald-500 text-white" }
-                      : { chave: "bloqueado", rotulo: "Aguardando pagamento", classe: "border-2 border-amber-400 bg-white text-amber-500" }))
+                    .map((c) => (c.cedidoParaOutro ? { chave: "cedido", rotulo: "Cedido", classe: "cedido" }
+                      : c.situacao === "disponivel" ? { chave: "disponivel", rotulo: "Disponível", classe: "disponivel" }
+                      : c.situacao === "utilizado" ? { chave: "utilizado", rotulo: "Utilizado", classe: "utilizado" }
+                      : { chave: "bloqueado", rotulo: "Aguardando pagamento", classe: "bloqueado" }))
                     .sort((a, b) => ["utilizado", "cedido", "disponivel", "bloqueado"].indexOf(a.chave) - ["utilizado", "cedido", "disponivel", "bloqueado"].indexOf(b.chave));
                   const mostradas = bolinhas.slice(0, 40);
                   return (
+                    <div className="credito-resumo-card rounded-xl border border-stone-200 bg-stone-50/60 p-3">
                     <div className="flex flex-wrap items-center gap-1.5" role="img" aria-label={`${credito.saldo.disponiveis} créditos disponíveis de ${credito.creditos.length}`}>
                       {mostradas.map((b, i) => (
-                    <span key={i} title={b.rotulo} className={`grid h-6 w-6 place-items-center rounded-full ${b.classe}`}>
+                    <span key={i} title={b.rotulo} className={`credito-bolinha ${b.classe} grid h-6 w-6 place-items-center rounded-full`}>
                       <Ticket size={13} aria-hidden />
                     </span>
                   ))}
                       {bolinhas.length > mostradas.length && <span className="text-xs font-semibold text-stone-500">+{bolinhas.length - mostradas.length}</span>}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-stone-600" aria-label="Legenda dos créditos">
+                      {[["utilizado", "Usado"], ["cedido", "Cedido"], ["disponivel", "Disponível"], ...(bolinhas.some((b) => b.chave === "bloqueado") ? [["bloqueado", "Aguardando pagamento"]] : [])].map(([estado, rotulo]) => <span key={estado} className="inline-flex items-center gap-1.5"><span className={`credito-bolinha ${estado} h-2.5 w-2.5 rounded-full`} aria-hidden />{rotulo}</span>)}
+                    </div>
                     </div>
                   );
                 })()}
