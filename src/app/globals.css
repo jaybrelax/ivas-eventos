@@ -1488,6 +1488,15 @@ html[data-tema-ivas="escuro"] .cabecalho-resumo-evento {
   backdrop-filter: blur(18px) saturate(1.2) !important;
   box-shadow: 0 16px 36px rgb(0 0 0 / 0.24), inset 0 1px 0 rgb(255 255 255 / 0.045) !important;
 }
+@media (max-width: 767px) {
+  html[data-tema-ivas="escuro"] .cabecalho-resumo-evento {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
 html[data-tema-ivas="escuro"] .botao-ver-publico {
   background: linear-gradient(135deg, #493664, #352649) !important;
   border: 1px solid rgb(208 185 240 / 0.18) !important;
@@ -1725,3 +1734,9 @@ html[data-tema-ivas="escuro"] .modal-pacote-perfil > span > span:first-child,
 html[data-tema-ivas="escuro"] .modal-pacote-perfil > svg { color: #b8adca !important; }
 html[data-tema-ivas="escuro"] .modal-pacote-perfil > span > span:nth-child(2) { color: #f4effa !important; }
 html[data-tema-ivas="escuro"] .modal-pacote-perfil > span > span:nth-child(3) { color: #d2baf4 !important; }
+html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-guardiao-presenca {
+  background-color: rgb(59 130 246 / 0.1) !important;
+}
+html[data-tema-ivas="escuro"] .lista-presenca-evento .linha-guardiao-presenca:hover {
+  background-color: rgb(59 130 246 / 0.16) !important;
+}

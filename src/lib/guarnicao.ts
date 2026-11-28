@@ -17,7 +17,8 @@ import type { Candidatura, Evento, Sexo, TipoEvento } from "./types";
  * - Quem chega com as vagas cheias vai para a lista de espera; quando alguém sai,
  *   o primeiro da espera entra sozinho.
  * - O guardião cancela até 4 h antes do início; o coordenador altera a qualquer momento.
- * A lista `guardioes` do evento é mantida igual às candidaturas confirmadas.
+ * A lista `guardioes` do evento é mantida igual às candidaturas confirmadas. Candidaturas com ordem 0 são
+ * escalações diretas da coordenação e ficam confirmadas mesmo acima das vagas configuradas.
  */
 
 export const VAGAS_PADRAO = 2;
@@ -156,7 +157,15 @@ export async function reorganizar(evento: Evento, alteradoPor: string | null, av
   const livres: Record<Sexo, number> = { masculino: 0, feminino: 0 };
   for (const sexo of ["masculino", "feminino"] as const) {
     const fila = ativas.filter((c) => c.sexo === sexo).sort((a, b) => a.ordem - b.ordem);
-    for (const [i, c] of fila.entries()) {
+    const escaladosDiretamente = fila.filter((c) => c.ordem === 0);
+    const filaRegular = fila.filter((c) => c.ordem !== 0);
+    for (const c of escaladosDiretamente) {
+      confirmados.push(c.usuario_id);
+      if (c.situacao !== "confirmada") {
+        await tablesDB.updateRow({ ...base, rowId: c.$id, data: { situacao: "confirmada", alterado_por: alteradoPor } });
+      }
+    }
+    for (const [i, c] of filaRegular.entries()) {
       const deveSer = i < vagas[sexo] ? "confirmada" : "espera";
       if (deveSer === "confirmada") confirmados.push(c.usuario_id);
       if (c.situacao !== deveSer) {
@@ -165,7 +174,7 @@ export async function reorganizar(evento: Evento, alteradoPor: string | null, av
         if (deveSer === "confirmada" && c.usuario_id !== alteradoPor) promovidos.push(c.usuario_id);
       }
     }
-    livres[sexo] = Math.max(0, vagas[sexo] - fila.length);
+    livres[sexo] = Math.max(0, vagas[sexo] - filaRegular.length);
   }
   const atuais = evento.guardioes ?? [];
   if (atuais.length !== confirmados.length || atuais.some((id, i) => id !== confirmados[i])) {
@@ -278,14 +287,18 @@ export async function cancelar(evento: Evento, usuarioId: string): Promise<Resul
   return { ok: "Participação cancelada." };
 }
 
-/** Coordenador inclui um guardião (entra na fila como qualquer candidato). */
+/** Coordenação escala diretamente um guardião, sem ocupar ou tomar uma das vagas configuradas. */
 export async function adicionarGuardiao(evento: Evento, usuario: { id: string; sexo: Sexo | null }, porId: string): Promise<Resultado> {
   if (!usuario.sexo) return { erro: "Essa pessoa não tem gênero informado no cadastro." };
-  const r = await entrarNaFila(evento.$id, usuario.id, usuario.sexo, porId);
-  if (r.jaEstava) return { erro: "Essa pessoa já está neste evento." };
+  const { tablesDB } = createAdminClient();
+  const existente = await candidaturaDe(evento.$id, usuario.id);
+  if (existente?.situacao === "confirmada" && existente.ordem === 0) return { erro: "Essa pessoa já foi escalada diretamente." };
+  if (existente?.situacao === "confirmada") return { erro: "Essa pessoa já está escalada neste evento." };
+  const dados = { sexo: usuario.sexo, situacao: "confirmada" as const, ordem: 0, justificativa: null, alterado_por: porId };
+  if (existente) await tablesDB.updateRow({ ...base, rowId: existente.$id, data: dados });
+  else await tablesDB.createRow({ ...base, rowId: ID.unique(), data: { ...dados, evento_id: evento.$id, usuario_id: usuario.id } });
   await reorganizar(evento, porId);
-  const c = await candidaturaDe(evento.$id, usuario.id);
-  return { ok: c?.situacao === "confirmada" ? "Guardião incluído." : "Vagas cheias: a pessoa entrou na lista de espera." };
+  return { ok: "Guardião escalado diretamente, mesmo com as vagas preenchidas." };
 }
 
 /** Coordenador retira um guardião (sem prazo); o primeiro da espera assume a vaga. */

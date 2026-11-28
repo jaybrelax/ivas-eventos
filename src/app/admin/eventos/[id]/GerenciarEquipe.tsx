@@ -110,7 +110,7 @@ export function GerenciarGuardioes({ dados, controle }: { dados: DadosGuarnicao;
     <>
       {!controle && <BotaoGerenciar onClick={() => setAberto(true)} rotulo="Gerenciar guardiões" />}
       {aberto && (
-        <Modal titulo="Guarnição" sub="Guardiões e guardiãs deste ritual, por ordem de chegada." fechar={() => setAberto(false)}>
+        <Modal titulo="Guarnição" sub="Adicionar por aqui escala diretamente, mesmo acima das vagas configuradas." fechar={() => setAberto(false)}>
           <Guarnicao dados={dados} embutido />
         </Modal>
       )}

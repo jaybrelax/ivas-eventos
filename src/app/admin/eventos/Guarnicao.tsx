@@ -148,16 +148,28 @@ export function Guarnicao({ dados, embutido = false }: { dados: DadosGuarnicao; 
                     {fila.map((p, i) => (
                       <Linha key={p.id} p={p} posicao={i + 1} destaque={p.id === eu.id}>
                         {dados.gerenciar && (
-                          <BotaoConfirmar
-                            className="btn-icone h-8 w-8 hover:bg-red-50 hover:text-red-700"
-                            title={`Retirar ${p.nome}`}
-                            pergunta={`Retirar ${p.nome} da lista de espera?`}
-                            confirmar="Retirar"
-                            disabled={pendente}
-                            aoConfirmar={() => rodar(() => removerGuardiaoAction(dados.eventoId, p.id))}
-                          >
-                            <X size={15} />
-                          </BotaoConfirmar>
+                          <>
+                            <button
+                              type="button"
+                              className="btn-icone h-8 w-8 text-mata-700 hover:bg-mata-50 hover:text-mata-800"
+                              title={`Escalar ${p.nome} diretamente`}
+                              aria-label={`Escalar ${p.nome} diretamente`}
+                              disabled={pendente}
+                              onClick={() => rodar(() => adicionarGuardiaoAction(dados.eventoId, p.id))}
+                            >
+                              <UserPlus size={15} />
+                            </button>
+                            <BotaoConfirmar
+                              className="btn-icone h-8 w-8 hover:bg-red-50 hover:text-red-700"
+                              title={`Retirar ${p.nome}`}
+                              pergunta={`Retirar ${p.nome} da lista de espera?`}
+                              confirmar="Retirar"
+                              disabled={pendente}
+                              aoConfirmar={() => rodar(() => removerGuardiaoAction(dados.eventoId, p.id))}
+                            >
+                              <X size={15} />
+                            </BotaoConfirmar>
+                          </>
                         )}
                       </Linha>
                     ))}
@@ -228,7 +240,8 @@ function Incluir({ sexo, opcoes, pendente, aoIncluir }: { sexo: Sexo; opcoes: Pe
           aoIncluir(sel);
           setSel("");
         }}
-        aria-label="Incluir"
+        aria-label="Escalar diretamente"
+        title="Escalar diretamente, mesmo com as vagas preenchidas"
       >
         <UserPlus size={15} />
       </button>

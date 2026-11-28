@@ -441,14 +441,14 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
         </p>
         {confirmados.length || soEquipe.length ? (
           <ul className="space-y-2 md:space-y-1">
-            {/* Equipe primeiro (guardiões, guardiãs, mestres), com fundo azulado; depois os demais participantes */}
+            {/* Equipe primeiro (guardiões, guardiãs, mestres); a tag identifica a função e o cartão mantém o tom dos participantes. */}
             {equipeOrdenada.map((x) => x.p ? (
-              <Linha key={x.id} p={x.p} novo={destacado === x.p.id} papel={x.papel} destaque temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} chamada={ehMarcavel(x.id)} presente={presentes.has(x.id)} abrir={() => (ehMarcavel(x.id) ? marcar(x.id) : setAberta(x.p!.inscricaoId))} />
+              <Linha key={x.id} p={x.p} novo={destacado === x.p.id} papel={x.papel} temContribuicao={dados.temContribuicao} gerenciar={dados.gerenciar} financeiro={financeiro} esperado={dados.valorContribuicao} chamada={ehMarcavel(x.id)} presente={presentes.has(x.id)} abrir={() => (ehMarcavel(x.id) ? marcar(x.id) : setAberta(x.p!.inscricaoId))} />
             ) : (
               <li key={`equipe-${x.id}`}>
                 {dados.gerenciar && !financeiro ? (
                   <button type="button" onClick={() => (chamadaAtiva ? marcar(x.id) : setEquipeAberta(x.id))} aria-label={chamadaAtiva ? `Marcar presença de ${x.nome}` : `Registrar a dosagem de ${x.nome}`} aria-pressed={chamadaAtiva ? presentes.has(x.id) : undefined}
-                    className={`group flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition hover:ring-1 hover:ring-mata-200 ${chamadaAtiva && presentes.has(x.id) ? CLASSE_PRESENTE : x.papel === "mestre" ? "bg-mata-50 ring-1 ring-mata-100 hover:bg-mata-100/60" : "bg-sky-50 ring-1 ring-sky-100 hover:bg-mata-50/70"}`}>
+                    className={`group linha-participante-presenca ${x.papel === "guardiao" ? "linha-guardiao-presenca" : ""} flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left transition hover:ring-1 hover:ring-mata-200 ${chamadaAtiva && presentes.has(x.id) ? CLASSE_PRESENTE : "bg-stone-50/70 hover:bg-mata-50/70"}`}>
                     <Avatar nome={x.nome} foto={x.foto} tamanho={32} className={`avatar-presenca ${chamadaAtiva && presentes.has(x.id) ? "ring-[3px]! ring-emerald-500! ring-offset-1" : "avatar-presenca-sem-aro ring-0"}`} />
                     <span className="flex min-w-0 flex-1 items-center gap-1.5">
                       <span className="truncate text-sm font-medium text-stone-800">{x.nome}</span>
@@ -458,7 +458,7 @@ export function Participantes({ dados, semResumo = false, equipe = [], guardioes
                     {chamadaAtiva ? null : <ChevronRight size={16} className="shrink-0 text-stone-300 transition group-hover:translate-x-0.5 group-hover:text-mata-600 max-md:hidden" />}
                   </button>
                 ) : (
-                  <div className={`flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 ring-1 ${x.papel === "mestre" ? "bg-mata-50 ring-mata-100" : "bg-sky-50 ring-sky-100"}`}>
+                  <div className={`linha-participante-presenca ${x.papel === "guardiao" ? "linha-guardiao-presenca" : ""} flex w-full items-center gap-2.5 rounded-lg bg-stone-50/70 px-2 py-1.5`}>
                     <Avatar nome={x.nome} foto={x.foto} tamanho={32} className="avatar-presenca avatar-presenca-sem-aro ring-0" />
                     <span className="flex min-w-0 flex-1 items-center gap-1.5">
                       <span className="truncate text-sm font-medium text-stone-800">{x.nome}</span>
@@ -625,9 +625,9 @@ function ValorContribuicao({ p, esperado }: { p: ItemParticipanteInscrito; esper
 }
 
 function Linha({
-  p, papel, guardiao = false, destaque = false, posicao, temContribuicao: comContribuicao, gerenciar, abrir, chamada = false, presente = false, financeiro = false, esperado = null, novo = false,
+  p, papel, guardiao = false, posicao, temContribuicao: comContribuicao, gerenciar, abrir, chamada = false, presente = false, financeiro = false, esperado = null, novo = false,
 }: {
-  p: ItemParticipanteInscrito; papel?: MembroLista["papel"]; guardiao?: boolean; destaque?: boolean; posicao?: number; temContribuicao: boolean; gerenciar: boolean; abrir: () => void; novo?: boolean;
+  p: ItemParticipanteInscrito; papel?: MembroLista["papel"]; guardiao?: boolean; posicao?: number; temContribuicao: boolean; gerenciar: boolean; abrir: () => void; novo?: boolean;
   /** Chamada ativa: a linha vira marcador de presença. */ chamada?: boolean; presente?: boolean;
   /** Aba Financeiro: a contribuição no lugar das doses. */ financeiro?: boolean; /** Valor previsto, para quem ainda não pagou. */ esperado?: number | null;
 }) {
@@ -697,7 +697,7 @@ function Linha({
     </>
   );
   const estadoLinha = chamada && presente ? "linha-presenca-ativa" : conferir ? "linha-presenca-informada" : "";
-  const base = `linha-participante-presenca ${estadoLinha} flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : destaque ? (papel === "mestre" ? "bg-mata-50 ring-1 ring-mata-100" : "bg-sky-50 ring-1 ring-sky-100") : "bg-stone-50/70"}`;
+  const base = `linha-participante-presenca ${papel === "guardiao" ? "linha-guardiao-presenca" : ""} ${estadoLinha} flex w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left ${chamada && presente ? CLASSE_PRESENTE : conferir ? "border-l-[3px] border-amber-400 bg-amber-50/60" : "bg-stone-50/70"}`;
   if (!gerenciar) return <li data-participante={p.id} className={`${base} ${novo ? "animate-destaque motion-reduce:animate-none" : ""}`}>{conteudo}</li>;
   return (
     <li data-participante={p.id} className={novo ? "animate-destaque rounded-lg motion-reduce:animate-none" : undefined}>

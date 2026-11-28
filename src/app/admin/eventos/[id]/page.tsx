@@ -395,7 +395,7 @@ export default async function VerEvento({ params, searchParams }: PageProps<"/ad
                   <Participantes dados={{ ...participantes, linkPerfil: pode(u, PODE.editarEventos) }} semResumo embutido financeiro guardioes={guardioesGerais} titulo="Participantes" />
                 </div>
               ) }] : []),
-              ...(abaAvaliacoes ? [{ ...abaAvaliacoes, detalhe: String(totalAvaliacoes), detalheSempre: true }] : []),
+              ...(abaAvaliacoes ? [{ ...abaAvaliacoes, detalhe: totalAvaliacoes > 0 ? String(totalAvaliacoes) : undefined, detalheSempre: true }] : []),
             ]}
           />
         </div>

@@ -23,7 +23,12 @@ export type Resultado = { ok?: string; erro?: string } | undefined;
 
 export async function salvarPreferenciasCreditos(_: Resultado, form: FormData): Promise<Resultado> {
   await exigir(["admin"]);
-  const preferencias = { cessaoAtiva: form.get("cessaoAtiva") === "on", permitirRecessao: form.get("permitirRecessao") === "on" };
+  const preferencias = {
+    cessaoAtiva: form.get("cessaoAtiva") === "on",
+    permitirRecessao: form.get("permitirRecessao") === "on",
+    quitarDebitosNaCompra: form.get("quitarDebitosNaCompra") === "on",
+    quitarDebitosAoReceberCessao: form.get("quitarDebitosAoReceberCessao") === "on",
+  };
   try {
     await createAdminClient().tablesDB.updateRow({ databaseId: DB_ID, tableId: TABLES.instituto, rowId: INSTITUTO_ROW_ID, data: { config_creditos: JSON.stringify(preferencias) } });
   } catch (e) {

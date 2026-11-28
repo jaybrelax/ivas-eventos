@@ -183,7 +183,10 @@ export async function lancarPacote(
     acao: "compra", usuario_id: usuarioId, pacote_id: pacoteId, por: porId,
     observacao: `${dados.nome} · ${dados.quantidade} créditos (lançado pela equipe, ${pago ? "pago" : "aguardando pagamento"})`,
   });
-  if (pago) await aplicarEmInscricoesFuturas(usuarioId, porId);
+  if (pago) {
+    await quitarDebitosSePreferido(usuarioId, porId, "quitarDebitosNaCompra");
+    await aplicarEmInscricoesFuturas(usuarioId, porId);
+  }
   return { ok: pago ? "Pacote lançado e créditos liberados." : "Pacote lançado. Os créditos ficam bloqueados até a confirmação do pagamento.", pacoteId };
 }
 
@@ -201,6 +204,7 @@ export async function confirmarPacote(porId: string, pacoteId: string): Promise<
       gravar(T.creditos, c.$id, { situacao: "disponivel", ordem: ordemDoCredito(agora.getTime(), c.numero), trava: 1 })),
   );
   await registrarMovimento({ acao: "pacote_confirmado", usuario_id: pacote.usuario_id, pacote_id: pacoteId, por: porId });
+  await quitarDebitosSePreferido(pacote.usuario_id, porId, "quitarDebitosNaCompra");
   await aplicarEmInscricoesFuturas(pacote.usuario_id, porId);
   return { ok: "Pagamento confirmado: os créditos já estão disponíveis." };
 }
@@ -348,6 +352,20 @@ export async function aplicarEmInscricoesFuturas(usuarioId: string, porId: strin
     else if (r.semCredito) break;
   }
   return aplicados;
+}
+
+async function quitarDebitosSePreferido(
+  usuarioId: string,
+  porId: string,
+  preferencia: "quitarDebitosNaCompra" | "quitarDebitosAoReceberCessao",
+): Promise<void> {
+  const preferencias = lerPreferenciasCreditos(await getInstituto());
+  if (!preferencias[preferencia]) return;
+  const debitos = await debitosEmAberto(usuarioId);
+  for (const debito of debitos) {
+    const resultado = await quitarDebito(porId, debito.inscricaoId);
+    if (resultado.erro) break;
+  }
 }
 
 /**
@@ -636,12 +654,18 @@ export async function cederCreditos(selecao: { creditoId?: string; pacoteId?: st
     const candidatos = creditos.filter((c) => (selecao.creditoId ? c.$id === selecao.creditoId : c.pacote_id === selecao.pacoteId) && !bloqueioCessao(c, de, para, preferencias.permitirRecessao)).sort((a, b) => a.numero - b.numero);
     if (candidatos.length < selecao.quantidade) return { erro: "Não há créditos elegíveis suficientes. Atualize a página e confira os créditos disponíveis e as regras de cessão." };
     let cedidos = 0;
+    let erroCessao: string | null = null;
     for (const c of candidatos.slice(0, selecao.quantidade)) {
       const r = await transferirCredito(c.$id, de, para, por, preferencias.permitirRecessao);
-      if (r.erro) return cedidos ? { ok: `${cedidos} crédito(s) cedido(s). ${r.erro}` } : r;
+      if (r.erro) {
+        if (!cedidos) return r;
+        erroCessao = r.erro;
+        break;
+      }
       cedidos++;
     }
-    return { ok: `${cedidos} crédito(s) cedido(s).` };
+    if (cedidos && preferencias.quitarDebitosAoReceberCessao) await quitarDebitosSePreferido(para, por, "quitarDebitosAoReceberCessao");
+    return { ok: `${cedidos} crédito(s) cedido(s).${erroCessao ? ` ${erroCessao}` : ""}` };
   } finally {
     await db().deleteRow({ databaseId: DB_ID, tableId: "travas_cessao", rowId: travaId });
   }
@@ -745,6 +769,7 @@ export async function editarPacote(
     acao: "ajuste", usuario_id: pacote.usuario_id, pacote_id: pacoteId, por: porId,
     observacao: `Pacote editado: ${dados.quantidade} créditos${mudouSituacao ? `, situação ${pacote.situacao} para ${dados.situacao}` : ""}`,
   });
+  if (mudouSituacao && dados.situacao === "pago") await quitarDebitosSePreferido(pacote.usuario_id, porId, "quitarDebitosNaCompra");
   if (dados.situacao === "pago") await aplicarEmInscricoesFuturas(pacote.usuario_id, porId);
   return { ok: "Pacote atualizado." };
 }
