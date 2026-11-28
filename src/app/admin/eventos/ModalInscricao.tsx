@@ -43,7 +43,7 @@ const SITUACAO_CONTRIBUICAO: Record<SituacaoPagamento, { rotulo: string; detalhe
   na_hora: { rotulo: "Na hora", detalhe: "O participante vai contribuir no dia do ritual.", cor: "bg-sky-100 text-sky-800 ring-sky-200", bloco: "bg-ouro-100/60 border-ouro-500 text-ouro-700 [&_svg]:text-ouro-600", Icone: CalendarClock },
   pago: { rotulo: "Confirmada", detalhe: "Contribuição confirmada pela coordenação.", cor: "bg-emerald-50 text-emerald-800 ring-emerald-200", bloco: "bg-emerald-50 border-emerald-500 text-emerald-900 [&_svg]:text-emerald-600", Icone: CheckCircle2 },
   isento: { rotulo: "Isento", detalhe: "Participação isenta de contribuição.", cor: "bg-sky-50 text-sky-800 ring-sky-200", bloco: "bg-sky-50 border-sky-400 text-sky-900 [&_svg]:text-sky-600", Icone: ShieldCheck },
-  credito: { rotulo: "Crédito", detalhe: "Participação paga com 1 crédito de um pacote. Mudar a contribuição devolve o crédito ao pacote.", cor: "bg-violet-50 text-violet-800 ring-violet-200", bloco: "bg-violet-50 border-violet-400 text-violet-900 [&_svg]:text-violet-600", Icone: Ticket },
+  credito: { rotulo: "Crédito", detalhe: "Participação paga com crédito de pacote.", cor: "bg-violet-50 text-violet-800 ring-violet-200", bloco: "bg-violet-50 border-violet-400 text-violet-900 [&_svg]:text-violet-600", Icone: Ticket },
   aniversario: { rotulo: "Bônus de aniversário", detalhe: "Participação confirmada com o benefício anual de aniversário, sem lançamento financeiro.", cor: "bg-fuchsia-50 text-fuchsia-800 ring-fuchsia-200", bloco: "bg-fuchsia-50 border-fuchsia-400 text-fuchsia-900 [&_svg]:text-fuchsia-600", Icone: Gift },
 };
 
@@ -457,7 +457,7 @@ export function ModalInscricao({
               <div className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out ${contribAberta ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
                 <div className="min-h-0 overflow-hidden" inert={!contribAberta}>
                 <div className={`border-t ${t.div70} px-3.5 pt-3 pb-3.5`}>
-              <div className={`modal-status-card ${p.pagamento === "pendente" ? "modal-status-pendente-card" : ""} flex items-start gap-3 rounded-xl bg-white/80 p-3 text-stone-900 ring-1 ${t.ring} ${TEXTO_SITUACAO[p.pagamento]}`}>
+              <div className={`modal-status-card ${p.pagamento === "pendente" ? "modal-status-pendente-card" : p.pagamento === "credito" ? "modal-status-credito-card" : ""} flex items-start gap-3 rounded-xl bg-white/80 p-3 text-stone-900 ring-1 ${t.ring} ${TEXTO_SITUACAO[p.pagamento]}`}>
                 <situacao.Icone size={20} className="mt-0.5 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-baseline justify-between gap-x-3 text-sm font-bold">
@@ -467,8 +467,11 @@ export function ModalInscricao({
                     )}
                   </p>
                   <p className="mt-0.5 text-xs text-stone-600">{situacao.detalhe}</p>
-                  {p.pagamento === "credito" && p.creditoOrigem && dados.gerenciar && (
-                    <p className="mt-1.5 text-xs font-medium text-stone-600">Origem do crédito: <span className="font-normal text-stone-500">{p.creditoOrigem}</span></p>
+                  {p.pagamento === "credito" && p.creditoOrigem && (
+                    <div className="modal-credito-origem mt-2 border-t border-stone-200/60 pt-2 text-xs text-stone-600">
+                      <p><span className="font-medium">Origem do crédito:</span> <span className="text-stone-500">{p.creditoOrigem.pacote}</span></p>
+                      <p className="mt-0.5 text-stone-500">{p.creditoOrigem.pessoa}</p>
+                    </div>
                   )}
                   {(p.informadoEm || (pago && p.pagoEm)) && (
                     <p className="mt-1.5 space-x-3 text-[11px] opacity-75">
@@ -478,6 +481,7 @@ export function ModalInscricao({
                   )}
                 </div>
               </div>
+              {p.pagamento === "credito" && <p className="mt-1.5 px-1 text-center text-[11px] leading-snug text-stone-500">Ao mudar a contribuição, o crédito volta ao pacote.</p>}
 
               {/* Comprovante: miniatura com ampliar e um botão que abre as opções (oculto em pendente e pago por crédito) */}
               {mostrarComprovante && (
@@ -551,7 +555,7 @@ export function ModalInscricao({
                       )}
                     </div>
                       {/* Isentar: só o Admin e o mestre escalado no evento; fica abaixo, centralizado, sem caixa */}
-                      {!p.bonusAniversarioDisponivel && dados.podeIsentar && p.pagamento !== "isento" && (
+                      {!p.bonusAniversarioDisponivel && dados.podeIsentar && p.pagamento === "pendente" && (
                         <button
                           type="button"
                           disabled={pendente}

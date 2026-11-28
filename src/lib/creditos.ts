@@ -473,9 +473,9 @@ function agruparSaldos(creditos: Credito[], debitos: DebitoItem[], extras: strin
 }
 
 /** Detalhes do pacote e da origem para cada crédito usado. */
-export async function detalhesDosCreditos(creditoIds: string[]): Promise<Map<string, { rotulo: string; pacoteNome: string; recebidoDe: string | null }>> {
+export async function detalhesDosCreditos(creditoIds: string[]): Promise<Map<string, { rotulo: string; pacoteNome: string; recebidoDe: string | null; compradorId: string }>> {
   const unicos = [...new Set(creditoIds)];
-  const detalhes = new Map<string, { rotulo: string; pacoteNome: string; recebidoDe: string | null }>();
+  const detalhes = new Map<string, { rotulo: string; pacoteNome: string; recebidoDe: string | null; compradorId: string }>();
   for (let i = 0; i < unicos.length; i += 100) {
     const creditos = await listar<Credito>(T.creditos, [Query.equal("$id", unicos.slice(i, i + 100))]);
     const pacotes = new Map((await listar<Pacote>(T.pacotes, [Query.equal("$id", [...new Set(creditos.map((c) => c.pacote_id))])])).map((p) => [p.$id, p]));
@@ -485,6 +485,7 @@ export async function detalhesDosCreditos(creditoIds: string[]): Promise<Map<str
         rotulo: rotuloCredito(c.numero, pacote?.quantidade ?? c.numero),
         pacoteNome: pacote?.nome ?? "Pacote de créditos",
         recebidoDe: c.cedido_de,
+        compradorId: c.comprador_id,
       });
     }
   }

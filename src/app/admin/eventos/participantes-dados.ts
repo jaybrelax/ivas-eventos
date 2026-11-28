@@ -38,10 +38,10 @@ export async function dadosParticipantes(
     // Só a coordenação vê o "1° VEZ": quem já tem participação confirmada em outro evento não é primeira vez
     gerenciar ? todasInscricoesAtivas() : Promise.resolve([]),
   ]);
-  // Créditos: saldo de cada inscrito e o "2/4" do crédito usado (só a coordenação vê)
-  const [saldos, detalhesCredito] = gerenciar && tipo?.conta_como_ritual
+  // Créditos: saldo para a coordenação e origem do crédito para quem pode ver o financeiro.
+  const [saldos, detalhesCredito] = verFinanceiro && tipo?.conta_como_ritual
     ? await Promise.all([
-        saldosDe(inscricoes.map((i) => i.usuario_id)).catch(() => null),
+        gerenciar ? saldosDe(inscricoes.map((i) => i.usuario_id)).catch(() => null) : Promise.resolve(null),
         detalhesDosCreditos(inscricoes.flatMap((i) => (i.credito_id ? [i.credito_id] : []))).catch(() => new Map()),
       ])
     : [null, new Map()];
@@ -74,14 +74,14 @@ export async function dadosParticipantes(
       jaParticipou: gerenciar ? jaParticiparam.has(i.usuario_id) : false,
       usouPacote: verFinanceiro && !!i.usou_pacote, pacoteObs: verFinanceiro && i.usou_pacote ? (i.observacao ?? null) : null,
       forma: verFinanceiro ? (i.pagamento === "credito" ? "pacote" : (i.forma_pagamento ?? null)) : null,
-      creditoRotulo: verFinanceiro && gerenciar && i.credito_id ? (detalhesCredito.get(i.credito_id)?.rotulo ?? null) : null,
-      creditoOrigem: verFinanceiro && gerenciar && i.credito_id ? (() => {
+      creditoRotulo: verFinanceiro && i.credito_id ? (detalhesCredito.get(i.credito_id)?.rotulo ?? null) : null,
+      creditoOrigem: verFinanceiro && i.credito_id ? (() => {
         const credito = detalhesCredito.get(i.credito_id);
         if (!credito) return null;
         const nomePacote = credito.pacoteNome;
-        return credito.recebidoDe
-          ? `${nomePacote} · recebido de ${usuarios.get(credito.recebidoDe)?.nome ?? "outra pessoa"}`
-          : `${nomePacote} · pacote comprado`;
+        if (credito.recebidoDe) return { pacote: nomePacote, pessoa: `Recebido de ${usuarios.get(credito.recebidoDe)?.nome ?? "outra pessoa"}` };
+        if (credito.compradorId !== i.usuario_id) return { pacote: nomePacote, pessoa: `Comprado originalmente por ${usuarios.get(credito.compradorId)?.nome ?? "outra pessoa"}` };
+        return { pacote: nomePacote, pessoa: "Pacote comprado" };
       })() : null,
       saldoCredito: saldos?.get(i.usuario_id) ? { disponiveis: saldos.get(i.usuario_id)!.disponiveis, debitos: saldos.get(i.usuario_id)!.debitos, saldo: saldos.get(i.usuario_id)!.saldo } : null,
       bonusAniversarioDisponivel: gerenciar ? (bonusPorInscricao.get(i.$id) ?? false) : false,

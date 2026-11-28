@@ -54,7 +54,7 @@ export function ModalDosagemEquipe({ eventoId, pessoa, rotulo, inicial, fechar, 
                   <h4 className="text-sm font-semibold text-stone-900">Informações</h4>
                   <p className="text-xs text-stone-500">Contato e cidade</p>
                 </div>
-                <span className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-semibold transition ${infoAberta ? "bg-white text-stone-700 ring-1 ring-stone-300" : "bg-stone-800 text-white"}`}>
+                <span className={`modal-equipe-info-toggle inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-3 text-xs font-semibold transition ${infoAberta ? "bg-white text-stone-700 ring-1 ring-stone-300" : "bg-stone-800 text-white"}`}>
                   {infoAberta ? "Ocultar" : "Exibir"} <ChevronDown size={14} className={`transition duration-300 ${infoAberta ? "rotate-180" : ""}`} aria-hidden />
                 </span>
               </button>

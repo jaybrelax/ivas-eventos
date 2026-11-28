@@ -316,7 +316,7 @@ function DoseAberta({ dose, salvando, onMudar, onCancelar, onSalvar, onRemover }
           aria-label={`${ORDINAL[dose.n]} em ml`}
           aria-valuetext={`${dose.ml} ml`}
           className="dose-slider h-52 w-6 cursor-pointer accent-amber-900"
-          style={{ writingMode: "vertical-lr", direction: "rtl" } as CSSProperties}
+          style={{ writingMode: "vertical-lr", direction: "rtl", "--dose-fill": `${(dose.ml / DOSE_MAX_ML) * 100}%` } as CSSProperties}
         />
 
         {/* + em cima e − embaixo, ao lado do slider */}
@@ -380,7 +380,7 @@ function Copo({ ml, pequeno = false }: { ml: number; pequeno?: boolean }) {
       ))}
       {/* Líquido */}
       <span
-        className="absolute inset-x-0 bottom-0 transition-[height] duration-300 ease-out motion-reduce:transition-none"
+        className="dose-medidor-liquido absolute inset-x-0 bottom-0 transition-[height] duration-300 ease-out motion-reduce:transition-none"
         style={{ height: `${pct}%`, background: LIQUIDO }}
       >
         {pct > 0 && <span className="absolute inset-x-0 top-0 h-1 bg-amber-600/50" />}

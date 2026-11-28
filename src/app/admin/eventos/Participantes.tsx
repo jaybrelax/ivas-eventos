@@ -23,7 +23,7 @@ export type ItemParticipanteInscrito = PessoaParticipante & {
   /** Crédito usado na participação (ex.: "2/4") e saldo da pessoa: só para quem gerencia o evento. */
   creditoRotulo?: string | null;
   /** Pacote de origem do crédito e se foi comprado ou recebido por cessão. Só para quem gerencia. */
-  creditoOrigem?: string | null;
+  creditoOrigem?: { pacote: string; pessoa: string } | null;
   /** Como foi paga a contribuição confirmada (pix, dinheiro ou pacote). */
   forma?: FormaPagamento | null;
   saldoCredito?: { disponiveis: number; debitos: number; saldo: number } | null;

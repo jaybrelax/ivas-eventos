@@ -167,13 +167,19 @@ export default async function FichaParticipante({ params }: PageProps<"/admin/pa
                 </div>
 
                 {credito.saldo.debitosLista.length > 0 && (
-                  <div className="rounded-xl bg-red-50 p-3 ring-1 ring-red-100">
-                    <p className="mb-2 text-sm font-medium text-red-900">Participou sem crédito:</p>
-                    <ul className="space-y-1.5">
+                  <div className="debito-participante-lista rounded-xl bg-red-50 p-3.5 ring-1 ring-red-100 sm:p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-red-900">Participações sem crédito</p>
+                      <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold tabular-nums text-red-800">{credito.saldo.debitosLista.length}</span>
+                    </div>
+                    <ul className="space-y-2">
                       {credito.saldo.debitosLista.map((d) => (
-                        <li key={d.inscricaoId} className="flex flex-wrap items-center justify-between gap-2 text-sm text-red-900">
-                          <Link href={`/admin/eventos/${d.eventoId}`} className="hover:underline">{d.titulo} · {dataCurta(d.data)}</Link>
-                          <QuitarDebito inscricaoId={d.inscricaoId} temCredito={credito.saldo.disponiveis > 0} />
+                        <li key={d.inscricaoId} className="debito-participante-item flex flex-col gap-2.5 rounded-xl bg-white/70 p-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <Link href={`/admin/eventos/${d.eventoId}`} className="block text-sm font-semibold leading-snug text-red-900 hover:underline">{d.titulo}</Link>
+                            <p className="mt-0.5 text-xs tabular-nums text-red-700">{dataCurta(d.data)}</p>
+                          </div>
+                          <div className="self-end sm:shrink-0 sm:self-auto"><QuitarDebito inscricaoId={d.inscricaoId} temCredito={credito.saldo.disponiveis > 0} /></div>
                         </li>
                       ))}
                     </ul>

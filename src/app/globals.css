@@ -1220,16 +1220,16 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider {
   background: transparent;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider::-webkit-slider-runnable-track {
-  width: 5px;
+  width: 6px;
   border: 0;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.36);
+  background: linear-gradient(to top, #a56b3d 0 var(--dose-fill), #5a4850 var(--dose-fill) 100%);
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider::-moz-range-track {
-  width: 5px;
+  width: 6px;
   border: 0;
   border-radius: 999px;
-  background: rgb(255 255 255 / 0.36);
+  background: linear-gradient(to top, #a56b3d 0 var(--dose-fill), #5a4850 var(--dose-fill) 100%);
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -1238,7 +1238,7 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider::-webkit-slid
   margin-top: 0;
   border: 0;
   border-radius: 50%;
-  background: #d39a61;
+  background: #e3ad70;
   box-shadow: none;
   transform: translateX(-5px);
 }
@@ -1247,7 +1247,7 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-slider::-moz-range-t
   height: 15px;
   border: 0;
   border-radius: 50%;
-  background: #d39a61;
+  background: #e3ad70;
   box-shadow: none;
   transform: translateX(-5px);
 }
@@ -1270,6 +1270,10 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-medidor {
   border-color: #494052 !important;
   box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.35) !important;
 }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-medidor-liquido {
+  background: linear-gradient(180deg, #c17b42 0%, #a45c2f 48%, #7b3e22 100%) !important;
+  opacity: 1 !important;
+}
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .dose-medidor-reflexo {
   background-color: rgb(255 255 255 / 0.36) !important;
 }
@@ -1279,8 +1283,8 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-primeira-vez {
   box-shadow: none !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-contribuicao-toggle {
-  background-color: #342a42 !important;
-  color: #e5d8f4 !important;
+  background-color: #30283d !important;
+  color: #e6d7f5 !important;
   border: 0 !important;
   outline: 0 !important;
   box-shadow: none !important;
@@ -1289,12 +1293,18 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-contribuicao-toggle
   --tw-ring-offset-shadow: 0 0 transparent !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-contribuicao-toggle:hover {
-  background-color: #3d3150 !important;
+  background-color: #3b304c !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-card {
   background-color: #292332 !important;
   color: #f4efff !important;
   --tw-ring-color: transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-credito-card {
+  background-color: #352b45 !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-credito-origem {
+  border-color: rgb(230 215 245 / 0.12) !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-pendente-card {
   background-color: #25202d !important;
@@ -1302,6 +1312,33 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-status-pendente-car
   --tw-ring-color: transparent !important;
   box-shadow: none !important;
 }
+html[data-tema-ivas="escuro"] .debito-participante-lista {
+  background: #29222b !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+}
+html[data-tema-ivas="escuro"] .debito-participante-item {
+  background: #211c29 !important;
+  border: 0 !important;
+}
+html[data-tema-ivas="escuro"] .debito-participante-lista .text-red-900 { color: #f4dddf !important; }
+html[data-tema-ivas="escuro"] .debito-participante-lista .text-red-700 { color: #bdadb8 !important; }
+html[data-tema-ivas="escuro"] .debito-participante-lista .text-red-800 { color: #f0c6cb !important; }
+.debito-participante-lista .btn-secundario {
+  background: #eee5f8;
+  border-color: #d9c5ed;
+  color: #553477;
+}
+.debito-participante-lista .btn-secundario:hover:not(:disabled) { background: #e5d5f5; }
+.debito-participante-lista .btn-secundario:disabled { opacity: 0.78; }
+html[data-tema-ivas="escuro"] .debito-participante-lista .btn-secundario {
+  background: #3c2f51 !important;
+  border-color: transparent !important;
+  color: #e1cdf5 !important;
+  box-shadow: none !important;
+}
+html[data-tema-ivas="escuro"] .debito-participante-lista .btn-secundario:hover:not(:disabled) { background: #49395f !important; }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-atalho,
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-dados-botao {
   border-color: transparent !important;
@@ -1335,6 +1372,14 @@ html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-informacoes-toggle 
   --tw-ring-offset-shadow: 0 0 transparent !important;
 }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-informacoes-toggle:hover { background: #3a3048 !important; }
+html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-equipe-info-toggle {
+  background: #30283b !important;
+  color: #dfd0f1 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  --tw-ring-shadow: 0 0 transparent !important;
+}
+html[data-tema-ivas="escuro"] .modal-inscricao-painel button:hover .modal-equipe-info-toggle { background: #3a3048 !important; }
 html[data-tema-ivas="escuro"] .modal-inscricao-painel .modal-historico-icone {
   border: 0 !important;
   outline: 0 !important;
