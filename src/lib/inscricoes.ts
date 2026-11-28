@@ -137,7 +137,7 @@ export async function inscricoesComEventos(usuarioId: string): Promise<ItemInscr
  * Aplica as vagas pela ordem de chegada: confirma até o limite, o que passar vai para a espera.
  * Roda depois de qualquer mudança (inscrição, cancelamento, ajuste de vagas).
  */
-export async function reorganizarInscricoes(evento: Pick<Evento, "$id" | "vagas_participantes">, alteradoPor: string | null) {
+export async function reorganizarInscricoes(evento: Pick<Evento, "$id" | "vagas_participantes">, alteradoPor: string | null, pularCreditoUsuarioId?: string) {
   const { tablesDB } = createAdminClient();
   const vagas = vagasParticipantesDe(evento);
   const ativas = await inscricoesDoEvento(evento.$id);
@@ -151,7 +151,7 @@ export async function reorganizarInscricoes(evento: Pick<Evento, "$id" | "vagas_
       (deveSer === "confirmada" ? promovidas : rebaixadas).push(insc);
     }
   }
-  await ajustarCreditos(evento.$id, promovidas, rebaixadas, alteradoPor);
+  await ajustarCreditos(evento.$id, promovidas, rebaixadas, alteradoPor, pularCreditoUsuarioId);
 }
 
 /**
@@ -159,7 +159,7 @@ export async function reorganizarInscricoes(evento: Pick<Evento, "$id" | "vagas_
  * contribuição avulsa ainda está em aberto); quem volta para a espera devolve o crédito. A inscrição nova entra
  * como "espera" e é promovida aqui, então este é o único ponto de consumo. Nunca derruba a inscrição.
  */
-async function ajustarCreditos(eventoId: string, promovidas: Inscricao[], rebaixadas: Inscricao[], alteradoPor: string | null) {
+async function ajustarCreditos(eventoId: string, promovidas: Inscricao[], rebaixadas: Inscricao[], alteradoPor: string | null, pularCreditoUsuarioId?: string) {
   if (!promovidas.length && !rebaixadas.length) return;
   try {
     const evento = await getEvento(eventoId);
@@ -169,7 +169,7 @@ async function ajustarCreditos(eventoId: string, promovidas: Inscricao[], rebaix
     for (const insc of rebaixadas) if (insc.credito_id) await devolverCredito(insc, alteradoPor ?? insc.usuario_id);
     for (const insc of promovidas) {
       // No mês do aniversário, a pessoa escolhe entre o bônus e o pacote no modal.
-      if (!(await deveAguardarEscolhaDoBonus(insc.usuario_id, evento, tipo))) await consumirCredito(insc.$id, alteradoPor ?? insc.usuario_id);
+      if (insc.usuario_id !== pularCreditoUsuarioId && !(await deveAguardarEscolhaDoBonus(insc.usuario_id, evento, tipo))) await consumirCredito(insc.$id, alteradoPor ?? insc.usuario_id);
     }
   } catch (e) {
     console.error("Créditos da inscrição:", e instanceof Error ? e.message : e);
@@ -230,13 +230,13 @@ async function sairDaFila(eventoId: string, usuarioId: string, alteradoPor: stri
 export type Resultado = { ok?: string; erro?: string };
 
 /** A própria pessoa confirma presença. */
-export async function inscrever(evento: Evento, tipo: TipoEvento | undefined, usuarioId: string): Promise<Resultado> {
+export async function inscrever(evento: Evento, tipo: TipoEvento | undefined, usuarioId: string, usarCredito = true): Promise<Resultado> {
   if (!aceitaParticipantes(tipo)) return { erro: "Este evento não está aberto para inscrição pública." };
   if (evento.candidaturas_abertas === false) return { erro: "As inscrições deste evento estão fechadas." };
   if (inicioDe(evento).getTime() <= Date.now()) return { erro: "Este evento já começou." };
   const r = await entrarNaFila(evento.$id, usuarioId, usuarioId, "inscricao");
   if (r.jaEstava) return { erro: "Você já está inscrito neste evento." };
-  await reorganizarInscricoes(evento, usuarioId);
+  await reorganizarInscricoes(evento, usuarioId, usarCredito ? undefined : usuarioId);
   const minha = await inscricaoDe(evento.$id, usuarioId);
   return minha?.situacao === "confirmada"
     ? { ok: minha.pagamento === "credito" ? "Participação confirmada com 1 crédito!" : "Participação confirmada!" }

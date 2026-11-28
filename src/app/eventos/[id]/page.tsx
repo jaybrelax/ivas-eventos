@@ -4,7 +4,7 @@ import { getDadosInstituto, getEvento } from "@/lib/data";
 import { urlPublicaEvento } from "@/lib/links";
 import { PaginaEvento, metadadosEvento } from "../PaginaEvento";
 
-type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ participar?: string; pagar?: string }> };
+type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ participar?: string; pagar?: string; contribuir?: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return metadadosEvento(await getEvento((await params).id));
@@ -19,6 +19,7 @@ export default async function PaginaEventoPublico({ params, searchParams }: Prop
   const sp = await searchParams;
   const participar = sp.participar === "1";
   const pagar = sp.pagar === "1";
-  if (url.startsWith("/ritual/")) permanentRedirect(participar ? `${url}?participar=1` : pagar ? `${url}?pagar=1` : url);
-  return <PaginaEvento evento={evento} abrirParticipacao={participar} abrirPagamento={pagar} />;
+  const contribuir = sp.contribuir === "1";
+  if (url.startsWith("/ritual/")) permanentRedirect(participar ? `${url}?participar=1` : pagar ? `${url}?pagar=1` : contribuir ? `${url}?contribuir=1` : url);
+  return <PaginaEvento evento={evento} abrirParticipacao={participar} abrirPagamento={pagar} abrirContribuicao={contribuir} />;
 }

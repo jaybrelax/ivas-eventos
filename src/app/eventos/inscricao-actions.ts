@@ -26,11 +26,11 @@ function revalidar(eventoId: string, numero?: number | null) {
 }
 
 /** A pessoa logada (equipe ou participante) confirma presença num evento aberto ao público. */
-export async function confirmarParticipacaoAction(eventoId: string): Promise<Resultado> {
+export async function confirmarParticipacaoAction(eventoId: string, usarCredito = true): Promise<Resultado> {
   const u = await exigirSessao(`/eventos/${eventoId}`);
   const { evento, tipo } = await contexto(eventoId);
   if (!evento) return { erro: "Evento não encontrado." };
-  const r = await inscrever(evento, tipo, u.id);
+  const r = await inscrever(evento, tipo, u.id, usarCredito);
   revalidar(eventoId, evento.ritual_numero_geral);
   return r;
 }

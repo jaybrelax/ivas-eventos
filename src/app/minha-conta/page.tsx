@@ -100,12 +100,13 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
         {aba === "proximos" && (
           <>
             <section aria-labelledby="titulo-proximas">
-              <h2 id="titulo-proximas" className="mb-4 text-lg font-semibold tracking-tight text-stone-900">Próximas participações</h2>
+              <h2 id="titulo-proximas" className="mb-4 text-lg font-semibold tracking-tight text-stone-900">Inscrições confirmadas</h2>
               <Lista
                 vazio="Você ainda não confirmou participação em nenhum ritual futuro."
                 itens={proximos}
                 mostrarPagamento
                 cancelar
+                ocultarSituacao
               />
             </section>
 
@@ -144,12 +145,13 @@ export default async function MinhaContaPage({ searchParams }: PageProps<"/minha
   );
 }
 
-function Lista({ itens, vazio, mostrarPagamento, cancelar = false, historico = false }: { itens: ItemInscricao[]; vazio: string; mostrarPagamento: boolean; cancelar?: boolean; historico?: boolean }) {
+function Lista({ itens, vazio, mostrarPagamento, cancelar = false, historico = false, ocultarSituacao = false }: { itens: ItemInscricao[]; vazio: string; mostrarPagamento: boolean; cancelar?: boolean; historico?: boolean; ocultarSituacao?: boolean }) {
   if (!itens.length) return <p className="cartao text-center text-sm text-stone-400">{vazio}</p>;
   return (
     <ul className="space-y-2.5">
       {itens.map((i) => (
         <li key={i.inscricaoId} className="cartao !p-4">
+          {!ocultarSituacao && <div className="mb-3"><span className={`chip ${SITUACAO[i.situacao].cor}`}>{SITUACAO[i.situacao].rotulo}</span></div>}
           {historico && <Link href={`/minha-conta/participacao/${i.inscricaoId}`} className="mb-2 block text-base font-semibold leading-snug text-stone-900 hover:text-mata-700 hover:underline sm:hidden">{i.titulo}</Link>}
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
@@ -170,13 +172,11 @@ function Lista({ itens, vazio, mostrarPagamento, cancelar = false, historico = f
                   <span>{dataCurta(i.data).slice(-4)}</span><span aria-hidden>·</span><span>{i.hora}</span>
                 </p>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5 sm:hidden">
-                  <span className={`chip ${SITUACAO[i.situacao].cor}`}>{SITUACAO[i.situacao].rotulo}</span>
                   {mostrarPagamento && i.temContribuicao && <span className={`chip ${PAGAMENTO[i.pagamento].cor}`}>{PAGAMENTO[i.pagamento].rotulo}</span>}
                 </div>
               </div>
             </div>
             <div className="hidden flex-wrap items-center gap-1.5 sm:flex">
-              <span className={`chip ${SITUACAO[i.situacao].cor}`}>{SITUACAO[i.situacao].rotulo}</span>
               {mostrarPagamento && i.temContribuicao && (
                 <span className={`chip ${PAGAMENTO[i.pagamento].cor}`}>{PAGAMENTO[i.pagamento].rotulo}</span>
               )}
@@ -192,8 +192,8 @@ function Lista({ itens, vazio, mostrarPagamento, cancelar = false, historico = f
                   {i.pagamento !== "credito" && i.pagamento !== "aniversario" && i.valor != null && <span className="text-sm font-medium text-stone-600">Contribuição: <strong className="text-stone-900">{formatoReal(i.valor)}</strong></span>}
                   {i.comprovante && <BotaoComprovante id={i.comprovante} />}
                   {i.situacao === "confirmada" && (i.pagamento === "pendente" || i.pagamento === "na_hora" || (i.pagamento === "informado" && !i.comprovante)) && (
-                    <Link href={`${i.url}?pagar=1`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98] sm:w-fit">
-                      <Receipt size={16} /> {i.pagamento === "informado" ? "Anexar comprovante" : "Informar contribuição"}
+                    <Link href={`${i.url}?${i.pagamento === "informado" ? "pagar=1" : "contribuir=1"}`} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 active:scale-[0.98] sm:w-fit">
+                      <Receipt size={16} /> {i.pagamento === "informado" ? "Informar comprovante" : "Realizar contribuição"}
                     </Link>
                   )}
                 </div>

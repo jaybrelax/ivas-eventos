@@ -98,7 +98,7 @@ function TituloSecao({ sobre, titulo, icone: Icone }: { sobre: string; titulo: s
 }
 
 /** Página pública de um evento. Usada por /ritual/[numero] e /evento/[id]. */
-export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPagamento = false }: { evento: Evento; abrirParticipacao?: boolean; abrirPagamento?: boolean }) {
+export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPagamento = false, abrirContribuicao = false }: { evento: Evento; abrirParticipacao?: boolean; abrirPagamento?: boolean; abrirContribuicao?: boolean }) {
   const [{ tipos, tags, enderecos, telefones, redes, pix, instituto }, equipe] = await Promise.all([getDadosInstituto(), listarEquipe()]);
 
   const hj = hoje();
@@ -167,8 +167,9 @@ export async function PaginaEvento({ evento, abrirParticipacao = false, abrirPag
   const urlAtual = urlPublicaEvento(evento, tipo);
   const participar = {
     eventoId: evento.$id,
-    abrirAoCarregar: abrirParticipacao || abrirPagamento,
+    abrirAoCarregar: abrirParticipacao || abrirPagamento || abrirContribuicao,
     abrirNoComprovante: abrirPagamento,
+    abrirOpcoesContribuicao: abrirContribuicao,
     ehRitual: ritual,
     chavePix: ritual ? (pix.find((c) => c.padrao) ?? pix[0] ?? null) : null,
     tituloEvento: evento.titulo,

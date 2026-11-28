@@ -86,7 +86,7 @@ export function SeletorTema({ compacto = false, painel = false, lateral = false,
       </button>
       {aberto && (
         <div role={inline ? "group" : "dialog"} aria-label="Escolher aparência" className={inline
-          ? `mt-1.5 w-full animate-surgir rounded-xl border p-1.5 ${painel ? "border-white/10 bg-white/[0.04]" : "border-stone-200 bg-stone-50"}`
+          ? `seletor-tema-inline-menu mt-1.5 w-full animate-surgir rounded-xl border p-1.5 ${painel ? "border-white/10 bg-white/[0.04]" : "border-stone-200 bg-stone-50"}`
           : `absolute z-[70] w-48 animate-surgir rounded-2xl border p-1.5 shadow-elevado ${lateral ? "right-full top-0 mr-2" : "right-0 bottom-full mb-2"} ${painel ? "border-white/10 bg-mata-950" : "border-stone-200 bg-white"}`}>
           {!inline && <p className={`px-3 pt-2 pb-1 text-xs font-semibold tracking-wide uppercase ${painel ? "text-mata-300" : "text-stone-500"}`}>Aparência</p>}
           {OPCOES.map(({ id, rotulo, Icone }) => (

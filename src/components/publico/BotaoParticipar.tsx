@@ -28,6 +28,8 @@ type Props = {
   abrirAoCarregar?: boolean;
   /** Abre já na etapa de anexar o comprovante da contribuição (link "Avisar contribuição" de Minhas inscrições). */
   abrirNoComprovante?: boolean;
+  /** Abre as opções de contribuição, inclusive quando a pessoa já havia escolhido pagar no dia. */
+  abrirOpcoesContribuicao?: boolean;
   tituloEvento: string;
   dataEvento: string; // Ex: "Sábado, 17 de Outubro"
   /** Data do card do modal, compacta: "Sábado, 17/10/2026". */
@@ -86,6 +88,7 @@ export function BotaoParticipar({
   eventoId,
   abrirAoCarregar = false,
   abrirNoComprovante = false,
+  abrirOpcoesContribuicao = false,
   logado,
   urlAtual,
   podeInscrever,
@@ -124,6 +127,7 @@ export function BotaoParticipar({
     const url = new URL(window.location.href);
     url.searchParams.delete("participar");
     url.searchParams.delete("pagar");
+    url.searchParams.delete("contribuir");
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
   }, [abrirAoCarregar, abrirNoComprovante]);
 
@@ -161,7 +165,7 @@ export function BotaoParticipar({
   const podeAnexarComprovante = minhaInscricao?.situacao === "confirmada" &&
     !minhaInscricao.temComprovante && ["pendente", "informado", "na_hora"].includes(minhaInscricao.pagamento);
   const etapa = !logado || !minhaInscricao ? "participacao" : (minhaInscricao.situacao === "confirmada" && (
-    exigeContribuicao && minhaInscricao.pagamento === "pendente" || podeEscolherBonus || (pagando && podeAnexarComprovante)
+    exigeContribuicao && minhaInscricao.pagamento === "pendente" || podeEscolherBonus || (pagando && podeAnexarComprovante) || abrirOpcoesContribuicao
   )) && !mostrarResultado
     ? "contribuicao" : "resultado";
   const miniaturaId = etapa === "resultado" ? fotoLocal ?? capaEvento : capaEvento ?? fotoLocal;
@@ -180,7 +184,7 @@ export function BotaoParticipar({
         <div role="dialog" aria-modal="true" className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="fixed inset-0 bg-stone-950/80 backdrop-blur-sm transition-opacity" onClick={fechar} />
 
-          <div ref={modalRef} className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg animate-surgir overflow-y-auto rounded-3xl border border-stone-200/90 bg-white p-6 shadow-2xl sm:p-8">
+          <div ref={modalRef} className="relative z-10 max-h-[calc(100dvh-2rem)] w-full max-w-lg animate-surgir overflow-y-auto rounded-3xl border border-stone-200/90 bg-white p-4 shadow-2xl sm:p-8">
             <button
               type="button"
               onClick={fechar}
@@ -191,11 +195,11 @@ export function BotaoParticipar({
             </button>
 
             <div className="flex items-center gap-3">
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-ouro-100 text-ouro-700">
+              <span className="publico-participar-cabecalho-icone grid h-12 w-12 place-items-center rounded-2xl bg-ouro-100 text-ouro-700">
                 <ShieldCheck size={24} />
               </span>
               <div>
-                <span className="text-[11px] font-semibold tracking-wider text-ouro-700 uppercase">Inscrições & Presença</span>
+                <span className="publico-participar-cabecalho-label text-[11px] font-semibold tracking-wider text-ouro-700 uppercase">Inscrições & Presença</span>
                 <h3 className="font-display text-xl font-bold text-stone-900">{ehRitual ? "Participar do ritual" : "Participar do encontro"}</h3>
               </div>
             </div>
@@ -203,7 +207,7 @@ export function BotaoParticipar({
             {etapa === "resultado" && minhaInscricao && <StatusInscricao inscricao={minhaInscricao} />}
 
             {(etapa === "participacao" || etapa === "resultado") && (
-              <div className={`mt-5 flex items-center gap-3 rounded-2xl bg-stone-50 p-4 ring-1 ring-stone-200/70 ${etapa === "resultado" ? "animate-surgir [animation-delay:0.15s]" : ""}`}>
+              <div className={`mt-5 flex items-center gap-3 rounded-2xl bg-stone-50 p-3 sm:p-4 ring-1 ring-stone-200/70 ${etapa === "resultado" ? "animate-surgir [animation-delay:0.15s]" : ""}`}>
                 {miniaturaId && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={urlImagem(miniaturaId, 160)} width={64} height={64} decoding="async" alt={miniaturaAlt} className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-stone-200" />
@@ -230,7 +234,6 @@ export function BotaoParticipar({
                     motivoBloqueio={motivoBloqueio}
                     vagasLivres={vagasLivres}
                     linkWhatsApp={linkWhatsApp}
-                    creditos={ehRitual ? creditos : null}
                   />
                 )}
               </div>
@@ -298,10 +301,9 @@ function SemSessao({ next, linkWhatsApp }: { next: string; linkWhatsApp: string 
 }
 
 function SemInscricao({
-  eventoId, podeInscrever, motivoBloqueio, vagasLivres, linkWhatsApp, creditos,
+  eventoId, podeInscrever, motivoBloqueio, vagasLivres, linkWhatsApp,
 }: {
   eventoId: string; podeInscrever: boolean; motivoBloqueio?: string | null; vagasLivres: number; linkWhatsApp: string;
-  creditos: { disponiveis: number; saldo: number } | null;
 }) {
   const router = useRouter();
   const [pendente, iniciar] = useTransition();
@@ -328,26 +330,12 @@ function SemInscricao({
           ? `${vagasLivres} vaga${vagasLivres > 1 ? "s" : ""} disponíve${vagasLivres > 1 ? "is" : "l"}.`
           : "As vagas estão preenchidas: você entrará na lista de espera e será avisado se alguém sair."}
       </p>
-      {creditos && creditos.disponiveis > 0 && (
-        <p className="flex items-start gap-2 rounded-xl bg-violet-50 px-3.5 py-2.5 text-[13px] leading-snug text-violet-900 ring-1 ring-violet-200/70">
-          <Ticket size={16} className="mt-0.5 shrink-0" aria-hidden />
-          <span>{vagasLivres > 0 ? "Ao confirmar, será usado " : "Quando você garantir a vaga, será usado "}<strong>1 dos seus {creditos.disponiveis} {creditos.disponiveis === 1 ? "crédito" : "créditos"}</strong>. Se cancelar, ele volta para você.</span>
-        </p>
-      )}
-      {creditos && creditos.saldo < 0 && (
-        <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-[13px] leading-snug text-red-800 ring-1 ring-red-200">
-          Seu saldo de créditos está negativo ({creditos.saldo}). Veja em <a href="/minha-conta?aba=creditos" className="font-semibold underline">Minha conta</a> e fale com a coordenação.
-        </p>
-      )}
-      {creditos && creditos.disponiveis === 0 && (
-        <p className="text-center text-xs text-stone-500">Quer participar com crédito? <a href="/minha-conta?aba=creditos" className="font-semibold text-mata-700 underline">Comprar um pacote</a></p>
-      )}
       <button
         type="button"
         disabled={pendente}
         onClick={() =>
           iniciar(async () => {
-            const r = await confirmarParticipacaoAction(eventoId);
+            const r = await confirmarParticipacaoAction(eventoId, false);
             if (r.erro) setMsg(r);
             // A inscrição atualizada determina se a próxima etapa é a contribuição ou o resultado.
             if (r.ok) router.refresh();
@@ -471,26 +459,85 @@ function PagamentoBloco({
   const [pendente, iniciar] = useTransition();
   const [msg, setMsg] = useState<{ ok?: string; erro?: string }>();
   const [mostrarPix, setMostrarPix] = useState(false);
-  const [naHoraSelecionada, setNaHoraSelecionada] = useState(false);
+  const [naHoraSelecionada, setNaHoraSelecionada] = useState(pagamentoAtual === "na_hora");
   const { local, erro: erroFoto, otimizando, escolher } = useImagem("comprovante");
   const podeAnexar = !temComprovante && ["pendente", "informado", "na_hora"].includes(pagamentoAtual);
 
   const cabecalho = (
     <p className="flex items-center justify-between text-sm font-semibold text-stone-800">
       <span className="flex items-center gap-1.5"><Receipt size={15} className="text-ouro-600" /> Contribuição</span>
-      <span className="text-3xl leading-none font-extrabold tracking-tight text-ouro-700 tabular-nums">{formatoReal(valorContribuicao)}</span>
+      <span className="flex items-baseline gap-1 text-3xl leading-none font-extrabold tracking-tight text-ouro-700 tabular-nums">
+        <span className="text-base font-bold">R$</span>
+        <span>{Math.round(valorContribuicao).toLocaleString("pt-BR")}</span>
+      </span>
     </p>
   );
 
   // Escolha: contribuir agora (Pix), já fiz a contribuição (anexa o comprovante) ou vou contribuir na hora
   if (!abrirForm) {
-    const opcao = "flex min-h-14 w-full items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition active:scale-[0.99] disabled:opacity-60";
+    const opcao = "flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-xl border px-3.5 py-2.5 text-left transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60";
     return (
-      <div className="space-y-3 rounded-2xl border border-ouro-200/80 bg-gradient-to-br from-ouro-50/60 to-white p-4">
+      <div className="publico-pagamento-escolha space-y-3 rounded-2xl bg-gradient-to-br from-ouro-50/60 to-white p-4">
         {cabecalho}
+        {mostrarPix ? (
+          <div className="space-y-2.5">
+            {chavePix ? (
+              <CartaoPix chave={chavePix} valor={valorContribuicao} exibirChave={false} onFechar={() => setMostrarPix(false)} />
+            ) : (
+              <div className="rounded-xl bg-stone-50 px-3.5 py-2.5 text-xs text-stone-600 ring-1 ring-stone-200">
+                <div className="mb-2 flex justify-end"><button type="button" onClick={() => setMostrarPix(false)} aria-label="Voltar às opções de contribuição" className="grid h-8 w-8 place-items-center rounded-full text-stone-500 hover:bg-stone-200"><X size={17} /></button></div>
+                A chave Pix ainda não foi cadastrada. Fale com a coordenação.
+              </div>
+            )}
+            {chavePix && <>
+              <p className="text-center text-xs leading-relaxed text-stone-500">Após o pagamento, anexe o comprovante no botão abaixo</p>
+              <button
+                type="button"
+                disabled={pendente || !podeAnexar}
+                onClick={() => { setNaHoraSelecionada(false); setAbrirForm(true); }}
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ImagePlus size={16} /> Anexar comprovante do Pix
+              </button>
+              <button
+                type="button"
+                disabled={pendente || pagamentoAtual === "informado" || temComprovante}
+                onClick={() => iniciar(async () => {
+                  const fd = new FormData();
+                  fd.set("valor", String(valorContribuicao));
+                  const r = await informarPagamentoAction(eventoId, inscricaoId, fd);
+                  setMsg(r);
+                  if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
+                })}
+                className="flex min-h-10 w-full items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-stone-500 transition hover:text-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {pendente ? "Enviando…" : <><Check size={15} aria-hidden /> Informar sem comprovante</>}
+              </button>
+            </>}
+          </div>
+        ) : (
+          <>
         <p className="text-xs text-stone-500">Escolha como deseja registrar a contribuição:</p>
 
         <div className="space-y-2">
+          {pagamentoAtual !== "credito" && creditosDisponiveis > 0 && (
+            <button
+              type="button"
+              disabled={pendente}
+              onClick={() => iniciar(async () => {
+                const r = await usarCreditoDoParticipanteAction(eventoId, inscricaoId);
+                setMsg(r);
+                if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
+              })}
+              className={`${opcao} publico-aviso-credito border-violet-200 bg-violet-50/70 hover:border-violet-300`}
+            >
+              <span className="publico-aviso-credito-icone-wrap relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-violet-600 text-white"><Ticket size={19} className="publico-aviso-credito-icone" aria-hidden /></span>
+              <span className="relative z-10 min-w-0 flex-1 text-left">
+                <span className="publico-aviso-credito-titulo block text-sm font-bold text-violet-950">Usar um crédito do seu pacote</span>
+                <span className="publico-aviso-credito-detalhe block text-xs text-violet-800/80">Seu saldo atual: {creditosDisponiveis - 1}.</span>
+              </span>
+            </button>
+          )}
           {bonusAniversario?.disponivel && (
             <button
               type="button"
@@ -515,67 +562,16 @@ function PagamentoBloco({
               <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-violet-950">Manter crédito de pacote</span><span className="block text-xs text-violet-800/80">Este ritual já está confirmado com 1 crédito.</span></span>
             </button>
           )}
-          {pagamentoAtual !== "credito" && creditosDisponiveis > 0 && (
-            <button
-              type="button"
-              disabled={pendente}
-              onClick={() => iniciar(async () => {
-                const r = await usarCreditoDoParticipanteAction(eventoId, inscricaoId);
-                setMsg(r);
-                if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
-              })}
-              className={`${opcao} border-violet-200 bg-violet-50/70 hover:border-violet-300`}
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-700"><Ticket size={18} aria-hidden /></span>
-              <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-violet-950">Usar 1 crédito de pacote</span><span className="block text-xs text-violet-800/80">Você tem {creditosDisponiveis} {creditosDisponiveis === 1 ? "crédito disponível" : "créditos disponíveis"}.</span></span>
-            </button>
-          )}
-          <button type="button" onClick={() => { setNaHoraSelecionada(false); setMostrarPix((v) => !v); }} aria-expanded={mostrarPix} className={`${opcao} ${mostrarPix ? "border-emerald-500 bg-emerald-50/70" : "border-stone-200 bg-white hover:border-stone-300"}`}>
+          <button type="button" onClick={() => { setNaHoraSelecionada(false); setMostrarPix(true); }} className={`${opcao} border-stone-200 bg-white hover:border-stone-300`}>
             <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><QrCode size={18} /></span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-stone-900">Contribuir agora</span>
-              <span className="block text-xs text-stone-500">Pague com QR Code ou Pix copiar e colar</span>
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-bold text-stone-900">Contribuir via Pix</span>
+                {creditosDisponiveis <= 0 && <span className="publico-opcao-recomendado rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">Recomendado</span>}
+              </span>
+              <span className="block text-xs text-stone-500">Anexe o comprovante para finalizar.</span>
             </span>
           </button>
-          {mostrarPix && (
-            <div className="space-y-2.5">
-              {chavePix ? <CartaoPix chave={chavePix} valor={valorContribuicao} exibirChave={false} /> : <p className="rounded-xl bg-stone-50 px-3.5 py-2.5 text-xs text-stone-600 ring-1 ring-stone-200">A chave Pix ainda não foi cadastrada. Fale com a coordenação.</p>}
-              <p className="text-xs text-stone-500">Você pode anexar o comprovante agora ou informar sem anexo e enviá-lo depois em Minha conta → Participações.</p>
-              <button
-                type="button"
-                disabled={pendente || !podeAnexar}
-                onClick={() => { setNaHoraSelecionada(false); setAbrirForm(true); }}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50 disabled:opacity-50"
-              >
-                <ImagePlus size={16} /> Anexar comprovante do Pix
-              </button>
-              <button
-                type="button"
-                disabled={pendente || !chavePix || pagamentoAtual === "informado" || temComprovante}
-                onClick={() =>
-                  iniciar(async () => {
-                    const fd = new FormData();
-                    fd.set("valor", String(valorContribuicao));
-                    const r = await informarPagamentoAction(eventoId, inscricaoId, fd);
-                    setMsg(r);
-                    if (r.ok) { onContribuicaoConcluida(); router.refresh(); }
-                  })
-                }
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-md transition hover:bg-emerald-700 active:scale-[0.98] disabled:opacity-60"
-              >
-                {pendente ? <><Upload size={15} className="animate-pulse" /> Enviando…</> : <><Check size={17} strokeWidth={2.6} /> Informar sem comprovante</>}
-              </button>
-            </div>
-          )}
-
-          <button type="button" onClick={() => { setNaHoraSelecionada(false); setAbrirForm(true); }} className={`${opcao} border-stone-200 bg-white hover:border-stone-300`}>
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-100 text-emerald-700"><Check size={18} strokeWidth={2.6} /></span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-stone-900">Já fiz a contribuição</span>
-              <span className="block text-xs text-stone-500">Anexe o comprovante para a coordenação confirmar</span>
-            </span>
-          </button>
-
           <button
             type="button"
             disabled={pendente}
@@ -585,10 +581,15 @@ function PagamentoBloco({
           >
             <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${naHoraSelecionada ? "bg-emerald-600 text-white" : "bg-emerald-100 text-emerald-700"}`}>{naHoraSelecionada ? <Check size={18} strokeWidth={2.6} /> : <Clock3 size={18} />}</span>
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-stone-900">Vou contribuir na hora</span>
-              <span className="block text-xs text-stone-500">{naHoraSelecionada ? "Contribuo no dia do ritual. Toque em Finalizar para continuar." : "Contribuo no dia do ritual"}</span>
+              <span className="block text-sm font-bold text-stone-900">Vou pagar em dinheiro</span>
+              <span className="block text-xs text-stone-500">Contribuo no dia do ritual</span>
             </span>
           </button>
+          <div className="pt-2">
+            <button type="button" onClick={() => { setNaHoraSelecionada(false); setAbrirForm(true); }} className="flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-medium text-stone-500 transition hover:bg-stone-100/70 hover:text-stone-700">
+              <Check size={14} aria-hidden /> Já fiz a contribuição
+            </button>
+          </div>
         </div>
 
         {naHoraSelecionada && (
@@ -604,6 +605,8 @@ function PagamentoBloco({
           >
             <Check size={18} /> {pendente ? "Finalizando…" : "Finalizar"}
           </button>
+        )}
+          </>
         )}
 
         {msg?.erro && <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700 ring-1 ring-red-200">{msg.erro}</p>}
@@ -628,7 +631,7 @@ function PagamentoBloco({
         });
       }}
     >
-      <div className="space-y-3 rounded-2xl border border-ouro-200/80 bg-gradient-to-br from-ouro-50/60 to-white p-4">
+      <div className="publico-pagamento-escolha space-y-3 rounded-2xl bg-gradient-to-br from-ouro-50/60 to-white p-4">
         {cabecalho}
         <label className={`flex min-h-28 w-full cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed px-4 py-4 text-center transition ${local ? "border-emerald-400 bg-emerald-50/60" : "border-emerald-300 bg-white hover:border-emerald-500 hover:bg-emerald-50/40"}`}>
           {local ? (

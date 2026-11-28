@@ -55,7 +55,7 @@ export function MenuUsuario({
       </button>
 
       {aberto && (
-        <div role="menu" className="absolute top-full right-0 z-30 mt-2 w-56 animate-surgir rounded-2xl border border-stone-200 bg-white p-1.5 shadow-elevado">
+        <div role="menu" className="menu-usuario-painel absolute top-full right-0 z-30 mt-2 w-56 animate-surgir rounded-2xl border border-stone-200 bg-white p-1.5 shadow-elevado">
           <Link
             href="/minha-conta/dados"
             role="menuitem"
@@ -135,13 +135,15 @@ export function MenuUsuario({
             </>
           )}
           <div className="my-1 h-px bg-stone-100" />
-          <SeletorTema inline />
+          <div className="menu-usuario-tema">
+            <SeletorTema inline />
+          </div>
           <div className="my-1 h-px bg-stone-100" />
           <form action={sair}>
             <button
               type="submit"
               role="menuitem"
-              className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-red-700 transition hover:bg-red-50"
+              className="menu-usuario-sair flex w-full items-center justify-end gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-700 transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-mata-500"
             >
               <LogOut size={16} /> Sair
             </button>
